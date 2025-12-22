@@ -1,0 +1,8 @@
+node_modules
+dist
+build
+apps/*/dist
+packages/db/prisma/generated
+apps/web/src/routeTree.gen.ts
+old_project
+apps/server/src/web/embedded-assets.generated.ts
