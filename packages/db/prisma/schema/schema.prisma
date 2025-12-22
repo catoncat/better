@@ -1,0 +1,233 @@
+generator client {
+  provider     = "prisma-client-js"
+  output       = "../generated/client"
+  moduleFormat = "esm"
+  runtime      = "bun"
+}
+
+generator prismabox {
+  provider                    = "prismabox"
+  typeboxImportDependencyName = "elysia"
+  typeboxImportVariableName   = "t"
+  inputModel                  = true
+  output                      = "../generated/prismabox"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum UserRole {
+  admin
+  supervisor
+  workshop_supervisor
+  technician
+  operator
+}
+
+enum CalibrationType {
+  internal
+  external
+}
+
+enum NotificationStatus {
+  unread
+  read
+}
+
+enum NotificationPriority {
+  low
+  normal
+  high
+}
+
+model User {
+  id                      String  @id @default(cuid())
+  username                String? @unique
+  passwordHash            String?
+  name                    String
+  email                   String  @unique
+  emailVerified           Boolean @default(false)
+  role                    UserRole @default(operator)
+  department              String?
+  phone                   String?
+  isActive                Boolean @default(true)
+  enableWecomNotification Boolean @default(true)
+  image                   String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  sessions                  Session[]
+  accounts                  Account[]
+  ownedInstruments          Instrument[]
+  calibrationRecordsOperated CalibrationRecord[] @relation("CalibrationOperator")
+  calibrationRecordsCreated  CalibrationRecord[] @relation("CalibrationCreatedBy")
+  notifications             Notification[]
+  systemLogs                SystemLog[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model Instrument {
+  id           String  @id @default(cuid())
+  instrumentNo String  @unique
+  manufacturer String?
+  model        String?
+  description  String?
+  serialNo     String?
+  department   String?
+
+  ownerId String?
+  owner   User?   @relation(fields: [ownerId], references: [id])
+
+  lastCalibrationDate DateTime?
+  intervalDays        Int?
+  reminderDays        Int?
+  calibrationType     CalibrationType?
+  nextCalibrationDate DateTime?
+
+  remarks String?
+  status  String?
+
+  calibrationRecords CalibrationRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([nextCalibrationDate])
+  @@map("instruments")
+}
+
+model CalibrationRecord {
+  id           String @id @default(cuid())
+
+  instrumentId String
+  instrument   Instrument @relation(fields: [instrumentId], references: [id], onDelete: Cascade)
+
+  calibrationType   CalibrationType
+  performedAt         DateTime
+  nextCalibrationDate DateTime?
+
+  result         String?
+  certificateNo  String?
+  certificateUrl String?
+  attachments    Json
+  providerName   String?
+
+  operatorId String?
+  operator   User?   @relation("CalibrationOperator", fields: [operatorId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation("CalibrationCreatedBy", fields: [createdById], references: [id])
+
+  remarks   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([instrumentId, performedAt(sort: Desc)])
+  @@unique([instrumentId, certificateNo])
+  @@map("calibration_records")
+}
+
+model Notification {
+  id          String @id @default(cuid())
+  recipientId String
+  recipient   User   @relation(fields: [recipientId], references: [id])
+
+  type     String
+  title    String
+  message  String
+  status   NotificationStatus
+  priority NotificationPriority?
+  data     Json?
+
+  wecomSent   Boolean?
+  wecomSentAt DateTime?
+  readAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([recipientId, status])
+  @@map("notifications")
+}
+
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  name      String
+  /// SystemConfig value 取决于 key，暂保留为 Record 类型
+  value     Json
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+model SystemLog {
+  id     String  @id @default(cuid())
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  action    String
+  module    String?
+  /// SystemLog details 是通用日志结构
+  details   Json?
+  ip        String?
+  userAgent String?
+  status    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([action])
+  @@index([userId])
+  @@map("system_logs")
+}

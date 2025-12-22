@@ -1,0 +1,38 @@
+{
+  "name": "@better-app/db",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./prismabox": {
+      "default": "./prisma/generated/prismabox/barrel.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy"
+  },
+  "devDependencies": {
+    "prisma": "^7.0.0",
+    "prismabox": "^1.1.25",
+    "@better-app/config": "workspace:*"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@prisma/client": "catalog:",
+    "@prisma/client-runtime-utils": "^7.0.1",
+    "@prisma/driver-adapter-utils": "^7.1.0",
+    "@sinclair/typebox": "^0.34.33",
+    "dotenv": "catalog:",
+    "zod": "^4.1.11"
+  }
+}

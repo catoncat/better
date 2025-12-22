@@ -1,0 +1,15 @@
+{
+	"extends": "@better-app/config/tsconfig.base.json",
+	"compilerOptions": {
+		"outDir": "dist",
+		"paths": {
+			"@/*": ["./src/*"],
+			"@better-app/db": ["../../packages/db/src/index.ts"]
+		},
+		"jsx": "react-jsx"
+	},
+	"include": ["src"],
+	"references": [
+		{ "path": "../../packages/db" }
+	]
+}
