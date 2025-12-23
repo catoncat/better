@@ -168,7 +168,6 @@ export function AppSidebar({
 							})}
 					</SidebarMenu>
 				</SidebarGroup>
-
 			</SidebarContent>
 			<SidebarFooter>
 				<SidebarMenu>

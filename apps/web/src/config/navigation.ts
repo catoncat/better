@@ -1,8 +1,4 @@
-import {
-	Bell,
-	Microscope,
-	Settings2,
-} from "lucide-react";
+import { Bell, Factory, Microscope, Settings2 } from "lucide-react";
 import type React from "react";
 
 export type UserRole = "admin" | "supervisor" | "technician" | "workshop_supervisor" | "operator";
@@ -17,6 +13,25 @@ export interface NavItem {
 }
 
 export const navMain: NavItem[] = [
+	{
+		title: "生产执行",
+		url: "/mes",
+		icon: Factory,
+		items: [
+			{
+				title: "工单管理",
+				url: "/mes/work-orders",
+			},
+			{
+				title: "批次管理",
+				url: "/mes/runs",
+			},
+			{
+				title: "工位执行",
+				url: "/mes/execution",
+			},
+		],
+	},
 	{
 		title: "仪器计量",
 		url: "/instruments",

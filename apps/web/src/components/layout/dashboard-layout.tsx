@@ -69,7 +69,7 @@ export function DashboardLayout({
 						<Breadcrumb>
 							<BreadcrumbList>
 								<BreadcrumbItem>
-				<BreadcrumbLink href="/instruments">首页</BreadcrumbLink>
+									<BreadcrumbLink href="/instruments">首页</BreadcrumbLink>
 								</BreadcrumbItem>
 								{breadcrumbs.length > 0 && <BreadcrumbSeparator />}
 								{breadcrumbs.map((crumb, _index) => (
