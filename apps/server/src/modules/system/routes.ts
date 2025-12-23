@@ -122,8 +122,12 @@ export const systemModule = new Elysia({
 			detail: { tags: ["System"] },
 		},
 	)
-	.get("/uploads/:filename", ({ params: { filename } }) => {
-		return Bun.file(`public/uploads/${filename}`);
-	}, {
-  	detail: { tags: ["System"] },
-	});
+	.get(
+		"/uploads/:filename",
+		({ params: { filename } }) => {
+			return Bun.file(`public/uploads/${filename}`);
+		},
+		{
+			detail: { tags: ["System"] },
+		},
+	);
