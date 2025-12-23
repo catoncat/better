@@ -154,8 +154,8 @@ const seedInstruments = async (adminId: string) => {
 			certificateUrl: "",
 			attachments: [],
 			providerName: "Internal Lab",
-			operator: { connect: { id: adminId } },
-			createdBy: { connect: { id: adminId } },
+			operator: adminId,
+			createdBy: adminId,
 			remarks: "Initial calibration",
 		},
 	});

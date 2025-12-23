@@ -32,7 +32,6 @@
     "@prisma/client-runtime-utils": "^7.0.1",
     "@prisma/driver-adapter-utils": "^7.1.0",
     "@sinclair/typebox": "^0.34.33",
-    "dotenv": "catalog:",
-    "zod": "^4.1.11"
+    "dotenv": "catalog:"
   }
 }
