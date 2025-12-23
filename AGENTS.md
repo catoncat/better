@@ -6,10 +6,16 @@
 - Always use **bun**.
 - Use **biome** for linting and formatting.
 - Use **tsc** for type checking.
+- **Update Docs with Code**: If implementation diverges from specs (in `agent_docs` or `domain_docs`), update the documentation *before* or *during* the PR. Docs must reflect reality.
 - Ask clarifying questions before coding if anything is unclear.
 
 ## Quick Start (Local Dev)
 - Read `agent_docs/00_onboarding/setup.md` and follow the steps.
+
+## Workflow & Planning
+- **Follow the Plan**: When implementing a feature/domain, verify if a specific plan exists (e.g., `domain_docs/mes/plan/phase1_tasks.md`).
+- **Mark Progress**: As you complete tasks in a plan file, update the file to mark them as done (e.g., `[x] Task 1.1`).
+- **Update the Plan**: If new tasks are discovered or priorities change, update the plan file to reflect the new reality.
 
 ---
 
@@ -61,6 +67,35 @@ Use the smallest set of docs needed for the task. Skip anything not required.
 ## Quality and Release
 - Before commit or PR:
   1. `agent_docs/01_core/testing_quality.md`
+
+## Domain Specs (MES)
+
+**Note**: When implementing MES features, strictly follow engineering standards in `agent_docs`.
+
+### Process Specs
+- End-to-End Flows: `domain_docs/mes/spec/process/01_end_to_end_flows.md`
+- State Machines: `domain_docs/mes/spec/process/02_state_machines.md`
+
+### Routing
+- Routing Engine: `domain_docs/mes/spec/routing/01_routing_engine.md`
+
+### Data Collection
+- Data Collection Specs: `domain_docs/mes/spec/data_collection/01_data_collection_specs.md`
+
+### Traceability
+- Traceability Contract: `domain_docs/mes/spec/traceability/01_traceability_contract.md`
+
+### Tech - DB
+- Prisma Schema: `domain_docs/mes/tech/db/01_prisma_schema.md`
+
+### Tech - API
+- API Overview: `domain_docs/mes/tech/api/01_api_overview.md`
+
+### Tests
+- Acceptance Scenarios: `domain_docs/mes/tests/01_acceptance_scenarios.md`
+
+### Plan
+- Milestones: `domain_docs/mes/plan/01_milestones.md`
 
 ## References (Only When Needed)
 - `agent_docs/99_reference/elysia_reference.md`
