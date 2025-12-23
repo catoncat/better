@@ -25,6 +25,9 @@ bun run dev
 - Prisma Studio: `bun run db:studio`
 - Regenerate Prisma/Prismabox: `bun run db:generate`
 
+## Optional Observability (Jaeger v2 + OpenSearch)
+- Setup guide: `agent_docs/05_ops/observability_jaeger.md`
+
 ## Environment Variables and SQLite
 - Use `DATABASE_URL=file:<path>` for SQLite.
 - For monorepo dev, relative paths are resolved from repo root.
