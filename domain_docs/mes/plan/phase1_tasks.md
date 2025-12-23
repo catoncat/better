@@ -64,3 +64,21 @@ Goal: Complete the basic production loop, from work order reception to unit comp
 *   **Definition of Done**: All steps pass; data consistency verified.
 *   **Status**: [x] Done (2025-12-23)
 
+## Task 1.7: MES Query/List APIs (Support UI)
+*   **Goal**: Provide list endpoints required for the M1 UI.
+*   **Input**: `agent_docs/03_backend/api_patterns.md`, `domain_docs/mes/tech/api/01_api_overview.md`
+*   **Actions**:
+    1.  Implement `GET /api/work-orders` with pagination, search, status filter, sort.
+    2.  Implement `GET /api/runs` with pagination, search, status filter, sort, and work order filter.
+    3.  Implement `GET /api/stations` returning basic station + line info for selection.
+*   **Definition of Done**: UI can load Work Orders, Runs, and Stations without mock data.
+*   **Status**: [x] Done (2025-12-23)
+
+## Task 1.8: M1 UI Delivery
+*   **Goal**: Deliver minimal MES UI for M1.
+*   **Input**: `domain_docs/mes/plan/phase1_ui_tasks.md`
+*   **Actions**:
+    1.  Complete UI tasks in `phase1_ui_tasks.md`.
+    2.  Validate UI flow against M1 acceptance scenarios.
+*   **Definition of Done**: Operators can complete the M1 loop via UI.
+*   **Status**: [x] Done (2025-12-23)

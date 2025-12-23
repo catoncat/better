@@ -8,8 +8,8 @@ This document outlines the development milestones for the MES system, focusing o
 
 ### M1: Production Execution Closed Loop
 * **Goal**: Complete the basic production loop, from work order reception to unit completion.
-* **Features**: Work order reception, production run creation, manual and automatic track-in/out.
-* **Acceptance Criteria**: System can create a production run and track units through different steps.
+* **Features**: Work order reception, production run creation, manual and automatic track-in/out, minimal MES UI (work orders, runs, station execution).
+* **Acceptance Criteria**: System can create a production run and track units through different steps via API and UI.
 
 ### M2: Quality Control and Authorization
 * **Goal**: Implement quality control checks, including FAI and batch authorization.

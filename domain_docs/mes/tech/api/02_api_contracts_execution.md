@@ -18,6 +18,29 @@
 - **Guard**: 工单必须已 `RELEASED`。
 - **结果**: Run 状态初始化为 `PREP`，工单状态更新为 `IN_PROGRESS`。
 
+### 查询工单列表
+**GET** `/api/work-orders`
+- **Query**:
+  - `page`, `pageSize`
+  - `search` (工单号/产品编码)
+  - `status` (逗号分隔)
+  - `sort` (例如 `woNo.asc,createdAt.desc`)
+- **结果**: `{ items, total, page, pageSize }`
+
+### 查询运行列表
+**GET** `/api/runs`
+- **Query**:
+  - `page`, `pageSize`
+  - `search` (批次号/工单号)
+  - `status` (逗号分隔)
+  - `woNo`
+  - `sort` (例如 `runNo.asc,workOrder.woNo.desc`)
+- **结果**: `{ items, total, page, pageSize }`
+
+### 查询工位列表
+**GET** `/api/stations`
+- **结果**: `{ items: [...] }` (包含 `code`, `name`, `stationType`, `line` -> `{ code, name } | null`)
+
 ---
 
 ## 2. 产线准备与门禁 (Gatekeeping)
