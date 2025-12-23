@@ -15,9 +15,9 @@ export const metaModule = new Elysia({
 		}),
 		{
 			isAuth: true,
-						detail: { summary: "List available user roles", tags: ["Meta"] },
-						response: t.Object({
-							roles: t.Array(t.Enum(UserRole)),
-						}),
-					},
-				);
+			detail: { summary: "List available user roles", tags: ["Meta"] },
+			response: t.Object({
+				roles: t.Array(t.Enum(UserRole)),
+			}),
+		},
+	);
