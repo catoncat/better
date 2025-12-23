@@ -92,6 +92,7 @@ export const usersModule = new Elysia({
 				search: t.Optional(t.String()),
 				role: t.Optional(t.String()),
 			}),
+			detail: { tags: ["Users"] },
 		},
 	)
 	.post(
@@ -155,6 +156,7 @@ export const usersModule = new Elysia({
 				username: t.Optional(t.String()),
 				enableWecomNotification: t.Optional(t.Boolean()),
 			}),
+			detail: { tags: ["Users"] },
 		},
 	)
 	.patch(
@@ -204,6 +206,7 @@ export const usersModule = new Elysia({
 				id: t.String(),
 			}),
 			body: userUpdateSchema,
+			detail: { tags: ["Users"] },
 		},
 	)
 	.get(
@@ -216,6 +219,7 @@ export const usersModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			detail: { tags: ["Users - Self"] },
 		},
 	)
 	.patch(
@@ -255,6 +259,7 @@ export const usersModule = new Elysia({
 		{
 			isAuth: true,
 			body: selfUpdateSchema,
+			detail: { tags: ["Users - Self"] },
 		},
 	)
 	.post(
@@ -303,5 +308,6 @@ export const usersModule = new Elysia({
 				currentPassword: t.String(),
 				newPassword: t.String(),
 			}),
+			detail: { tags: ["Users - Self"] },
 		},
 	);

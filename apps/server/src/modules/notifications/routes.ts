@@ -29,6 +29,7 @@ export const notificationModule = new Elysia({
 			isAuth: true,
 			query: notificationListQuerySchema,
 			response: notificationListResponseSchema,
+			detail: { tags: ["Notifications"] },
 		},
 	)
 	.get(
@@ -39,6 +40,7 @@ export const notificationModule = new Elysia({
 		{
 			isAuth: true,
 			response: unreadCountResponseSchema,
+			detail: { tags: ["Notifications"] },
 		},
 	)
 	.patch(
@@ -48,6 +50,7 @@ export const notificationModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			detail: { tags: ["Notifications"] },
 		},
 	)
 	.patch(
@@ -63,6 +66,7 @@ export const notificationModule = new Elysia({
 		{
 			isAuth: true,
 			params: notificationParamsSchema,
+			detail: { tags: ["Notifications"] },
 		},
 	)
 	.delete(
@@ -78,5 +82,6 @@ export const notificationModule = new Elysia({
 		{
 			isAuth: true,
 			params: notificationParamsSchema,
+			detail: { tags: ["Notifications"] },
 		},
 	);

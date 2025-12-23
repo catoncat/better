@@ -37,3 +37,6 @@ export default prisma;
 export type { PrismaClient } from "../prisma/generated/client/index.js";
 // Re-export all Prisma types and enums
 export * from "../prisma/generated/client/index.js";
+
+// Export Prismabox schemas for Elysia
+export * as Prismabox from "../prisma/generated/prismabox/barrel";
