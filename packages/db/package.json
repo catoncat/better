@@ -20,6 +20,7 @@
     "db:deploy": "prisma migrate deploy"
   },
   "devDependencies": {
+    "elysia": "^1.4.18",
     "prisma": "^7.0.0",
     "prismabox": "^1.1.25",
     "@better-app/config": "workspace:*"
