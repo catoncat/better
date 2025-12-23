@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
 import { prismaPlugin } from "../../../plugins/prisma";
-import { integrationReceiveWorkOrderSchema } from "./schema";
+import { integrationReceiveWorkOrderSchema, integrationWorkOrderResponseSchema } from "./schema";
 import { receiveWorkOrder } from "./service";
 
 export const integrationModule = new Elysia({
@@ -18,6 +18,7 @@ export const integrationModule = new Elysia({
 		{
 			isAuth: true,
 			body: integrationReceiveWorkOrderSchema,
+			response: integrationWorkOrderResponseSchema,
 			detail: { tags: ["MES - Integration"] },
 		},
 	);

@@ -1,8 +1,9 @@
-import type { PrismaClient } from "@better-app/db";
-import { RunStatus, WorkOrderStatus } from "@better-app/db";
+import { type Prisma, type PrismaClient, RunStatus, WorkOrderStatus } from "@better-app/db";
 import type { Static } from "elysia";
+import { parseSortOrderBy } from "../../../utils/sort";
 import type {
 	runCreateSchema,
+	workOrderListQuerySchema,
 	workOrderReceiveSchema,
 	workOrderReleaseSchema,
 } from "./schema";
@@ -10,6 +11,41 @@ import type {
 type WorkOrderReceiveInput = Static<typeof workOrderReceiveSchema>;
 type WorkOrderReleaseInput = Static<typeof workOrderReleaseSchema>;
 type RunCreateInput = Static<typeof runCreateSchema>;
+type WorkOrderListQuery = Static<typeof workOrderListQuerySchema>;
+
+export const listWorkOrders = async (db: PrismaClient, query: WorkOrderListQuery) => {
+	const page = query.page ?? 1;
+	const pageSize = Math.min(query.pageSize ?? 30, 100);
+	const where: Prisma.WorkOrderWhereInput = {};
+
+	if (query.status) {
+		const statuses = query.status.split(",").filter(Boolean) as WorkOrderStatus[];
+		if (statuses.length > 0) {
+			where.status = { in: statuses };
+		}
+	}
+
+	if (query.search) {
+		where.OR = [{ woNo: { contains: query.search } }, { productCode: { contains: query.search } }];
+	}
+
+	const orderBy = parseSortOrderBy<Prisma.WorkOrderOrderByWithRelationInput>(query.sort, {
+		allowedFields: ["woNo", "productCode", "status", "plannedQty", "dueDate", "createdAt"],
+		fallback: [{ createdAt: "desc" }],
+	});
+
+	const [items, total] = await Promise.all([
+		db.workOrder.findMany({
+			where,
+			orderBy,
+			skip: (page - 1) * pageSize,
+			take: pageSize,
+		}),
+		db.workOrder.count({ where }),
+	]);
+
+	return { items, total, page, pageSize };
+};
 
 export const receiveWorkOrder = async (db: PrismaClient, data: WorkOrderReceiveInput) => {
 	const routing = data.routingCode
@@ -62,7 +98,11 @@ export const releaseWorkOrder = async (
 	if (!wo) return { success: false, code: "WORK_ORDER_NOT_FOUND", message: "Work order not found" };
 
 	if (wo.status !== WorkOrderStatus.RECEIVED) {
-		return { success: false, code: "WORK_ORDER_NOT_RECEIVED", message: "Work order already released or in progress" };
+		return {
+			success: false,
+			code: "WORK_ORDER_NOT_RECEIVED",
+			message: "Work order already released or in progress",
+		};
 	}
 
 	const updated = await db.workOrder.update({

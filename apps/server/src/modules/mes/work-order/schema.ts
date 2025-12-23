@@ -1,5 +1,5 @@
 import { t } from "elysia";
-import { Prismabox } from "@better-app/db";
+import * as Prismabox from "@better-app/db/prismabox";
 
 export const workOrderReceiveSchema = t.Object({
 	woNo: t.String(),
@@ -28,3 +28,10 @@ export const runCreateSchema = t.Object({
 	changeoverNo: t.Optional(t.String()),
 });
 
+export const workOrderListQuerySchema = t.Object({
+	page: t.Optional(t.Numeric({ default: 1 })),
+	pageSize: t.Optional(t.Numeric({ default: 30 })),
+	status: t.Optional(t.String()),
+	search: t.Optional(t.String()),
+	sort: t.Optional(t.String()),
+});
