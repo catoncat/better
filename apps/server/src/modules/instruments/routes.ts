@@ -42,6 +42,7 @@ export const instrumentModule = new Elysia({
 		{
 			isAuth: true,
 			query: instrumentListQuerySchema,
+			detail: { tags: ["Instruments"] },
 		},
 	)
 	.get(
@@ -51,6 +52,7 @@ export const instrumentModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			detail: { tags: ["Instruments"] },
 		},
 	)
 	.get(
@@ -68,6 +70,7 @@ export const instrumentModule = new Elysia({
 		{
 			isAuth: true,
 			query: calibrationListAllQuerySchema,
+			detail: { tags: ["Calibrations"] },
 		},
 	)
 	.get(
@@ -85,6 +88,7 @@ export const instrumentModule = new Elysia({
 		{
 			isAuth: true,
 			params: instrumentParamsSchema,
+			detail: { tags: ["Instruments"] },
 		},
 	)
 	.post(
@@ -95,6 +99,7 @@ export const instrumentModule = new Elysia({
 		{
 			isAuth: true,
 			body: instrumentCreateSchema,
+			detail: { tags: ["Instruments"] },
 		},
 	)
 	.patch(
@@ -113,6 +118,7 @@ export const instrumentModule = new Elysia({
 			isAuth: true,
 			params: instrumentParamsSchema,
 			body: instrumentUpdateSchema,
+			detail: { tags: ["Instruments"] },
 		},
 	)
 	.patch(
@@ -131,6 +137,7 @@ export const instrumentModule = new Elysia({
 			isAuth: true,
 			params: instrumentParamsSchema,
 			body: instrumentCalibrationUpdateSchema,
+			detail: { tags: ["Instruments"] },
 		},
 	)
 	.group("/:id/calibrations", (app) =>
@@ -151,6 +158,7 @@ export const instrumentModule = new Elysia({
 					isAuth: true,
 					params: instrumentParamsSchema,
 					query: calibrationListQuerySchema,
+					detail: { tags: ["Calibrations"] },
 				},
 			)
 			.post(
@@ -169,6 +177,7 @@ export const instrumentModule = new Elysia({
 					isAuth: true,
 					params: instrumentParamsSchema,
 					body: calibrationCreateSchema,
+					detail: { tags: ["Calibrations"] },
 				},
 			)
 			.patch(
@@ -187,6 +196,7 @@ export const instrumentModule = new Elysia({
 					isAuth: true,
 					params: calibrationRecordParamsSchema,
 					body: calibrationUpdateSchema,
+					detail: { tags: ["Calibrations"] },
 				},
 			)
 			.delete(
@@ -205,6 +215,7 @@ export const instrumentModule = new Elysia({
 					isAuth: true,
 					params: calibrationRecordParamsSchema,
 					query: calibrationDeleteQuerySchema,
+					detail: { tags: ["Calibrations"] },
 				},
 			),
 	)
@@ -223,5 +234,6 @@ export const instrumentModule = new Elysia({
 		{
 			isAuth: true,
 			params: instrumentParamsSchema,
+			detail: { tags: ["Instruments"] },
 		},
 	);

@@ -5,6 +5,7 @@ import { openapi } from "@elysiajs/openapi";
 import { Elysia } from "elysia";
 import * as z from "zod";
 import { instrumentModule } from "./modules/instruments";
+import { mesModule } from "./modules/mes";
 import { metaModule } from "./modules/meta";
 import { notificationModule } from "./modules/notifications";
 import { systemModule } from "./modules/system";
@@ -39,7 +40,35 @@ const getAuthOpenApi = async () => {
 	const authPaths =
 		(await BetterAuthOpenAPI.getPaths()) as unknown as import("openapi-types").OpenAPIV3.PathsObject;
 
-	return { authComponents, authPaths };
+	// Filter auth paths to only show what's needed
+	const allowedAuthPaths = [
+		"/api/auth/sign-in/email",
+		"/api/auth/sign-up/email",
+		"/api/auth/sign-out",
+		"/api/auth/session",
+	];
+
+	const filteredAuthPaths: typeof authPaths = {};
+	for (const [path, config] of Object.entries(authPaths)) {
+		// BetterAuth openapi paths might not include the prefix if configured differently,
+		// but typically they match the route. Let's check with and without prefix just in case,
+		// or better, strict match if we know the output format.
+		// Assuming better-auth outputs relative paths like "/sign-in/email":
+		const fullPath = `/api/auth${path}`;
+		if (allowedAuthPaths.includes(fullPath)) {
+			// Add a tag for better organization
+			const newConfig = { ...config };
+			for (const method of Object.keys(newConfig)) {
+				const operation = (newConfig as any)[method];
+				if (operation) {
+					operation.tags = ["Authentication"];
+				}
+			}
+			filteredAuthPaths[path] = newConfig;
+		}
+	}
+
+	return { authComponents, authPaths: filteredAuthPaths };
 };
 
 const api = new Elysia({
@@ -96,8 +125,11 @@ const api = new Elysia({
 	.use(prismaPlugin)
 	.use(authPlugin)
 	.mount(auth.handler)
-	.get("/health", () => ({ status: "ok" }))
+	.get("/health", () => ({ status: "ok" }), {
+		detail: { tags: ["System - Health"] },
+	})
 	.use(instrumentModule)
+	.use(mesModule)
 	.use(notificationModule)
 	.use(metaModule)
 	.use(usersModule)
@@ -130,16 +162,29 @@ const getListenOptions = async () => {
 	} as const;
 };
 
-const app = new Elysia({ normalize: true }).use(api).get("/*", async ({ request }) => {
-	if (request.method !== "GET" && request.method !== "HEAD")
-		return new Response("Not Found", { status: 404 });
-	const url = new URL(request.url);
-	if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
-		return api.handle(request);
-	}
-	const response = await serveWebRequest(request);
-	return response ?? new Response("Not Found", { status: 404 });
-});
+const app = new Elysia({ normalize: true })
+	.use(api)
+	.get(
+		"/*",
+		async ({ request }) => {
+			if (request.method !== "GET" && request.method !== "HEAD")
+				return new Response("Not Found", { status: 404 });
+			const url = new URL(request.url);
+			if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
+				return api.handle(request);
+			}
+			const response = await serveWebRequest(request);
+			return response ?? new Response("Not Found", { status: 404 });
+		},
+		{
+			detail: {
+				tags: ["Internal"],
+				description: "Frontend catch-all route (internal use)",
+				summary: "Internal Frontend Route",
+				deprecated: true, // Mark as deprecated to de-emphasize
+			},
+		},
+	);
 
 const start = async () => {
 	const { authComponents, authPaths } = await getAuthOpenApi();

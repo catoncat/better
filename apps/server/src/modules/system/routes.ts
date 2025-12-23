@@ -35,6 +35,7 @@ export const systemModule = new Elysia({
 		{
 			isAuth: true,
 			response: appBrandingSchema,
+			detail: { tags: ["System"] },
 		},
 	)
 	.post(
@@ -46,6 +47,7 @@ export const systemModule = new Elysia({
 			isAuth: true,
 			body: appBrandingSchema,
 			response: appBrandingSchema,
+			detail: { tags: ["System"] },
 		},
 	)
 	.get(
@@ -56,6 +58,7 @@ export const systemModule = new Elysia({
 		{
 			isAuth: true,
 			response: wecomConfigSchema,
+			detail: { tags: ["System"] },
 		},
 	)
 	.post(
@@ -67,6 +70,7 @@ export const systemModule = new Elysia({
 		{
 			isAuth: true,
 			body: wecomConfigSchema,
+			detail: { tags: ["System"] },
 		},
 	)
 	.post(
@@ -81,6 +85,7 @@ export const systemModule = new Elysia({
 		{
 			isAuth: true,
 			body: wecomTestSchema,
+			detail: { tags: ["System"] },
 		},
 	)
 	.post(
@@ -114,8 +119,11 @@ export const systemModule = new Elysia({
 		{
 			isAuth: true,
 			body: uploadSchema,
+			detail: { tags: ["System"] },
 		},
 	)
 	.get("/uploads/:filename", ({ params: { filename } }) => {
 		return Bun.file(`public/uploads/${filename}`);
+	}, {
+  	detail: { tags: ["System"] },
 	});
