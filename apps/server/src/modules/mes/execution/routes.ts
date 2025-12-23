@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
 import { prismaPlugin } from "../../../plugins/prisma";
-import { trackInSchema, trackOutSchema } from "./schema";
+import { trackInSchema, trackOutSchema, trackResponseSchema } from "./schema";
 import { trackIn, trackOut } from "./service";
 
 export const executionModule = new Elysia({
@@ -22,12 +22,17 @@ export const executionModule = new Elysia({
 						: 400;
 				return { ok: false, error: { code: result.code, message: result.message } };
 			}
-			return { ok: true, data: result.data };
+			return { ok: true, data: { status: result.data?.status as string } };
 		},
 		{
 			isAuth: true,
 			params: t.Object({ stationCode: t.String() }),
 			body: trackInSchema,
+			response: {
+				200: trackResponseSchema,
+				400: t.Object({ ok: t.Boolean(), error: t.Object({ code: t.String(), message: t.String() }) }),
+				404: t.Object({ ok: t.Boolean(), error: t.Object({ code: t.String(), message: t.String() }) }),
+			},
 			detail: { tags: ["MES - Execution"] },
 		},
 	)
@@ -44,12 +49,17 @@ export const executionModule = new Elysia({
 						: 400;
 				return { ok: false, error: { code: result.code, message: result.message } };
 			}
-			return { ok: true, data: result.data };
+			return { ok: true, data: { status: result.data?.status as string } };
 		},
 		{
 			isAuth: true,
 			params: t.Object({ stationCode: t.String() }),
 			body: trackOutSchema,
+			response: {
+				200: trackResponseSchema,
+				400: t.Object({ ok: t.Boolean(), error: t.Object({ code: t.String(), message: t.String() }) }),
+				404: t.Object({ ok: t.Boolean(), error: t.Object({ code: t.String(), message: t.String() }) }),
+			},
 			detail: { tags: ["MES - Execution"] },
 		},
 	);

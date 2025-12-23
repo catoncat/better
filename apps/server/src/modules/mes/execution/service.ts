@@ -6,7 +6,10 @@ import type { trackInSchema, trackOutSchema } from "./schema";
 type TrackInInput = Static<typeof trackInSchema>;
 type TrackOutInput = Static<typeof trackOutSchema>;
 
-const isValidStationForStep = (step: { stationGroupId: string | null; stationType: string }, station: { groupId: string | null; stationType: string }) => {
+const isValidStationForStep = (
+	step: { stationGroupId: string | null; stationType: string },
+	station: { groupId: string | null; stationType: string },
+) => {
 	if (step.stationGroupId && step.stationGroupId !== station.groupId) {
 		return false;
 	}
@@ -29,21 +32,33 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 		return { success: false, code: "RUN_NOT_AUTHORIZED", message: "Run not authorized" };
 	}
 	if (run.workOrder.woNo !== data.woNo) {
-		return { success: false, code: "RUN_WORK_ORDER_MISMATCH", message: "Run does not match work order" };
+		return {
+			success: false,
+			code: "RUN_WORK_ORDER_MISMATCH",
+			message: "Run does not match work order",
+		};
 	}
 	if (!run.workOrder.routing) {
 		return { success: false, code: "WORK_ORDER_NO_ROUTING", message: "Work order has no routing" };
 	}
 
-	let unit = await db.unit.findUnique({ where: { sn: data.sn } });
+	const unit = await db.unit.findUnique({ where: { sn: data.sn } });
 	if (unit && unit.woId !== run.woId) {
-		return { success: false, code: "UNIT_WORK_ORDER_MISMATCH", message: "Unit does not belong to work order" };
+		return {
+			success: false,
+			code: "UNIT_WORK_ORDER_MISMATCH",
+			message: "Unit does not belong to work order",
+		};
 	}
 	if (unit?.runId && unit.runId !== run.id) {
 		return { success: false, code: "UNIT_RUN_MISMATCH", message: "Unit does not belong to run" };
 	}
 	if (unit?.status === UnitStatus.IN_STATION) {
-		return { success: false, code: "UNIT_ALREADY_IN_STATION", message: "Unit is already in station" };
+		return {
+			success: false,
+			code: "UNIT_ALREADY_IN_STATION",
+			message: "Unit is already in station",
+		};
 	}
 	if (unit?.status === UnitStatus.DONE) {
 		return { success: false, code: "UNIT_ALREADY_DONE", message: "Unit already completed" };
@@ -59,7 +74,11 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 		return { success: false, code: "STEP_MISMATCH", message: "Current step not found in routing" };
 	}
 	if (!isValidStationForStep(currentStep, station)) {
-		return { success: false, code: "STATION_MISMATCH", message: "Station does not match routing step" };
+		return {
+			success: false,
+			code: "STATION_MISMATCH",
+			message: "Station does not match routing step",
+		};
 	}
 
 	const now = new Date();
@@ -86,7 +105,11 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 			where: { unitId: resolvedUnit.id, stepNo: currentStep.stepNo, outAt: null },
 		});
 		if (activeTrack) {
-			return { success: false as const, code: "ACTIVE_TRACK_EXISTS", message: "Unit already tracked in" };
+			return {
+				success: false as const,
+				code: "ACTIVE_TRACK_EXISTS",
+				message: "Unit already tracked in",
+			};
 		}
 
 		await tx.track.create({
@@ -133,7 +156,11 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 	});
 	if (!unit) return { success: false, code: "UNIT_NOT_FOUND", message: "Unit not found" };
 	if (unit.woId !== run.woId) {
-		return { success: false, code: "UNIT_WORK_ORDER_MISMATCH", message: "Unit does not belong to work order" };
+		return {
+			success: false,
+			code: "UNIT_WORK_ORDER_MISMATCH",
+			message: "Unit does not belong to work order",
+		};
 	}
 	if (unit.runId && unit.runId !== run.id) {
 		return { success: false, code: "UNIT_RUN_MISMATCH", message: "Unit does not belong to run" };
@@ -143,7 +170,8 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 		where: { unitId: unit.id, stepNo: unit.currentStepNo, stationId: station.id, outAt: null },
 		orderBy: { createdAt: "desc" },
 	});
-	if (!track) return { success: false, code: "TRACK_NOT_FOUND", message: "No active TrackIn record found" };
+	if (!track)
+		return { success: false, code: "TRACK_NOT_FOUND", message: "No active TrackIn record found" };
 
 	const result = data.result === "PASS" ? TrackResult.PASS : TrackResult.FAIL;
 
@@ -158,7 +186,11 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 	}
 
 	if (!isValidStationForStep(currentStep, station)) {
-		return { success: false, code: "STATION_MISMATCH", message: "Station does not match routing step" };
+		return {
+			success: false,
+			code: "STATION_MISMATCH",
+			message: "Station does not match routing step",
+		};
 	}
 
 	const dataItems = data.data ?? [];
@@ -221,12 +253,8 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 						collectedAt: now,
 						valueNumber: spec.dataType === "NUMBER" ? item.valueNumber : null,
 						valueText: spec.dataType === "TEXT" ? item.valueText : null,
-						valueJson:
-							spec.dataType === "JSON"
-								? item.valueJson ?? null
-								: spec.dataType === "BOOLEAN"
-									? item.valueBoolean ?? null
-									: null,
+						valueBoolean: spec.dataType === "BOOLEAN" ? item.valueBoolean : null,
+						valueJson: spec.dataType === "JSON" ? (item.valueJson ?? null) : null,
 						source: TrackSource.MANUAL,
 					};
 				}),
