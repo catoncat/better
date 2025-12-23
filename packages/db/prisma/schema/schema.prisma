@@ -625,6 +625,7 @@ model DataValue {
   collectedAt    DateTime    @default(now())
   valueNumber    Float?
   valueText      String?
+  valueBoolean   Boolean?
   valueJson      Json?
   judge          String? // PASS/FAIL/NA
   alarmed        Boolean     @default(false)
