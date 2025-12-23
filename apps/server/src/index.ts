@@ -2,6 +2,8 @@ import "dotenv/config";
 import { auth, BetterAuthOpenAPI } from "@better-app/auth";
 import { cors } from "@elysiajs/cors";
 import { openapi } from "@elysiajs/openapi";
+import { opentelemetry } from "@elysiajs/opentelemetry";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { Elysia } from "elysia";
 import * as z from "zod";
 import { instrumentModule } from "./modules/instruments";
@@ -31,6 +33,16 @@ const betterAuthOrigin = normalizeOrigin(process.env.BETTER_AUTH_URL);
 if (appOrigin) allowedOrigins.add(appOrigin);
 if (corsOrigin) allowedOrigins.add(corsOrigin);
 if (betterAuthOrigin) allowedOrigins.add(betterAuthOrigin);
+
+const otelEnabled = process.env.OTEL_ENABLED === "true";
+const otelEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? "http://localhost:4318/v1/traces";
+const otelServiceName = process.env.OTEL_SERVICE_NAME ?? "better-server";
+const otelPlugin = otelEnabled
+	? opentelemetry({
+			serviceName: otelServiceName,
+			traceExporter: new OTLPTraceExporter({ url: otelEndpoint }),
+		})
+	: null;
 
 const getAuthOpenApi = async () => {
 	// BetterAuth emits OpenAPI definitions using openapi3-ts types; cast to the OpenAPI types
@@ -74,7 +86,13 @@ const getAuthOpenApi = async () => {
 const api = new Elysia({
 	prefix: "/api",
 	normalize: true,
-})
+});
+
+if (otelPlugin) {
+	api.use(otelPlugin);
+}
+
+api
 	.onError(({ code, error, path, request, set }) => {
 		// 记录错误日志
 		const timestamp = new Date().toISOString();
@@ -162,29 +180,27 @@ const getListenOptions = async () => {
 	} as const;
 };
 
-const app = new Elysia({ normalize: true })
-	.use(api)
-	.get(
-		"/*",
-		async ({ request }) => {
-			if (request.method !== "GET" && request.method !== "HEAD")
-				return new Response("Not Found", { status: 404 });
-			const url = new URL(request.url);
-			if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
-				return api.handle(request);
-			}
-			const response = await serveWebRequest(request);
-			return response ?? new Response("Not Found", { status: 404 });
+const app = new Elysia({ normalize: true }).use(api).get(
+	"/*",
+	async ({ request }) => {
+		if (request.method !== "GET" && request.method !== "HEAD")
+			return new Response("Not Found", { status: 404 });
+		const url = new URL(request.url);
+		if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
+			return api.handle(request);
+		}
+		const response = await serveWebRequest(request);
+		return response ?? new Response("Not Found", { status: 404 });
+	},
+	{
+		detail: {
+			tags: ["Internal"],
+			description: "Frontend catch-all route (internal use)",
+			summary: "Internal Frontend Route",
+			deprecated: true, // Mark as deprecated to de-emphasize
 		},
-		{
-			detail: {
-				tags: ["Internal"],
-				description: "Frontend catch-all route (internal use)",
-				summary: "Internal Frontend Route",
-				deprecated: true, // Mark as deprecated to de-emphasize
-			},
-		},
-	);
+	},
+);
 
 const start = async () => {
 	const { authComponents, authPaths } = await getAuthOpenApi();
