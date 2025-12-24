@@ -51,6 +51,8 @@ Use the smallest set of docs needed for the task. Skip anything not required.
   1. `agent_docs/03_backend/auth_better_auth.md`
 - Notifications:
   1. `agent_docs/03_backend/notifications.md`
+- Audit logging:
+  1. `agent_docs/03_backend/audit_logs.md`
 - Instruments or calibrations domain:
   1. `agent_docs/03_backend/domain_instruments_calibrations.md`
 

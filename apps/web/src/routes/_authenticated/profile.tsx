@@ -25,7 +25,6 @@ const profileSchema = z.object({
 	name: z.string().min(1, "请输入姓名"),
 	department: z.string().optional(),
 	phone: z.string().optional(),
-	enableWecomNotification: z.boolean().optional(),
 });
 
 const passwordSchema = z
@@ -50,7 +49,6 @@ function ProfilePage() {
 			name: "",
 			department: "",
 			phone: "",
-			enableWecomNotification: false,
 		},
 	});
 
@@ -69,7 +67,6 @@ function ProfilePage() {
 				name: user.name,
 				department: user.department || "",
 				phone: user.phone || "",
-				enableWecomNotification: user.enableWecomNotification || false,
 			});
 		}
 	}, [user, profileForm]);
