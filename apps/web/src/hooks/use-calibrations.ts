@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { client } from "@/lib/eden";
+import { client, unwrap } from "@/lib/eden";
 
 const calibrationListRoute = client.api.instruments({ id: "instrument-id" }).calibrations;
 const calibrationDetailRoute = calibrationListRoute({ recordId: "record-id" });
@@ -9,17 +9,19 @@ const allCalibrationRoute = client.api.instruments.calibrations;
 type CalibrationListArgs = NonNullable<Parameters<typeof calibrationListRoute.get>[0]>;
 type CalibrationListQuery = CalibrationListArgs["query"];
 export type CalibrationCreateInput = Parameters<typeof calibrationListRoute.post>[0];
-export type CalibrationListResponse = Awaited<ReturnType<typeof calibrationListRoute.get>>["data"];
-export type CalibrationListSuccess = Extract<CalibrationListResponse, { items: unknown[] }>;
+
+// Update types to reflect unwrapped data
+type CalibrationListData = { items: unknown[]; total: number; page: number; pageSize: number };
+export type CalibrationListResponse = CalibrationListData;
+export type CalibrationListSuccess = CalibrationListData;
+
 type CalibrationAllArgs = NonNullable<Parameters<typeof allCalibrationRoute.get>[0]>;
 type CalibrationAllQuery = CalibrationAllArgs["query"];
-export type CalibrationAllResponse = Awaited<ReturnType<typeof allCalibrationRoute.get>>["data"];
-export type CalibrationAllSuccess = Extract<CalibrationAllResponse, { items: unknown[] }>;
+export type CalibrationAllResponse = CalibrationListData;
+export type CalibrationAllSuccess = CalibrationListData;
 
-export type InstrumentDetailResponse = Awaited<
-	ReturnType<ReturnType<typeof client.api.instruments>["get"]>
->["data"];
-export type InstrumentDetailSuccess = Extract<InstrumentDetailResponse, { id: string }>;
+// Instrument detail type
+export type InstrumentDetailSuccess = { id: string; [key: string]: any };
 
 type CalibrationUpdateInput = Parameters<typeof calibrationDetailRoute.patch>[0];
 type CalibrationDeleteInput = NonNullable<Parameters<typeof calibrationDetailRoute.delete>[0]>;
@@ -30,18 +32,8 @@ export function useInstrumentDetail(id?: string) {
 		enabled: Boolean(id),
 		queryFn: async () => {
 			if (!id) throw new Error("Missing instrument id");
-
-			const { data, error } = await client.api.instruments({ id }).get();
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "加载仪器失败");
-			}
-
-			if (!data || !("id" in data)) {
-				throw new Error((data as { message?: string } | undefined)?.message ?? "仪器不存在");
-			}
-
-			return data as InstrumentDetailSuccess;
+			const response = await client.api.instruments({ id }).get();
+			return unwrap(response);
 		},
 	});
 }
@@ -58,7 +50,7 @@ export function useCalibrationRecords(instrumentId: string, query: CalibrationLi
 		queryKey: ["calibrations", instrumentId, page, pageSize, result, dateFrom, dateTo, sort],
 		enabled: Boolean(instrumentId),
 		queryFn: async () => {
-			const { data, error } = await client.api.instruments({ id: instrumentId }).calibrations.get({
+			const response = await client.api.instruments({ id: instrumentId }).calibrations.get({
 				query: {
 					page,
 					pageSize,
@@ -68,16 +60,7 @@ export function useCalibrationRecords(instrumentId: string, query: CalibrationLi
 					sort: sort || undefined,
 				},
 			});
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "加载校准记录失败");
-			}
-
-			if (!data || !("items" in data)) {
-				throw new Error((data as { message?: string } | undefined)?.message ?? "未获取到记录");
-			}
-
-			return data as CalibrationListSuccess;
+			return unwrap(response);
 		},
 		placeholderData: (previousData) => previousData,
 		staleTime: 30_000,
@@ -110,7 +93,7 @@ export function useAllCalibrationRecords(query: CalibrationAllQuery = {}) {
 			sort,
 		],
 		queryFn: async () => {
-			const { data, error } = await allCalibrationRoute.get({
+			const response = await allCalibrationRoute.get({
 				query: {
 					...query,
 					page,
@@ -123,16 +106,7 @@ export function useAllCalibrationRecords(query: CalibrationAllQuery = {}) {
 					sort: sort || undefined,
 				},
 			});
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "加载校准记录失败");
-			}
-
-			if (!data || !("items" in data)) {
-				throw new Error((data as { message?: string } | undefined)?.message ?? "未获取到记录");
-			}
-
-			return data as CalibrationAllSuccess;
+			return unwrap(response);
 		},
 		placeholderData: (previousData) => previousData,
 		staleTime: 30_000,
@@ -146,15 +120,10 @@ export function useCreateCalibrationRecord(instrumentId: string) {
 
 	return useMutation({
 		mutationFn: async (body: CalibrationCreateInput) => {
-			const { data, error } = await client.api
+			const response = await client.api
 				.instruments({ id: instrumentId })
 				.calibrations.post(body);
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "创建记录失败");
-			}
-
-			return data;
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			toast.success("校准记录已创建");
@@ -176,14 +145,10 @@ export function useCreateCalibrationRecordForAnyInstrument() {
 			instrumentId: string;
 			data: CalibrationCreateInput;
 		}) => {
-			const { data: result, error } = await client.api
+			const response = await client.api
 				.instruments({ id: instrumentId })
 				.calibrations.post(data);
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "创建记录失败");
-			}
-
+			const result = unwrap(response);
 			return { result, instrumentId };
 		},
 		onSuccess: (_result, variables) => {
@@ -201,16 +166,11 @@ export function useUpdateCalibrationRecord(instrumentId: string) {
 
 	return useMutation({
 		mutationFn: async ({ recordId, data }: { recordId: string; data: CalibrationUpdateInput }) => {
-			const { data: result, error } = await client.api
+			const response = await client.api
 				.instruments({ id: instrumentId })
 				.calibrations({ recordId })
 				.patch(data);
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "更新记录失败");
-			}
-
-			return result;
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			toast.success("校准记录已更新");
@@ -232,16 +192,11 @@ export function useDeleteCalibrationRecord(instrumentId: string) {
 			recordId: string;
 			query?: CalibrationDeleteInput;
 		}) => {
-			const { data, error } = await client.api
+			const response = await client.api
 				.instruments({ id: instrumentId })
 				.calibrations({ recordId })
 				.delete(query);
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "删除记录失败");
-			}
-
-			return data;
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			toast.success("校准记录已删除");

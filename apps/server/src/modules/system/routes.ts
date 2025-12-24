@@ -1,11 +1,21 @@
 import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
-import { Elysia } from "elysia";
+import { Elysia, status } from "elysia";
 import { AuditEntityType } from "@better-app/db";
 import { authPlugin } from "../../plugins/auth";
 import { prismaPlugin } from "../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../audit/service";
-import { appBrandingSchema, uploadSchema, wecomConfigSchema, wecomTestSchema } from "./schema";
+import {
+	appBrandingResponseSchema,
+	appBrandingSchema,
+	saveConfigResponseSchema,
+	uploadResponseSchema,
+	uploadSchema,
+	wecomConfigResponseSchema,
+	wecomConfigSchema,
+	wecomTestResponseSchema,
+	wecomTestSchema,
+} from "./schema";
 import {
 	getAppBrandingConfig,
 	getWecomConfig,
@@ -32,11 +42,18 @@ export const systemModule = new Elysia({
 	.get(
 		"/app-branding",
 		async ({ db }) => {
-			return getAppBrandingConfig(db);
+			const result = await getAppBrandingConfig(db);
+			if (!result.success) {
+				return status(result.status ?? 400, {
+					ok: false,
+					error: { code: result.code, message: result.message },
+				});
+			}
+			return { ok: true, data: result.data };
 		},
 		{
 			isAuth: true,
-			response: appBrandingSchema,
+			response: appBrandingResponseSchema,
 			detail: { tags: ["System"] },
 		},
 	)
@@ -45,22 +62,12 @@ export const systemModule = new Elysia({
 		async ({ db, body, user, request }) => {
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
-			const before = await getAppBrandingConfig(db);
-			try {
-				const updated = await saveAppBrandingConfig(db, body, user.id);
-				await recordAuditEvent(db, {
-					entityType: AuditEntityType.SYSTEM_CONFIG,
-					entityId: "app.branding",
-					entityDisplay: "app.branding",
-					action: "SYSTEM_APP_BRANDING_UPDATE",
-					actor,
-					status: "SUCCESS",
-					before,
-					after: updated,
-					request: requestMeta,
-				});
-				return updated;
-			} catch (error) {
+			const beforeResult = await getAppBrandingConfig(db);
+			const before = beforeResult.success ? beforeResult.data : null;
+
+			const result = await saveAppBrandingConfig(db, body, user.id);
+
+			if (!result.success) {
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.SYSTEM_CONFIG,
 					entityId: "app.branding",
@@ -68,29 +75,53 @@ export const systemModule = new Elysia({
 					action: "SYSTEM_APP_BRANDING_UPDATE",
 					actor,
 					status: "FAIL",
-					errorCode: "APP_BRANDING_UPDATE_FAILED",
-					errorMessage: error instanceof Error ? error.message : "更新品牌配置失败",
+					errorCode: result.code,
+					errorMessage: result.message,
 					before,
 					request: requestMeta,
 				});
-				throw error;
+				return status(result.status ?? 400, {
+					ok: false,
+					error: { code: result.code, message: result.message },
+				});
 			}
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.SYSTEM_CONFIG,
+				entityId: "app.branding",
+				entityDisplay: "app.branding",
+				action: "SYSTEM_APP_BRANDING_UPDATE",
+				actor,
+				status: "SUCCESS",
+				before,
+				after: result.data,
+				request: requestMeta,
+			});
+
+			return { ok: true, data: result.data };
 		},
 		{
 			isAuth: true,
 			body: appBrandingSchema,
-			response: appBrandingSchema,
+			response: appBrandingResponseSchema,
 			detail: { tags: ["System"] },
 		},
 	)
 	.get(
 		"/wecom-config",
 		async ({ db }) => {
-			return getWecomConfig(db);
+			const result = await getWecomConfig(db);
+			if (!result.success) {
+				return status(result.status ?? 400, {
+					ok: false,
+					error: { code: result.code, message: result.message },
+				});
+			}
+			return { ok: true, data: result.data };
 		},
 		{
 			isAuth: true,
-			response: wecomConfigSchema,
+			response: wecomConfigResponseSchema,
 			detail: { tags: ["System"] },
 		},
 	)
@@ -99,23 +130,12 @@ export const systemModule = new Elysia({
 		async ({ db, body, user, request }) => {
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
-			const before = await getWecomConfig(db);
-			try {
-				await saveWecomConfig(db, body, user.id);
-				const after = await getWecomConfig(db);
-				await recordAuditEvent(db, {
-					entityType: AuditEntityType.SYSTEM_CONFIG,
-					entityId: "wecom_notifications",
-					entityDisplay: "wecom_notifications",
-					action: "SYSTEM_WECOM_CONFIG_UPDATE",
-					actor,
-					status: "SUCCESS",
-					before,
-					after,
-					request: requestMeta,
-				});
-				return { message: "Configuration saved" };
-			} catch (error) {
+			const beforeResult = await getWecomConfig(db);
+			const before = beforeResult.success ? beforeResult.data : null;
+
+			const result = await saveWecomConfig(db, body, user.id);
+
+			if (!result.success) {
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.SYSTEM_CONFIG,
 					entityId: "wecom_notifications",
@@ -123,17 +143,38 @@ export const systemModule = new Elysia({
 					action: "SYSTEM_WECOM_CONFIG_UPDATE",
 					actor,
 					status: "FAIL",
-					errorCode: "WECOM_CONFIG_UPDATE_FAILED",
-					errorMessage: error instanceof Error ? error.message : "保存通知配置失败",
+					errorCode: result.code,
+					errorMessage: result.message,
 					before,
 					request: requestMeta,
 				});
-				throw error;
+				return status(result.status ?? 400, {
+					ok: false,
+					error: { code: result.code, message: result.message },
+				});
 			}
+
+			const afterResult = await getWecomConfig(db);
+			const after = afterResult.success ? afterResult.data : null;
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.SYSTEM_CONFIG,
+				entityId: "wecom_notifications",
+				entityDisplay: "wecom_notifications",
+				action: "SYSTEM_WECOM_CONFIG_UPDATE",
+				actor,
+				status: "SUCCESS",
+				before,
+				after,
+				request: requestMeta,
+			});
+
+			return { ok: true, data: result.data };
 		},
 		{
 			isAuth: true,
 			body: wecomConfigSchema,
+			response: saveConfigResponseSchema,
 			detail: { tags: ["System"] },
 		},
 	)
@@ -142,7 +183,10 @@ export const systemModule = new Elysia({
 		async ({ body, user, request, db }) => {
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
+
 			if (!body.webhookUrl) {
+				const errorCode = "WEBHOOK_URL_REQUIRED";
+				const errorMessage = "Webhook URL is required";
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.SYSTEM,
 					entityId: "wecom-test",
@@ -150,28 +194,19 @@ export const systemModule = new Elysia({
 					action: "SYSTEM_WECOM_TEST",
 					actor,
 					status: "FAIL",
-					errorCode: "WEBHOOK_URL_REQUIRED",
-					errorMessage: "Webhook URL is required",
+					errorCode,
+					errorMessage,
 					request: requestMeta,
 				});
-				throw new Error("Webhook URL is required");
+				return status(400, {
+					ok: false,
+					error: { code: errorCode, message: errorMessage },
+				});
 			}
-			try {
-				await testWecomWebhook(body.webhookUrl, body.mentionAll);
-				await recordAuditEvent(db, {
-					entityType: AuditEntityType.SYSTEM,
-					entityId: "wecom-test",
-					entityDisplay: "wecom-test",
-					action: "SYSTEM_WECOM_TEST",
-					actor,
-					status: "SUCCESS",
-					request: requestMeta,
-					payload: {
-						webhookUrl: body.webhookUrl,
-						mentionAll: body.mentionAll,
-					},
-				});
-			} catch (error) {
+
+			const result = await testWecomWebhook(body.webhookUrl, body.mentionAll);
+
+			if (!result.success) {
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.SYSTEM,
 					entityId: "wecom-test",
@@ -179,21 +214,40 @@ export const systemModule = new Elysia({
 					action: "SYSTEM_WECOM_TEST",
 					actor,
 					status: "FAIL",
-					errorCode: "WECOM_TEST_FAILED",
-					errorMessage: error instanceof Error ? error.message : "测试消息失败",
+					errorCode: result.code,
+					errorMessage: result.message,
 					request: requestMeta,
 					payload: {
 						webhookUrl: body.webhookUrl,
 						mentionAll: body.mentionAll,
 					},
 				});
-				throw error;
+				return status(result.status ?? 500, {
+					ok: false,
+					error: { code: result.code, message: result.message },
+				});
 			}
-			return { message: "Test message sent" };
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.SYSTEM,
+				entityId: "wecom-test",
+				entityDisplay: "wecom-test",
+				action: "SYSTEM_WECOM_TEST",
+				actor,
+				status: "SUCCESS",
+				request: requestMeta,
+				payload: {
+					webhookUrl: body.webhookUrl,
+					mentionAll: body.mentionAll,
+				},
+			});
+
+			return { ok: true, data: result.data };
 		},
 		{
 			isAuth: true,
 			body: wecomTestSchema,
+			response: wecomTestResponseSchema,
 			detail: { tags: ["System"] },
 		},
 	)
@@ -203,7 +257,10 @@ export const systemModule = new Elysia({
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
 			const file = body.file;
+
 			if (!file) {
+				const errorCode = "NO_FILE";
+				const errorMessage = "缺少上传文件";
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.SYSTEM,
 					entityId: "upload",
@@ -211,15 +268,19 @@ export const systemModule = new Elysia({
 					action: "SYSTEM_UPLOAD",
 					actor,
 					status: "FAIL",
-					errorCode: "NO_FILE",
-					errorMessage: "缺少上传文件",
+					errorCode,
+					errorMessage,
 					request: requestMeta,
 				});
-				set.status = 400;
-				return { code: "NO_FILE", message: "缺少上传文件" };
+				return status(400, {
+					ok: false,
+					error: { code: errorCode, message: errorMessage },
+				});
 			}
 
 			if (file.size > MAX_UPLOAD_SIZE) {
+				const errorCode = "FILE_TOO_LARGE";
+				const errorMessage = "文件大小不能超过 50MB";
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.SYSTEM,
 					entityId: file.name ?? "upload",
@@ -227,16 +288,20 @@ export const systemModule = new Elysia({
 					action: "SYSTEM_UPLOAD",
 					actor,
 					status: "FAIL",
-					errorCode: "FILE_TOO_LARGE",
-					errorMessage: "文件大小不能超过 50MB",
+					errorCode,
+					errorMessage,
 					request: requestMeta,
 					payload: { filename: file.name, contentType: file.type, size: file.size },
 				});
-				set.status = 400;
-				return { code: "FILE_TOO_LARGE", message: "文件大小不能超过 50MB" };
+				return status(400, {
+					ok: false,
+					error: { code: errorCode, message: errorMessage },
+				});
 			}
 
 			if (!ALLOWED_VIDEO_TYPES.has(file.type)) {
+				const errorCode = "UNSUPPORTED_TYPE";
+				const errorMessage = "仅支持 mp4/mov/mkv/webm/avi 视频";
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.SYSTEM,
 					entityId: file.name ?? "upload",
@@ -244,13 +309,15 @@ export const systemModule = new Elysia({
 					action: "SYSTEM_UPLOAD",
 					actor,
 					status: "FAIL",
-					errorCode: "UNSUPPORTED_TYPE",
-					errorMessage: "仅支持 mp4/mov/mkv/webm/avi 视频",
+					errorCode,
+					errorMessage,
 					request: requestMeta,
 					payload: { filename: file.name, contentType: file.type, size: file.size },
 				});
-				set.status = 400;
-				return { code: "UNSUPPORTED_TYPE", message: "仅支持 mp4/mov/mkv/webm/avi 视频" };
+				return status(400, {
+					ok: false,
+					error: { code: errorCode, message: errorMessage },
+				});
 			}
 
 			await mkdir(UPLOAD_DIR, { recursive: true });
@@ -275,11 +342,12 @@ export const systemModule = new Elysia({
 				},
 			});
 
-			return { url: `/api/system/uploads/${filename}` };
+			return { ok: true, data: { url: `/api/system/uploads/${filename}` } };
 		},
 		{
 			isAuth: true,
 			body: uploadSchema,
+			response: uploadResponseSchema,
 			detail: { tags: ["System"] },
 		},
 	)

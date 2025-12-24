@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from "@better-app/db";
 import { z } from "zod";
+import type { ServiceResult } from "../../types/service-result";
 
 const WECOM_CONFIG_KEY = "wecom_notifications";
 const APP_BRANDING_KEY = "app.branding";
@@ -66,23 +67,30 @@ function mergeDefaults<T>(defaults: T, overrides?: DeepPartial<T>): T {
 
 export async function getWecomConfig(
 	db: PrismaClient,
-): Promise<{ enabled: boolean; webhookUrl: string; mentionAll: boolean }> {
+): Promise<ServiceResult<{ enabled: boolean; webhookUrl: string; mentionAll: boolean }>> {
 	const config = await db.systemConfig.findUnique({
 		where: { key: WECOM_CONFIG_KEY },
 	});
 	if (!config) {
-		return wecomDefaultConfig;
+		return { success: true, data: wecomDefaultConfig };
 	}
 	const val = (config.value ?? {}) as WecomConfigValue;
 	return {
-		enabled: val.enabled ?? wecomDefaultConfig.enabled,
-		webhookUrl: val.webhookUrl || wecomDefaultConfig.webhookUrl,
-		mentionAll: val.mentionAll ?? wecomDefaultConfig.mentionAll,
+		success: true,
+		data: {
+			enabled: val.enabled ?? wecomDefaultConfig.enabled,
+			webhookUrl: val.webhookUrl || wecomDefaultConfig.webhookUrl,
+			mentionAll: val.mentionAll ?? wecomDefaultConfig.mentionAll,
+		},
 	};
 }
 
-export async function saveWecomConfig(db: PrismaClient, value: WecomConfigValue, userId: string) {
-	return db.systemConfig.upsert({
+export async function saveWecomConfig(
+	db: PrismaClient,
+	value: WecomConfigValue,
+	userId: string,
+): Promise<ServiceResult<{ message: string }>> {
+	await db.systemConfig.upsert({
 		where: { key: WECOM_CONFIG_KEY },
 		update: {
 			value,
@@ -95,9 +103,13 @@ export async function saveWecomConfig(db: PrismaClient, value: WecomConfigValue,
 			updatedBy: userId,
 		},
 	});
+	return { success: true, data: { message: "Configuration saved" } };
 }
 
-export async function testWecomWebhook(webhookUrl: string, mentionAll: boolean) {
+export async function testWecomWebhook(
+	webhookUrl: string,
+	mentionAll: boolean,
+): Promise<ServiceResult<{ message: string }>> {
 	try {
 		const content = mentionAll ? "Better APP 测试消息 (@所有人)" : "Better APP 测试消息";
 		const response = await fetch(webhookUrl, {
@@ -112,37 +124,49 @@ export async function testWecomWebhook(webhookUrl: string, mentionAll: boolean) 
 			}),
 		});
 		if (!response.ok) {
-			throw new Error(`企业微信 API 响应错误: ${response.status} `);
+			return {
+				success: false,
+				code: "WECOM_API_ERROR",
+				message: `企业微信 API 响应错误: ${response.status}`,
+				status: 502,
+			};
 		}
-		return { success: true };
+		return { success: true, data: { message: "Test message sent" } };
 	} catch (error: unknown) {
 		const message = error instanceof Error ? error.message : "未知错误";
-		throw new Error(`发送测试消息失败: ${message} `);
+		return {
+			success: false,
+			code: "WECOM_TEST_FAILED",
+			message: `发送测试消息失败: ${message}`,
+			status: 500,
+		};
 	}
 }
 
-export async function getAppBrandingConfig(db: PrismaClient): Promise<AppBrandingConfig> {
+export async function getAppBrandingConfig(
+	db: PrismaClient,
+): Promise<ServiceResult<AppBrandingConfig>> {
 	const config = await db.systemConfig.findUnique({
 		where: { key: APP_BRANDING_KEY },
 	});
 
 	if (!config) {
-		return defaultAppBranding;
+		return { success: true, data: defaultAppBranding };
 	}
 
 	const parsed = appBrandingSchema.partial().safeParse(config.value);
 	if (!parsed.success) {
-		return defaultAppBranding;
+		return { success: true, data: defaultAppBranding };
 	}
 
-	return mergeDefaults(defaultAppBranding, parsed.data);
+	return { success: true, data: mergeDefaults(defaultAppBranding, parsed.data) };
 }
 
 export async function saveAppBrandingConfig(
 	db: PrismaClient,
 	value: AppBrandingConfig,
 	userId: string,
-): Promise<AppBrandingConfig> {
+): Promise<ServiceResult<AppBrandingConfig>> {
 	const validated = appBrandingSchema.parse(value);
 
 	await db.systemConfig.upsert({
@@ -160,5 +184,5 @@ export async function saveAppBrandingConfig(
 		},
 	});
 
-	return validated;
+	return { success: true, data: validated };
 }

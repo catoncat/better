@@ -1,38 +1,65 @@
-# API Overview & Design Principles
+# MES API Overview
 
-* **目标**：统一 API 的命名规范、响应结构、错误码设计、幂等性等。
+This document outlines the specific API domains and error codes for the MES (Manufacturing Execution System) domain.
+It adheres to `agent_docs/03_backend/api_patterns.md`.
 
-1. **API 设计原则**：
+Global API rules (response envelope, error format, audit, idempotency) are defined in the API patterns doc and apply to all MES endpoints.
 
-   * 所有 API 返回的结构统一为：
+---
 
-     ```json
-     {
-       "ok": true,
-       "data": { /* 返回的数据 */ }
-     }
-     ```
-   * 错误响应结构：
+## 1. MES Specific Error Codes
 
-     ```json
-     {
-       "ok": false,
-       "error": {
-         "code": "ERROR_CODE",
-         "message": "详细错误信息",
-         "details": "更多细节"
-       }
-     }
-     ```
+MES APIs use specific error codes to indicate business logic failures.
+Standard errors (e.g. `BAD_REQUEST`, `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `INTERNAL_ERROR`) follow the global API patterns.
 
-2. **幂等性**：
+### 1.1 Execution Errors
+*   `WO_NOT_RELEASED`: Work Order must be in RELEASED state to proceed.
+*   `RUN_NOT_AUTHORIZED`: Production Run requires authorization (and potentially FAI) before execution.
+*   `FAI_REQUIRED`: Step execution blocked because First Article Inspection is pending or failed.
+*   `STEP_MISMATCH`: The unit is not at the correct step for this operation.
+*   `STATION_NOT_ALLOWED`: The selected station is not valid for the current step.
+*   `REQUIRED_DATA_MISSING`: Mandatory data collection fields were not provided.
+*   `UNIT_NOT_IN_STATION`: Attempted TrackOut but unit was not tracked in.
 
-   * 所有写操作支持 `Idempotency-Key`，用于防止重复请求。
+### 1.2 Routing Integration Errors
+*   `ROUTE_NOT_FOUND`: The requested routing definition does not exist.
+*   `ROUTE_SOURCE_READONLY`: Attempted to modify an ERP-sourced routing sequence (forbidden).
+*   `ROUTE_VERSION_NOT_READY`: No executable route version exists for this routing.
+*   `ROUTE_COMPILE_FAILED`: Internal error while compiling execution semantics.
+*   `MAPPING_MISSING`: ERP process key or work center could not be mapped to MES master data.
 
-3. **错误码设计**：
+---
 
-   * 统一使用语义化错误码，例如：
+## 2. API Domains (Routing-Centric)
 
-     * `WO_NOT_RELEASED`：工单未释放
-     * `RUN_NOT_AUTHORIZED`：运行未授权
-     * `STEP_MISMATCH`：工序不匹配
+The MES API is divided into the following functional areas:
+
+### 2.1 ERP Routing Ingestion (source-of-truth)
+*   `POST /api/integration/erp/routes/import` (push import)
+*   `POST /api/integration/erp/routes/sync` (pull trigger initiated by MES)
+*   `GET  /api/routes/{routingCode}/source` (raw + normalized summary)
+
+### 2.2 MES Routing Management (native)
+*   `POST /api/routes` (create MES-native routing)
+*   `PATCH /api/routes/{routingCode}` (edit header, native only)
+*   `POST /api/routes/{routingCode}/steps` (edit steps, native only)
+*   `POST /api/routes/{routingCode}/compile` (compile to executable version)
+
+### 2.3 Execution Semantics Configuration (MES-owned)
+*   `GET  /api/routes/{routingCode}/execution-config`
+*   `POST /api/routes/{routingCode}/execution-config`
+*   `PATCH /api/routes/{routingCode}/execution-config/{configId}`
+*   `POST /api/routes/{routingCode}/compile` (after config change)
+
+### 2.4 Versions (Run freeze)
+*   `GET /api/routes/{routingCode}/versions`
+*   `GET /api/routes/{routingCode}/versions/{versionNo}`
+
+---
+
+## 3. Minimal RBAC Suggestions
+
+*   **Integration/Admin**: ERP ingestion.
+*   **Engineer/Admin**: Native routing edit.
+*   **Engineer**: Execution config edit.
+*   **Production/Quality (Read)**: Querying route/version.
