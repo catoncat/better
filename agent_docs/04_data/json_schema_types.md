@@ -41,3 +41,4 @@ const notificationSchema = t.Object({
 - `SystemConfig.value`
 - `SystemLog.details`
 - `CalibrationRecord.attachments`
+- `AuditEvent.diff`

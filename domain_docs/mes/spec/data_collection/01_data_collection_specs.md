@@ -35,4 +35,5 @@ The Data Collection Specifications define how data will be captured during the p
 
 ## 5. Validation Rules
 - Data values are validated against `spec` at the time of collection.
-- Limit breaches trigger `AuditEvent` and optionally lock the unit/run if `alarm.action` is set to `HOLD`.
+- Limit breaches should trigger an `AuditEvent` (audit log) and optionally lock the unit/run
+  if `alarm.action` is set to `HOLD` (planned; not implemented yet).

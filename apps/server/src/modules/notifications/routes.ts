@@ -1,6 +1,8 @@
 import { Elysia } from "elysia";
+import { AuditEntityType } from "@better-app/db";
 import { authPlugin } from "../../plugins/auth";
 import { prismaPlugin } from "../../plugins/prisma";
+import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../audit/service";
 import {
 	notificationListQuerySchema,
 	notificationListResponseSchema,
@@ -45,8 +47,24 @@ export const notificationModule = new Elysia({
 	)
 	.patch(
 		"/read-all",
-		async ({ db, user }) => {
-			return markAllAsRead(db, user.id);
+		async ({ db, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const unreadCount = await db.notification.count({
+				where: { recipientId: user.id, status: "unread" },
+			});
+			const result = await markAllAsRead(db, user.id);
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.NOTIFICATION,
+				entityId: user.id,
+				entityDisplay: user.email ?? user.id,
+				action: "NOTIFICATIONS_READ_ALL",
+				actor,
+				status: "SUCCESS",
+				request: requestMeta,
+				payload: { unreadCount },
+			});
+			return result;
 		},
 		{
 			isAuth: true,
@@ -55,12 +73,40 @@ export const notificationModule = new Elysia({
 	)
 	.patch(
 		"/:id/read",
-		async ({ db, params, user, set }) => {
+		async ({ db, params, user, set, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const before = await db.notification.findFirst({
+				where: { id: params.id, recipientId: user.id },
+			});
 			const result = await markAsRead(db, params.id, user.id);
 			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.NOTIFICATION,
+					entityId: before?.id ?? params.id,
+					entityDisplay: params.id,
+					action: "NOTIFICATION_READ",
+					actor,
+					status: "FAIL",
+					errorCode: "NOT_FOUND",
+					errorMessage: "Notification not found",
+					before,
+					request: requestMeta,
+				});
 				set.status = 404;
 				return { message: "Notification not found" };
 			}
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.NOTIFICATION,
+				entityId: result.data.id,
+				entityDisplay: result.data.id,
+				action: "NOTIFICATION_READ",
+				actor,
+				status: "SUCCESS",
+				before,
+				after: result.data,
+				request: requestMeta,
+			});
 			return result.data;
 		},
 		{
@@ -71,12 +117,40 @@ export const notificationModule = new Elysia({
 	)
 	.delete(
 		"/:id",
-		async ({ db, params, user, set }) => {
+		async ({ db, params, user, set, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const before = await db.notification.findFirst({
+				where: { id: params.id, recipientId: user.id },
+			});
 			const result = await deleteNotification(db, params.id, user.id);
 			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.NOTIFICATION,
+					entityId: before?.id ?? params.id,
+					entityDisplay: params.id,
+					action: "NOTIFICATION_DELETE",
+					actor,
+					status: "FAIL",
+					errorCode: "NOT_FOUND",
+					errorMessage: "Notification not found",
+					before,
+					request: requestMeta,
+				});
 				set.status = 404;
 				return { message: "Notification not found" };
 			}
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.NOTIFICATION,
+				entityId: before?.id ?? params.id,
+				entityDisplay: params.id,
+				action: "NOTIFICATION_DELETE",
+				actor,
+				status: "SUCCESS",
+				before,
+				after: null,
+				request: requestMeta,
+			});
 			return { message: "Deleted" };
 		},
 		{

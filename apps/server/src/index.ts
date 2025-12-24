@@ -6,6 +6,7 @@ import { opentelemetry } from "@elysiajs/opentelemetry";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { Elysia } from "elysia";
 import * as z from "zod";
+import { auditModule } from "./modules/audit";
 import { instrumentModule } from "./modules/instruments";
 import { mesModule } from "./modules/mes";
 import { metaModule } from "./modules/meta";
@@ -13,6 +14,7 @@ import { notificationModule } from "./modules/notifications";
 import { systemModule } from "./modules/system";
 import { usersModule } from "./modules/users";
 import { authPlugin } from "./plugins/auth";
+import { auditArchiveCronPlugin } from "./plugins/audit-archive-cron";
 import { instrumentCronPlugin } from "./plugins/instrument-cron";
 import { prismaPlugin } from "./plugins/prisma";
 import { serveWebRequest } from "./web/serve-web";
@@ -147,12 +149,14 @@ api
 		detail: { tags: ["System - Health"] },
 	})
 	.use(instrumentModule)
+	.use(auditModule)
 	.use(mesModule)
 	.use(notificationModule)
 	.use(metaModule)
 	.use(usersModule)
 	.use(systemModule)
-	.use(instrumentCronPlugin);
+	.use(instrumentCronPlugin)
+	.use(auditArchiveCronPlugin);
 
 const getListenOptions = async () => {
 	const portFromEnv = process.env.PORT ? Number(process.env.PORT) : null;

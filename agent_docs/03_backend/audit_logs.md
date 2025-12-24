@@ -16,7 +16,11 @@
 - **Single event source**: the same event payload feeds both Audit Log + Notification.
 - **Separation of concerns**: audit is for traceability, notifications are for UX.
 
-## Domain Event Pipeline (Single Source of Truth)
+## Current Implementation (Now)
+- API write handlers call `recordAuditEvent(...)` directly.
+- Notifications are still dispatched independently (no shared `event_id` yet).
+
+## Target Domain Event Pipeline (Planned)
 1. Build a Domain Event object during a write operation:
    - actor, action, entity, before/after, diff, status, error
 2. Inside the same DB transaction:
@@ -27,17 +31,19 @@
 
 ## Data Model (Audit Log)
 Recommended minimal fields:
-- `id`
-- `event_id` (shared with notification)
-- `actor_id`, `actor_name`, `actor_role`, `actor_type`
+- `id` (also used as `event_id` for notifications)
+- `actorId`, `actorName`, `actorRole`, `actorType`
 - `action` (e.g. `WORK_ORDER_RELEASE`, `RUN_AUTHORIZE`, `TRACK_OUT`)
-- `entity_type`, `entity_id`, `entity_display`
+- `entityType`, `entityId`, `entityDisplay`
 - `status` (`SUCCESS`/`FAIL`)
-- `error_code`, `error_message` (only on failure)
+- `errorCode`, `errorMessage` (only on failure)
 - `diff` (JSON)
-- `request_id`, `ip`, `user_agent`
-- `trace_id` (optional; link to OTel)
-- `created_at`
+- `requestId`, `ip`, `userAgent`
+- `traceId` (optional; link to OTel)
+- `createdAt`
+
+Implementation note:
+- The Prisma model is **AuditEvent** and is used as the audit log table.
 
 ## Diff Format (Decision)
 **Use a JSON Patch–style diff with before/after values**.
@@ -48,7 +54,7 @@ Example diff payload:
 ```json
 [
   { "op": "replace", "path": "/status", "before": "RECEIVED", "after": "RELEASED" },
-  { "op": "replace", "path": "/planned_qty", "before": 1000, "after": 1200 }
+  { "op": "replace", "path": "/plannedQty", "before": 1000, "after": 1200 }
 ]
 ```
 
@@ -67,11 +73,28 @@ Plan:
 - Keep an `audit_archives` index table with:
   `file_path`, `range_start`, `range_end`, `row_count`, `checksum`, `created_at`
 
+Environment knobs:
+- `AUDIT_ARCHIVE_ENABLED` (default `false`)
+- `AUDIT_ARCHIVE_CRON` (default `0 3 1 * *`)
+- `AUDIT_ARCHIVE_CUTOFF_DAYS` (default `90`)
+- `AUDIT_ARCHIVE_BATCH_SIZE` (default `1000`)
+- `AUDIT_ARCHIVE_DIR` (default `data/audit-archives`)
+
+Archive tooling:
+- Manual run: `bun apps/server/scripts/archive-audit-logs.ts`
+- Cron plugin: `apps/server/src/plugins/audit-archive-cron.ts`
+
 ## Access Rules (Policy Stub)
 - Users can view **their own** audit logs.
 - Privileged roles can view **others** (role-based policy).
 - Admin can view **all**.
 - Implementation is deferred until role/permission model is finalized.
+  Current implementation defaults to **self-only** access.
+
+## API Endpoints
+- `GET /api/audit-logs`
+  - Query: `page`, `pageSize`, `actorId`, `entityType`, `entityId`, `action`, `status`, `from`, `to`
+- `GET /api/audit-logs/:id`
 
 ## Related Docs
 - `agent_docs/03_backend/notifications.md`

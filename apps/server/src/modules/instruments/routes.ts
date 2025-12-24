@@ -1,6 +1,8 @@
 import { Elysia } from "elysia";
+import { AuditEntityType } from "@better-app/db";
 import { authPlugin } from "../../plugins/auth";
 import { prismaPlugin } from "../../plugins/prisma";
+import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../audit/service";
 import {
 	calibrationCreateSchema,
 	calibrationDeleteQuerySchema,
@@ -93,8 +95,38 @@ export const instrumentModule = new Elysia({
 	)
 	.post(
 		"/",
-		async ({ db, body }) => {
-			return createInstrument(db, body);
+		async ({ db, body, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			try {
+				const created = await createInstrument(db, body);
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INSTRUMENT,
+					entityId: created.id,
+					entityDisplay: created.instrumentNo,
+					action: "INSTRUMENT_CREATE",
+					actor,
+					status: "SUCCESS",
+					before: null,
+					after: created,
+					request: requestMeta,
+				});
+				return created;
+			} catch (error) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INSTRUMENT,
+					entityId: body.instrumentNo,
+					entityDisplay: body.instrumentNo,
+					action: "INSTRUMENT_CREATE",
+					actor,
+					status: "FAIL",
+					errorCode: "INSTRUMENT_CREATE_FAILED",
+					errorMessage: error instanceof Error ? error.message : "创建量具失败",
+					request: requestMeta,
+					payload: { instrumentNo: body.instrumentNo },
+				});
+				throw error;
+			}
 		},
 		{
 			isAuth: true,
@@ -104,13 +136,40 @@ export const instrumentModule = new Elysia({
 	)
 	.patch(
 		"/:id",
-		async ({ db, params, body, set }) => {
+		async ({ db, params, body, set, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const before = await db.instrument.findUnique({ where: { id: params.id } });
 			const updated = await updateInstrument(db, params.id, body);
 
 			if (!updated) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INSTRUMENT,
+					entityId: params.id,
+					entityDisplay: params.id,
+					action: "INSTRUMENT_UPDATE",
+					actor,
+					status: "FAIL",
+					errorCode: "NOT_FOUND",
+					errorMessage: "Instrument not found",
+					before,
+					request: requestMeta,
+				});
 				set.status = 404;
 				return { code: "NOT_FOUND", message: "Instrument not found" };
 			}
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INSTRUMENT,
+				entityId: updated.id,
+				entityDisplay: updated.instrumentNo,
+				action: "INSTRUMENT_UPDATE",
+				actor,
+				status: "SUCCESS",
+				before,
+				after: updated,
+				request: requestMeta,
+			});
 
 			return updated;
 		},
@@ -123,13 +182,40 @@ export const instrumentModule = new Elysia({
 	)
 	.patch(
 		"/:id/calibration",
-		async ({ db, params, body, set }) => {
+		async ({ db, params, body, set, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const before = await db.instrument.findUnique({ where: { id: params.id } });
 			const updated = await updateInstrumentCalibration(db, params.id, body);
 
 			if (!updated) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INSTRUMENT,
+					entityId: params.id,
+					entityDisplay: params.id,
+					action: "INSTRUMENT_CALIBRATION_UPDATE",
+					actor,
+					status: "FAIL",
+					errorCode: "NOT_FOUND",
+					errorMessage: "Instrument not found",
+					before,
+					request: requestMeta,
+				});
 				set.status = 404;
 				return { code: "NOT_FOUND", message: "Instrument not found" };
 			}
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INSTRUMENT,
+				entityId: updated.id,
+				entityDisplay: updated.instrumentNo,
+				action: "INSTRUMENT_CALIBRATION_UPDATE",
+				actor,
+				status: "SUCCESS",
+				before,
+				after: updated,
+				request: requestMeta,
+			});
 
 			return updated;
 		},
@@ -163,13 +249,40 @@ export const instrumentModule = new Elysia({
 			)
 			.post(
 				"/",
-				async ({ db, params, body, set, user }) => {
+				async ({ db, params, body, set, user, request }) => {
+					const actor = buildAuditActor(user);
+					const requestMeta = buildAuditRequestMeta(request);
 					const result = await createCalibrationRecord(db, params.id, user.id, body);
 
 					if (!result.success) {
+						await recordAuditEvent(db, {
+							entityType: AuditEntityType.CALIBRATION,
+							entityId: params.id,
+							entityDisplay: params.id,
+							action: "CALIBRATION_CREATE",
+							actor,
+							status: "FAIL",
+							errorCode: result.code,
+							errorMessage: result.message,
+							request: requestMeta,
+							payload: { instrumentId: params.id },
+						});
 						set.status = result.status ?? 400;
 						return { code: result.code, message: result.message };
 					}
+
+					await recordAuditEvent(db, {
+						entityType: AuditEntityType.CALIBRATION,
+						entityId: result.data.id,
+						entityDisplay: result.data.certificateNo ?? result.data.id,
+						action: "CALIBRATION_CREATE",
+						actor,
+						status: "SUCCESS",
+						before: null,
+						after: result.data,
+						request: requestMeta,
+						payload: { instrumentId: params.id },
+					});
 
 					return result.data;
 				},
@@ -182,13 +295,44 @@ export const instrumentModule = new Elysia({
 			)
 			.patch(
 				"/:recordId",
-				async ({ db, params, body, set }) => {
+				async ({ db, params, body, set, user, request }) => {
+					const actor = buildAuditActor(user);
+					const requestMeta = buildAuditRequestMeta(request);
+					const before = await db.calibrationRecord.findUnique({
+						where: { id: params.recordId },
+					});
 					const result = await updateCalibrationRecord(db, params.id, params.recordId, body);
 
 					if (!result.success) {
+						await recordAuditEvent(db, {
+							entityType: AuditEntityType.CALIBRATION,
+							entityId: before?.id ?? params.recordId,
+							entityDisplay: before?.certificateNo ?? params.recordId,
+							action: "CALIBRATION_UPDATE",
+							actor,
+							status: "FAIL",
+							errorCode: result.code,
+							errorMessage: result.message,
+							before,
+							request: requestMeta,
+							payload: { instrumentId: params.id },
+						});
 						set.status = result.status ?? 400;
 						return { code: result.code, message: result.message };
 					}
+
+					await recordAuditEvent(db, {
+						entityType: AuditEntityType.CALIBRATION,
+						entityId: result.data.id,
+						entityDisplay: result.data.certificateNo ?? result.data.id,
+						action: "CALIBRATION_UPDATE",
+						actor,
+						status: "SUCCESS",
+						before,
+						after: result.data,
+						request: requestMeta,
+						payload: { instrumentId: params.id },
+					});
 
 					return result.data;
 				},
@@ -201,13 +345,44 @@ export const instrumentModule = new Elysia({
 			)
 			.delete(
 				"/:recordId",
-				async ({ db, params, query, set }) => {
+				async ({ db, params, query, set, user, request }) => {
+					const actor = buildAuditActor(user);
+					const requestMeta = buildAuditRequestMeta(request);
+					const before = await db.calibrationRecord.findUnique({
+						where: { id: params.recordId },
+					});
 					const result = await deleteCalibrationRecord(db, params.id, params.recordId, query);
 
 					if (!result.success) {
+						await recordAuditEvent(db, {
+							entityType: AuditEntityType.CALIBRATION,
+							entityId: before?.id ?? params.recordId,
+							entityDisplay: before?.certificateNo ?? params.recordId,
+							action: "CALIBRATION_DELETE",
+							actor,
+							status: "FAIL",
+							errorCode: result.code,
+							errorMessage: result.message,
+							before,
+							request: requestMeta,
+							payload: { instrumentId: params.id },
+						});
 						set.status = result.status ?? 400;
 						return { code: result.code, message: result.message };
 					}
+
+					await recordAuditEvent(db, {
+						entityType: AuditEntityType.CALIBRATION,
+						entityId: before?.id ?? params.recordId,
+						entityDisplay: before?.certificateNo ?? params.recordId,
+						action: "CALIBRATION_DELETE",
+						actor,
+						status: "SUCCESS",
+						before,
+						after: null,
+						request: requestMeta,
+						payload: { instrumentId: params.id },
+					});
 
 					return result.data;
 				},
@@ -221,13 +396,38 @@ export const instrumentModule = new Elysia({
 	)
 	.delete(
 		"/:id",
-		async ({ db, params, set }) => {
+		async ({ db, params, set, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
 			const deleted = await deleteInstrument(db, params.id);
 
 			if (!deleted) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INSTRUMENT,
+					entityId: params.id,
+					entityDisplay: params.id,
+					action: "INSTRUMENT_DELETE",
+					actor,
+					status: "FAIL",
+					errorCode: "NOT_FOUND",
+					errorMessage: "Instrument not found",
+					request: requestMeta,
+				});
 				set.status = 404;
 				return { code: "NOT_FOUND", message: "Instrument not found" };
 			}
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INSTRUMENT,
+				entityId: deleted.id,
+				entityDisplay: deleted.instrumentNo,
+				action: "INSTRUMENT_DELETE",
+				actor,
+				status: "SUCCESS",
+				before: deleted,
+				after: null,
+				request: requestMeta,
+			});
 
 			return deleted;
 		},
