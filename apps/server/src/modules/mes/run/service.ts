@@ -1,10 +1,22 @@
 import { type Prisma, type PrismaClient, RunStatus } from "@better-app/db";
+import { SpanStatusCode, trace, type Span } from "@opentelemetry/api";
 import type { Static } from "elysia";
 import { parseSortOrderBy } from "../../../utils/sort";
 import type { runAuthorizeSchema, runListQuerySchema } from "./schema";
 
 type RunAuthorizeInput = Static<typeof runAuthorizeSchema>;
 type RunListQuery = Static<typeof runListQuerySchema>;
+
+const tracer = trace.getTracer("mes");
+
+const setSpanAttributes = (span: Span, attributes: Record<string, unknown>) => {
+	for (const [key, value] of Object.entries(attributes)) {
+		if (value === undefined || value === null) continue;
+		if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+			span.setAttribute(key, value);
+		}
+	}
+};
 
 export const listRuns = async (db: PrismaClient, query: RunListQuery) => {
 	const page = query.page ?? 1;
@@ -49,37 +61,59 @@ export const listRuns = async (db: PrismaClient, query: RunListQuery) => {
 };
 
 export const authorizeRun = async (db: PrismaClient, runNo: string, data: RunAuthorizeInput) => {
-	const run = await db.run.findUnique({ where: { runNo } });
-	if (!run) return { success: false, code: "RUN_NOT_FOUND", message: "Run not found" };
+	return await tracer.startActiveSpan("mes.runs.authorize", async (span) => {
+		setSpanAttributes(span, {
+			"mes.run.run_no": runNo,
+			"mes.run.action": data.action,
+			"mes.run.reason": data.reason,
+		});
 
-	if (data.action === "AUTHORIZE") {
-		if (run.status === RunStatus.AUTHORIZED) {
-			return { success: true, data: run };
+		try {
+			const run = await db.run.findUnique({ where: { runNo } });
+			if (!run) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "RUN_NOT_FOUND");
+				return { success: false, code: "RUN_NOT_FOUND", message: "Run not found" };
+			}
+
+			if (data.action === "AUTHORIZE") {
+				if (run.status === RunStatus.AUTHORIZED) {
+					return { success: true, data: run };
+				}
+				if (run.status !== RunStatus.PREP && run.status !== RunStatus.FAI_PENDING) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "RUN_NOT_READY");
+					return {
+						success: false,
+						code: "RUN_NOT_READY",
+						message: "Run is not in a state that can be authorized",
+					};
+				}
+				const updated = await db.run.update({
+					where: { runNo },
+					data: {
+						status: RunStatus.AUTHORIZED,
+					},
+				});
+				return { success: true, data: updated };
+			}
+
+			if (run.status !== RunStatus.AUTHORIZED) {
+				return { success: true, data: run };
+			}
+			const updated = await db.run.update({
+				where: { runNo },
+				data: {
+					status: RunStatus.PREP,
+				},
+			});
+			return { success: true, data: updated };
+		} catch (error) {
+			span.recordException(error as Error);
+			span.setStatus({ code: SpanStatusCode.ERROR });
+			throw error;
+		} finally {
+			span.end();
 		}
-		if (run.status !== RunStatus.PREP && run.status !== RunStatus.FAI_PENDING) {
-			return {
-				success: false,
-				code: "RUN_NOT_READY",
-				message: "Run is not in a state that can be authorized",
-			};
-		}
-		const updated = await db.run.update({
-			where: { runNo },
-			data: {
-				status: RunStatus.AUTHORIZED,
-			},
-		});
-		return { success: true, data: updated };
-	} else {
-		if (run.status !== RunStatus.AUTHORIZED) {
-			return { success: true, data: run };
-		}
-		const updated = await db.run.update({
-			where: { runNo },
-			data: {
-				status: RunStatus.PREP,
-			},
-		});
-		return { success: true, data: updated };
-	}
+	});
 };
