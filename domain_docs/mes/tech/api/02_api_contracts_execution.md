@@ -1,151 +1,388 @@
 # API Contracts: Execution
 
-这个文件定义了与生产执行闭环相关的 API，包括工单/运行管理、门禁强控、以及设备/测试数据接入。
+This document defines APIs and behaviors for the production execution closed loop:
+- Work order / Run management
+- Gatekeeping (prep, FAI, authorization)
+- Station execution (track-in/out)
+- Ingest (equipment/test/batch) entry points
+- Routing selection + Run freeze semantics
 
-## 1. 工单与运行 (Work Order & Run)
+Aligned with:
+- `domain_docs/mes/spec/process/01_end_to_end_flows.md`
+- `domain_docs/mes/spec/routing/01_routing_engine.md`
 
-### 接收工单 (ERP/APS)
+All responses follow the envelope and error format defined in `agent_docs/03_backend/api_patterns.md`.
+Error codes reference `domain_docs/mes/tech/api/01_api_overview.md` plus global codes.
+
+---
+
+## 1. Work Order & Run
+
+### 1.1 Receive WorkOrder (ERP/APS)
 **POST** `/api/integration/work-orders`
-- **行为**: 幂等 upsert；记录 `IntegrationMessage`。
-- **Payload**: 同执行契约文档原有内容，可选 `sourceSystem`（例如 `ERP` / `APS`）。
 
-### 下发工单
+- Behavior: idempotent upsert; write `IntegrationMessage`
+- Idempotency: `Idempotency-Key` header is required
+- Result: work order in `RECEIVED`
+
+Request example:
+```json
+{
+  "woNo": "WO20250101-001",
+  "productCode": "P-10001",
+  "qty": 100,
+  "dueDate": "2025-01-15T00:00:00Z"
+}
+```
+
+Response example:
+```json
+{
+  "ok": true,
+  "data": {
+    "woNo": "WO20250101-001",
+    "status": "RECEIVED"
+  }
+}
+```
+
+### 1.2 Release WorkOrder
 **POST** `/api/work-orders/{woNo}/release`
-- **Guard**: 状态必须为 `RECEIVED`。
 
-### 创建生产运行 (Run)
+- Guard: WO must be `RECEIVED`
+- Recommended: routing resolution check:
+  - must resolve a routing
+  - routing must have at least one READY executable version
+- If not: return `ROUTE_VERSION_NOT_READY` / `ROUTE_COMPILE_FAILED`
+
+Request: none
+
+Response example:
+```json
+{
+  "ok": true,
+  "data": {
+    "woNo": "WO20250101-001",
+    "status": "RELEASED"
+  }
+}
+```
+
+### 1.3 Create Run (Freeze Route Version)
 **POST** `/api/work-orders/{woNo}/runs`
-- **Guard**: 工单必须已 `RELEASED`。
-- **结果**: Run 状态初始化为 `PREP`，工单状态更新为 `IN_PROGRESS`。
 
-### 查询工单列表
-**GET** `/api/work-orders`
-- **Query**:
-  - `page`, `pageSize`
-  - `search` (工单号/产品编码)
-  - `status` (逗号分隔)
-  - `sort` (例如 `woNo.asc,createdAt.desc`)
-- **结果**: `{ items, total, page, pageSize }`
+Behavior (required):
+1) Resolve routing (see routing engine selection rules)
+2) Select latest READY `ExecutableRouteVersion`
+3) Persist `Run.routeVersionId`
+4) Initialize run status `PREP`
 
-### 查询运行列表
-**GET** `/api/runs`
-- **Query**:
-  - `page`, `pageSize`
-  - `search` (批次号/工单号)
-  - `status` (逗号分隔)
-  - `woNo`
-  - `sort` (例如 `runNo.asc,workOrder.woNo.desc`)
-- **结果**: `{ items, total, page, pageSize }`
+Request example:
+```json
+{
+  "lineCode": "LINE-A",
+  "qty": 100
+}
+```
 
-### 查询工位列表
-**GET** `/api/stations`
-- **结果**: `{ items: [...] }` (包含 `code`, `name`, `stationType`, `line` -> `{ code, name } | null`)
+Response SHOULD include routing identity:
+```json
+{
+  "ok": true,
+  "data": {
+    "runNo": "RUN20250101-01",
+    "status": "PREP",
+    "route": { "code": "100-241-184R", "sourceSystem": "ERP" },
+    "routeVersion": { "versionNo": 3 }
+  }
+}
+```
 
 ---
 
-## 2. 产线准备与门禁 (Gatekeeping)
+## 2. Gatekeeping (Prep / FAI / Authorization)
 
-### 提交准备检查项
+### 2.1 Submit PrepCheck item
+
 **POST** `/api/runs/{runNo}/prep-checks`
-```json
-{ "type": "MATERIAL", "status": "PASS", "remark": "" }
-```
 
-### 创建/重置 FAI 任务
-**POST** `/api/runs/{runNo}/fai`
-```json
-{ "reset": false }
-```
+* Stores prep status per type
+* When all required checks pass, Run may proceed to FAI gating (if enabled)
 
-### 提交 FAI 检验结果
-**POST** `/api/runs/{runNo}/fai/inspect`
+Request example:
 ```json
 {
-  "status": "PASS",
-  "data": { "measurements": [], "images": [], "comment": "OK" }
+  "type": "EQUIPMENT",
+  "result": "PASS",
+  "checkedBy": "OP001",
+  "remark": "Ready"
 }
 ```
-- **Guard**: 若失败，必须记录原因。
 
-### 批量授权
-**POST** `/api/runs/{runNo}/authorize`
+Response example:
 ```json
-{ "action": "AUTHORIZE" }
+{
+  "ok": true,
+  "data": {
+    "prepCheckId": "PC001",
+    "status": "RECORDED"
+  }
+}
 ```
-- **Guard**: FAI 状态必须为 `PASS`（首件合格才授权批量生产）。
-- **M1 简化**: 若 FAI 流程未启用，允许从 `PREP` 直接授权。
+
+### 2.2 FAI lifecycle (M2+ if fully enforced)
+
+**POST** `/api/runs/{runNo}/inspections`
+
+* type = `FAI`
+
+Routing Engine guard:
+
+* If a step requires FAI, Track/ingest must reject until FAI PASS.
+
+Request example:
+```json
+{
+  "type": "FAI",
+  "result": "PASS",
+  "inspector": "QC001",
+  "remark": "First article ok"
+}
+```
+
+Response example:
+```json
+{
+  "ok": true,
+  "data": {
+    "inspectionId": "INSP001",
+    "status": "PASS"
+  }
+}
+```
+
+### 2.3 Authorization (Batch go-ahead)
+
+**POST** `/api/runs/{runNo}/authorizations`
+
+Routing Engine guard:
+
+* If a step requires authorization, Track/ingest must reject until authorized.
+
+Request example:
+```json
+{
+  "authorizedBy": "SUP001",
+  "remark": "Batch approved"
+}
+```
+
+Response example:
+```json
+{
+  "ok": true,
+  "data": {
+    "authorizationId": "AUTH001",
+    "status": "AUTHORIZED"
+  }
+}
+```
 
 ---
 
-## 3. 过站执行 (Tracking)
+## 3. Station Execution (Manual)
 
-### 手动站进出站 (MANUAL)
-- **TrackIn**: `POST /api/stations/{stationCode}/track-in`
-- **TrackOut**: `POST /api/stations/{stationCode}/track-out`
-- **Guards**: 
-  1. `Run=AUTHORIZED` (除非是 FAI 限定模式)
-  2. `currentStepNo` 匹配
-  3. 站点能力匹配（`stationGroupId` / `stationType`）
-  4. `runNo` 与 `woNo` / `Unit` 绑定关系一致
+### 3.1 TrackIn
 
-**TrackIn Payload**
-```json
-{ "sn": "SN0001", "woNo": "WO001", "runNo": "RUN-WO001-..." }
-```
+**POST** `/api/stations/{stationCode}/track-in`
 
-**TrackOut Payload**
+Required inputs:
+
+* `runNo`
+* `sn`
+
+Idempotency: `Idempotency-Key` header is required.
+
+Guards (minimum):
+
+* WO released
+* Run exists and is valid
+* Unit currentStepNo matches the step that station is allowed to execute (derived from frozen routeVersion snapshot)
+* station allowed for the step
+
+Request example:
 ```json
 {
-  "sn": "SN0001",
-  "runNo": "RUN-WO001-...",
-  "result": "PASS",
-  "operatorId": "OP-001",
-  "data": [
-    { "specName": "Peak Temperature", "valueNumber": 246.8 }
-  ]
+  "runNo": "RUN20250101-01",
+  "sn": "SN0001"
 }
 ```
-`specName` 对应当前工序 `DataCollectionSpec.name`。
-`data` 支持 `valueNumber` / `valueText` / `valueBoolean` / `valueJson`，需与 `DataCollectionSpec.dataType` 匹配。
+
+Response example:
+```json
+{
+  "ok": true,
+  "data": {
+    "trackId": "TRK001",
+    "status": "IN_STATION"
+  }
+}
+```
+
+### 3.2 TrackOut
+
+**POST** `/api/stations/{stationCode}/track-out`
+
+Required inputs:
+
+* `runNo`
+* `sn`
+* `result`: PASS/FAIL
+
+Idempotency: `Idempotency-Key` header is required.
+
+PASS behavior:
+
+* Create Track record
+* Validate required data specs (if bound)
+* Advance `Unit.currentStepNo` to the next stepNo based on sorted snapshot steps
+* If no next step, set unit to DONE (M1)
+
+FAIL behavior (M1):
+
+* Create Track record
+* Set unit to OUT_FAILED
+* Do not advance
+
+Request example:
+```json
+{
+  "runNo": "RUN20250101-01",
+  "sn": "SN0001",
+  "result": "PASS"
+}
+```
+
+Response example:
+```json
+{
+  "ok": true,
+  "data": {
+    "trackId": "TRK002",
+    "status": "QUEUED"
+  }
+}
+```
+
+Note: if the step is the last step in the route, the unit status becomes `DONE`.
 
 ---
 
-## 4. 自动化接入 (Ingest)
+## 4. Ingest Execution (AUTO / BATCH / TEST)
 
-### 设备事件接入 (AUTO)
-**POST** `/api/ingest/equipment/events`
+### 4.1 Equipment event ingest (AUTO)
+
+**POST** `/api/ingest/equipment-events`
+
+* Idempotency required (`Idempotency-Key` header)
+* Must map to route snapshot step semantics via execution config ingestMapping
+
+Request example:
 ```json
 {
-  "stationCode": "SMT-PNP-01",
+  "eventId": "EVT001",
+  "stationCode": "AUTO-01",
   "sn": "SN0001",
-  "type": "TRACK_OUT",
+  "timestamp": "2025-01-01T08:00:00Z",
   "result": "PASS",
-  "data": { "placementAccuracy": 0.03 }
+  "measurements": {
+    "temp_peak": 247.2
+  }
 }
 ```
 
-### 批量站/载具接入 (BATCH)
-**POST** `/api/ingest/batch/events`
+Response example:
 ```json
 {
-  "stationCode": "REFLOW-01",
-  "carrierNo": "OVEN-LOT-01",
-  "type": "TRACK_OUT",
-  "result": "PASS",
+  "ok": true,
+  "data": {
+    "accepted": true,
+    "trackId": "TRK100"
+  }
+}
+```
+
+### 4.2 Batch event ingest (BATCH)
+
+**POST** `/api/ingest/batch-events`
+
+* Produces CarrierTrack and optionally per-unit Tracks
+* Idempotency required (`Idempotency-Key` header)
+* Advances units according to snapshot steps (not +1)
+
+Request example:
+```json
+{
+  "batchId": "BATCH001",
+  "carrierNo": "CARRIER-01",
   "sns": ["SN0001", "SN0002"],
-  "data": { "peakTemp": 246.8 }
+  "timestamp": "2025-01-01T08:10:00Z",
+  "result": "PASS"
 }
 ```
 
-### 测试结果接入 (TEST)
-**POST** `/api/ingest/test/results`
+Response example:
 ```json
 {
-  "stationCode": "ICT-01",
-  "sn": "SN0001",
-  "result": "FAIL",
-  "measurements": [
-    { "name": "Vout", "value": 4.85, "min": 4.9, "max": 5.1 }
-  ]
+  "ok": true,
+  "data": {
+    "carrierTrackId": "CTR001",
+    "acceptedCount": 2
+  }
 }
 ```
+
+### 4.3 Test result ingest (TEST)
+
+**POST** `/api/ingest/test-results`
+
+* Must produce DataValue rows for measurements
+* Must yield PASS/FAIL outcome for the step
+* FAIL results set unit to OUT_FAILED (M1)
+* Idempotency required (`Idempotency-Key` header)
+
+Request example:
+```json
+{
+  "testResultId": "TEST001",
+  "stationCode": "TEST-01",
+  "sn": "SN0001",
+  "timestamp": "2025-01-01T08:20:00Z",
+  "result": "PASS",
+  "measurements": {
+    "voltage": 3.3,
+    "current": 0.2
+  }
+}
+```
+
+Response example:
+```json
+{
+  "ok": true,
+  "data": {
+    "accepted": true,
+    "dataValueCount": 2
+  }
+}
+```
+
+---
+
+## 5. ERP Routing Updates (Execution Contract Guarantee)
+
+* Runs use their frozen routeVersion; they must not be auto-upgraded.
+* After ERP updates produce a new READY version:
+
+  * new Runs use the new version
+  * existing Runs remain on their original version

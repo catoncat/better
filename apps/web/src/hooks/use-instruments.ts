@@ -1,14 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { client } from "@/lib/eden";
+import { client, unwrap } from "@/lib/eden";
 
 // Infer Instrument type from the API using Eden Treaty
-type ApiInstrumentResponse = Awaited<ReturnType<typeof client.api.instruments.get>>["data"];
-export type Instrument = NonNullable<ApiInstrumentResponse>["items"][number];
-export type InstrumentList = Exclude<
-	ApiInstrumentResponse,
-	{ code: string; message: string } | null | undefined
->;
+type ApiInstrumentResponse = Awaited<ReturnType<typeof client.api.instruments.get>>;
+// Assuming unwrap returns { items: Instrument[] }
+type InstrumentListData = { items: unknown[]; total: number; page: number; pageSize: number };
+export type Instrument = InstrumentListData["items"][number];
+export type InstrumentList = InstrumentListData;
+
 type InstrumentCreateInput = Parameters<typeof client.api.instruments.post>[0];
 type InstrumentUpdateInput = Parameters<ReturnType<typeof client.api.instruments>["patch"]>[0];
 
@@ -38,7 +38,7 @@ export function useInstrumentList(params: UseInstrumentListParams) {
 	return useQuery<InstrumentList>({
 		queryKey: ["instruments", page, pageSize, search, calibrationType, department, ownerId, sort],
 		queryFn: async () => {
-			const { data, error } = await client.api.instruments.get({
+			const response = await client.api.instruments.get({
 				query: {
 					page,
 					pageSize,
@@ -50,15 +50,7 @@ export function useInstrumentList(params: UseInstrumentListParams) {
 				},
 			});
 
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "An error occurred");
-			}
-
-			if (!data) {
-				throw new Error("No data received");
-			}
-
-			return data;
+			return unwrap(response);
 		},
 		placeholderData: (previousData: InstrumentList | undefined) => previousData,
 		staleTime: 30_000,
@@ -72,13 +64,8 @@ export function useCreateInstrument() {
 
 	return useMutation({
 		mutationFn: async (body: InstrumentCreateInput) => {
-			const { data, error } = await client.api.instruments.post(body);
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "创建仪器失败");
-			}
-
-			return data;
+			const response = await client.api.instruments.post(body);
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			toast.success("仪器已创建");
@@ -93,13 +80,8 @@ export function useUpdateInstrument() {
 
 	return useMutation({
 		mutationFn: async ({ id, ...body }: InstrumentUpdateInput & { id: string }) => {
-			const { data, error } = await client.api.instruments({ id }).patch(body);
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "更新仪器失败");
-			}
-
-			return data;
+			const response = await client.api.instruments({ id }).patch(body);
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			toast.success("仪器已更新");

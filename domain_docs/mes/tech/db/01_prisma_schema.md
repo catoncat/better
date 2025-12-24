@@ -7,6 +7,7 @@ This document describes the Prisma schema approach for the MES project, with emp
 - Compiled executable route versions (for Run freeze)
 
 Note: This is documentation. The source of truth is the actual `schema.prisma` in the codebase.
+Implementation status: design-only; schema changes will follow after requirement review.
 
 ---
 
@@ -41,7 +42,7 @@ Add fields (or ensure equivalents exist):
 ### 2.2 Stable step identity for config inheritance
 `RoutingStep` should store:
 - `stepNo` (ordering)
-- `sourceStepKey` (stable external key)
+- `sourceStepKey` (stable external key, explicit column)
   - Example: `ERP:{routeNo}:{operNumber}:{processKey}`
 
 This enables execution config inheritance across ERP updates.
@@ -55,6 +56,10 @@ Tables:
 - `ErpRouteHeaderRaw`
 - `ErpRouteLineRaw`
 
+Also store sync cursors and dedupe keys:
+- `IntegrationSyncCursor` (sourceSystem, entityType, lastSyncAt/lastSeq)
+- `IntegrationMessage.dedupeKey` for pull-based idempotency
+
 ### 2.4 Mapping tables
 ERP process and work center should map into MES dictionaries:
 - `OperationMapping` (ERP processKey → MES operationId)
@@ -65,6 +70,8 @@ Execution semantics are MES-owned and must not mutate ERP step order:
 - `RouteExecutionConfig`
   - supports scope: routing / operation / step / sourceStepKey
   - stores stationType, station constraints, gate flags, dataSpec bindings, ingestMapping
+
+RoutingStep stores the step sequence and identifiers only; execution semantics are defined via `RouteExecutionConfig`.
 
 ### 2.6 Compiled executable route versions
 Add:
@@ -97,7 +104,7 @@ Recommended:
 ---
 
 ## 5. Related Docs
-- `mes/spec/routing/02_erp_route_ingestion.md`
-- `mes/spec/routing/03_route_execution_config.md`
-- `mes/spec/routing/04_route_versioning_and_change_management.md`
-- `mes/spec/traceability/01_traceability_contract.md`
+- `domain_docs/mes/spec/routing/02_erp_route_ingestion.md`
+- `domain_docs/mes/spec/routing/03_route_execution_config.md`
+- `domain_docs/mes/spec/routing/04_route_versioning_and_change_management.md`
+- `domain_docs/mes/spec/traceability/01_traceability_contract.md`

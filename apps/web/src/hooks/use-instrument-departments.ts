@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { client } from "@/lib/eden";
+import { client, unwrap } from "@/lib/eden";
 
 /**
  * Get unique departments from all instruments
@@ -9,17 +9,8 @@ export function useInstrumentDepartments() {
 	return useQuery({
 		queryKey: ["instrument-departments"],
 		queryFn: async () => {
-			const { data, error } = await client.api.instruments.departments.get();
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "An error occurred");
-			}
-
-			if (!data) {
-				throw new Error("No data received");
-			}
-
-			return data;
+			const response = await client.api.instruments.departments.get();
+			return unwrap(response);
 		},
 		staleTime: 5 * 60 * 1000, // Cache for 5 minutes
 	});

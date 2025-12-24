@@ -2,6 +2,7 @@ import { Prisma, type PrismaClient } from "@better-app/db";
 import type { Static } from "elysia";
 import { CalibrationType } from "../../types/prisma-enums";
 import { parseSortOrderBy } from "../../utils/sort";
+import type { ServiceResult } from "../../types/service-result";
 import type {
 	calibrationCreateSchema,
 	calibrationDeleteQuerySchema,
@@ -23,10 +24,6 @@ type CalibrationListAllQuery = Static<typeof calibrationListAllQuerySchema>;
 type CalibrationCreateInput = Static<typeof calibrationCreateSchema>;
 type CalibrationUpdateInput = Static<typeof calibrationUpdateSchema>;
 type CalibrationDeleteQuery = Static<typeof calibrationDeleteQuerySchema>;
-
-type ServiceResult<T> =
-	| { success: true; data: T }
-	| { success: false; code: string; message: string; status?: number };
 
 type PrismaTx = PrismaClient | Prisma.TransactionClient;
 
@@ -128,7 +125,10 @@ const syncInstrumentCalibrationDates = async (
 	});
 };
 
-export const listInstruments = async (db: PrismaClient, query: InstrumentListQuery) => {
+export const listInstruments = async (
+	db: PrismaClient,
+	query: InstrumentListQuery,
+): Promise<ServiceResult<any>> => {
 	const page = query.page ?? 1;
 	const pageSize = Math.min(query.pageSize ?? 20, 100);
 	const where: Prisma.InstrumentWhereInput = {};
@@ -198,16 +198,34 @@ export const listInstruments = async (db: PrismaClient, query: InstrumentListQue
 		db.instrument.count({ where }),
 	]);
 
-	return { items, total, page, pageSize };
+	return { success: true, data: { items, total, page, pageSize } };
 };
 
-export const getInstrument = (db: PrismaClient, id: string) =>
-	db.instrument.findUnique({
+export const getInstrument = async (
+	db: PrismaClient,
+	id: string,
+): Promise<ServiceResult<any>> => {
+	const instrument = await db.instrument.findUnique({
 		where: { id },
 		include: { owner: true },
 	});
 
-export const createInstrument = (db: PrismaClient, body: InstrumentCreateInput) => {
+	if (!instrument) {
+		return {
+			success: false,
+			code: "NOT_FOUND",
+			message: "Instrument not found",
+			status: 404,
+		};
+	}
+
+	return { success: true, data: instrument };
+};
+
+export const createInstrument = async (
+	db: PrismaClient,
+	body: InstrumentCreateInput,
+): Promise<ServiceResult<any>> => {
 	const lastCalibrationDate = parseDateNullable(body.lastCalibrationDate);
 	const intervalDays = body.intervalDays ?? null;
 	const nextCalibrationDate = computeNextCalibrationDate(
@@ -235,17 +253,37 @@ export const createInstrument = (db: PrismaClient, body: InstrumentCreateInput) 
 		data.owner = { connect: { id: body.ownerId } };
 	}
 
-	return db.instrument.create({ data });
+	try {
+		const created = await db.instrument.create({ data });
+		return { success: true, data: created };
+	} catch (error) {
+		if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+			return {
+				success: false,
+				code: "CONFLICT",
+				message: "Instrument number already exists",
+				status: 409,
+			};
+		}
+		throw error;
+	}
 };
 
 export const updateInstrument = async (
 	db: PrismaClient,
 	id: string,
 	body: InstrumentUpdateInput,
-) => {
+): Promise<ServiceResult<any>> => {
 	const existing = await db.instrument.findUnique({ where: { id } });
 
-	if (!existing) return null;
+	if (!existing) {
+		return {
+			success: false,
+			code: "NOT_FOUND",
+			message: "Instrument not found",
+			status: 404,
+		};
+	}
 
 	const data: Prisma.InstrumentUpdateInput = {};
 	const nextDateRequested =
@@ -292,21 +330,39 @@ export const updateInstrument = async (
 		}
 	}
 
-	const updated = await db.instrument.update({
-		where: { id },
-		data,
-	});
-
-	return updated;
+	try {
+		const updated = await db.instrument.update({
+			where: { id },
+			data,
+		});
+		return { success: true, data: updated };
+	} catch (error) {
+		if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+			return {
+				success: false,
+				code: "CONFLICT",
+				message: "Instrument number already exists",
+				status: 409,
+			};
+		}
+		throw error;
+	}
 };
 
 export const updateInstrumentCalibration = async (
 	db: PrismaClient,
 	id: string,
 	body: InstrumentCalibrationUpdateInput,
-) => {
+): Promise<ServiceResult<any>> => {
 	const existing = await db.instrument.findUnique({ where: { id } });
-	if (!existing) return null;
+	if (!existing) {
+		return {
+			success: false,
+			code: "NOT_FOUND",
+			message: "Instrument not found",
+			status: 404,
+		};
+	}
 
 	const lastCalibrationDate =
 		body.lastCalibrationDate !== undefined
@@ -332,31 +388,37 @@ export const updateInstrumentCalibration = async (
 	if (body.remarks !== undefined) data.remarks = body.remarks;
 	if (body.status !== undefined) data.status = body.status;
 
-	return db.instrument.update({
+	const updated = await db.instrument.update({
 		where: { id },
 		data,
 	});
+
+	return { success: true, data: updated };
 };
 
-export const deleteInstrument = async (db: PrismaClient, id: string) => {
+export const deleteInstrument = async (
+	db: PrismaClient,
+	id: string,
+): Promise<ServiceResult<any>> => {
 	const existing = await db.instrument.findUnique({ where: { id } });
-	if (!existing) return null;
+	if (!existing) {
+		return {
+			success: false,
+			code: "NOT_FOUND",
+			message: "Instrument not found",
+			status: 404,
+		};
+	}
 
-	return db.instrument.delete({ where: { id } });
+	await db.instrument.delete({ where: { id } });
+	return { success: true, data: { deleted: true } };
 };
 
 export const listCalibrationRecords = async (
 	db: PrismaClient,
 	instrumentId: string,
 	query: CalibrationListQuery,
-): Promise<
-	ServiceResult<{
-		items: Prisma.CalibrationRecordGetPayload<{ include: typeof calibrationRecordInclude }>[];
-		total: number;
-		page: number;
-		pageSize: number;
-	}>
-> => {
+): Promise<ServiceResult<any>> => {
 	const instrument = await db.instrument.findUnique({
 		where: { id: instrumentId },
 		select: { id: true },
@@ -463,16 +525,7 @@ export const listCalibrationRecords = async (
 export const listAllCalibrationRecords = async (
 	db: PrismaClient,
 	query: CalibrationListAllQuery,
-): Promise<
-	ServiceResult<{
-		items: Prisma.CalibrationRecordGetPayload<{
-			include: typeof calibrationRecordInclude & { instrument: true };
-		}>[];
-		total: number;
-		page: number;
-		pageSize: number;
-	}>
-> => {
+): Promise<ServiceResult<any>> => {
 	const page = query.page ?? 1;
 	const pageSize = Math.min(query.pageSize ?? 20, 100);
 	const where: Prisma.CalibrationRecordWhereInput = {};
@@ -622,9 +675,7 @@ export const createCalibrationRecord = async (
 	instrumentId: string,
 	userId: string,
 	body: CalibrationCreateInput,
-): Promise<
-	ServiceResult<Prisma.CalibrationRecordGetPayload<{ include: typeof calibrationRecordInclude }>>
-> => {
+): Promise<ServiceResult<any>> => {
 	const instrument = await db.instrument.findUnique({ where: { id: instrumentId } });
 
 	if (!instrument) {
@@ -750,9 +801,7 @@ export const updateCalibrationRecord = async (
 	instrumentId: string,
 	recordId: string,
 	body: CalibrationUpdateInput,
-): Promise<
-	ServiceResult<Prisma.CalibrationRecordGetPayload<{ include: typeof calibrationRecordInclude }>>
-> => {
+): Promise<ServiceResult<any>> => {
 	const instrument = await db.instrument.findUnique({ where: { id: instrumentId } });
 	if (!instrument) {
 		return { success: false, code: "NOT_FOUND", message: "Instrument not found", status: 404 };
@@ -941,12 +990,17 @@ export const deleteCalibrationRecord = async (
 	return { success: true, data: { deleted: true } };
 };
 
-export const listDepartments = async (db: PrismaClient) => {
+export const listDepartments = async (
+	db: PrismaClient,
+): Promise<ServiceResult<string[]>> => {
 	const results = await db.instrument.groupBy({
 		by: ["department"],
 		where: {
 			department: { not: null },
 		},
 	});
-	return results.map((r) => r.department).filter((d): d is string => d !== null && d !== "");
+	const items = results
+		.map((r) => r.department)
+		.filter((d): d is string => d !== null && d !== "");
+	return { success: true, data: items };
 };

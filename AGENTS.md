@@ -7,6 +7,8 @@
 - Use **biome** for linting and formatting.
 - Use **tsc** for type checking.
 - **Update Docs with Code**: If implementation diverges from specs (in `agent_docs` or `domain_docs`), update the documentation *before* or *during* the PR. Docs must reflect reality.
+- This is a greenfield system; do not assume legacy/transition behavior.
+- If unsure whether something is legacy-related, check existing implementation or database data first; ask only if still unclear.
 - Ask clarifying questions before coding if anything is unclear.
 
 ## Quick Start (Local Dev)
@@ -36,6 +38,8 @@ Use the smallest set of docs needed for the task. Skip anything not required.
 - New page or UI change:
   1. `agent_docs/02_frontend/ui_system.md`
   2. `agent_docs/02_frontend/routing_tanstack.md`
+- API Data Fetching / Error Handling:
+  1. `agent_docs/02_frontend/api_client.md`
 - List page:
   1. `agent_docs/02_frontend/data_list_pattern.md`
   2. `agent_docs/02_frontend/list_sorting.md`
