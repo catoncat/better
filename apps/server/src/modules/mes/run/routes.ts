@@ -1,6 +1,8 @@
 import { Elysia, t } from "elysia";
+import { AuditEntityType } from "@better-app/db";
 import { authPlugin } from "../../../plugins/auth";
 import { prismaPlugin } from "../../../plugins/prisma";
+import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
 import { runAuthorizeSchema, runListQuerySchema, runResponseSchema } from "./schema";
 import { authorizeRun, listRuns } from "./service";
 
@@ -22,12 +24,38 @@ export const runModule = new Elysia({
 	)
 	.post(
 		"/:runNo/authorize",
-		async ({ db, params, body, set }) => {
+		async ({ db, params, body, set, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const before = await db.run.findUnique({ where: { runNo: params.runNo } });
 			const result = await authorizeRun(db, params.runNo, body);
 			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.RUN,
+					entityId: before?.id ?? params.runNo,
+					entityDisplay: params.runNo,
+					action: body.action === "AUTHORIZE" ? "RUN_AUTHORIZE" : "RUN_REVOKE",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					before,
+					request: requestMeta,
+				});
 				set.status = result.code === "NOT_FOUND" ? 404 : 400;
 				return { ok: false, error: { code: result.code, message: result.message } };
 			}
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.RUN,
+				entityId: result.data.id,
+				entityDisplay: result.data.runNo,
+				action: body.action === "AUTHORIZE" ? "RUN_AUTHORIZE" : "RUN_REVOKE",
+				actor,
+				status: "SUCCESS",
+				before,
+				after: result.data,
+				request: requestMeta,
+			});
 			return { ok: true, data: result.data };
 		},
 		{

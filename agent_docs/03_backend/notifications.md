@@ -22,7 +22,8 @@
 
 ## Dispatch
 - Use `dispatchNotification(db, params)` in transactional route logic.
-- Notifications should be triggered from the shared Domain Event pipeline
+- Current implementation dispatches in routes.
+- Target: trigger from the shared Domain Event pipeline
   (see `agent_docs/03_backend/audit_logs.md`) to avoid duplicate logic.
 
 ```ts

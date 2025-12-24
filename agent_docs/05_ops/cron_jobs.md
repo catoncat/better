@@ -15,6 +15,7 @@
 
 ## Reference Implementation
 - `apps/server/src/plugins/instrument-cron.ts`
+- `apps/server/src/plugins/audit-archive-cron.ts`
 
 ## Minimal Template
 ```ts

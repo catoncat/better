@@ -321,6 +321,12 @@ enum AuditEntityType {
   DATA_VALUE
   MATERIAL_USE
   INTEGRATION
+  INSTRUMENT
+  CALIBRATION
+  USER
+  SYSTEM_CONFIG
+  NOTIFICATION
+  SYSTEM
 }
 
 model WorkOrder {
@@ -744,15 +750,43 @@ model AuditEvent {
   id             String          @id @default(cuid())
   entityType     AuditEntityType
   entityId       String
-  eventType      String
+  entityDisplay  String?
+  action         String          @map("eventType")
   actorId        String?
+  actorName      String?
+  actorRole      String?
+  actorType      String?
   stationId      String?
-  at             DateTime        @default(now())
+  status         String
+  errorCode      String?
+  errorMessage   String?
+  diff           Json?
+  requestId      String?
+  ip             String?
+  userAgent      String?
+  traceId        String?
+  createdAt      DateTime        @default(now()) @map("at")
   idempotencyKey String?
-  payload     Json?
+  payload        Json?
 
   @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
   @@index([idempotencyKey])
+}
+
+model AuditArchive {
+  id         String   @id @default(cuid())
+  filePath   String
+  rangeStart DateTime
+  rangeEnd   DateTime
+  rowCount   Int
+  checksum   String
+  createdAt  DateTime @default(now())
+
+  @@index([rangeStart, rangeEnd])
+  @@map("audit_archives")
 }
 
 model IntegrationMessage {
