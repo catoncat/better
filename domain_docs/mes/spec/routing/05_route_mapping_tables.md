@@ -15,7 +15,7 @@ Keys:
 - unique per `(sourceSystem, sourceProcessKey)`
 
 Missing mapping policy:
-- Early phase: auto-create Operation + audit event
+- Early phase: auto-create Operation (audit can be recorded at integration sync level)
 - Strict phase: compile INVALID with `MAPPING_MISSING`
 
 ---

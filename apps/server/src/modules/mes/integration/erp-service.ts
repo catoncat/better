@@ -8,19 +8,19 @@ type PullOptions = {
 	limit?: number;
 };
 
-type IntegrationCursor = {
+export type IntegrationCursor = {
 	nextSyncAt?: string;
 	hasMore: boolean;
 };
 
-type IntegrationEnvelope<T> = {
+export type IntegrationEnvelope<T> = {
 	sourceSystem: string;
 	entityType: string;
 	cursor: IntegrationCursor;
 	items: T[];
 };
 
-type ErpRouteHeader = {
+export type ErpRouteHeader = {
 	headId: string;
 	routeNo: string;
 	routeName: string;
@@ -35,7 +35,7 @@ type ErpRouteHeader = {
 	modifiedAt: string;
 };
 
-type ErpRouteStep = {
+export type ErpRouteStep = {
 	stepNo: number;
 	processCode: string;
 	processName: string;
@@ -50,7 +50,7 @@ type ErpRouteStep = {
 	qualityInspectStation: boolean;
 };
 
-type ErpRoute = {
+export type ErpRoute = {
 	header: ErpRouteHeader;
 	steps: ErpRouteStep[];
 };

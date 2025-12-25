@@ -108,7 +108,7 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     3.  Normalize to `Routing` + `RoutingStep` with `sourceStepKey`.
     4.  Create or update mappings; record missing mappings as errors.
 *   **Definition of Done**: ERP import produces canonical routes without duplicating steps.
-*   **Status**: [ ] Pending
+*   **Status**: [x] Done (2025-12-25)
 
 ## Task 1.10.1: Kingdee ERP Adapter (Pull)
 *   **Goal**: Implement Kingdee API client for pull-based sync.
