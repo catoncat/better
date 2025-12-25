@@ -12,6 +12,7 @@ import {
 	integrationReceiveWorkOrderSchema,
 	integrationWorkOrderResponseSchema,
 	erpRouteSyncQuerySchema,
+	tpmSyncQuerySchema,
 	tpmEquipmentPullResponseSchema,
 	tpmMaintenanceTaskPullResponseSchema,
 	tpmStatusLogPullResponseSchema,
@@ -27,6 +28,7 @@ import {
 	getMockErpWorkCenters,
 } from "./mock-data";
 import { syncErpRoutes } from "./sync-service";
+import { syncTpmEquipment, syncTpmMaintenanceTasks, syncTpmStatusLogs } from "./tpm-sync-service";
 import { receiveWorkOrder } from "./service";
 
 export const integrationModule = new Elysia({
@@ -222,6 +224,147 @@ export const integrationModule = new Elysia({
 			isAuth: true,
 			query: erpRouteSyncQuerySchema,
 			response: erpRoutePullResponseSchema,
+			detail: { tags: ["MES - Integration"] },
+		},
+	)
+	.post(
+		"/tpm/equipment/sync",
+		async ({ query, set, db, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const result = await syncTpmEquipment(db, { since: query.since });
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: "TPM:EQUIPMENT",
+					entityDisplay: "TPM EQUIPMENT SYNC",
+					action: "TPM_EQUIPMENT_SYNC",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					request: requestMeta,
+					payload: { sourceSystem: "TPM", entityType: "EQUIPMENT", query },
+				});
+				set.status = result.status ?? 502;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INTEGRATION,
+				entityId: result.data.messageId,
+				entityDisplay: result.data.businessKey,
+				action: "TPM_EQUIPMENT_SYNC",
+				actor,
+				status: "SUCCESS",
+				request: requestMeta,
+				payload: {
+					sourceSystem: "TPM",
+					entityType: "EQUIPMENT",
+					query,
+					dedupeKey: result.data.dedupeKey ?? null,
+					cursor: result.data.payload.cursor,
+				},
+			});
+			return { ok: true, data: result.data.payload };
+		},
+		{
+			isAuth: true,
+			query: tpmSyncQuerySchema,
+			response: tpmEquipmentPullResponseSchema,
+			detail: { tags: ["MES - Integration"] },
+		},
+	)
+	.post(
+		"/tpm/status-logs/sync",
+		async ({ query, set, db, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const result = await syncTpmStatusLogs(db, { since: query.since });
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: "TPM:STATUS_LOG",
+					entityDisplay: "TPM STATUS LOG SYNC",
+					action: "TPM_STATUS_LOG_SYNC",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					request: requestMeta,
+					payload: { sourceSystem: "TPM", entityType: "STATUS_LOG", query },
+				});
+				set.status = result.status ?? 502;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INTEGRATION,
+				entityId: result.data.messageId,
+				entityDisplay: result.data.businessKey,
+				action: "TPM_STATUS_LOG_SYNC",
+				actor,
+				status: "SUCCESS",
+				request: requestMeta,
+				payload: {
+					sourceSystem: "TPM",
+					entityType: "STATUS_LOG",
+					query,
+					dedupeKey: result.data.dedupeKey ?? null,
+					cursor: result.data.payload.cursor,
+				},
+			});
+			return { ok: true, data: result.data.payload };
+		},
+		{
+			isAuth: true,
+			query: tpmSyncQuerySchema,
+			response: tpmStatusLogPullResponseSchema,
+			detail: { tags: ["MES - Integration"] },
+		},
+	)
+	.post(
+		"/tpm/maintenance-tasks/sync",
+		async ({ query, set, db, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const result = await syncTpmMaintenanceTasks(db, { since: query.since });
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: "TPM:MAINTENANCE_TASK",
+					entityDisplay: "TPM MAINTENANCE TASK SYNC",
+					action: "TPM_MAINTENANCE_TASK_SYNC",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					request: requestMeta,
+					payload: { sourceSystem: "TPM", entityType: "MAINTENANCE_TASK", query },
+				});
+				set.status = result.status ?? 502;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INTEGRATION,
+				entityId: result.data.messageId,
+				entityDisplay: result.data.businessKey,
+				action: "TPM_MAINTENANCE_TASK_SYNC",
+				actor,
+				status: "SUCCESS",
+				request: requestMeta,
+				payload: {
+					sourceSystem: "TPM",
+					entityType: "MAINTENANCE_TASK",
+					query,
+					dedupeKey: result.data.dedupeKey ?? null,
+					cursor: result.data.payload.cursor,
+				},
+			});
+			return { ok: true, data: result.data.payload };
+		},
+		{
+			isAuth: true,
+			query: tpmSyncQuerySchema,
+			response: tpmMaintenanceTaskPullResponseSchema,
 			detail: { tags: ["MES - Integration"] },
 		},
 	)

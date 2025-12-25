@@ -70,6 +70,38 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 				return { success: false, code: "STATION_NOT_FOUND", message: "Station not found" };
 			}
 
+			const tpmEquipment = await db.tpmEquipment.findUnique({
+				where: { equipmentCode: station.code },
+			});
+			if (tpmEquipment) {
+				const status = tpmEquipment.status.toLowerCase();
+				if (status !== "normal") {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "TPM_EQUIPMENT_UNAVAILABLE");
+					return {
+						success: false,
+						code: "TPM_EQUIPMENT_UNAVAILABLE",
+						message: `Equipment status is ${tpmEquipment.status}`,
+					};
+				}
+			}
+
+			const maintenanceTask = await db.tpmMaintenanceTask.findFirst({
+				where: {
+					equipmentCode: station.code,
+					status: { in: ["in_progress", "IN_PROGRESS"] },
+				},
+			});
+			if (maintenanceTask) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "TPM_MAINTENANCE_IN_PROGRESS");
+				return {
+					success: false,
+					code: "TPM_MAINTENANCE_IN_PROGRESS",
+					message: "Equipment maintenance in progress",
+				};
+			}
+
 			const run = await db.run.findUnique({
 				where: { runNo: data.runNo },
 				include: {

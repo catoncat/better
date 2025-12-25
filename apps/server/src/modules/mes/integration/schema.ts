@@ -23,6 +23,10 @@ export const erpRouteSyncQuerySchema = t.Object({
 	limit: t.Optional(t.Numeric()),
 });
 
+export const tpmSyncQuerySchema = t.Object({
+	since: t.Optional(t.String()),
+});
+
 const integrationCursorSchema = t.Object({
 	nextSyncAt: t.Optional(t.String({ format: "date-time" })),
 	hasMore: t.Boolean(),

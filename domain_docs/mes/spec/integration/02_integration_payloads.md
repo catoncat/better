@@ -34,6 +34,9 @@ ERP routing mock data is derived from `others/erp_route.csv` when present; other
 
 Manual pull:
 - `POST /api/integration/erp/routes/sync` returns the same envelope for real ERP pulls.
+ - `POST /api/integration/tpm/equipment/sync`
+ - `POST /api/integration/tpm/status-logs/sync`
+ - `POST /api/integration/tpm/maintenance-tasks/sync`
 
 ---
 

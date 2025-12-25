@@ -18,6 +18,8 @@ Standard errors (e.g. `BAD_REQUEST`, `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `
 *   `FAI_REQUIRED`: Step execution blocked because First Article Inspection is pending or failed.
 *   `STEP_MISMATCH`: The unit is not at the correct step for this operation.
 *   `STATION_NOT_ALLOWED`: The selected station is not valid for the current step.
+*   `TPM_EQUIPMENT_UNAVAILABLE`: Equipment status from TPM is not `normal`.
+*   `TPM_MAINTENANCE_IN_PROGRESS`: Equipment has an in-progress TPM maintenance task.
 *   `REQUIRED_DATA_MISSING`: Mandatory data collection fields were not provided.
 *   `UNIT_NOT_IN_STATION`: Attempted TrackOut but unit was not tracked in.
 
