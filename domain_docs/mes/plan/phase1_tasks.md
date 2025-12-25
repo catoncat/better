@@ -138,7 +138,7 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     2.  Use snapshot step list for step ordering and guard checks.
     3.  Ensure step advance uses sorted `stepNo` (not +1).
 *   **Definition of Done**: Runs execute against frozen snapshots; ERP updates do not affect in-flight runs.
-*   **Status**: [ ] Pending
+*   **Status**: [x] Done (2025-12-25)
 
 ## Task 1.13: Trace & Acceptance Tests
 *   **Goal**: Ensure trace reflects frozen route versions and ERP integration behavior.

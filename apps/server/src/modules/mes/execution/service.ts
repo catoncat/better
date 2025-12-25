@@ -19,13 +19,35 @@ const setSpanAttributes = (span: Span, attributes: Record<string, unknown>) => {
 };
 
 const isValidStationForStep = (
-	step: { stationGroupId: string | null; stationType: string },
-	station: { groupId: string | null; stationType: string },
+	step: { stationGroupId: string | null; stationType: string; allowedStationIds?: string[] },
+	station: { id: string; groupId: string | null; stationType: string },
 ) => {
+	if (step.stationType !== station.stationType) {
+		return false;
+	}
+	if (step.allowedStationIds && step.allowedStationIds.length > 0) {
+		if (!step.allowedStationIds.includes(station.id)) return false;
+	}
 	if (step.stationGroupId && step.stationGroupId !== station.groupId) {
 		return false;
 	}
-	return step.stationType === station.stationType;
+	return true;
+};
+
+const getSnapshotSteps = (snapshot: unknown) => {
+	if (!snapshot || typeof snapshot !== "object") return null;
+	const record = snapshot as { steps?: unknown };
+	if (!Array.isArray(record.steps)) return null;
+	return record.steps as Array<{
+		stepNo: number;
+		operationId: string;
+		stationType: string;
+		stationGroupId: string | null;
+		allowedStationIds?: string[];
+		requiresFAI?: boolean;
+		requiresAuthorization?: boolean;
+		dataSpecIds?: string[];
+	}>;
 };
 
 export const trackIn = async (db: PrismaClient, stationCode: string, data: TrackInInput) => {
@@ -50,12 +72,24 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 
 			const run = await db.run.findUnique({
 				where: { runNo: data.runNo },
-				include: { workOrder: { include: { routing: { include: { steps: true } } } } },
+				include: {
+					workOrder: { include: { routing: { include: { steps: true } } } },
+					routeVersion: true,
+				},
 			});
 			if (!run) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "RUN_NOT_FOUND");
 				return { success: false, code: "RUN_NOT_FOUND", message: "Run not found" };
+			}
+			if (!run.routeVersion) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "ROUTE_VERSION_NOT_READY");
+				return {
+					success: false,
+					code: "ROUTE_VERSION_NOT_READY",
+					message: "Run has no executable route version",
+				};
 			}
 			if (run.status !== RunStatus.AUTHORIZED) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
@@ -107,7 +141,8 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 				return { success: false, code: "UNIT_ALREADY_DONE", message: "Unit already completed" };
 			}
 
-			const steps = [...run.workOrder.routing.steps].sort((a, b) => a.stepNo - b.stepNo);
+			const snapshotSteps = getSnapshotSteps(run.routeVersion.snapshotJson);
+			const steps = snapshotSteps ? [...snapshotSteps].sort((a, b) => a.stepNo - b.stepNo) : [];
 			if (steps.length === 0) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "ROUTING_EMPTY");
@@ -217,12 +252,24 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 
 			const run = await db.run.findUnique({
 				where: { runNo: data.runNo },
-				include: { workOrder: { include: { routing: { include: { steps: true } } } } },
+				include: {
+					workOrder: { include: { routing: { include: { steps: true } } } },
+					routeVersion: true,
+				},
 			});
 			if (!run) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "RUN_NOT_FOUND");
 				return { success: false, code: "RUN_NOT_FOUND", message: "Run not found" };
+			}
+			if (!run.routeVersion) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "ROUTE_VERSION_NOT_READY");
+				return {
+					success: false,
+					code: "ROUTE_VERSION_NOT_READY",
+					message: "Run has no executable route version",
+				};
 			}
 			if (run.status !== RunStatus.AUTHORIZED) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
@@ -232,7 +279,6 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 
 			const unit = await db.unit.findUnique({
 				where: { sn: data.sn },
-				include: { workOrder: { include: { routing: { include: { steps: true } } } } },
 			});
 			if (!unit) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
@@ -266,8 +312,8 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 
 			const result = data.result === "PASS" ? TrackResult.PASS : TrackResult.FAIL;
 
-			const routing = unit.workOrder.routing ?? run.workOrder.routing;
-			const steps = routing ? [...routing.steps].sort((a, b) => a.stepNo - b.stepNo) : [];
+			const snapshotSteps = getSnapshotSteps(run.routeVersion.snapshotJson);
+			const steps = snapshotSteps ? [...snapshotSteps].sort((a, b) => a.stepNo - b.stepNo) : [];
 			if (steps.length === 0) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "ROUTING_EMPTY");
@@ -292,14 +338,19 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 
 			const dataItems = data.data ?? [];
 			const specNames = dataItems.map((item) => item.specName);
-			const specs = specNames.length
+			const requiredSpecIds = currentStep.dataSpecIds ?? [];
+			const specs = requiredSpecIds.length
 				? await db.dataCollectionSpec.findMany({
-						where: {
-							operationId: currentStep.operationId,
-							name: { in: specNames },
-						},
+						where: { id: { in: requiredSpecIds } },
 					})
-				: [];
+				: specNames.length
+					? await db.dataCollectionSpec.findMany({
+							where: {
+								operationId: currentStep.operationId,
+								name: { in: specNames },
+							},
+						})
+					: [];
 
 			const specsByName = new Map(specs.map((spec) => [spec.name, spec]));
 			const missingSpecs = specNames.filter((name) => !specsByName.has(name));
@@ -311,6 +362,29 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 					code: "DATA_SPEC_NOT_FOUND",
 					message: `Unknown data collection spec: ${missingSpecs.join(", ")}`,
 				};
+			}
+
+			if (requiredSpecIds.length > 0) {
+				if (specs.length !== requiredSpecIds.length) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "DATA_SPEC_NOT_FOUND");
+					return {
+						success: false,
+						code: "DATA_SPEC_NOT_FOUND",
+						message: "One or more required data specs are missing",
+					};
+				}
+				const requiredNames = specs.map((spec) => spec.name);
+				const missingRequired = requiredNames.filter((name) => !specNames.includes(name));
+				if (missingRequired.length > 0) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "REQUIRED_DATA_MISSING");
+					return {
+						success: false,
+						code: "REQUIRED_DATA_MISSING",
+						message: `Missing required data specs: ${missingRequired.join(", ")}`,
+					};
+				}
 			}
 
 			for (const item of dataItems) {
