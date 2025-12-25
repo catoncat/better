@@ -94,7 +94,7 @@ Execution config changes can still trigger new executable versions (see `04_rout
 ### 4.1 ERP processKey → MES Operation
 Resolve via `OperationMapping`.
 Missing mapping policy options:
-- Option A (recommended for early phase): auto-create Operation and write AuditEvent
+- Option A (recommended for early phase): auto-create Operation (audit can be recorded at the integration sync level)
 - Option B (strict): mark compile INVALID until mapping is provided
 
 ### 4.2 workCenter/department handling
