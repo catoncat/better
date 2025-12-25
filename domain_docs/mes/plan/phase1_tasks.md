@@ -147,7 +147,7 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     1.  Update trace API output to include `route`, `routeVersion`, and snapshot steps.
     2.  Add acceptance tests for ERP import idempotency, versioning, and run freeze.
 *   **Definition of Done**: Trace reflects frozen version; tests cover ERP routing scenarios.
-*   **Status**: [ ] Pending
+*   **Status**: [x] Done (2025-12-25)
 
 ## Task 1.14: TPM Sync & Execution Gates
 *   **Goal**: Use TPM equipment status and maintenance data as execution gates.
