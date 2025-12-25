@@ -97,7 +97,7 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     4.  Add `RouteExecutionConfig` and `ExecutableRouteVersion` models.
     5.  Add `Run.routeVersionId` and required indexes.
 *   **Definition of Done**: Schema supports ERP routing + version freeze.
-*   **Status**: [ ] Pending
+*   **Status**: [x] Done (2025-12-25)
 
 ## Task 1.10: ERP Routing Ingestion
 *   **Goal**: Import ERP routing and normalize to canonical routes.
@@ -181,6 +181,7 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     1.  Add or verify `IntegrationSyncCursor` for `(sourceSystem, entityType)`.
     2.  Persist `IntegrationMessage` for every pull batch (raw payload + dedupeKey).
     3.  Enforce idempotency by `dedupeKey` and return existing results on replays.
+    4.  Schema additions applied in `schema.prisma` (2025-12-25).
 *   **Definition of Done**: Re-running the same pull does not create duplicates; cursor advances deterministically.
 *   **Status**: [ ] Pending
 
