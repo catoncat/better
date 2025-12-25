@@ -352,6 +352,7 @@ model Run {
   runNo        String    @unique
   woId         String
   lineId       String?
+  routeVersionId String?
   status       RunStatus @default(PREP)
   shiftCode    String?
   changeoverNo String? // 换线/开班标识
@@ -363,6 +364,7 @@ model Run {
 
   workOrder      WorkOrder       @relation(fields: [woId], references: [id])
   line           Line?           @relation(fields: [lineId], references: [id])
+  routeVersion   ExecutableRouteVersion? @relation(fields: [routeVersionId], references: [id])
   prepChecks     PrepCheck[]
   inspections    Inspection[] // 用 Inspection 统一承载 FAI/IPQC/FQC/OQC
   authorizations Authorization[]
@@ -391,6 +393,8 @@ model StationGroup {
 
   stations Station[]
   routingSteps RoutingStep[]
+  workCenterMappings WorkCenterStationGroupMapping[]
+  executionConfigs RouteExecutionConfig[]
 }
 
 model Station {
@@ -420,29 +424,72 @@ model Operation {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  steps   RoutingStep[]
-  dcSpecs DataCollectionSpec[]
+  steps            RoutingStep[]
+  dcSpecs          DataCollectionSpec[]
+  operationMappings OperationMapping[]
+  executionConfigs RouteExecutionConfig[]
+}
+
+model OperationMapping {
+  id               String   @id @default(cuid())
+  sourceSystem     String
+  sourceProcessKey String
+  sourceProcessName String?
+  operationId      String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  operation Operation @relation(fields: [operationId], references: [id])
+
+  @@unique([sourceSystem, sourceProcessKey])
+  @@index([operationId])
+}
+
+model WorkCenterStationGroupMapping {
+  id               String   @id @default(cuid())
+  sourceSystem     String
+  sourceWorkCenter String?
+  sourceDepartment String?
+  stationGroupId   String?
+  meta             Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  stationGroup StationGroup? @relation(fields: [stationGroupId], references: [id])
+
+  @@unique([sourceSystem, sourceWorkCenter, sourceDepartment])
+  @@index([sourceSystem, sourceWorkCenter])
+  @@index([sourceSystem, sourceDepartment])
 }
 
 model Routing {
   id          String   @id @default(cuid())
   code        String   @unique // routing code/version identifier
   name        String
+  sourceSystem String  @default("MES")
+  sourceKey   String?
   productCode String?
+  effectiveFrom DateTime?
+  effectiveTo DateTime?
   version     String?
   isActive    Boolean  @default(true)
   meta        Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  steps      RoutingStep[]
-  workOrders WorkOrder[]
+  steps            RoutingStep[]
+  workOrders       WorkOrder[]
+  executionConfigs RouteExecutionConfig[]
+  routeVersions    ExecutableRouteVersion[]
+
+  @@index([sourceSystem, sourceKey])
 }
 
 model RoutingStep {
   id             String      @id @default(cuid())
   routingId      String
   stepNo         Int
+  sourceStepKey  String?
   operationId    String
   stationGroupId String?
   stationType    StationType // 推荐执行方式
@@ -455,9 +502,83 @@ model RoutingStep {
   routing      Routing       @relation(fields: [routingId], references: [id])
   operation    Operation     @relation(fields: [operationId], references: [id])
   stationGroup StationGroup? @relation(fields: [stationGroupId], references: [id])
+  executionConfigs RouteExecutionConfig[]
 
   @@unique([routingId, stepNo])
   @@index([routingId])
+  @@index([sourceStepKey])
+}
+
+model RouteExecutionConfig {
+  id                   String      @id @default(cuid())
+  routingId            String?
+  routingStepId        String?
+  sourceStepKey        String?
+  operationId          String?
+  stationType          StationType?
+  stationGroupId       String?
+  allowedStationIds    Json?
+  requiresFAI          Boolean?
+  requiresAuthorization Boolean?
+  dataSpecIds          Json?
+  ingestMapping        Json?
+  meta                 Json?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  routing      Routing?      @relation(fields: [routingId], references: [id])
+  routingStep  RoutingStep?  @relation(fields: [routingStepId], references: [id])
+  operation    Operation?    @relation(fields: [operationId], references: [id])
+  stationGroup StationGroup? @relation(fields: [stationGroupId], references: [id])
+
+  @@index([routingId])
+  @@index([routingStepId])
+  @@index([sourceStepKey])
+  @@index([operationId])
+}
+
+model ExecutableRouteVersion {
+  id          String   @id @default(cuid())
+  routingId   String
+  versionNo   Int
+  status      String // READY/INVALID
+  snapshotJson Json
+  errorsJson  Json?
+  compiledAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  routing Routing @relation(fields: [routingId], references: [id])
+  runs    Run[]
+
+  @@unique([routingId, versionNo])
+  @@index([routingId])
+}
+
+model ErpRouteHeaderRaw {
+  id          String   @id @default(cuid())
+  sourceSystem String
+  sourceKey   String
+  headId      String?
+  payload     Json
+  dedupeKey   String?
+  pulledAt    DateTime @default(now())
+
+  @@index([sourceSystem, sourceKey])
+  @@index([dedupeKey])
+}
+
+model ErpRouteLineRaw {
+  id          String   @id @default(cuid())
+  sourceSystem String
+  sourceKey   String
+  lineNo      Int?
+  payload     Json
+  dedupeKey   String?
+  pulledAt    DateTime @default(now())
+
+  @@index([sourceSystem, sourceKey])
+  @@index([dedupeKey])
 }
 
 model Unit {
@@ -793,7 +914,9 @@ model IntegrationMessage {
   id          String   @id @default(cuid())
   direction   String // IN/OUT
   system      String // ERP/APS/TEST/EQUIP/...
+  entityType  String  @default("UNKNOWN") // ROUTING/WORK_ORDER/...
   businessKey String
+  dedupeKey   String?
   status      String // NEW/SUCCESS/FAILED/RETRYING
   payload     Json
   error       String?
@@ -801,5 +924,20 @@ model IntegrationMessage {
   updatedAt   DateTime @updatedAt
 
   @@index([direction, system])
+  @@index([system, entityType])
   @@index([businessKey])
+  @@index([dedupeKey])
+}
+
+model IntegrationSyncCursor {
+  id          String   @id @default(cuid())
+  sourceSystem String
+  entityType  String
+  lastSyncAt  DateTime?
+  lastSeq     String?
+  meta        Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([sourceSystem, entityType])
 }

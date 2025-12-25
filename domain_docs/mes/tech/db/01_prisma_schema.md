@@ -7,7 +7,7 @@ This document describes the Prisma schema approach for the MES project, with emp
 - Compiled executable route versions (for Run freeze)
 
 Note: This is documentation. The source of truth is the actual `schema.prisma` in the codebase.
-Implementation status: design-only; schema changes will follow after requirement review.
+Implementation status: schema updates have started in `schema.prisma`; migrations are pending execution.
 
 ---
 
