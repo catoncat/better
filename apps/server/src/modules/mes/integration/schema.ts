@@ -27,6 +27,10 @@ export const tpmSyncQuerySchema = t.Object({
 	since: t.Optional(t.String()),
 });
 
+export const erpMasterSyncQuerySchema = t.Object({
+	since: t.Optional(t.String()),
+});
+
 const integrationCursorSchema = t.Object({
 	nextSyncAt: t.Optional(t.String({ format: "date-time" })),
 	hasMore: t.Boolean(),

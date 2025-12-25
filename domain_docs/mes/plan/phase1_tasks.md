@@ -193,7 +193,7 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     2.  Implement normalization from ERP payloads into canonical tables.
     3.  Add mapping hooks to `WorkCenterStationGroupMapping`.
 *   **Definition of Done**: ERP master data can be stored and queried in MES.
-*   **Status**: [ ] Pending
+*   **Status**: [x] Done (2025-12-25)
 
 ## Task 1.18: ERP Master Data Pull (Work Orders / Materials / BOM / Work Centers)
 *   **Goal**: Pull ERP master data via API with cursor-based sync.
@@ -203,7 +203,7 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     2.  Use `IntegrationSyncCursor` for incremental sync.
     3.  Persist raw payloads and normalize into canonical tables.
 *   **Definition of Done**: Master data sync produces canonical entities without duplicates.
-*   **Status**: [ ] Pending
+*   **Status**: [x] Done (2025-12-25)
 
 ## Task 1.19: TPM Adapter & Sync
 *   **Goal**: Pull TPM equipment, status, and maintenance data.

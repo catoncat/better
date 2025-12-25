@@ -858,6 +858,50 @@ model MaterialUse {
   @@index([position])
 }
 
+model Material {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  name            String
+  category        String?
+  unit            String?
+  model           String?
+  sourceUpdatedAt DateTime?
+  meta            Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([code])
+}
+
+model BomItem {
+  id              String   @id @default(cuid())
+  parentCode      String
+  childCode       String
+  qty             Float
+  unit            String?
+  sourceUpdatedAt DateTime?
+  meta            Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([parentCode, childCode])
+  @@index([parentCode])
+}
+
+model WorkCenter {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  name            String
+  departmentCode  String?
+  departmentName  String?
+  sourceUpdatedAt DateTime?
+  meta            Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([departmentCode])
+}
+
 model TpmEquipment {
   id             String   @id @default(cuid())
   equipmentCode  String   @unique

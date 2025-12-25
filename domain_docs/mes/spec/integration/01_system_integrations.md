@@ -96,6 +96,18 @@ Configuration (env vars, prefix `MES_ERP_KINGDEE_`):
 - `CRON_ENABLED` (optional, `true` to enable)
 - `CRON_PATTERN` (optional, default `0 */2 * * *`)
 
+### 2.5 ERP Master Data Pull (Gateway)
+For work orders / materials / BOM / work centers, MES can pull via a generic ERP gateway endpoint.
+Configuration (env vars, prefix `MES_ERP_`):
+- `BASE_URL`
+- `API_KEY` (optional)
+- `WORK_ORDER_PATH` (default `/api/erp/work-orders`)
+- `MATERIAL_PATH` (default `/api/erp/materials`)
+- `BOM_PATH` (default `/api/erp/boms`)
+- `WORK_CENTER_PATH` (default `/api/erp/work-centers`)
+
+If `BASE_URL` is not set, MES falls back to mock ERP payloads.
+
 ---
 
 ## 3. TPM Integration (Equipment Management)

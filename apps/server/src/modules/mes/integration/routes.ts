@@ -13,6 +13,7 @@ import {
 	integrationWorkOrderResponseSchema,
 	erpRouteSyncQuerySchema,
 	tpmSyncQuerySchema,
+	erpMasterSyncQuerySchema,
 	tpmEquipmentPullResponseSchema,
 	tpmMaintenanceTaskPullResponseSchema,
 	tpmStatusLogPullResponseSchema,
@@ -28,6 +29,12 @@ import {
 	getMockErpWorkCenters,
 } from "./mock-data";
 import { syncErpRoutes } from "./sync-service";
+import {
+	syncErpBoms,
+	syncErpMaterials,
+	syncErpWorkCenters,
+	syncErpWorkOrders,
+} from "./erp-master-sync-service";
 import { syncTpmEquipment, syncTpmMaintenanceTasks, syncTpmStatusLogs } from "./tpm-sync-service";
 import { receiveWorkOrder } from "./service";
 
@@ -224,6 +231,194 @@ export const integrationModule = new Elysia({
 			isAuth: true,
 			query: erpRouteSyncQuerySchema,
 			response: erpRoutePullResponseSchema,
+			detail: { tags: ["MES - Integration"] },
+		},
+	)
+	.post(
+		"/erp/work-orders/sync",
+		async ({ query, set, db, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const result = await syncErpWorkOrders(db, { since: query.since });
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: "ERP:WORK_ORDER",
+					entityDisplay: "ERP WORK ORDER SYNC",
+					action: "ERP_WORK_ORDER_SYNC",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					request: requestMeta,
+					payload: { sourceSystem: "ERP", entityType: "WORK_ORDER", query },
+				});
+				set.status = result.status ?? 502;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INTEGRATION,
+				entityId: result.data.messageId,
+				entityDisplay: result.data.businessKey,
+				action: "ERP_WORK_ORDER_SYNC",
+				actor,
+				status: "SUCCESS",
+				request: requestMeta,
+				payload: {
+					sourceSystem: "ERP",
+					entityType: "WORK_ORDER",
+					query,
+					dedupeKey: result.data.dedupeKey ?? null,
+					cursor: result.data.payload.cursor,
+				},
+			});
+			return { ok: true, data: result.data.payload };
+		},
+		{
+			isAuth: true,
+			query: erpMasterSyncQuerySchema,
+			response: erpWorkOrderPullResponseSchema,
+			detail: { tags: ["MES - Integration"] },
+		},
+	)
+	.post(
+		"/erp/materials/sync",
+		async ({ query, set, db, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const result = await syncErpMaterials(db, { since: query.since });
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: "ERP:MATERIAL",
+					entityDisplay: "ERP MATERIAL SYNC",
+					action: "ERP_MATERIAL_SYNC",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					request: requestMeta,
+					payload: { sourceSystem: "ERP", entityType: "MATERIAL", query },
+				});
+				set.status = result.status ?? 502;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INTEGRATION,
+				entityId: result.data.messageId,
+				entityDisplay: result.data.businessKey,
+				action: "ERP_MATERIAL_SYNC",
+				actor,
+				status: "SUCCESS",
+				request: requestMeta,
+				payload: {
+					sourceSystem: "ERP",
+					entityType: "MATERIAL",
+					query,
+					dedupeKey: result.data.dedupeKey ?? null,
+					cursor: result.data.payload.cursor,
+				},
+			});
+			return { ok: true, data: result.data.payload };
+		},
+		{
+			isAuth: true,
+			query: erpMasterSyncQuerySchema,
+			response: erpMaterialPullResponseSchema,
+			detail: { tags: ["MES - Integration"] },
+		},
+	)
+	.post(
+		"/erp/boms/sync",
+		async ({ query, set, db, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const result = await syncErpBoms(db, { since: query.since });
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: "ERP:BOM",
+					entityDisplay: "ERP BOM SYNC",
+					action: "ERP_BOM_SYNC",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					request: requestMeta,
+					payload: { sourceSystem: "ERP", entityType: "BOM", query },
+				});
+				set.status = result.status ?? 502;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INTEGRATION,
+				entityId: result.data.messageId,
+				entityDisplay: result.data.businessKey,
+				action: "ERP_BOM_SYNC",
+				actor,
+				status: "SUCCESS",
+				request: requestMeta,
+				payload: {
+					sourceSystem: "ERP",
+					entityType: "BOM",
+					query,
+					dedupeKey: result.data.dedupeKey ?? null,
+					cursor: result.data.payload.cursor,
+				},
+			});
+			return { ok: true, data: result.data.payload };
+		},
+		{
+			isAuth: true,
+			query: erpMasterSyncQuerySchema,
+			response: erpBomPullResponseSchema,
+			detail: { tags: ["MES - Integration"] },
+		},
+	)
+	.post(
+		"/erp/work-centers/sync",
+		async ({ query, set, db, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const result = await syncErpWorkCenters(db, { since: query.since });
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: "ERP:WORK_CENTER",
+					entityDisplay: "ERP WORK CENTER SYNC",
+					action: "ERP_WORK_CENTER_SYNC",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					request: requestMeta,
+					payload: { sourceSystem: "ERP", entityType: "WORK_CENTER", query },
+				});
+				set.status = result.status ?? 502;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INTEGRATION,
+				entityId: result.data.messageId,
+				entityDisplay: result.data.businessKey,
+				action: "ERP_WORK_CENTER_SYNC",
+				actor,
+				status: "SUCCESS",
+				request: requestMeta,
+				payload: {
+					sourceSystem: "ERP",
+					entityType: "WORK_CENTER",
+					query,
+					dedupeKey: result.data.dedupeKey ?? null,
+					cursor: result.data.payload.cursor,
+				},
+			});
+			return { ok: true, data: result.data.payload };
+		},
+		{
+			isAuth: true,
+			query: erpMasterSyncQuerySchema,
+			response: erpWorkCenterPullResponseSchema,
 			detail: { tags: ["MES - Integration"] },
 		},
 	)
