@@ -169,3 +169,57 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     3.  Ensure responses follow envelope and cursor contract.
 *   **Definition of Done**: Mock endpoints return payloads compatible with integration contracts.
 *   **Status**: [x] Done (2025-12-25)
+
+---
+
+# Integration Foundation Addendum (M1.6)
+
+## Task 1.16: Integration Sync State & Dedupe
+*   **Goal**: Make inbound sync deterministic and replayable.
+*   **Input**: `domain_docs/mes/spec/integration/01_system_integrations.md`, `domain_docs/mes/tech/db/01_prisma_schema.md`
+*   **Actions**:
+    1.  Add or verify `IntegrationSyncCursor` for `(sourceSystem, entityType)`.
+    2.  Persist `IntegrationMessage` for every pull batch (raw payload + dedupeKey).
+    3.  Enforce idempotency by `dedupeKey` and return existing results on replays.
+*   **Definition of Done**: Re-running the same pull does not create duplicates; cursor advances deterministically.
+*   **Status**: [ ] Pending
+
+## Task 1.17: ERP Master Data Schema & Normalization
+*   **Goal**: Support ERP materials/BOM/work centers for routing and traceability.
+*   **Input**: `domain_docs/mes/spec/integration/02_integration_payloads.md`
+*   **Actions**:
+    1.  Add canonical tables for Material/BOM/WorkCenter (or confirm existing schema).
+    2.  Implement normalization from ERP payloads into canonical tables.
+    3.  Add mapping hooks to `WorkCenterStationGroupMapping`.
+*   **Definition of Done**: ERP master data can be stored and queried in MES.
+*   **Status**: [ ] Pending
+
+## Task 1.18: ERP Master Data Pull (Work Orders / Materials / BOM / Work Centers)
+*   **Goal**: Pull ERP master data via API with cursor-based sync.
+*   **Input**: `domain_docs/mes/spec/integration/01_system_integrations.md`
+*   **Actions**:
+    1.  Implement pull adapters for work orders, materials, BOM, work centers using the existing Kingdee adapter.
+    2.  Use `IntegrationSyncCursor` for incremental sync.
+    3.  Persist raw payloads and normalize into canonical tables.
+*   **Definition of Done**: Master data sync produces canonical entities without duplicates.
+*   **Status**: [ ] Pending
+
+## Task 1.19: TPM Adapter & Sync
+*   **Goal**: Pull TPM equipment, status, and maintenance data.
+*   **Input**: `domain_docs/mes/spec/integration/01_system_integrations.md`
+*   **Actions**:
+    1.  Implement TPM pull adapters for equipment, status logs, maintenance tasks (and calibration if available).
+    2.  Normalize into MES station status cache and maintenance state.
+    3.  Enforce execution gates from TPM status/maintenance.
+*   **Definition of Done**: TrackIn is blocked when TPM indicates unavailable or in-maintenance.
+*   **Status**: [ ] Pending
+
+## Task 1.20: Integration Scheduler & Ops
+*   **Goal**: Operate sync jobs reliably.
+*   **Input**: `agent_docs/05_ops/cron_jobs.md`
+*   **Actions**:
+    1.  Expand cron triggers for each entity type with configurable patterns.
+    2.  Add manual sync endpoints for each entity type.
+    3.  Log job outcomes with audit/metrics hooks.
+*   **Definition of Done**: All inbound integrations can be triggered manually or by cron with clear observability.
+*   **Status**: [ ] Pending

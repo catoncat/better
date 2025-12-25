@@ -16,6 +16,11 @@ This document outlines the development milestones for the MES system, focusing o
 * **Features**: Pull-based ERP route sync (ENG_Route), mapping tables, execution config management, executable route versioning, run freeze, trace includes route and routeVersion, integration mock module for contract testing.
 * **Acceptance Criteria**: ERP import yields canonical route + READY executable version; new runs freeze a version; trace returns route + routeVersion + step list; step advance uses sorted stepNo.
 
+### M1.6: Integration Foundation (ERP/TPM Inbound)
+* **Goal**: Build reliable inbound data sync for ERP/TPM beyond routing.
+* **Features**: IntegrationMessage + sync cursor state, idempotent pull pipeline, ERP master data (work orders/materials/BOM/work centers), TPM equipment/status/maintenance, manual + cron triggers, normalization into canonical tables.
+* **Acceptance Criteria**: Syncs produce canonical entities without duplicates; cursors advance deterministically; TPM status gates can block execution.
+
 ### M2: Quality Control and Authorization
 * **Goal**: Implement quality control checks, including FAI and batch authorization.
 * **Features**: Quality checks, defect registration, rework handling, batch authorization.
@@ -30,3 +35,10 @@ This document outlines the development milestones for the MES system, focusing o
 * **Goal**: Extend the system to handle automated and batch processing scenarios.
 * **Features**: Integration with equipment for automatic event tracking, batch data collection.
 * **Acceptance Criteria**: System must handle batch events and integrate automatically with equipment.
+
+## Future (Out of Current Scope)
+
+### Integration Outbound (ERP/TPM Feedback)
+* **Goal**: Push MES execution results back to ERP/TPM.
+* **Features**: Production completion, material consumption, quality outcomes, traceability summaries, retry with idempotency.
+* **Acceptance Criteria**: Outbound payloads are delivered reliably with replay support and auditability.
