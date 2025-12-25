@@ -128,7 +128,7 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     2.  Build compile service to generate `ExecutableRouteVersion.snapshotJson`.
     3.  Enforce compile validation rules (stationType, ingestMapping, dataSpec bindings).
 *   **Definition of Done**: Valid configs compile to READY versions; invalid configs produce INVALID with errors.
-*   **Status**: [ ] Pending
+*   **Status**: [x] Done (2025-12-25)
 
 ## Task 1.12: Run Freeze & Execution Guards
 *   **Goal**: Use frozen executable versions during execution.
