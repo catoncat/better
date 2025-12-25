@@ -213,7 +213,7 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     2.  Normalize into MES station status cache and maintenance state.
     3.  Enforce execution gates from TPM status/maintenance.
 *   **Definition of Done**: TrackIn is blocked when TPM indicates unavailable or in-maintenance.
-*   **Status**: [ ] Pending
+*   **Status**: [x] Done (2025-12-26)
 
 ## Task 1.20: Integration Scheduler & Ops
 *   **Goal**: Operate sync jobs reliably.
@@ -223,4 +223,4 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     2.  Add manual sync endpoints for each entity type.
     3.  Log job outcomes with audit/metrics hooks.
 *   **Definition of Done**: All inbound integrations can be triggered manually or by cron with clear observability.
-*   **Status**: [ ] Pending
+*   **Status**: [x] Done (2025-12-26)

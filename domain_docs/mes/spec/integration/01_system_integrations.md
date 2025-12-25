@@ -93,8 +93,6 @@ Configuration (env vars, prefix `MES_ERP_KINGDEE_`):
 - `APPID`
 - `APP_SECRET`
 - `LCID`
-- `CRON_ENABLED` (optional, `true` to enable)
-- `CRON_PATTERN` (optional, default `0 */2 * * *`)
 
 ### 2.5 ERP Master Data Pull (Gateway)
 For work orders / materials / BOM / work centers, MES can pull via a generic ERP gateway endpoint.
@@ -146,7 +144,14 @@ If `BASE_URL` is not set, MES falls back to mock TPM payloads.
 - **Push**: optional if the source later supports webhooks.
 
 Manual trigger:
-- `POST /api/integration/erp/routes/sync` (pull ENG_Route)
+- `POST /api/integration/erp/routes/sync`
+- `POST /api/integration/erp/work-orders/sync`
+- `POST /api/integration/erp/materials/sync`
+- `POST /api/integration/erp/boms/sync`
+- `POST /api/integration/erp/work-centers/sync`
+- `POST /api/integration/tpm/equipment/sync`
+- `POST /api/integration/tpm/status-logs/sync`
+- `POST /api/integration/tpm/maintenance-tasks/sync`
 
 ### 4.2 Ingestion pipeline (recommended)
 1) **Pull & validate** (sourceKey + dedupeKey)
@@ -155,7 +160,19 @@ Manual trigger:
 4) **Compile** executable route versions (for routing updates)
 5) **Publish** READY versions; in-flight Runs remain unchanged
 
-### 4.3 Error handling & replay
+### 4.3 Scheduler & Cron
+Env prefix: `MES_INTEGRATION_`
+- `CRON_ENABLED` (`true` to enable all integration cron jobs)
+- `ERP_ROUTE_CRON` (default `0 */2 * * *`)
+- `ERP_WORK_ORDER_CRON` (default `0 */4 * * *`)
+- `ERP_MATERIAL_CRON` (default `0 */6 * * *`)
+- `ERP_BOM_CRON` (default `0 */6 * * *`)
+- `ERP_WORK_CENTER_CRON` (default `0 */6 * * *`)
+- `TPM_EQUIPMENT_CRON` (default `0 */2 * * *`)
+- `TPM_STATUS_LOG_CRON` (default `0 */2 * * *`)
+- `TPM_MAINTENANCE_TASK_CRON` (default `0 */4 * * *`)
+
+### 4.4 Error handling & replay
 - Parse errors: record failure and preserve raw payload for replay
 - Mapping gaps: produce INVALID version and output missing keys
 - Dedupe collisions: return existing result without duplication
