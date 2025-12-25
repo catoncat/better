@@ -858,6 +858,54 @@ model MaterialUse {
   @@index([position])
 }
 
+model TpmEquipment {
+  id             String   @id @default(cuid())
+  equipmentCode  String   @unique
+  name           String
+  status         String
+  workshopCode   String?
+  location       String?
+  sourceUpdatedAt DateTime?
+  meta           Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([status])
+}
+
+model TpmStatusLog {
+  id             String   @id @default(cuid())
+  equipmentCode  String
+  status         String
+  reason         String?
+  startedAt      DateTime
+  endedAt        DateTime?
+  sourceUpdatedAt DateTime?
+  meta           Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([equipmentCode, startedAt])
+  @@index([equipmentCode])
+}
+
+model TpmMaintenanceTask {
+  id             String   @id @default(cuid())
+  taskNo         String   @unique
+  equipmentCode  String
+  type           String
+  status         String
+  scheduledDate  DateTime?
+  startTime      DateTime?
+  completedAt    DateTime?
+  sourceUpdatedAt DateTime?
+  meta           Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([equipmentCode, status])
+}
+
 model TraceSnapshot {
   id          String   @id @default(cuid())
   unitId      String   @unique

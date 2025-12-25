@@ -158,7 +158,7 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     3.  Block TrackIn when equipment status is not `normal`.
     4.  (Optional) Block TrackIn when maintenance/repair is in progress.
 *   **Definition of Done**: Execution honors TPM status gates; station availability reflects TPM.
-*   **Status**: [ ] Pending
+*   **Status**: [x] Done (2025-12-25)
 
 ## Task 1.15: Integration Mock Module
 *   **Goal**: Provide mock payloads for ERP/TPM pull endpoints.

@@ -106,12 +106,24 @@ Configuration (env vars, prefix `MES_ERP_KINGDEE_`):
 - Maintenance / repair state (optional gate for execution)
 - Calibration state for instruments (optional gate for test stations)
 
+MES stores TPM data into `TpmEquipment`, `TpmStatusLog`, and `TpmMaintenanceTask` tables for gating and traceability.
+
 Mapping rule:
 - `Equipment.code` MUST match `Station.code` for direct association.
 
 ### 3.2 Outbound (MES → TPM)
 - Production usage metrics (runtime, cycle count)
 - Quality outcomes tied to equipment (optional)
+
+### 3.3 TPM Pull Configuration
+Env prefix: `MES_TPM_`
+- `BASE_URL`
+- `API_KEY` (optional)
+- `EQUIPMENT_PATH` (default `/api/tpm/equipment`)
+- `STATUS_LOG_PATH` (default `/api/tpm/status-logs`)
+- `MAINTENANCE_TASK_PATH` (default `/api/tpm/maintenance-tasks`)
+
+If `BASE_URL` is not set, MES falls back to mock TPM payloads.
 
 ---
 
