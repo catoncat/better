@@ -26,7 +26,7 @@ import {
 	getMockErpRoutes,
 	getMockErpWorkCenters,
 } from "./mock-data";
-import { pullErpRoutes } from "./erp-service";
+import { syncErpRoutes } from "./sync-service";
 import { receiveWorkOrder } from "./service";
 
 export const integrationModule = new Elysia({
@@ -172,17 +172,51 @@ export const integrationModule = new Elysia({
 	)
 	.post(
 		"/erp/routes/sync",
-		async ({ query, set }) => {
-			const result = await pullErpRoutes({
+		async ({ query, set, db, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const result = await syncErpRoutes(db, {
 				since: query.since,
 				startRow: query.startRow,
 				limit: query.limit,
 			});
 			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: "ERP:ROUTING",
+					entityDisplay: "ERP ROUTING SYNC",
+					action: "ERP_ROUTE_SYNC",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					request: requestMeta,
+					payload: {
+						sourceSystem: "ERP",
+						entityType: "ROUTING",
+						query,
+					},
+				});
 				set.status = result.status ?? 502;
 				return { ok: false, error: { code: result.code, message: result.message } };
 			}
-			return { ok: true, data: result.data };
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INTEGRATION,
+				entityId: result.data.messageId,
+				entityDisplay: result.data.businessKey,
+				action: "ERP_ROUTE_SYNC",
+				actor,
+				status: "SUCCESS",
+				request: requestMeta,
+				payload: {
+					sourceSystem: "ERP",
+					entityType: "ROUTING",
+					query,
+					dedupeKey: result.data.dedupeKey ?? null,
+					cursor: result.data.payload.cursor,
+				},
+			});
+			return { ok: true, data: result.data.payload };
 		},
 		{
 			isAuth: true,
