@@ -65,6 +65,11 @@ TPM inbound storage:
 - `TpmStatusLog` (status history)
 - `TpmMaintenanceTask` (maintenance state)
 
+ERP master data storage:
+- `Material`
+- `BomItem`
+- `WorkCenter`
+
 ### 2.4 Mapping tables
 ERP process and work center should map into MES dictionaries:
 - `OperationMapping` (ERP processKey → MES operationId)
