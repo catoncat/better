@@ -58,7 +58,7 @@ Tables:
 
 Also store sync cursors and dedupe keys:
 - `IntegrationSyncCursor` (sourceSystem, entityType, lastSyncAt/lastSeq)
-- `IntegrationMessage.dedupeKey` for pull-based idempotency
+- `IntegrationMessage.entityType` and `IntegrationMessage.dedupeKey` for pull-based idempotency
 
 ### 2.4 Mapping tables
 ERP process and work center should map into MES dictionaries:
