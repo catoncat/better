@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { executionModule } from "./execution/routes";
 import { integrationModule } from "./integration/routes";
+import { routingModule } from "./routing/routes";
 import { runModule } from "./run/routes";
 import { stationModule } from "./station/routes";
 import { workOrderModule } from "./work-order/routes";
@@ -12,5 +13,6 @@ export const mesModule = new Elysia()
 	.use(integrationModule)
 	.use(workOrderModule)
 	.use(runModule)
+	.use(routingModule)
 	.use(executionModule)
 	.use(stationModule);
