@@ -1,15 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { client } from "@/lib/eden";
+import { client, unwrap } from "@/lib/eden";
 
 // 定义 API 路由引用（避免 typeof 中使用方括号语法的问题）
 const changePasswordApi = client.api.users.me["change-password"];
 
-type UsersApiResponse = Awaited<ReturnType<typeof client.api.users.get>>["data"];
-export type UserItem = NonNullable<UsersApiResponse>["items"][number];
-export type UsersList = Exclude<
-	UsersApiResponse,
-	{ code: string; message: string } | null | undefined
->;
+// Type definitions - assuming unwrap returns the data property of the envelope
+type UserListResponse = { items: unknown[]; total: number; page: number; pageSize: number };
+export type UserItem = UserListResponse["items"][number];
+export type UsersList = UserListResponse;
 
 type UserUpdateInput = Parameters<ReturnType<typeof client.api.users>["patch"]>[0];
 
@@ -29,7 +27,7 @@ export function useUserList(params: UseUserListParams) {
 	return useQuery<UsersList>({
 		queryKey: ["users", page, pageSize, search, role],
 		queryFn: async () => {
-			const { data, error } = await client.api.users.get({
+			const response = await client.api.users.get({
 				query: {
 					page,
 					pageSize,
@@ -37,16 +35,7 @@ export function useUserList(params: UseUserListParams) {
 					role: role || undefined,
 				},
 			});
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "An error occurred");
-			}
-
-			if (!data) {
-				throw new Error("No data received");
-			}
-
-			return data;
+			return unwrap(response);
 		},
 		placeholderData: (previousData: UsersList | undefined) => previousData,
 	});
@@ -56,13 +45,9 @@ export function useUserRoles() {
 	return useQuery({
 		queryKey: ["meta", "roles"],
 		queryFn: async () => {
-			const { data, error } = await client.api.meta.roles.get();
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "An error occurred");
-			}
-
-			return data?.roles ?? [];
+			const response = await client.api.meta.roles.get();
+			const data = unwrap(response);
+			return data.roles;
 		},
 	});
 }
@@ -74,15 +59,8 @@ export function useCreateUser() {
 
 	return useMutation({
 		mutationFn: async (data: UserCreateInput) => {
-			// We cast data to any here because Eden inference might lag behind backend changes slightly
-			// or we can define the type explicitly if needed.
-			const { data: result, error } = await client.api.users.post(data);
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "An error occurred");
-			}
-
-			return result;
+			const response = await client.api.users.post(data);
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -95,13 +73,8 @@ export function useUpdateUser() {
 
 	return useMutation({
 		mutationFn: async ({ id, data }: { id: string; data: UserUpdateInput }) => {
-			const { data: result, error } = await client.api.users({ id }).patch(data);
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "An error occurred");
-			}
-
-			return result;
+			const response = await client.api.users({ id }).patch(data);
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -117,13 +90,8 @@ export function useUserProfile() {
 	return useQuery({
 		queryKey: ["user", "me"],
 		queryFn: async () => {
-			const { data, error } = await client.api.users.me.get();
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "An error occurred");
-			}
-
-			return data;
+			const response = await client.api.users.me.get();
+			return unwrap(response);
 		},
 	});
 }
@@ -133,13 +101,8 @@ export function useUpdateProfile() {
 
 	return useMutation({
 		mutationFn: async (data: ProfileUpdateInput) => {
-			const { data: result, error } = await client.api.users.me.patch(data);
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "An error occurred");
-			}
-
-			return result;
+			const response = await client.api.users.me.patch(data);
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["user", "me"] });
@@ -150,13 +113,8 @@ export function useUpdateProfile() {
 export function useChangePassword() {
 	return useMutation({
 		mutationFn: async (data: ChangePasswordInput) => {
-			const { data: result, error } = await client.api.users.me["change-password"].post(data);
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "An error occurred");
-			}
-
-			return result;
+			const response = await client.api.users.me["change-password"].post(data);
+			return unwrap(response);
 		},
 	});
 }

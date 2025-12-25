@@ -11,13 +11,19 @@ export const metaModule = new Elysia({
 	.get(
 		"/roles",
 		() => ({
-			roles: Object.values(UserRole),
+			ok: true,
+			data: {
+				roles: Object.values(UserRole),
+			},
 		}),
 		{
 			isAuth: true,
 			detail: { summary: "List available user roles", tags: ["Meta"] },
 			response: t.Object({
-				roles: t.Array(t.Enum(UserRole)),
+				ok: t.Boolean(),
+				data: t.Object({
+					roles: t.Array(t.Enum(UserRole)),
+				}),
 			}),
 		},
 	);
