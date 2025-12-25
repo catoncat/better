@@ -11,6 +11,11 @@ This document outlines the development milestones for the MES system, focusing o
 * **Features**: Work order reception, production run creation, manual and automatic track-in/out, minimal MES UI (work orders, runs, station execution).
 * **Acceptance Criteria**: System can create a production run and track units through different steps via API and UI.
 
+### M1.5: ERP Routing Integration & Versioning
+* **Goal**: Use ERP routing as the source of truth for step sequence, with MES-owned execution semantics and version freeze.
+* **Features**: Pull-based ERP route sync (ENG_Route), mapping tables, execution config management, executable route versioning, run freeze, trace includes route and routeVersion, integration mock module for contract testing.
+* **Acceptance Criteria**: ERP import yields canonical route + READY executable version; new runs freeze a version; trace returns route + routeVersion + step list; step advance uses sorted stepNo.
+
 ### M2: Quality Control and Authorization
 * **Goal**: Implement quality control checks, including FAI and batch authorization.
 * **Features**: Quality checks, defect registration, rework handling, batch authorization.

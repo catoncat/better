@@ -71,3 +71,4 @@ deploy/cert/
 deploy/.env
 deploy/.config
 
+others/external_erp/

@@ -18,6 +18,7 @@ import { auditArchiveCronPlugin } from "./plugins/audit-archive-cron";
 import { instrumentCronPlugin } from "./plugins/instrument-cron";
 import { prismaPlugin } from "./plugins/prisma";
 import { serveWebRequest } from "./web/serve-web";
+import { erpSyncCronPlugin } from "./plugins/erp-sync-cron";
 
 const normalizeOrigin = (value: string | undefined) => {
 	if (!value) return null;
@@ -156,6 +157,7 @@ api
 	.use(usersModule)
 	.use(systemModule)
 	.use(instrumentCronPlugin)
+	.use(erpSyncCronPlugin)
 	.use(auditArchiveCronPlugin);
 
 const getListenOptions = async () => {

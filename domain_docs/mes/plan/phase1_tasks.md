@@ -45,7 +45,7 @@ Goal: Complete the basic production loop, from work order reception to unit comp
 
 ## Task 1.5: Tracking APIs (Core Routing)
 *   **Goal**: Implement unit flow logic (Routing Engine).
-*   **Input**: `domain_docs/mes/tech/api/02_api_contracts_execution.md` (Section 3) & `spec/routing/01_routing_engine.md`
+*   **Input**: `domain_docs/mes/tech/api/02_api_contracts_execution.md` (Section 3) & `domain_docs/mes/spec/routing/01_routing_engine.md`
 *   **Actions**:
     1.  Implement `POST /api/stations/{stationCode}/track-in`.
         *   Logic: Validate Run status, Step match; set Unit to `IN_STATION`.
@@ -82,3 +82,90 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     2.  Validate UI flow against M1 acceptance scenarios.
 *   **Definition of Done**: Operators can complete the M1 loop via UI.
 *   **Status**: [x] Done (2025-12-23)
+
+---
+
+# ERP Routing Integration Addendum (M1.5)
+
+## Task 1.9: ERP Routing Schema Extensions
+*   **Goal**: Extend schema for ERP routing ingestion, mapping, and versioning.
+*   **Input**: `domain_docs/mes/tech/db/01_prisma_schema.md`
+*   **Actions**:
+    1.  Add routing source fields and `sourceStepKey` to `Routing` / `RoutingStep`.
+    2.  Add raw ERP tables (`ErpRouteHeaderRaw`, `ErpRouteLineRaw`).
+    3.  Add mapping tables (`OperationMapping`, `WorkCenterStationGroupMapping`).
+    4.  Add `RouteExecutionConfig` and `ExecutableRouteVersion` models.
+    5.  Add `Run.routeVersionId` and required indexes.
+*   **Definition of Done**: Schema supports ERP routing + version freeze.
+*   **Status**: [ ] Pending
+
+## Task 1.10: ERP Routing Ingestion
+*   **Goal**: Import ERP routing and normalize to canonical routes.
+*   **Input**: `domain_docs/mes/spec/routing/02_erp_route_ingestion.md`, `agent_docs/03_backend/api_patterns.md`
+*   **Actions**:
+    1.  Implement pull-based sync for `ENG_Route` with pagination and cursor.
+    2.  Persist raw ERP payloads.
+    3.  Normalize to `Routing` + `RoutingStep` with `sourceStepKey`.
+    4.  Create or update mappings; record missing mappings as errors.
+*   **Definition of Done**: ERP import produces canonical routes without duplicating steps.
+*   **Status**: [ ] Pending
+
+## Task 1.10.1: Kingdee ERP Adapter (Pull)
+*   **Goal**: Implement Kingdee API client for pull-based sync.
+*   **Input**: `domain_docs/mes/spec/integration/01_system_integrations.md`
+*   **Actions**:
+    1.  Implement LoginByAppSecret and cookie reuse.
+    2.  Implement ExecuteBillQuery with pagination and filter.
+    3.  Normalize response into integration payloads.
+*   **Definition of Done**: Adapter can pull `ENG_Route` and return normalized payloads.
+*   **Status**: [x] Done (2025-12-25)
+
+## Task 1.11: Execution Config & Compile
+*   **Goal**: Configure execution semantics and compile executable versions.
+*   **Input**: `domain_docs/mes/spec/routing/03_route_execution_config.md`, `domain_docs/mes/spec/routing/04_route_versioning_and_change_management.md`
+*   **Actions**:
+    1.  Implement execution config CRUD endpoints.
+    2.  Build compile service to generate `ExecutableRouteVersion.snapshotJson`.
+    3.  Enforce compile validation rules (stationType, ingestMapping, dataSpec bindings).
+*   **Definition of Done**: Valid configs compile to READY versions; invalid configs produce INVALID with errors.
+*   **Status**: [ ] Pending
+
+## Task 1.12: Run Freeze & Execution Guards
+*   **Goal**: Use frozen executable versions during execution.
+*   **Input**: `domain_docs/mes/spec/routing/01_routing_engine.md`, `domain_docs/mes/tech/api/02_api_contracts_execution.md`
+*   **Actions**:
+    1.  Update run creation to select latest READY version and persist `routeVersionId`.
+    2.  Use snapshot step list for step ordering and guard checks.
+    3.  Ensure step advance uses sorted `stepNo` (not +1).
+*   **Definition of Done**: Runs execute against frozen snapshots; ERP updates do not affect in-flight runs.
+*   **Status**: [ ] Pending
+
+## Task 1.13: Trace & Acceptance Tests
+*   **Goal**: Ensure trace reflects frozen route versions and ERP integration behavior.
+*   **Input**: `domain_docs/mes/spec/traceability/01_traceability_contract.md`, `domain_docs/mes/tests/02_routing_integration_scenarios.md`
+*   **Actions**:
+    1.  Update trace API output to include `route`, `routeVersion`, and snapshot steps.
+    2.  Add acceptance tests for ERP import idempotency, versioning, and run freeze.
+*   **Definition of Done**: Trace reflects frozen version; tests cover ERP routing scenarios.
+*   **Status**: [ ] Pending
+
+## Task 1.14: TPM Sync & Execution Gates
+*   **Goal**: Use TPM equipment status and maintenance data as execution gates.
+*   **Input**: `domain_docs/mes/spec/integration/01_system_integrations.md`
+*   **Actions**:
+    1.  Pull equipment master data; map `Equipment.code` to `Station.code`.
+    2.  Pull `MachineStatusLog` and expose station availability.
+    3.  Block TrackIn when equipment status is not `normal`.
+    4.  (Optional) Block TrackIn when maintenance/repair is in progress.
+*   **Definition of Done**: Execution honors TPM status gates; station availability reflects TPM.
+*   **Status**: [ ] Pending
+
+## Task 1.15: Integration Mock Module
+*   **Goal**: Provide mock payloads for ERP/TPM pull endpoints.
+*   **Input**: `domain_docs/mes/spec/integration/02_integration_payloads.md`
+*   **Actions**:
+    1.  Add mock routes for ERP routing/work orders/materials/BOM/work centers.
+    2.  Add mock routes for TPM equipment/status/maintenance tasks.
+    3.  Ensure responses follow envelope and cursor contract.
+*   **Definition of Done**: Mock endpoints return payloads compatible with integration contracts.
+*   **Status**: [x] Done (2025-12-25)

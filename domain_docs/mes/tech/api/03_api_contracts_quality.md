@@ -1,10 +1,15 @@
 # API Contracts: Quality
 
 此部分定义与质量控制相关的 API，包括不良登记、返修、隔离处理等。
+响应包裹格式与错误结构遵循 `agent_docs/03_backend/api_patterns.md`。
+幂等性：对所有写入接口建议使用 `Idempotency-Key` 以支持客户端重试。
 
 ## 1. 不良登记
 
 **POST** `/api/defects`
+
+### Header
+`Idempotency-Key` (recommended)
 
 ### 请求示例
 ```json
@@ -30,6 +35,9 @@
 
 **POST** `/api/defects/{defectId}/disposition`
 
+### Header
+`Idempotency-Key` (recommended)
+
 ### 请求示例
 ```json
 {
@@ -50,6 +58,9 @@
 ## 3. 返修完成
 
 **POST** `/api/rework/{reworkId}/complete`
+
+### Header
+`Idempotency-Key` (recommended)
 
 ### 请求示例
 ```json

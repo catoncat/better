@@ -2,54 +2,66 @@
 
 ```mermaid
 flowchart TB
-  A((ERP/APS 工单下发)) --> B[MES 接收工单<br/>WO=RECEIVED]
-  B --> C[下发到线体/站点组<br/>WO=RELEASED]
+  subgraph ERP_SYNC["ERP Master Data and Routing Sync"]
+    direction TB
+    R0((ERP Routing/Master Data)) --> R1[Route import/normalize]
+    R1 --> R2[Mapping validate/complete<br/>Operation/WorkCenter]
+    R2 --> R3[Configure execution semantics<br/>RouteExecutionConfig]
+    R3 --> R4[Compile executable version<br/>ExecutableRouteVersion=READY]
+  end
 
-  C --> R[创建生产运行 Run<br/>RUN=PREP]
-  R --> P[产线准备检查<br/>设备/物料/工艺文件/人员资质]
-  P --> POK{准备就绪?}
-  POK -- 否 --> PEX[异常记录/处理/复核] --> P
-  POK -- 是 --> FAI[创建首件任务<br/>FAI=PENDING]
+  A((ERP/APS Work Order Release)) --> B[MES receive work order<br/>WO=RECEIVED]
+  B --> C[Dispatch to line/station group<br/>WO=RELEASED]
 
-  FAI --> F1[首件试产(允许限定数量过站)]
-  F1 --> F2[首件检验记录]
-  F2 --> FOK{首件合格?}
-  FOK -- 否 --> ADJ[参数调整/原因记录] --> F1
-  FOK -- 是 --> AUTH[批量授权<br/>RUN=AUTHORIZED]
+  C --> R[Create production run<br/>RUN=PREP]
+  R4 --> R
+  R --> P[Line readiness check<br/>equipment/material/process docs/qualification]
+  P --> POK{Ready?}
+  POK -- No --> PEX[Exception record/handle/review] --> P
+  POK -- Yes --> FAI[Create FAI task<br/>FAI=PENDING]
+
+  FAI --> F1[FAI trial run (limited quantity allowed)]
+  F1 --> F2[FAI inspection record]
+  F2 --> FOK{FAI passed?}
+  FOK -- No --> ADJ[Parameter adjustment/cause record] --> F1
+  FOK -- Yes --> AUTH[Batch authorization<br/>RUN=AUTHORIZED]
 
   AUTH --> LOOP
 
-  subgraph LOOP["批量生产执行（Routing Engine 驱动）"]
+  subgraph LOOP["Batch Execution (Routing Engine)"]
     direction TB
-    S0[选择/确认下一工序 step] --> ST{Station Type?}
-    ST -- MANUAL --> M1[操作员登录工位]
-    M1 --> M2[SN 进站 TrackIn] --> DC
-    ST -- AUTO --> A1[设备事件进出站 Ingest] --> DC
-    ST -- BATCH --> B1[载具/炉次进出站 Ingest] --> DC
-    ST -- TEST --> T1[测试结果导入/对接] --> DC
+    S0[Select/confirm next step] --> ST{Station Type?}
+    ST -- MANUAL --> M1[Operator sign-in at station]
+    M1 --> M2[SN TrackIn] --> DC
+    ST -- AUTO --> A1[Equipment event TrackIn/Out ingest] --> DC
+    ST -- BATCH --> B1[Carrier/lot TrackIn/Out ingest] --> DC
+    ST -- TEST --> T1[Test result ingest/integration] --> DC
 
-    DC[按采集配置采集/校验<br/>手动/自动/频率/规格/阈值] --> OUT[出站判定 TrackOut]
+    DC[Collect/validate by config<br/>manual/auto/frequency/spec/limits] --> OUT[TrackOut decision]
     OUT --> RES{PASS/FAIL?}
-    RES -- PASS --> ADV[推进 Routing 指针]
-    RES -- FAIL --> NG[登记不良]
-    NG --> DISP{处置?}
-    DISP -- 返修 --> RW[返修任务/返修作业] --> S0
-    DISP -- 报废 --> SC[报废确认/记录] --> DONEU
-    DISP -- 隔离 --> HOLD[隔离 HOLD] --> REL[解禁/复判] --> S0
+    RES -- PASS --> ADV[Advance routing pointer]
+    RES -- FAIL --> NG[Record defect]
+    NG --> DISP{Disposition?}
+    DISP -- REWORK --> RW[Rework task/action] --> S0
+    DISP -- SCRAP --> SC[Scrap confirmation/record] --> DONEU
+    DISP -- HOLD --> HOLD[Hold isolation] --> REL[Release/review] --> S0
 
-    ADV --> LAST{是否最后工序?}
-    LAST -- 否 --> S0
-    LAST -- 是 --> DONEU[Unit 完成]
+    ADV --> LAST{Last step?}
+    LAST -- No --> S0
+    LAST -- Yes --> DONEU[Unit complete]
   end
 
-  DONEU --> OQC{是否触发 OQC 抽检?}
-  OQC -- 否 --> FINCHK{Run/WO 达成?}
-  OQC -- 是 --> OQCT[OQC 抽检任务] --> OQCP{OQC 通过?}
-  OQCP -- 否 --> OQCH[隔离 HOLD] --> DISP
-  OQCP -- 是 --> FINCHK
+  DONEU --> OQC{Trigger OQC sampling?}
+  OQC -- No --> FINCHK{Run/WO complete?}
+  OQC -- Yes --> OQCT[OQC sampling task] --> OQCP{OQC passed?}
+  OQCP -- No --> OQCH[Hold isolation] --> DISP
+  OQCP -- Yes --> FINCHK
 
-  FINCHK -- 否 --> LOOP
-  FINCHK -- 是 --> LASTCONF[末件确认/收尾]
-  LASTCONF --> ARCH[归档/回传占位]
-  ARCH --> END((结案))
+  FINCHK -- No --> LOOP
+  FINCHK -- Yes --> LASTCONF[Final confirmation/closeout]
+  LASTCONF --> ARCH[Archive/feedback placeholder]
+  ARCH --> END((Closure))
 ```
+
+## References
+- `domain_docs/mes/spec/integration/01_system_integrations.md`
