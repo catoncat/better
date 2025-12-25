@@ -192,11 +192,34 @@ export const createRun = async (db: PrismaClient, woNo: string, data: RunCreateI
 				return { success: false, code: "WORK_ORDER_NOT_RELEASED", message: "Work order not released" };
 			}
 
+			if (!wo.routingId) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "ROUTE_NOT_FOUND");
+				return { success: false, code: "ROUTE_NOT_FOUND", message: "Work order has no routing" };
+			}
+
 			const line = await db.line.findUnique({ where: { code: data.lineCode } });
 			if (!line) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "LINE_NOT_FOUND");
 				return { success: false, code: "LINE_NOT_FOUND", message: "Line not found" };
+			}
+
+			const latestVersion = await db.executableRouteVersion.findFirst({
+				where: {
+					routingId: wo.routingId,
+					status: "READY",
+				},
+				orderBy: { versionNo: "desc" },
+			});
+			if (!latestVersion) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "ROUTE_VERSION_NOT_READY");
+				return {
+					success: false,
+					code: "ROUTE_VERSION_NOT_READY",
+					message: "No executable route version available",
+				};
 			}
 
 			// Generate a simple run number if not provided
@@ -208,6 +231,7 @@ export const createRun = async (db: PrismaClient, woNo: string, data: RunCreateI
 						runNo,
 						woId: wo.id,
 						lineId: line.id,
+						routeVersionId: latestVersion.id,
 						shiftCode: data.shiftCode,
 						changeoverNo: data.changeoverNo,
 						status: RunStatus.PREP,
