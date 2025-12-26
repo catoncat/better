@@ -60,6 +60,8 @@ The MES API is divided into the following functional areas:
 *   `PATCH /api/routes/{routingCode}` (edit header, native only)
 *   `POST /api/routes/{routingCode}/steps` (edit steps, native only)
 *   `POST /api/routes/{routingCode}/compile` (compile to executable version)
+*   `GET  /api/routes` (list routing definitions)
+*   `GET  /api/routes/{routingCode}` (routing detail + steps)
 
 ### 2.6 Execution Semantics Configuration (MES-owned)
 *   `GET  /api/routes/{routingCode}/execution-config`
@@ -70,6 +72,10 @@ The MES API is divided into the following functional areas:
 ### 2.7 Versions (Run freeze)
 *   `GET /api/routes/{routingCode}/versions`
 *   `GET /api/routes/{routingCode}/versions/{versionNo}`
+
+### 2.8 Station & Group Lookup
+*   `GET /api/stations`
+*   `GET /api/stations/groups`
 
 ---
 

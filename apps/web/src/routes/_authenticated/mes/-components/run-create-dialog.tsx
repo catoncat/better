@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import type { WorkOrder } from "@/hooks/use-work-orders";
+import { LineSelect } from "@/components/select/line-select";
 
 const runSchema = z.object({
 	lineCode: z.string().min(1, "线体编码不能为空"),
@@ -75,7 +76,11 @@ export function RunCreateDialog({
 								<FormItem>
 									<FormLabel>线体编码</FormLabel>
 									<FormControl>
-										<Input placeholder="LINE-01" {...field} />
+										<LineSelect
+											value={field.value}
+											onValueChange={field.onChange}
+											placeholder="选择线体"
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>

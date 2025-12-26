@@ -31,6 +31,10 @@ export const navMain: NavItem[] = [
 				url: "/mes/execution",
 			},
 			{
+				title: "路由管理",
+				url: "/mes/routes",
+			},
+			{
 				title: "路由版本",
 				url: "/mes/route-versions",
 			},

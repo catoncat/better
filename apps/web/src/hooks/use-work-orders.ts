@@ -3,7 +3,9 @@ import { toast } from "sonner";
 import { client } from "@/lib/eden";
 
 // Infer types from the API using Eden Treaty
-type ApiWorkOrderResponse = Awaited<ReturnType<typeof client.api.work.orders.get>>["data"];
+type ApiWorkOrderResponse = Awaited<
+	ReturnType<(typeof client.api)["work-orders"]["get"]>
+>["data"];
 export type WorkOrder = NonNullable<ApiWorkOrderResponse>["items"][number];
 export type WorkOrderList = Exclude<
 	ApiWorkOrderResponse,
@@ -12,7 +14,7 @@ export type WorkOrderList = Exclude<
 
 type WorkOrderReceiveInput = Parameters<(typeof client.api.integration)["work-orders"]["post"]>[0];
 type WorkOrderReleaseInput = Parameters<
-	ReturnType<typeof client.api.work.orders>["release"]["post"]
+	ReturnType<(typeof client.api)["work-orders"]>["release"]["post"]
 >[0];
 
 interface UseWorkOrderListParams {
@@ -33,7 +35,7 @@ export function useWorkOrderList(params: UseWorkOrderListParams) {
 	return useQuery<WorkOrderList>({
 		queryKey: ["mes", "work-orders", page, pageSize, search, status, sort],
 		queryFn: async () => {
-			const { data, error } = await client.api.work.orders.get({
+			const { data, error } = await client.api["work-orders"].get({
 				query: {
 					page,
 					pageSize,
@@ -83,7 +85,7 @@ export function useReleaseWorkOrder() {
 
 	return useMutation({
 		mutationFn: async ({ woNo, ...body }: WorkOrderReleaseInput & { woNo: string }) => {
-			const { data, error } = await client.api.work.orders({ woNo }).release.post(body);
+			const { data, error } = await client.api["work-orders"]({ woNo }).release.post(body);
 
 			if (error) {
 				throw new Error(error.value ? JSON.stringify(error.value) : "发布工单失败");

@@ -264,3 +264,21 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     2.  Display last sync cursor and outcome (from `IntegrationSyncCursor` / `SystemLog`).
 *   **Definition of Done**: A user can trigger inbound syncs and see status in the UI.
 *   **Status**: [x] Done (2025-12-26)
+
+## Task 1.25: Routing Management UI
+*   **Goal**: Make routing definitions viewable in the UI.
+*   **Input**: `domain_docs/mes/spec/routing/01_routing_engine.md`
+*   **Actions**:
+    1.  Add routing list page with search and source filters.
+    2.  Add routing detail page showing steps and metadata.
+*   **Definition of Done**: Users can view routing details and step lists in the UI.
+*   **Status**: [x] Done (2025-12-26)
+
+## Task 1.26: Execution Config Editing UX
+*   **Goal**: Allow editing execution semantics in the UI.
+*   **Input**: `domain_docs/mes/spec/routing/03_route_execution_config.md`
+*   **Actions**:
+    1.  Add execution config list with create/edit dialogs.
+    2.  Support station group, allowed station, FAI, authorization, data spec, and mapping fields.
+*   **Definition of Done**: Execution configs can be created/updated without raw ID entry.
+*   **Status**: [x] Done (2025-12-26)

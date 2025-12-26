@@ -8,6 +8,9 @@ import {
 	executionConfigListResponseSchema,
 	executionConfigResponseSchema,
 	executionConfigUpdateSchema,
+	routeDetailResponseSchema,
+	routeListQuerySchema,
+	routeListResponseSchema,
 	routeCompileResponseSchema,
 	routeVersionListResponseSchema,
 	routeVersionResponseSchema,
@@ -16,8 +19,10 @@ import {
 import {
 	compileRouteExecution,
 	createExecutionConfig,
+	getRouteDetail,
 	getRouteVersion,
 	listExecutionConfigs,
+	listRoutes,
 	listRouteVersions,
 	updateExecutionConfig,
 } from "./service";
@@ -27,6 +32,33 @@ export const routingModule = new Elysia({
 })
 	.use(prismaPlugin)
 	.use(authPlugin)
+	.get(
+		"/",
+		async ({ db, query }) => listRoutes(db, query),
+		{
+			isAuth: true,
+			query: routeListQuerySchema,
+			response: routeListResponseSchema,
+			detail: { tags: ["MES - Routing"] },
+		},
+	)
+	.get(
+		"/:routingCode",
+		async ({ db, params, set }) => {
+			const result = await getRouteDetail(db, params.routingCode);
+			if (!result.success) {
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			return result.data;
+		},
+		{
+			isAuth: true,
+			params: routingCodeParamsSchema,
+			response: routeDetailResponseSchema,
+			detail: { tags: ["MES - Routing"] },
+		},
+	)
 	.get(
 		"/:routingCode/execution-config",
 		async ({ db, params, set }) => {

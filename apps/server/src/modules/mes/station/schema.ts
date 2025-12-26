@@ -8,10 +8,21 @@ const stationLineSchema = t.Object({
 export const stationListResponseSchema = t.Object({
 	items: t.Array(
 		t.Object({
+			id: t.String(),
 			code: t.String(),
 			name: t.String(),
 			stationType: t.String(),
 			line: t.Union([stationLineSchema, t.Null()]),
+		}),
+	),
+});
+
+export const stationGroupListResponseSchema = t.Object({
+	items: t.Array(
+		t.Object({
+			id: t.String(),
+			code: t.String(),
+			name: t.String(),
 		}),
 	),
 });
