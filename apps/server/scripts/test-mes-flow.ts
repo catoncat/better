@@ -31,8 +31,17 @@ async function runTest() {
 		"Cookie": cookie,
 	};
 
-	// 2. Receive Work Order
-	console.log("Step 1: Receiving Work Order...");
+	// 2. Compile default routing (idempotent)
+	console.log("Step 1: Compiling default routing...");
+	const compileRes = await fetch(`${API_URL}/routes/PCBA-STD-V1/compile`, {
+		method: "POST",
+		headers,
+	});
+	const compileData = await compileRes.json();
+	if (!compileData.ok) throw new Error(`Route Compile failed: ${JSON.stringify(compileData)}`);
+
+	// 3. Receive Work Order
+	console.log("Step 2: Receiving Work Order...");
 	const woNo = `WO-TEST-${Date.now()}`;
 	const woRes = await fetch(`${API_URL}/integration/work-orders`, {
 		method: "POST",
@@ -48,8 +57,8 @@ async function runTest() {
 	if (!woData.ok) throw new Error(`WO Receive failed: ${JSON.stringify(woData)}`);
 	console.log(`WO Received: ${woNo}`);
 
-	// 3. Release Work Order
-	console.log("Step 2: Releasing Work Order...");
+	// 4. Release Work Order
+	console.log("Step 3: Releasing Work Order...");
 	const releaseRes = await fetch(`${API_URL}/work-orders/${woNo}/release`, {
 		method: "POST",
 		headers,
@@ -59,8 +68,8 @@ async function runTest() {
 	if (!releaseData.ok) throw new Error(`WO Release failed: ${JSON.stringify(releaseData)}`);
 	console.log("WO Released.");
 
-	// 4. Create Run
-	console.log("Step 3: Creating Production Run...");
+	// 5. Create Run
+	console.log("Step 4: Creating Production Run...");
 	const runRes = await fetch(`${API_URL}/work-orders/${woNo}/runs`, {
 		method: "POST",
 		headers,
@@ -71,8 +80,8 @@ async function runTest() {
 	const runNo = runData.data.runNo;
 	console.log(`Run Created: ${runNo}`);
 
-	// 5. Authorize Run
-	console.log("Step 4: Authorizing Run...");
+	// 6. Authorize Run
+	console.log("Step 5: Authorizing Run...");
 	const authRes = await fetch(`${API_URL}/runs/${runNo}/authorize`, {
 		method: "POST",
 		headers,
@@ -82,7 +91,7 @@ async function runTest() {
 	if (!authData.ok) throw new Error(`Run Authorization failed: ${JSON.stringify(authData)}`);
 	console.log("Run Authorized.");
 
-	// 6. Track SN through steps
+	// 7. Track SN through steps
 	const sn = `SN-TEST-${Date.now()}`;
 	const stations = [
 		"ST-PRINT-01",
@@ -94,7 +103,7 @@ async function runTest() {
 
 	for (let i = 0; i < stations.length; i++) {
 		const stationCode = stations[i];
-		console.log(`Step 5.${i + 1}: Tracking In at ${stationCode}...`);
+		console.log(`Step 6.${i + 1}: Tracking In at ${stationCode}...`);
 		const inRes = await fetch(`${API_URL}/stations/${stationCode}/track-in`, {
 			method: "POST",
 			headers,
@@ -103,7 +112,7 @@ async function runTest() {
 		const inData = await inRes.json();
 		if (!inData.ok) throw new Error(`TrackIn at ${stationCode} failed: ${JSON.stringify(inData)}`);
 
-		console.log(`Step 5.${i + 1}: Tracking Out at ${stationCode}...`);
+		console.log(`Step 6.${i + 1}: Tracking Out at ${stationCode}...`);
 		const outRes = await fetch(`${API_URL}/stations/${stationCode}/track-out`, {
 			method: "POST",
 			headers,

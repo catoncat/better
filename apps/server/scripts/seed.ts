@@ -6,6 +6,8 @@ import prisma, {
 	UserRole,
 } from "@better-app/db";
 import { auth } from "@better-app/auth";
+import { compileRouteExecution } from "../src/modules/mes/routing/service";
+import { seedMESMasterData } from "./seed-mes";
 
 const DEFAULT_ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || "admin@example.com";
 const DEFAULT_ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || "ChangeMe123!";
@@ -177,10 +179,26 @@ const seedInstruments = async (adminId: string) => {
 	});
 };
 
+const ensureDefaultRouteVersion = async () => {
+	const routingCode = "PCBA-STD-V1";
+	const result = await compileRouteExecution(prisma, routingCode);
+	if (!result.success) {
+		throw new Error(`Failed to compile route ${routingCode}: ${result.code} ${result.message}`);
+	}
+	if (result.data.status !== "READY") {
+		const errors = Array.isArray(result.data.errorsJson)
+			? JSON.stringify(result.data.errorsJson)
+			: "Unknown compile errors";
+		throw new Error(`Route ${routingCode} is not READY: ${errors}`);
+	}
+};
+
 const run = async () => {
 	const adminId = await ensureAdminUser();
 	await seedSystemConfig(adminId);
 	await seedInstruments(adminId);
+	await seedMESMasterData();
+	await ensureDefaultRouteVersion();
 };
 
 run()

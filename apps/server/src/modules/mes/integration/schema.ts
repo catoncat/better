@@ -152,3 +152,33 @@ export const erpWorkCenterPullResponseSchema = integrationEnvelopeSchema(t.Array
 export const tpmEquipmentPullResponseSchema = integrationEnvelopeSchema(t.Array(tpmEquipmentSchema));
 export const tpmStatusLogPullResponseSchema = integrationEnvelopeSchema(t.Array(tpmStatusLogSchema));
 export const tpmMaintenanceTaskPullResponseSchema = integrationEnvelopeSchema(t.Array(tpmMaintenanceTaskSchema));
+
+const integrationCursorStatusSchema = t.Object({
+	sourceSystem: t.String(),
+	entityType: t.String(),
+	lastSyncAt: t.Union([t.String({ format: "date-time" }), t.Null()]),
+	lastSeq: t.Union([t.String(), t.Null()]),
+	meta: t.Union([t.Any(), t.Null()]),
+	updatedAt: t.String({ format: "date-time" }),
+});
+
+const integrationCronStatusSchema = t.Object({
+	action: t.String(),
+	status: t.String(),
+	createdAt: t.String({ format: "date-time" }),
+	details: t.Union([t.Any(), t.Null()]),
+});
+
+const integrationSyncStatusSchema = t.Object({
+	sourceSystem: t.String(),
+	entityType: t.String(),
+	cursor: t.Union([integrationCursorStatusSchema, t.Null()]),
+	lastCron: t.Union([integrationCronStatusSchema, t.Null()]),
+});
+
+export const integrationStatusResponseSchema = t.Object({
+	ok: t.Boolean(),
+	data: t.Object({
+		jobs: t.Array(integrationSyncStatusSchema),
+	}),
+});

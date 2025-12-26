@@ -52,19 +52,22 @@ The MES API is divided into the following functional areas:
 *   `POST /api/integration/tpm/status-logs/sync`
 *   `POST /api/integration/tpm/maintenance-tasks/sync`
 
-### 2.4 MES Routing Management (native)
+### 2.4 Integration Status
+*   `GET /api/integration/status` (sync cursor + latest cron outcome)
+
+### 2.5 MES Routing Management (native)
 *   `POST /api/routes` (create MES-native routing)
 *   `PATCH /api/routes/{routingCode}` (edit header, native only)
 *   `POST /api/routes/{routingCode}/steps` (edit steps, native only)
 *   `POST /api/routes/{routingCode}/compile` (compile to executable version)
 
-### 2.5 Execution Semantics Configuration (MES-owned)
+### 2.6 Execution Semantics Configuration (MES-owned)
 *   `GET  /api/routes/{routingCode}/execution-config`
 *   `POST /api/routes/{routingCode}/execution-config`
 *   `PATCH /api/routes/{routingCode}/execution-config/{configId}`
 *   `POST /api/routes/{routingCode}/compile` (after config change)
 
-### 2.6 Versions (Run freeze)
+### 2.7 Versions (Run freeze)
 *   `GET /api/routes/{routingCode}/versions`
 *   `GET /api/routes/{routingCode}/versions/{versionNo}`
 

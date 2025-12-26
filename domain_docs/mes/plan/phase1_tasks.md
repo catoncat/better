@@ -236,7 +236,7 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     1.  Run MES master-data seed during `bun run db:seed` (lines, stations, routing).
     2.  Ensure a READY executable route version exists for the sample routing.
 *   **Definition of Done**: A fresh database can create runs without extra manual compile/seed steps.
-*   **Status**: [ ] Pending
+*   **Status**: [x] Done (2025-12-26)
 
 ## Task 1.22: One-Command Demo Flow
 *   **Goal**: Make the end-to-end MES flow runnable in one script.
@@ -245,7 +245,7 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     1.  Auto-compile the routing if no READY version exists.
     2.  Document the command in onboarding (quick demo section).
 *   **Definition of Done**: Running the script completes without extra manual steps.
-*   **Status**: [ ] Pending
+*   **Status**: [x] Done (2025-12-26)
 
 ## Task 1.23: Route Version UX
 *   **Goal**: Remove API-only route compilation from the demo path.
@@ -254,7 +254,7 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     1.  Add a minimal UI view to list versions and compile the route.
     2.  Show READY/INVALID status and compile errors.
 *   **Definition of Done**: A user can compile and verify route versions via UI.
-*   **Status**: [ ] Pending
+*   **Status**: [x] Done (2025-12-26)
 
 ## Task 1.24: Integration Sync UX
 *   **Goal**: Expose manual integration sync from the UI for demos.
@@ -263,4 +263,4 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     1.  Add a minimal admin page to trigger ERP/TPM sync jobs.
     2.  Display last sync cursor and outcome (from `IntegrationSyncCursor` / `SystemLog`).
 *   **Definition of Done**: A user can trigger inbound syncs and see status in the UI.
-*   **Status**: [ ] Pending
+*   **Status**: [x] Done (2025-12-26)

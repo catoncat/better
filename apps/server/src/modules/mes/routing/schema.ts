@@ -55,3 +55,15 @@ export const routeCompileResponseSchema = t.Object({
 	ok: t.Boolean(),
 	data: Prismabox.ExecutableRouteVersionPlain,
 });
+
+export const routeVersionListResponseSchema = t.Object({
+	ok: t.Boolean(),
+	data: t.Object({
+		items: t.Array(Prismabox.ExecutableRouteVersionPlain),
+	}),
+});
+
+export const routeVersionResponseSchema = t.Object({
+	ok: t.Boolean(),
+	data: Prismabox.ExecutableRouteVersionPlain,
+});

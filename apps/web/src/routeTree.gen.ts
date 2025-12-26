@@ -20,8 +20,10 @@ import { Route as AuthenticatedInstrumentsIndexRouteImport } from './routes/_aut
 import { Route as AuthenticatedCalibrationsIndexRouteImport } from './routes/_authenticated/calibrations/index'
 import { Route as AuthenticatedSystemUserManagementRouteImport } from './routes/_authenticated/system/user-management'
 import { Route as AuthenticatedSystemSettingsRouteImport } from './routes/_authenticated/system/settings'
+import { Route as AuthenticatedSystemIntegrationsRouteImport } from './routes/_authenticated/system/integrations'
 import { Route as AuthenticatedMesWorkOrdersRouteImport } from './routes/_authenticated/mes/work-orders'
 import { Route as AuthenticatedMesRunsRouteImport } from './routes/_authenticated/mes/runs'
+import { Route as AuthenticatedMesRouteVersionsRouteImport } from './routes/_authenticated/mes/route-versions'
 import { Route as AuthenticatedMesExecutionRouteImport } from './routes/_authenticated/mes/execution'
 import { Route as AuthenticatedInstrumentsInstrumentIdRouteImport } from './routes/_authenticated/instruments/$instrumentId'
 
@@ -85,6 +87,12 @@ const AuthenticatedSystemSettingsRoute =
     path: '/system/settings',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedSystemIntegrationsRoute =
+  AuthenticatedSystemIntegrationsRouteImport.update({
+    id: '/system/integrations',
+    path: '/system/integrations',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMesWorkOrdersRoute =
   AuthenticatedMesWorkOrdersRouteImport.update({
     id: '/mes/work-orders',
@@ -96,6 +104,12 @@ const AuthenticatedMesRunsRoute = AuthenticatedMesRunsRouteImport.update({
   path: '/mes/runs',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedMesRouteVersionsRoute =
+  AuthenticatedMesRouteVersionsRouteImport.update({
+    id: '/mes/route-versions',
+    path: '/mes/route-versions',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMesExecutionRoute =
   AuthenticatedMesExecutionRouteImport.update({
     id: '/mes/execution',
@@ -116,8 +130,10 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/instruments/$instrumentId': typeof AuthenticatedInstrumentsInstrumentIdRoute
   '/mes/execution': typeof AuthenticatedMesExecutionRoute
+  '/mes/route-versions': typeof AuthenticatedMesRouteVersionsRoute
   '/mes/runs': typeof AuthenticatedMesRunsRoute
   '/mes/work-orders': typeof AuthenticatedMesWorkOrdersRoute
+  '/system/integrations': typeof AuthenticatedSystemIntegrationsRoute
   '/system/settings': typeof AuthenticatedSystemSettingsRoute
   '/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/calibrations': typeof AuthenticatedCalibrationsIndexRoute
@@ -132,8 +148,10 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/instruments/$instrumentId': typeof AuthenticatedInstrumentsInstrumentIdRoute
   '/mes/execution': typeof AuthenticatedMesExecutionRoute
+  '/mes/route-versions': typeof AuthenticatedMesRouteVersionsRoute
   '/mes/runs': typeof AuthenticatedMesRunsRoute
   '/mes/work-orders': typeof AuthenticatedMesWorkOrdersRoute
+  '/system/integrations': typeof AuthenticatedSystemIntegrationsRoute
   '/system/settings': typeof AuthenticatedSystemSettingsRoute
   '/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/calibrations': typeof AuthenticatedCalibrationsIndexRoute
@@ -150,8 +168,10 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/instruments/$instrumentId': typeof AuthenticatedInstrumentsInstrumentIdRoute
   '/_authenticated/mes/execution': typeof AuthenticatedMesExecutionRoute
+  '/_authenticated/mes/route-versions': typeof AuthenticatedMesRouteVersionsRoute
   '/_authenticated/mes/runs': typeof AuthenticatedMesRunsRoute
   '/_authenticated/mes/work-orders': typeof AuthenticatedMesWorkOrdersRoute
+  '/_authenticated/system/integrations': typeof AuthenticatedSystemIntegrationsRoute
   '/_authenticated/system/settings': typeof AuthenticatedSystemSettingsRoute
   '/_authenticated/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/_authenticated/calibrations/': typeof AuthenticatedCalibrationsIndexRoute
@@ -168,8 +188,10 @@ export interface FileRouteTypes {
     | '/'
     | '/instruments/$instrumentId'
     | '/mes/execution'
+    | '/mes/route-versions'
     | '/mes/runs'
     | '/mes/work-orders'
+    | '/system/integrations'
     | '/system/settings'
     | '/system/user-management'
     | '/calibrations'
@@ -184,8 +206,10 @@ export interface FileRouteTypes {
     | '/'
     | '/instruments/$instrumentId'
     | '/mes/execution'
+    | '/mes/route-versions'
     | '/mes/runs'
     | '/mes/work-orders'
+    | '/system/integrations'
     | '/system/settings'
     | '/system/user-management'
     | '/calibrations'
@@ -201,8 +225,10 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/instruments/$instrumentId'
     | '/_authenticated/mes/execution'
+    | '/_authenticated/mes/route-versions'
     | '/_authenticated/mes/runs'
     | '/_authenticated/mes/work-orders'
+    | '/_authenticated/system/integrations'
     | '/_authenticated/system/settings'
     | '/_authenticated/system/user-management'
     | '/_authenticated/calibrations/'
@@ -295,6 +321,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemSettingsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/system/integrations': {
+      id: '/_authenticated/system/integrations'
+      path: '/system/integrations'
+      fullPath: '/system/integrations'
+      preLoaderRoute: typeof AuthenticatedSystemIntegrationsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/mes/work-orders': {
       id: '/_authenticated/mes/work-orders'
       path: '/mes/work-orders'
@@ -307,6 +340,13 @@ declare module '@tanstack/react-router' {
       path: '/mes/runs'
       fullPath: '/mes/runs'
       preLoaderRoute: typeof AuthenticatedMesRunsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/mes/route-versions': {
+      id: '/_authenticated/mes/route-versions'
+      path: '/mes/route-versions'
+      fullPath: '/mes/route-versions'
+      preLoaderRoute: typeof AuthenticatedMesRouteVersionsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/execution': {
@@ -332,8 +372,10 @@ interface AuthenticatedRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedInstrumentsInstrumentIdRoute: typeof AuthenticatedInstrumentsInstrumentIdRoute
   AuthenticatedMesExecutionRoute: typeof AuthenticatedMesExecutionRoute
+  AuthenticatedMesRouteVersionsRoute: typeof AuthenticatedMesRouteVersionsRoute
   AuthenticatedMesRunsRoute: typeof AuthenticatedMesRunsRoute
   AuthenticatedMesWorkOrdersRoute: typeof AuthenticatedMesWorkOrdersRoute
+  AuthenticatedSystemIntegrationsRoute: typeof AuthenticatedSystemIntegrationsRoute
   AuthenticatedSystemSettingsRoute: typeof AuthenticatedSystemSettingsRoute
   AuthenticatedSystemUserManagementRoute: typeof AuthenticatedSystemUserManagementRoute
   AuthenticatedCalibrationsIndexRoute: typeof AuthenticatedCalibrationsIndexRoute
@@ -349,8 +391,10 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedInstrumentsInstrumentIdRoute:
     AuthenticatedInstrumentsInstrumentIdRoute,
   AuthenticatedMesExecutionRoute: AuthenticatedMesExecutionRoute,
+  AuthenticatedMesRouteVersionsRoute: AuthenticatedMesRouteVersionsRoute,
   AuthenticatedMesRunsRoute: AuthenticatedMesRunsRoute,
   AuthenticatedMesWorkOrdersRoute: AuthenticatedMesWorkOrdersRoute,
+  AuthenticatedSystemIntegrationsRoute: AuthenticatedSystemIntegrationsRoute,
   AuthenticatedSystemSettingsRoute: AuthenticatedSystemSettingsRoute,
   AuthenticatedSystemUserManagementRoute:
     AuthenticatedSystemUserManagementRoute,

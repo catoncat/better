@@ -4,11 +4,9 @@ import dotenv from "dotenv";
 
 dotenv.config({ path: path.resolve(import.meta.dirname, "../.env") });
 
-import prisma, {
-	StationType,
-} from "@better-app/db";
+import prisma, { StationType } from "@better-app/db";
 
-const seedMESMasterData = async () => {
+export const seedMESMasterData = async () => {
 	console.log("Seeding MES Master Data...");
 
 	// 1. Create Line
@@ -121,12 +119,14 @@ const seedMESMasterData = async () => {
 	console.log("MES Master Data Seeded Successfully.");
 };
 
-seedMESMasterData()
-	.then(async () => {
-		await prisma.$disconnect();
-	})
-	.catch(async (e) => {
-		console.error(e);
-		await prisma.$disconnect();
-		process.exit(1);
-	});
+if (import.meta.main) {
+	seedMESMasterData()
+		.then(async () => {
+			await prisma.$disconnect();
+		})
+		.catch(async (e) => {
+			console.error(e);
+			await prisma.$disconnect();
+			process.exit(1);
+		});
+}
