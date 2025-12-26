@@ -5,10 +5,12 @@ import type { ServiceResult } from "../../../types/service-result";
 import type {
 	executionConfigCreateSchema,
 	executionConfigUpdateSchema,
+	routeListQuerySchema,
 } from "./schema";
 
 type ExecutionConfigCreateInput = Static<typeof executionConfigCreateSchema>;
 type ExecutionConfigUpdateInput = Static<typeof executionConfigUpdateSchema>;
+type RouteListQuery = Static<typeof routeListQuerySchema>;
 
 type ExecutionConfig = Prisma.RouteExecutionConfigGetPayload<{
 	include: {
@@ -543,4 +545,141 @@ export const getRouteVersion = async (
 	}
 
 	return { success: true, data: version };
+};
+
+export const listRoutes = async (db: PrismaClient, query: RouteListQuery) => {
+	const page = query.page ?? 1;
+	const pageSize = Math.min(query.pageSize ?? 30, 100);
+	const where: Prisma.RoutingWhereInput = {};
+
+	if (query.search) {
+		where.OR = [
+			{ code: { contains: query.search } },
+			{ name: { contains: query.search } },
+			{ productCode: { contains: query.search } },
+		];
+	}
+
+	if (query.sourceSystem) {
+		where.sourceSystem = query.sourceSystem;
+	}
+
+	const [items, total] = await Promise.all([
+		db.routing.findMany({
+			where,
+			select: {
+				code: true,
+				name: true,
+				sourceSystem: true,
+				productCode: true,
+				version: true,
+				isActive: true,
+				effectiveFrom: true,
+				effectiveTo: true,
+				updatedAt: true,
+				_count: { select: { steps: true } },
+			},
+			orderBy: [{ updatedAt: "desc" }, { code: "asc" }],
+			skip: (page - 1) * pageSize,
+			take: pageSize,
+		}),
+		db.routing.count({ where }),
+	]);
+
+	return {
+		items: items.map((item) => ({
+			code: item.code,
+			name: item.name,
+			sourceSystem: item.sourceSystem,
+			productCode: item.productCode ?? null,
+			version: item.version ?? null,
+			isActive: item.isActive,
+			effectiveFrom: item.effectiveFrom ?? null,
+			effectiveTo: item.effectiveTo ?? null,
+			updatedAt: item.updatedAt,
+			stepCount: item._count.steps,
+		})),
+		total,
+		page,
+		pageSize,
+	};
+};
+
+export const getRouteDetail = async (
+	db: PrismaClient,
+	routingCode: string,
+): Promise<ServiceResult<{
+	route: {
+		id: string;
+		code: string;
+		name: string;
+		sourceSystem: string;
+		sourceKey: string | null;
+		productCode: string | null;
+		version: string | null;
+		isActive: boolean;
+		effectiveFrom: Date | null;
+		effectiveTo: Date | null;
+		createdAt: Date;
+		updatedAt: Date;
+	};
+	steps: Array<{
+		stepNo: number;
+		sourceStepKey: string | null;
+		operationCode: string;
+		operationName: string;
+		stationGroupCode: string | null;
+		stationGroupName: string | null;
+		stationType: string;
+		requiresFAI: boolean;
+		isLast: boolean;
+	}>;
+}>> => {
+	const routing = await db.routing.findUnique({
+		where: { code: routingCode },
+		include: {
+			steps: {
+				orderBy: { stepNo: "asc" },
+				include: {
+					operation: true,
+					stationGroup: true,
+				},
+			},
+		},
+	});
+
+	if (!routing) {
+		return { success: false, code: "ROUTE_NOT_FOUND", message: "Routing not found", status: 404 };
+	}
+
+	return {
+		success: true,
+		data: {
+			route: {
+				id: routing.id,
+				code: routing.code,
+				name: routing.name,
+				sourceSystem: routing.sourceSystem,
+				sourceKey: routing.sourceKey ?? null,
+				productCode: routing.productCode ?? null,
+				version: routing.version ?? null,
+				isActive: routing.isActive,
+				effectiveFrom: routing.effectiveFrom ?? null,
+				effectiveTo: routing.effectiveTo ?? null,
+				createdAt: routing.createdAt,
+				updatedAt: routing.updatedAt,
+			},
+			steps: routing.steps.map((step) => ({
+				stepNo: step.stepNo,
+				sourceStepKey: step.sourceStepKey ?? null,
+				operationCode: step.operation.code,
+				operationName: step.operation.name,
+				stationGroupCode: step.stationGroup?.code ?? null,
+				stationGroupName: step.stationGroup?.name ?? null,
+				stationType: step.stationType,
+				requiresFAI: step.requiresFAI,
+				isLast: step.isLast,
+			})),
+		},
+	};
 };

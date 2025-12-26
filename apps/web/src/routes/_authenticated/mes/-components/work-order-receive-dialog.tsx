@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useState } from "react";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Combobox } from "@/components/ui/combobox";
+import { useRouteSearch } from "@/hooks/use-routes";
 
 const workOrderSchema = z.object({
 	woNo: z.string().min(1, "工单号不能为空"),
@@ -61,6 +64,14 @@ export function WorkOrderReceiveDialog({
 			dueDate: undefined,
 		},
 	});
+
+	const [routeSearch, setRouteSearch] = useState(form.getValues("routingCode") ?? "");
+	const { data: routeOptions } = useRouteSearch(routeSearch);
+	const routeComboboxOptions =
+		routeOptions?.items.map((route) => ({
+			value: route.code,
+			label: `${route.code} · ${route.name}`,
+		})) ?? [];
 
 	const handleFormSubmit = async (values: WorkOrderFormValues) => {
 		const routingCode = values.routingCode?.trim() || undefined;
@@ -131,7 +142,16 @@ export function WorkOrderReceiveDialog({
 								<FormItem>
 									<FormLabel>路由编码</FormLabel>
 									<FormControl>
-										<Input placeholder="例如 PCBA-STD-V1" {...field} />
+										<Combobox
+											options={routeComboboxOptions}
+											value={field.value || ""}
+											onValueChange={(value) => field.onChange(value || undefined)}
+											placeholder="搜索并选择路由"
+											searchPlaceholder="输入路由编码或名称"
+											emptyText="未找到路由"
+											searchValue={routeSearch}
+											onSearchValueChange={setRouteSearch}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
