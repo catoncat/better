@@ -30,6 +30,10 @@ export const navMain: NavItem[] = [
 				title: "工位执行",
 				url: "/mes/execution",
 			},
+			{
+				title: "路由版本",
+				url: "/mes/route-versions",
+			},
 		],
 	},
 	{
@@ -67,6 +71,10 @@ export const navMain: NavItem[] = [
 			{
 				title: "系统设置",
 				url: "/system/settings",
+			},
+			{
+				title: "集成管理",
+				url: "/system/integrations",
 			},
 		],
 	},

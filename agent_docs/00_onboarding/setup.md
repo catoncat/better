@@ -18,12 +18,21 @@ bun run db:seed
 
 bun run dev
 ```
+`db:seed` includes MES demo master data and a READY executable route version.
 
 ### Common Commands
 - Web only: `bun run dev:web`
 - Server only: `bun run dev:server`
 - Prisma Studio: `bun run db:studio`
 - Regenerate Prisma/Prismabox: `bun run db:generate`
+
+## Quick Demo (MES End-to-End)
+1) Start the server (and web if desired): `bun run dev`
+2) Run the demo flow in another terminal:
+```bash
+bun apps/server/scripts/test-mes-flow.ts
+```
+The script logs in with the seeded admin user and runs the full flow.
 
 ## Optional Observability (Jaeger v2 + OpenSearch)
 - Setup guide: `agent_docs/05_ops/observability_jaeger.md`

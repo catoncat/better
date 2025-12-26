@@ -9,12 +9,16 @@ import {
 	executionConfigResponseSchema,
 	executionConfigUpdateSchema,
 	routeCompileResponseSchema,
+	routeVersionListResponseSchema,
+	routeVersionResponseSchema,
 	routingCodeParamsSchema,
 } from "./schema";
 import {
 	compileRouteExecution,
 	createExecutionConfig,
+	getRouteVersion,
 	listExecutionConfigs,
+	listRouteVersions,
 	updateExecutionConfig,
 } from "./service";
 
@@ -170,6 +174,40 @@ export const routingModule = new Elysia({
 			isAuth: true,
 			params: routingCodeParamsSchema,
 			response: routeCompileResponseSchema,
+			detail: { tags: ["MES - Routing"] },
+		},
+	)
+	.get(
+		"/:routingCode/versions",
+		async ({ db, params, set }) => {
+			const result = await listRouteVersions(db, params.routingCode);
+			if (!result.success) {
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			return { ok: true, data: { items: result.data } };
+		},
+		{
+			isAuth: true,
+			params: routingCodeParamsSchema,
+			response: routeVersionListResponseSchema,
+			detail: { tags: ["MES - Routing"] },
+		},
+	)
+	.get(
+		"/:routingCode/versions/:versionNo",
+		async ({ db, params, set }) => {
+			const result = await getRouteVersion(db, params.routingCode, params.versionNo);
+			if (!result.success) {
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			params: t.Intersect([routingCodeParamsSchema, t.Object({ versionNo: t.Numeric() })]),
+			response: routeVersionResponseSchema,
 			detail: { tags: ["MES - Routing"] },
 		},
 	);

@@ -17,6 +17,7 @@ import {
 	tpmEquipmentPullResponseSchema,
 	tpmMaintenanceTaskPullResponseSchema,
 	tpmStatusLogPullResponseSchema,
+	integrationStatusResponseSchema,
 } from "./schema";
 import {
 	mockErpBoms,
@@ -43,6 +44,79 @@ export const integrationModule = new Elysia({
 })
 	.use(prismaPlugin)
 	.use(authPlugin)
+	.get(
+		"/status",
+		async ({ db }) => {
+			const jobs = [
+				{ sourceSystem: "ERP", entityType: "ROUTING", action: "CRON_ERP_ROUTE_SYNC" },
+				{ sourceSystem: "ERP", entityType: "WORK_ORDER", action: "CRON_ERP_WORK_ORDER_SYNC" },
+				{ sourceSystem: "ERP", entityType: "MATERIAL", action: "CRON_ERP_MATERIAL_SYNC" },
+				{ sourceSystem: "ERP", entityType: "BOM", action: "CRON_ERP_BOM_SYNC" },
+				{ sourceSystem: "ERP", entityType: "WORK_CENTER", action: "CRON_ERP_WORK_CENTER_SYNC" },
+				{ sourceSystem: "TPM", entityType: "EQUIPMENT", action: "CRON_TPM_EQUIPMENT_SYNC" },
+				{ sourceSystem: "TPM", entityType: "STATUS_LOG", action: "CRON_TPM_STATUS_LOG_SYNC" },
+				{ sourceSystem: "TPM", entityType: "MAINTENANCE_TASK", action: "CRON_TPM_MAINTENANCE_TASK_SYNC" },
+			];
+
+			const cursorFilters = jobs.map((job) => ({
+				sourceSystem: job.sourceSystem,
+				entityType: job.entityType,
+			}));
+
+			const [cursors, logs] = await Promise.all([
+				db.integrationSyncCursor.findMany({ where: { OR: cursorFilters } }),
+				db.systemLog.findMany({
+					where: { action: { in: jobs.map((job) => job.action) } },
+					orderBy: { createdAt: "desc" },
+				}),
+			]);
+
+			const cursorByKey = new Map(
+				cursors.map((cursor) => [`${cursor.sourceSystem}:${cursor.entityType}`, cursor]),
+			);
+
+			const logByAction = new Map<string, (typeof logs)[number]>();
+			for (const log of logs) {
+				if (!logByAction.has(log.action)) {
+					logByAction.set(log.action, log);
+				}
+			}
+
+			const jobStatuses = jobs.map((job) => {
+				const cursor = cursorByKey.get(`${job.sourceSystem}:${job.entityType}`) ?? null;
+				const lastCron = logByAction.get(job.action) ?? null;
+				return {
+					sourceSystem: job.sourceSystem,
+					entityType: job.entityType,
+					cursor: cursor
+						? {
+								sourceSystem: cursor.sourceSystem,
+								entityType: cursor.entityType,
+								lastSyncAt: cursor.lastSyncAt ? cursor.lastSyncAt.toISOString() : null,
+								lastSeq: cursor.lastSeq ?? null,
+								meta: cursor.meta ?? null,
+								updatedAt: cursor.updatedAt.toISOString(),
+							}
+						: null,
+					lastCron: lastCron
+						? {
+								action: lastCron.action,
+								status: lastCron.status ?? "",
+								createdAt: lastCron.createdAt.toISOString(),
+								details: lastCron.details ?? null,
+							}
+						: null,
+				};
+			});
+
+			return { ok: true, data: { jobs: jobStatuses } };
+		},
+		{
+			isAuth: true,
+			response: integrationStatusResponseSchema,
+			detail: { tags: ["MES - Integration"] },
+		},
+	)
 	.get(
 		"/mock/erp/routes",
 		async () => ({

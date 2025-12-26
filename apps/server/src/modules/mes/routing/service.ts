@@ -501,3 +501,46 @@ export const compileRouteExecution = async (
 
 	return { success: true, data: version };
 };
+
+export const listRouteVersions = async (
+	db: PrismaClient,
+	routingCode: string,
+): Promise<ServiceResult<Prisma.ExecutableRouteVersionGetPayload<{}>[]>> => {
+	const routing = await db.routing.findUnique({ where: { code: routingCode } });
+	if (!routing) {
+		return { success: false, code: "ROUTE_NOT_FOUND", message: "Routing not found", status: 404 };
+	}
+
+	const versions = await db.executableRouteVersion.findMany({
+		where: { routingId: routing.id },
+		orderBy: { versionNo: "desc" },
+	});
+
+	return { success: true, data: versions };
+};
+
+export const getRouteVersion = async (
+	db: PrismaClient,
+	routingCode: string,
+	versionNo: number,
+): Promise<ServiceResult<Prisma.ExecutableRouteVersionGetPayload<{}>>> => {
+	const routing = await db.routing.findUnique({ where: { code: routingCode } });
+	if (!routing) {
+		return { success: false, code: "ROUTE_NOT_FOUND", message: "Routing not found", status: 404 };
+	}
+
+	const version = await db.executableRouteVersion.findUnique({
+		where: {
+			routingId_versionNo: {
+				routingId: routing.id,
+				versionNo,
+			},
+		},
+	});
+
+	if (!version) {
+		return { success: false, code: "ROUTE_VERSION_NOT_FOUND", message: "Route version not found", status: 404 };
+	}
+
+	return { success: true, data: version };
+};
