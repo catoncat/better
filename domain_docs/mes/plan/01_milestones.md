@@ -21,6 +21,11 @@ This document outlines the development milestones for the MES system, focusing o
 * **Features**: IntegrationMessage + sync cursor state, idempotent pull pipeline, ERP master data (work orders/materials/BOM/work centers), TPM equipment/status/maintenance, manual + cron triggers, normalization into canonical tables.
 * **Acceptance Criteria**: Syncs produce canonical entities without duplicates; cursors advance deterministically; TPM status gates can block execution.
 
+### M1.7: Experience & Demo Readiness
+* **Goal**: Make the current system easy to experience end-to-end.
+* **Features**: One-command demo flow, default MES seed data, UI entry points for route compile and integration sync.
+* **Acceptance Criteria**: Fresh setup can run the full flow without manual API steps.
+
 ### M2: Quality Control and Authorization
 * **Goal**: Implement quality control checks, including FAI and batch authorization.
 * **Features**: Quality checks, defect registration, rework handling, batch authorization.
