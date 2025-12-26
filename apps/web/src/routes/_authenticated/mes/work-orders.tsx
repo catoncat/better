@@ -45,7 +45,7 @@ function WorkOrdersPage() {
 	const { mutateAsync: releaseWO } = useReleaseWorkOrder();
 	const { mutateAsync: createRun, isPending: isCreatingRun } = useCreateRun();
 
-	const { data, isLoading } = useWorkOrderList({
+	const { data, isLoading, error } = useWorkOrderList({
 		page: searchParams.page,
 		pageSize: searchParams.pageSize,
 		search: searchParams.search,
@@ -109,6 +109,13 @@ function WorkOrdersPage() {
 			initialPageIndex={(searchParams.page || 1) - 1}
 			initialPageSize={searchParams.pageSize || 30}
 			isLoading={isLoading}
+			error={
+				error ? (
+					<div className="rounded-md border border-border bg-card p-4 text-sm text-muted-foreground">
+						加载失败：{error instanceof Error ? error.message : "未知错误"}
+					</div>
+				) : null
+			}
 			tableMeta={{
 				onRelease: handleRelease,
 				onCreateRun: handleCreateRunOpen,
