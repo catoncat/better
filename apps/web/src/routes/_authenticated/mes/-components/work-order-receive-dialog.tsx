@@ -19,20 +19,29 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const workOrderSchema = z.object({
 	woNo: z.string().min(1, "工单号不能为空"),
 	productCode: z.string().min(1, "产品编码不能为空"),
 	plannedQty: z.coerce.number().min(1, "计划数量必须大于0"),
-	dueDate: z.string().optional(),
+	routingCode: z.string().optional(),
+	dueDate: z.date().optional(),
 });
 
 type WorkOrderFormValues = z.infer<typeof workOrderSchema>;
+type WorkOrderSubmitValues = {
+	woNo: string;
+	productCode: string;
+	plannedQty: number;
+	routingCode?: string;
+	dueDate?: string;
+};
 
 interface WorkOrderReceiveDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSubmit: (values: WorkOrderFormValues) => Promise<void>;
+	onSubmit: (values: WorkOrderSubmitValues) => Promise<void>;
 	isSubmitting?: boolean;
 }
 
@@ -48,15 +57,19 @@ export function WorkOrderReceiveDialog({
 			woNo: "",
 			productCode: "",
 			plannedQty: 0,
-			dueDate: "",
+			routingCode: "PCBA-STD-V1",
+			dueDate: undefined,
 		},
 	});
 
 	const handleFormSubmit = async (values: WorkOrderFormValues) => {
-		const dueDate = values.dueDate?.trim();
-		const payload = {
-			...values,
-			dueDate: dueDate ? new Date(`${dueDate}T00:00:00`).toISOString() : undefined,
+		const routingCode = values.routingCode?.trim() || undefined;
+		const payload: WorkOrderSubmitValues = {
+			woNo: values.woNo,
+			productCode: values.productCode,
+			plannedQty: values.plannedQty,
+			routingCode,
+			dueDate: values.dueDate ? values.dueDate.toISOString() : undefined,
 		};
 		await onSubmit(payload);
 		form.reset();
@@ -113,12 +126,25 @@ export function WorkOrderReceiveDialog({
 						/>
 						<FormField
 							control={form.control}
+							name="routingCode"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>路由编码</FormLabel>
+									<FormControl>
+										<Input placeholder="例如 PCBA-STD-V1" {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
 							name="dueDate"
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>到期日期</FormLabel>
 									<FormControl>
-										<Input type="date" {...field} />
+										<DatePicker value={field.value} onChange={field.onChange} />
 									</FormControl>
 									<FormMessage />
 								</FormItem>
