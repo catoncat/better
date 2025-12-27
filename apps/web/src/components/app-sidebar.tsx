@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import {
 	Bell,
@@ -49,6 +50,7 @@ import {
 import { navMain, type UserRole } from "@/config/navigation";
 import { useUnreadCount } from "@/hooks/use-notifications";
 import { authClient } from "@/lib/auth-client";
+import { sessionQueryKey } from "@/lib/session-query";
 
 export function AppSidebar({
 	user,
@@ -64,11 +66,13 @@ export function AppSidebar({
 	const { setTheme, theme } = useTheme();
 	const { data: unreadData } = useUnreadCount();
 	const unreadCount = unreadData?.count || 0;
+	const queryClient = useQueryClient();
 
 	const handleLogout = async () => {
 		await authClient.signOut({
 			fetchOptions: {
 				onSuccess: () => {
+  				queryClient.setQueryData(sessionQueryKey, null);
 					toast.success("已成功退出登录");
 					router.navigate({ to: "/login" });
 				},
