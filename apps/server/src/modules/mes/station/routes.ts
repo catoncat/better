@@ -1,5 +1,7 @@
+import { getAllPermissions, getEffectiveDataScope } from "@better-app/db";
 import { Elysia, t } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
+import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import {
 	stationGroupListResponseSchema,
@@ -12,6 +14,7 @@ export const stationModule = new Elysia({
 })
 	.use(prismaPlugin)
 	.use(authPlugin)
+	.use(permissionPlugin)
 	.get(
 		"/groups",
 		async ({ db }) => {
@@ -27,14 +30,39 @@ export const stationModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: [
+				Permission.ROUTE_READ,
+				Permission.ROUTE_CONFIGURE,
+				Permission.WO_RELEASE,
+				Permission.RUN_CREATE,
+			],
 			response: stationGroupListResponseSchema,
 			detail: { tags: ["MES - Stations"] },
 		},
 	)
 	.get(
 		"/",
-		async ({ db }) => {
+		async ({ db, userPermissions }) => {
+			const permissions = userPermissions ? new Set(getAllPermissions(userPermissions)) : new Set();
+			const scopePermission = permissions.has(Permission.EXEC_READ)
+				? Permission.EXEC_READ
+				: permissions.has(Permission.EXEC_TRACK_IN)
+					? Permission.EXEC_TRACK_IN
+					: Permission.EXEC_TRACK_OUT;
+
+			const scope = userPermissions
+				? getEffectiveDataScope(userPermissions, scopePermission)
+				: { scope: "ALL" as const, lineIds: [], stationIds: [] };
+
+			const where =
+				scope.scope === "ASSIGNED_LINES"
+					? { lineId: { in: scope.lineIds ?? [] } }
+					: scope.scope === "ASSIGNED_STATIONS"
+						? { id: { in: scope.stationIds ?? [] } }
+						: undefined;
+
 			const items = await db.station.findMany({
+				where,
 				select: {
 					id: true,
 					code: true,
@@ -48,17 +76,49 @@ export const stationModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: [
+				Permission.EXEC_READ,
+				Permission.EXEC_TRACK_IN,
+				Permission.EXEC_TRACK_OUT,
+			],
 			response: stationListResponseSchema,
 			detail: { tags: ["MES - Stations"] },
 		},
 	)
 	.get(
 		"/:stationCode/queue",
-		async ({ db, params }) => {
+		async ({ db, params, set, userPermissions }) => {
+			const permissions = userPermissions ? new Set(getAllPermissions(userPermissions)) : new Set();
+			const scopePermission = permissions.has(Permission.EXEC_READ)
+				? Permission.EXEC_READ
+				: permissions.has(Permission.EXEC_TRACK_IN)
+					? Permission.EXEC_TRACK_IN
+					: Permission.EXEC_TRACK_OUT;
+
+			const scope = userPermissions
+				? getEffectiveDataScope(userPermissions, scopePermission)
+				: { scope: "ALL" as const, lineIds: [], stationIds: [] };
+
 			const station = await db.station.findUnique({
 				where: { code: params.stationCode },
-				select: { id: true, code: true, name: true },
+				select: { id: true, code: true, name: true, lineId: true },
 			});
+
+			if (station && scope.scope === "ASSIGNED_STATIONS") {
+				const stationIds = new Set(scope.stationIds ?? []);
+				if (!stationIds.has(station.id)) {
+					set.status = 403;
+					return { station: { code: station.code, name: station.name }, queue: [] };
+				}
+			}
+
+			if (station && scope.scope === "ASSIGNED_LINES") {
+				const lineIds = new Set(scope.lineIds ?? []);
+				if (!station.lineId || !lineIds.has(station.lineId)) {
+					set.status = 403;
+					return { station: { code: station.code, name: station.name }, queue: [] };
+				}
+			}
 
 			if (!station) {
 				return { station: { code: params.stationCode, name: "未知" }, queue: [] };
@@ -88,18 +148,23 @@ export const stationModule = new Elysia({
 			});
 
 			const queue = units.map((unit) => ({
-				sn: unit.sn,
-				status: unit.status,
-				currentStepNo: unit.currentStepNo,
-				woNo: unit.workOrder.woNo,
+				sn: String(unit.sn),
+				status: String(unit.status),
+				currentStepNo: Number(unit.currentStepNo ?? 0),
+				woNo: String(unit.workOrder.woNo),
 				runNo: unit.run?.runNo ?? "",
-				inAt: unit.tracks[0]?.inAt?.toISOString() ?? null,
+				inAt: unit.tracks[0]?.inAt ? new Date(String(unit.tracks[0].inAt)).toISOString() : null,
 			}));
 
 			return { station: { code: station.code, name: station.name }, queue };
 		},
 		{
 			isAuth: true,
+			requirePermission: [
+				Permission.EXEC_READ,
+				Permission.EXEC_TRACK_IN,
+				Permission.EXEC_TRACK_OUT,
+			],
 			params: t.Object({ stationCode: t.String() }),
 			response: stationQueueResponseSchema,
 			detail: { tags: ["MES - Stations"] },

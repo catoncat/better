@@ -8,6 +8,6 @@
 		"composite": true,
 		"baseUrl": "."
 	},
-	"include": ["src/**/*"],
-	"exclude": ["node_modules", "prisma/generated"]
+	"include": ["src/**/*", "prisma/generated/**/*"],
+	"exclude": ["node_modules"]
 }

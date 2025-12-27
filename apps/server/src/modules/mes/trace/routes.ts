@@ -1,5 +1,6 @@
 import { Elysia, status, t } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
+import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { traceErrorResponseSchema, traceModeQuerySchema, traceUnitResponseSchema } from "./schema";
 import { getUnitTrace } from "./service";
@@ -9,6 +10,7 @@ export const traceModule = new Elysia({
 })
 	.use(prismaPlugin)
 	.use(authPlugin)
+	.use(permissionPlugin)
 	.get(
 		"/units/:sn",
 		async ({ db, params, query }) => {
@@ -30,6 +32,7 @@ export const traceModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.TRACE_READ,
 			params: t.Object({ sn: t.String() }),
 			query: traceModeQuerySchema,
 			response: {

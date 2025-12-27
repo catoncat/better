@@ -83,8 +83,8 @@ export const notificationModule = new Elysia({
 			if (!result.success) {
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.NOTIFICATION,
-					entityId: before?.id ?? params.id,
-					entityDisplay: params.id,
+					entityId: String(before?.id ?? params.id),
+					entityDisplay: String(params.id),
 					action: "NOTIFICATION_READ",
 					actor,
 					status: "FAIL",
@@ -98,8 +98,8 @@ export const notificationModule = new Elysia({
 			}
 			await recordAuditEvent(db, {
 				entityType: AuditEntityType.NOTIFICATION,
-				entityId: result.data.id,
-				entityDisplay: result.data.id,
+				entityId: String(result.data.id),
+				entityDisplay: String(result.data.id),
 				action: "NOTIFICATION_READ",
 				actor,
 				status: "SUCCESS",
@@ -127,8 +127,8 @@ export const notificationModule = new Elysia({
 			if (!result.success) {
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.NOTIFICATION,
-					entityId: before?.id ?? params.id,
-					entityDisplay: params.id,
+					entityId: String(before?.id ?? params.id),
+					entityDisplay: String(params.id),
 					action: "NOTIFICATION_DELETE",
 					actor,
 					status: "FAIL",
@@ -142,8 +142,8 @@ export const notificationModule = new Elysia({
 			}
 			await recordAuditEvent(db, {
 				entityType: AuditEntityType.NOTIFICATION,
-				entityId: before?.id ?? params.id,
-				entityDisplay: params.id,
+				entityId: String(before?.id ?? params.id),
+				entityDisplay: String(params.id),
 				action: "NOTIFICATION_DELETE",
 				actor,
 				status: "SUCCESS",

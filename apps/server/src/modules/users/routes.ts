@@ -1,7 +1,8 @@
 import { Elysia } from "elysia";
 import { authPlugin } from "../../plugins/auth";
+import { Permission, permissionPlugin } from "../../plugins/permission";
 import { prismaPlugin } from "../../plugins/prisma";
-import { AuditEntityType, UserRole } from "../../types/prisma-enums";
+import { AuditEntityType } from "../../types/prisma-enums";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../audit/service";
 import {
 	changePasswordSchema,
@@ -30,6 +31,7 @@ export const usersModule = new Elysia({
 })
 	.use(prismaPlugin)
 	.use(authPlugin)
+	.use(permissionPlugin)
 	.get(
 		"/",
 		async ({ query, db, set }) => {
@@ -42,6 +44,7 @@ export const usersModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_USER_MANAGE,
 			query: userListQuerySchema,
 			response: {
 				200: userListResponseSchema,
@@ -55,11 +58,6 @@ export const usersModule = new Elysia({
 		async ({ body, db, user, request, set }) => {
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
-
-			if (user.role !== UserRole.admin) {
-				set.status = 403;
-				return { ok: false, error: { code: "FORBIDDEN", message: "只有管理员可以创建用户" } };
-			}
 
 			const result = await createUser(db, body);
 
@@ -95,6 +93,7 @@ export const usersModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_USER_MANAGE,
 			body: userCreateSchema,
 			response: {
 				200: userCreateResponseSchema,
@@ -110,14 +109,6 @@ export const usersModule = new Elysia({
 		async ({ params, body, db, user, request, set }) => {
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
-
-			if (user.role !== UserRole.admin) {
-				set.status = 403;
-				return {
-					ok: false,
-					error: { code: "FORBIDDEN", message: "只有管理员可以更新用户信息" },
-				};
-			}
 
 			const beforeResult = await getUserProfile(db, params.id);
 			const before = beforeResult.success ? beforeResult.data : null;
@@ -157,6 +148,7 @@ export const usersModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_USER_MANAGE,
 			params: userParamsSchema,
 			body: userUpdateSchema,
 			response: {

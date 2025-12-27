@@ -26,7 +26,11 @@ const setSpanAttributes = (span: Span, attributes: Record<string, unknown>) => {
 	}
 };
 
-export const listWorkOrders = async (db: PrismaClient, query: WorkOrderListQuery) => {
+export const listWorkOrders = async (
+	db: PrismaClient,
+	query: WorkOrderListQuery,
+	extraWhere?: Prisma.WorkOrderWhereInput,
+) => {
 	const page = query.page ?? 1;
 	const pageSize = Math.min(query.pageSize ?? 30, 100);
 	const where: Prisma.WorkOrderWhereInput = {};
@@ -40,6 +44,19 @@ export const listWorkOrders = async (db: PrismaClient, query: WorkOrderListQuery
 
 	if (query.search) {
 		where.OR = [{ woNo: { contains: query.search } }, { productCode: { contains: query.search } }];
+	}
+
+	if (extraWhere) {
+		const andFilters: Prisma.WorkOrderWhereInput[] = [];
+		if (where.AND) {
+			if (Array.isArray(where.AND)) {
+				andFilters.push(...where.AND);
+			} else {
+				andFilters.push(where.AND);
+			}
+		}
+		andFilters.push(extraWhere);
+		where.AND = andFilters;
 	}
 
 	const orderBy = parseSortOrderBy<Prisma.WorkOrderOrderByWithRelationInput>(query.sort, {

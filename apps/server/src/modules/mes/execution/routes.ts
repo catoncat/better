@@ -1,6 +1,7 @@
 import { AuditEntityType } from "@better-app/db";
 import { Elysia, t } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
+import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
 import { trackInSchema, trackOutSchema, trackResponseSchema } from "./schema";
@@ -11,6 +12,7 @@ export const executionModule = new Elysia({
 })
 	.use(prismaPlugin)
 	.use(authPlugin)
+	.use(permissionPlugin)
 	.post(
 		"/:stationCode/track-in",
 		async ({ db, params, body, set, user, request }) => {
@@ -23,8 +25,8 @@ export const executionModule = new Elysia({
 				const errorMessage = result.message ?? "Track in failed";
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.UNIT,
-					entityId: beforeUnit?.id ?? body.sn,
-					entityDisplay: body.sn,
+					entityId: String(beforeUnit?.id ?? body.sn),
+					entityDisplay: String(body.sn),
 					action: "TRACK_IN",
 					actor,
 					status: "FAIL",
@@ -49,8 +51,8 @@ export const executionModule = new Elysia({
 			const afterUnit = await db.unit.findUnique({ where: { sn: body.sn } });
 			await recordAuditEvent(db, {
 				entityType: AuditEntityType.UNIT,
-				entityId: afterUnit?.id ?? body.sn,
-				entityDisplay: body.sn,
+				entityId: String(afterUnit?.id ?? body.sn),
+				entityDisplay: String(body.sn),
 				action: "TRACK_IN",
 				actor,
 				status: "SUCCESS",
@@ -67,6 +69,7 @@ export const executionModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.EXEC_TRACK_IN,
 			params: t.Object({ stationCode: t.String() }),
 			body: trackInSchema,
 			response: {
@@ -95,8 +98,8 @@ export const executionModule = new Elysia({
 				const errorMessage = result.message ?? "Track out failed";
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.UNIT,
-					entityId: beforeUnit?.id ?? body.sn,
-					entityDisplay: body.sn,
+					entityId: String(beforeUnit?.id ?? body.sn),
+					entityDisplay: String(body.sn),
 					action: "TRACK_OUT",
 					actor,
 					status: "FAIL",
@@ -121,8 +124,8 @@ export const executionModule = new Elysia({
 			const afterUnit = await db.unit.findUnique({ where: { sn: body.sn } });
 			await recordAuditEvent(db, {
 				entityType: AuditEntityType.UNIT,
-				entityId: afterUnit?.id ?? body.sn,
-				entityDisplay: body.sn,
+				entityId: String(afterUnit?.id ?? body.sn),
+				entityDisplay: String(body.sn),
 				action: "TRACK_OUT",
 				actor,
 				status: "SUCCESS",
@@ -139,6 +142,7 @@ export const executionModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.EXEC_TRACK_OUT,
 			params: t.Object({ stationCode: t.String() }),
 			body: trackOutSchema,
 			response: {

@@ -27,3 +27,44 @@ export const runListQuerySchema = t.Object({
 	sort: t.Optional(t.String()),
 	woNo: t.Optional(t.String()),
 });
+
+export const runDetailResponseSchema = t.Object({
+	run: t.Object({
+		id: t.String(),
+		runNo: t.String(),
+		status: t.String(),
+		shiftCode: t.Union([t.String(), t.Null()]),
+		startedAt: t.Union([t.String(), t.Null()]),
+		endedAt: t.Union([t.String(), t.Null()]),
+		createdAt: t.String(),
+	}),
+	workOrder: t.Object({
+		woNo: t.String(),
+		productCode: t.String(),
+		plannedQty: t.Number(),
+	}),
+	line: t.Union([t.Object({ code: t.String(), name: t.String() }), t.Null()]),
+	routeVersion: t.Union([
+		t.Object({
+			versionNo: t.Number(),
+			status: t.String(),
+			route: t.Object({ code: t.String(), name: t.String() }),
+		}),
+		t.Null(),
+	]),
+	unitStats: t.Object({
+		total: t.Number(),
+		queued: t.Number(),
+		inStation: t.Number(),
+		done: t.Number(),
+		failed: t.Number(),
+	}),
+	recentUnits: t.Array(
+		t.Object({
+			sn: t.String(),
+			status: t.String(),
+			currentStepNo: t.Number(),
+			updatedAt: t.String(),
+		}),
+	),
+});

@@ -1,6 +1,7 @@
 import { AuditEntityType } from "@better-app/db";
 import { Elysia } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
+import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
 import {
@@ -45,6 +46,7 @@ export const integrationModule = new Elysia({
 })
 	.use(prismaPlugin)
 	.use(authPlugin)
+	.use(permissionPlugin)
 	.get(
 		"/status",
 		async ({ db }) => {
@@ -77,13 +79,17 @@ export const integrationModule = new Elysia({
 			]);
 
 			const cursorByKey = new Map(
-				cursors.map((cursor) => [`${cursor.sourceSystem}:${cursor.entityType}`, cursor]),
+				cursors.map((cursor) => [
+					`${String(cursor.sourceSystem)}:${String(cursor.entityType)}`,
+					cursor,
+				]),
 			);
 
 			const logByAction = new Map<string, (typeof logs)[number]>();
 			for (const log of logs) {
-				if (!logByAction.has(log.action)) {
-					logByAction.set(log.action, log);
+				const actionKey = String(log.action);
+				if (!logByAction.has(actionKey)) {
+					logByAction.set(actionKey, log);
 				}
 			}
 
@@ -95,19 +101,26 @@ export const integrationModule = new Elysia({
 					entityType: job.entityType,
 					cursor: cursor
 						? {
-								sourceSystem: cursor.sourceSystem,
-								entityType: cursor.entityType,
-								lastSyncAt: cursor.lastSyncAt ? cursor.lastSyncAt.toISOString() : null,
-								lastSeq: cursor.lastSeq ?? null,
+								sourceSystem: String(cursor.sourceSystem),
+								entityType: String(cursor.entityType),
+								lastSyncAt: cursor.lastSyncAt
+									? new Date(String(cursor.lastSyncAt)).toISOString()
+									: null,
+								lastSeq:
+									cursor.lastSeq == null
+										? null
+										: typeof cursor.lastSeq === "string"
+											? cursor.lastSeq
+											: String(cursor.lastSeq),
 								meta: cursor.meta ?? null,
-								updatedAt: cursor.updatedAt.toISOString(),
+								updatedAt: new Date(String(cursor.updatedAt)).toISOString(),
 							}
 						: null,
 					lastCron: lastCron
 						? {
-								action: lastCron.action,
-								status: lastCron.status ?? "",
-								createdAt: lastCron.createdAt.toISOString(),
+								action: String(lastCron.action),
+								status: lastCron.status == null ? "" : String(lastCron.status),
+								createdAt: new Date(String(lastCron.createdAt)).toISOString(),
 								details: lastCron.details ?? null,
 							}
 						: null,
@@ -118,6 +131,7 @@ export const integrationModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			response: integrationStatusResponseSchema,
 			detail: { tags: ["MES - Integration"] },
 		},
@@ -135,6 +149,7 @@ export const integrationModule = new Elysia({
 		}),
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			response: erpRoutePullResponseSchema,
 			detail: { tags: ["MES - Integration (Mock)"] },
 		},
@@ -152,6 +167,7 @@ export const integrationModule = new Elysia({
 		}),
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			response: erpWorkOrderPullResponseSchema,
 			detail: { tags: ["MES - Integration (Mock)"] },
 		},
@@ -169,6 +185,7 @@ export const integrationModule = new Elysia({
 		}),
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			response: erpMaterialPullResponseSchema,
 			detail: { tags: ["MES - Integration (Mock)"] },
 		},
@@ -186,6 +203,7 @@ export const integrationModule = new Elysia({
 		}),
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			response: erpBomPullResponseSchema,
 			detail: { tags: ["MES - Integration (Mock)"] },
 		},
@@ -203,6 +221,7 @@ export const integrationModule = new Elysia({
 		}),
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			response: erpWorkCenterPullResponseSchema,
 			detail: { tags: ["MES - Integration (Mock)"] },
 		},
@@ -220,6 +239,7 @@ export const integrationModule = new Elysia({
 		}),
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			response: tpmEquipmentPullResponseSchema,
 			detail: { tags: ["MES - Integration (Mock)"] },
 		},
@@ -237,6 +257,7 @@ export const integrationModule = new Elysia({
 		}),
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			response: tpmStatusLogPullResponseSchema,
 			detail: { tags: ["MES - Integration (Mock)"] },
 		},
@@ -254,6 +275,7 @@ export const integrationModule = new Elysia({
 		}),
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			response: tpmMaintenanceTaskPullResponseSchema,
 			detail: { tags: ["MES - Integration (Mock)"] },
 		},
@@ -308,6 +330,7 @@ export const integrationModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			query: erpRouteSyncQuerySchema,
 			response: {
 				200: erpRoutePullResponseSchema,
@@ -359,6 +382,7 @@ export const integrationModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			query: erpMasterSyncQuerySchema,
 			response: {
 				200: erpWorkOrderPullResponseSchema,
@@ -410,6 +434,7 @@ export const integrationModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			query: erpMasterSyncQuerySchema,
 			response: {
 				200: erpMaterialPullResponseSchema,
@@ -461,6 +486,7 @@ export const integrationModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			query: erpMasterSyncQuerySchema,
 			response: {
 				200: erpBomPullResponseSchema,
@@ -512,6 +538,7 @@ export const integrationModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			query: erpMasterSyncQuerySchema,
 			response: {
 				200: erpWorkCenterPullResponseSchema,
@@ -563,6 +590,7 @@ export const integrationModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			query: tpmSyncQuerySchema,
 			response: {
 				200: tpmEquipmentPullResponseSchema,
@@ -614,6 +642,7 @@ export const integrationModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			query: tpmSyncQuerySchema,
 			response: {
 				200: tpmStatusLogPullResponseSchema,
@@ -665,6 +694,7 @@ export const integrationModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			query: tpmSyncQuerySchema,
 			response: {
 				200: tpmMaintenanceTaskPullResponseSchema,
@@ -715,6 +745,7 @@ export const integrationModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
 			body: integrationReceiveWorkOrderSchema,
 			response: integrationWorkOrderResponseSchema,
 			detail: { tags: ["MES - Integration"] },

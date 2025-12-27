@@ -8,6 +8,7 @@ import prisma, {
 import { auth } from "@better-app/auth";
 import { compileRouteExecution } from "../src/modules/mes/routing/service";
 import { seedMESMasterData } from "./seed-mes";
+import { seedRoles, assignAdminRoleToUser } from "./seed-roles";
 
 const DEFAULT_ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || "admin@example.com";
 const DEFAULT_ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || "ChangeMe123!";
@@ -198,6 +199,8 @@ const run = async () => {
 	await seedSystemConfig(adminId);
 	await seedInstruments(adminId);
 	await seedMESMasterData();
+	await seedRoles();
+	await assignAdminRoleToUser(adminId);
 	await ensureDefaultRouteVersion();
 };
 

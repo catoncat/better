@@ -81,6 +81,11 @@ The MES API is divided into the following functional areas:
 ### 2.9 Traceability
 *   `GET /api/trace/units/{sn}` (full unit trace with route version, tracks, data values, defects, materials)
 
+### 2.10 Run Management
+*   `GET /api/runs` (list runs with pagination and filtering)
+*   `GET /api/runs/{runNo}` (run detail with unit statistics)
+*   `POST /api/runs/{runNo}/authorize` (authorize or revoke run)
+
 ---
 
 ## 3. Minimal RBAC Suggestions

@@ -52,12 +52,13 @@ model User {
   name                    String
   email                   String   @unique
   emailVerified           Boolean  @default(false)
-  role                    UserRole @default(operator)
+  role                    UserRole @default(operator) // Legacy field, will be deprecated
   department              String?
   phone                   String?
   isActive                Boolean  @default(true)
   enableWecomNotification Boolean  @default(true)
   image                   String?
+  preferredHomePage       String?  // User's preferred home page
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 
@@ -68,6 +69,11 @@ model User {
   calibrationRecordsCreated  CalibrationRecord[] @relation("CalibrationCreatedBy")
   notifications              Notification[]
   systemLogs                 SystemLog[]
+  
+  // New RBAC relations
+  userRoles              UserRoleAssignment[]
+  lineBindings           UserLineBinding[]
+  stationBindings        UserStationBinding[]
 
   @@map("user")
 }
@@ -379,8 +385,9 @@ model Line {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  stations Station[]
-  runs     Run[]
+  stations     Station[]
+  runs         Run[]
+  userBindings UserLineBinding[]
 }
 
 model StationGroup {
@@ -408,10 +415,11 @@ model Station {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  line   Line?         @relation(fields: [lineId], references: [id])
-  group  StationGroup? @relation(fields: [groupId], references: [id])
-  tracks Track[]
+  line          Line?               @relation(fields: [lineId], references: [id])
+  group         StationGroup?       @relation(fields: [groupId], references: [id])
+  tracks        Track[]
   carrierTracks CarrierTrack[]
+  userBindings  UserStationBinding[]
 }
 
 model Operation {
@@ -1032,4 +1040,75 @@ model IntegrationSyncCursor {
   updatedAt   DateTime @updatedAt
 
   @@unique([sourceSystem, entityType])
+}
+
+// ==========================================
+// RBAC (Role-Based Access Control) Models
+// ==========================================
+
+enum RoleDataScope {
+  ALL               // Access all data
+  ASSIGNED_LINES    // Access only assigned production lines
+  ASSIGNED_STATIONS // Access only assigned stations
+}
+
+model Role {
+  id          String        @id @default(cuid())
+  code        String        @unique
+  name        String
+  description String?
+  permissions String        // JSON array of permission strings
+  dataScope   RoleDataScope @default(ALL)
+  isSystem    Boolean       @default(false) // System preset roles cannot be deleted
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  userRoles UserRoleAssignment[]
+
+  @@map("roles")
+}
+
+model UserRoleAssignment {
+  id        String   @id @default(cuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_role_assignments")
+}
+
+model UserLineBinding {
+  id        String   @id @default(cuid())
+  userId    String
+  lineId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  line Line @relation(fields: [lineId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lineId])
+  @@index([userId])
+  @@index([lineId])
+  @@map("user_line_bindings")
+}
+
+model UserStationBinding {
+  id        String   @id @default(cuid())
+  userId    String
+  stationId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  station Station @relation(fields: [stationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stationId])
+  @@index([userId])
+  @@index([stationId])
+  @@map("user_station_bindings")
 }

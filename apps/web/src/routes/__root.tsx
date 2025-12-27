@@ -6,7 +6,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { authClient } from "@/lib/auth-client";
 import "../index.css";
 
-export type RouterAppContext = Record<string, never>;
+export type RouterAppContext = {
+	queryClient: typeof queryClient;
+};
 
 const queryClient = new QueryClient({
 	defaultOptions: {

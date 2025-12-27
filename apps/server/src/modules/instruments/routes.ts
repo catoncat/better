@@ -356,8 +356,8 @@ export const instrumentModule = new Elysia({
 
 					await recordAuditEvent(db, {
 						entityType: AuditEntityType.CALIBRATION,
-						entityId: result.data.id,
-						entityDisplay: result.data.certificateNo ?? result.data.id,
+						entityId: String(result.data.id),
+						entityDisplay: String(result.data.certificateNo ?? result.data.id),
 						action: "CALIBRATION_CREATE",
 						actor,
 						status: "SUCCESS",
@@ -393,8 +393,8 @@ export const instrumentModule = new Elysia({
 					if (!result.success) {
 						await recordAuditEvent(db, {
 							entityType: AuditEntityType.CALIBRATION,
-							entityId: before?.id ?? params.recordId,
-							entityDisplay: before?.certificateNo ?? params.recordId,
+							entityId: String(before?.id ?? params.recordId),
+							entityDisplay: String(before?.certificateNo ?? params.recordId),
 							action: "CALIBRATION_UPDATE",
 							actor,
 							status: "FAIL",
@@ -413,8 +413,8 @@ export const instrumentModule = new Elysia({
 
 					await recordAuditEvent(db, {
 						entityType: AuditEntityType.CALIBRATION,
-						entityId: result.data.id,
-						entityDisplay: result.data.certificateNo ?? result.data.id,
+						entityId: String(result.data.id),
+						entityDisplay: String(result.data.certificateNo ?? result.data.id),
 						action: "CALIBRATION_UPDATE",
 						actor,
 						status: "SUCCESS",
@@ -450,8 +450,8 @@ export const instrumentModule = new Elysia({
 					if (!result.success) {
 						await recordAuditEvent(db, {
 							entityType: AuditEntityType.CALIBRATION,
-							entityId: before?.id ?? params.recordId,
-							entityDisplay: before?.certificateNo ?? params.recordId,
+							entityId: String(before?.id ?? params.recordId),
+							entityDisplay: String(before?.certificateNo ?? params.recordId),
 							action: "CALIBRATION_DELETE",
 							actor,
 							status: "FAIL",
@@ -470,8 +470,8 @@ export const instrumentModule = new Elysia({
 
 					await recordAuditEvent(db, {
 						entityType: AuditEntityType.CALIBRATION,
-						entityId: before?.id ?? params.recordId,
-						entityDisplay: before?.certificateNo ?? params.recordId,
+						entityId: String(before?.id ?? params.recordId),
+						entityDisplay: String(before?.certificateNo ?? params.recordId),
 						action: "CALIBRATION_DELETE",
 						actor,
 						status: "SUCCESS",

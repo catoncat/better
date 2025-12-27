@@ -89,3 +89,14 @@ Goal: Provide a minimal operator UI for the basic production loop.
     3.  Display unit info, route version, execution records, data values, defects, materials.
 *   **Definition of Done**: Users can query any SN and see full production history.
 *   **Status**: [x] Done (2025-12-27)
+
+## Task UI-9: Run Detail Page
+*   **Goal**: View run progress and units.
+*   **Input**: `domain_docs/mes/spec/process/01_end_to_end_flows.md`
+*   **Actions**:
+    1.  Add `/mes/runs/:runNo` detail page.
+    2.  Display unit statistics (total, queued, in-station, done, failed).
+    3.  Show recent units with trace links.
+    4.  Link from run list to detail page.
+*   **Definition of Done**: Users can view run progress and unit breakdown.
+*   **Status**: [x] Done (2025-12-27)

@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
+import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { lineListResponseSchema } from "./schema";
 
@@ -8,6 +9,7 @@ export const lineModule = new Elysia({
 })
 	.use(prismaPlugin)
 	.use(authPlugin)
+	.use(permissionPlugin)
 	.get(
 		"/",
 		async ({ db }) => {
@@ -23,6 +25,7 @@ export const lineModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: [Permission.RUN_CREATE, Permission.RUN_READ],
 			response: lineListResponseSchema,
 			detail: { tags: ["MES - Lines"] },
 		},

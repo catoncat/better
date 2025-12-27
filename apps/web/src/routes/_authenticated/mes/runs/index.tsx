@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router"
 import { useCallback } from "react";
 import { DataListLayout } from "@/components/data-list";
 import { useAuthorizeRun, useRunList } from "@/hooks/use-runs";
-import { runColumns } from "./-components/run-columns";
+import { runColumns } from "../-components/run-columns";
 
 interface RunSearchParams {
 	search?: string;
@@ -13,7 +13,7 @@ interface RunSearchParams {
 	woNo?: string;
 }
 
-export const Route = createFileRoute("/_authenticated/mes/runs")({
+export const Route = createFileRoute("/_authenticated/mes/runs/")({
 	validateSearch: (search: Record<string, unknown>): RunSearchParams => ({
 		search: (search.search as string) || undefined,
 		status: (search.status as string) || undefined,
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_authenticated/mes/runs")({
 
 function RunsPage() {
 	const navigate = useNavigate();
-	const searchParams = useSearch({ from: "/_authenticated/mes/runs" });
+	const searchParams = useSearch({ from: "/_authenticated/mes/runs/" });
 
 	const { mutateAsync: authorizeRun } = useAuthorizeRun();
 

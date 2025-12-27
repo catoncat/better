@@ -47,7 +47,7 @@ export default function UserMenu() {
 							authClient.signOut({
 								fetchOptions: {
 									onSuccess: () => {
-  									queryClient.setQueryData(sessionQueryKey, null);
+										queryClient.setQueryData(sessionQueryKey, null);
 										navigate({
 											to: "/",
 										});
