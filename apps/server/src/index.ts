@@ -17,6 +17,7 @@ import { auditArchiveCronPlugin } from "./plugins/audit-archive-cron";
 import { authPlugin } from "./plugins/auth";
 import { erpSyncCronPlugin } from "./plugins/erp-sync-cron";
 import { instrumentCronPlugin } from "./plugins/instrument-cron";
+import { permissionPlugin } from "./plugins/permission";
 import { prismaPlugin } from "./plugins/prisma";
 import { serveWebRequest } from "./web/serve-web";
 
@@ -152,6 +153,7 @@ const api = new Elysia({ prefix: "/api", normalize: true })
 	)
 	.use(prismaPlugin)
 	.use(authPlugin)
+	.use(permissionPlugin)
 	.mount(auth.handler)
 	.get("/health", () => ({ status: "ok" }), {
 		detail: { tags: ["System - Health"] },

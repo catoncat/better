@@ -37,6 +37,7 @@ const userSelectFields = {
 	emailVerified: true,
 	createdAt: true,
 	updatedAt: true,
+	preferredHomePage: true,
 	passwordHash: false,
 } satisfies Prisma.UserSelect;
 

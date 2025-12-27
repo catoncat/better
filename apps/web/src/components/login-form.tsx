@@ -58,7 +58,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 				},
 				{
 					onSuccess: () => {
-  					queryClient.removeQueries({ queryKey: sessionQueryKey });
+						queryClient.removeQueries({ queryKey: sessionQueryKey });
 						toast.success("登录成功");
 						router.navigate({ to: "/instruments" });
 					},

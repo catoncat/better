@@ -1,0 +1,118 @@
+/**
+ * MES Permission Points
+ *
+ * These are the atomic permission units that can be combined into roles.
+ * Format: domain:action
+ */
+export const Permission = {
+	// Work Order domain
+	WO_READ: "wo:read",
+	WO_RECEIVE: "wo:receive",
+	WO_RELEASE: "wo:release",
+	WO_CANCEL: "wo:cancel",
+
+	// Run (Batch) domain
+	RUN_READ: "run:read",
+	RUN_CREATE: "run:create",
+	RUN_AUTHORIZE: "run:authorize",
+	RUN_REVOKE: "run:revoke",
+	RUN_CLOSE: "run:close",
+
+	// Execution domain
+	EXEC_READ: "exec:read",
+	EXEC_TRACK_IN: "exec:track_in",
+	EXEC_TRACK_OUT: "exec:track_out",
+	EXEC_DATA_COLLECT: "exec:data_collect",
+
+	// Routing domain
+	ROUTE_READ: "route:read",
+	ROUTE_CONFIGURE: "route:configure",
+	ROUTE_COMPILE: "route:compile",
+	ROUTE_CREATE: "route:create",
+
+	// Quality domain (M2)
+	QUALITY_FAI: "quality:fai",
+	QUALITY_OQC: "quality:oqc",
+	QUALITY_DISPOSITION: "quality:disposition",
+
+	// Trace domain
+	TRACE_READ: "trace:read",
+	TRACE_EXPORT: "trace:export",
+
+	// System domain
+	SYSTEM_USER_MANAGE: "system:user_manage",
+	SYSTEM_ROLE_MANAGE: "system:role_manage",
+	SYSTEM_CONFIG: "system:config",
+	SYSTEM_INTEGRATION: "system:integration",
+} as const;
+
+export type PermissionKey = keyof typeof Permission;
+export type PermissionValue = (typeof Permission)[PermissionKey];
+
+/** All permission values as array */
+export const ALL_PERMISSIONS = Object.values(Permission);
+
+/** Permission grouped by domain for UI display */
+export const PERMISSION_GROUPS = {
+	wo: {
+		label: "工单管理",
+		permissions: [
+			{ value: Permission.WO_READ, label: "查看工单" },
+			{ value: Permission.WO_RECEIVE, label: "接收工单" },
+			{ value: Permission.WO_RELEASE, label: "发布工单" },
+			{ value: Permission.WO_CANCEL, label: "取消工单" },
+		],
+	},
+	run: {
+		label: "批次管理",
+		permissions: [
+			{ value: Permission.RUN_READ, label: "查看批次" },
+			{ value: Permission.RUN_CREATE, label: "创建批次" },
+			{ value: Permission.RUN_AUTHORIZE, label: "授权批次" },
+			{ value: Permission.RUN_REVOKE, label: "撤销授权" },
+			{ value: Permission.RUN_CLOSE, label: "关闭批次" },
+		],
+	},
+	exec: {
+		label: "工位执行",
+		permissions: [
+			{ value: Permission.EXEC_READ, label: "查看执行" },
+			{ value: Permission.EXEC_TRACK_IN, label: "进站操作" },
+			{ value: Permission.EXEC_TRACK_OUT, label: "出站操作" },
+			{ value: Permission.EXEC_DATA_COLLECT, label: "数据采集" },
+		],
+	},
+	route: {
+		label: "路由管理",
+		permissions: [
+			{ value: Permission.ROUTE_READ, label: "查看路由" },
+			{ value: Permission.ROUTE_CONFIGURE, label: "配置路由" },
+			{ value: Permission.ROUTE_COMPILE, label: "编译路由" },
+			{ value: Permission.ROUTE_CREATE, label: "创建路由" },
+		],
+	},
+	quality: {
+		label: "质量管理",
+		permissions: [
+			{ value: Permission.QUALITY_FAI, label: "首件检验" },
+			{ value: Permission.QUALITY_OQC, label: "出货检验" },
+			{ value: Permission.QUALITY_DISPOSITION, label: "缺陷处置" },
+		],
+	},
+	trace: {
+		label: "追溯查询",
+		permissions: [
+			{ value: Permission.TRACE_READ, label: "追溯查询" },
+			{ value: Permission.TRACE_EXPORT, label: "导出报告" },
+		],
+	},
+	system: {
+		label: "系统管理",
+		permissions: [
+			{ value: Permission.SYSTEM_USER_MANAGE, label: "用户管理" },
+			{ value: Permission.SYSTEM_ROLE_MANAGE, label: "角色管理" },
+			{ value: Permission.SYSTEM_CONFIG, label: "系统配置" },
+			{ value: Permission.SYSTEM_INTEGRATION, label: "集成管理" },
+		],
+	},
+} as const;

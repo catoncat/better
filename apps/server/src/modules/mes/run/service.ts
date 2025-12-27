@@ -1,4 +1,4 @@
-import { type Prisma, type PrismaClient, RunStatus } from "@better-app/db";
+import { type Prisma, type PrismaClient, RunStatus, UnitStatus } from "@better-app/db";
 import { type Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
@@ -20,7 +20,100 @@ const setSpanAttributes = (span: Span, attributes: Record<string, unknown>) => {
 	}
 };
 
-export const listRuns = async (db: PrismaClient, query: RunListQuery) => {
+export const getRunDetail = async (db: PrismaClient, runNo: string) => {
+	const run = await db.run.findUnique({
+		where: { runNo },
+		include: {
+			workOrder: true,
+			line: true,
+			routeVersion: {
+				include: {
+					routing: true,
+				},
+			},
+		},
+	});
+
+	if (!run) {
+		return null;
+	}
+
+	const [unitStats, recentUnits] = await Promise.all([
+		db.unit.groupBy({
+			by: ["status"],
+			where: { runId: run.id },
+			_count: true,
+		}),
+		db.unit.findMany({
+			where: { runId: run.id },
+			orderBy: { updatedAt: "desc" },
+			take: 20,
+			select: {
+				sn: true,
+				status: true,
+				currentStepNo: true,
+				updatedAt: true,
+			},
+		}),
+	]);
+
+	const statsMap: Record<string, number> = {};
+	let total = 0;
+	for (const stat of unitStats) {
+		statsMap[stat.status] = stat._count;
+		total += stat._count;
+	}
+
+	return {
+		run: {
+			id: run.id,
+			runNo: run.runNo,
+			status: run.status,
+			shiftCode: run.shiftCode,
+			startedAt: run.startedAt?.toISOString() ?? null,
+			endedAt: run.endedAt?.toISOString() ?? null,
+			createdAt: run.createdAt.toISOString(),
+		},
+		workOrder: {
+			woNo: run.workOrder.woNo,
+			productCode: run.workOrder.productCode,
+			plannedQty: run.workOrder.plannedQty,
+		},
+		line: run.line ? { code: run.line.code, name: run.line.name } : null,
+		routeVersion: run.routeVersion
+			? {
+					versionNo: run.routeVersion.versionNo,
+					status: run.routeVersion.status,
+					route: {
+						code: run.routeVersion.routing.code,
+						name: run.routeVersion.routing.name,
+					},
+				}
+			: null,
+		unitStats: {
+			total,
+			queued: statsMap[UnitStatus.QUEUED] ?? 0,
+			inStation: statsMap[UnitStatus.IN_STATION] ?? 0,
+			done: statsMap[UnitStatus.DONE] ?? 0,
+			failed:
+				(statsMap[UnitStatus.OUT_FAILED] ?? 0) +
+				(statsMap[UnitStatus.SCRAPPED] ?? 0) +
+				(statsMap[UnitStatus.HOLD] ?? 0),
+		},
+		recentUnits: recentUnits.map((u) => ({
+			sn: u.sn,
+			status: u.status,
+			currentStepNo: u.currentStepNo,
+			updatedAt: u.updatedAt.toISOString(),
+		})),
+	};
+};
+
+export const listRuns = async (
+	db: PrismaClient,
+	query: RunListQuery,
+	extraWhere?: Prisma.RunWhereInput,
+) => {
 	const page = query.page ?? 1;
 	const pageSize = Math.min(query.pageSize ?? 30, 100);
 	const where: Prisma.RunWhereInput = {};
@@ -41,6 +134,19 @@ export const listRuns = async (db: PrismaClient, query: RunListQuery) => {
 			{ runNo: { contains: query.search } },
 			{ workOrder: { woNo: { contains: query.search } } },
 		];
+	}
+
+	if (extraWhere) {
+		const andFilters: Prisma.RunWhereInput[] = [];
+		if (where.AND) {
+			if (Array.isArray(where.AND)) {
+				andFilters.push(...where.AND);
+			} else {
+				andFilters.push(where.AND);
+			}
+		}
+		andFilters.push(extraWhere);
+		where.AND = andFilters;
 	}
 
 	const orderBy = parseSortOrderBy<Prisma.RunOrderByWithRelationInput>(query.sort, {

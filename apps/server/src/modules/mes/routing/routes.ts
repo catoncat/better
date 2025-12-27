@@ -1,6 +1,7 @@
 import { AuditEntityType } from "@better-app/db";
 import { Elysia, t } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
+import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
 import {
@@ -33,8 +34,10 @@ export const routingModule = new Elysia({
 })
 	.use(prismaPlugin)
 	.use(authPlugin)
+	.use(permissionPlugin)
 	.get("/", async ({ db, query }) => listRoutes(db, query), {
 		isAuth: true,
+		requirePermission: Permission.ROUTE_READ,
 		query: routeListQuerySchema,
 		response: routeListResponseSchema,
 		detail: { tags: ["MES - Routing"] },
@@ -51,6 +54,7 @@ export const routingModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.ROUTE_READ,
 			params: routingCodeParamsSchema,
 			response: {
 				200: routeDetailResponseSchema,
@@ -72,6 +76,7 @@ export const routingModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.ROUTE_READ,
 			params: routingCodeParamsSchema,
 			response: {
 				200: executionConfigListResponseSchema,
@@ -118,6 +123,7 @@ export const routingModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.ROUTE_CONFIGURE,
 			params: routingCodeParamsSchema,
 			body: executionConfigCreateSchema,
 			response: {
@@ -168,6 +174,7 @@ export const routingModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.ROUTE_CONFIGURE,
 			params: t.Intersect([routingCodeParamsSchema, t.Object({ configId: t.String() })]),
 			body: executionConfigUpdateSchema,
 			response: {
@@ -217,6 +224,7 @@ export const routingModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.ROUTE_COMPILE,
 			params: routingCodeParamsSchema,
 			response: {
 				200: routeCompileResponseSchema,
@@ -238,6 +246,7 @@ export const routingModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.ROUTE_READ,
 			params: routingCodeParamsSchema,
 			response: {
 				200: routeVersionListResponseSchema,
@@ -259,6 +268,7 @@ export const routingModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.ROUTE_READ,
 			params: t.Intersect([routingCodeParamsSchema, t.Object({ versionNo: t.Numeric() })]),
 			response: {
 				200: routeVersionResponseSchema,

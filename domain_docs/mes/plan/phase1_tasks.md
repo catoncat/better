@@ -326,6 +326,17 @@ Goal: Complete the basic production loop, from work order reception to unit comp
 *   **Definition of Done**: Users can search and select routes instead of typing codes.
 *   **Status**: [x] Done (2025-12-26) - Already implemented in work order receive dialog.
 
+## Task 1.31: Run Detail Page
+*   **Goal**: Provide a detail page for viewing run progress and units.
+*   **Input**: `domain_docs/mes/spec/process/01_end_to_end_flows.md`
+*   **Actions**:
+    1.  Add `GET /api/runs/:runNo` endpoint with unit statistics.
+    2.  Create `/mes/runs/:runNo` detail page with progress cards.
+    3.  Display recent units with status and trace links.
+    4.  Add clickable run numbers in list page.
+*   **Definition of Done**: Users can click a run to see unit counts and progress.
+*   **Status**: [x] Done (2025-12-27)
+
 ---
 
 ## Next Phase Planning

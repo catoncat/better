@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { CheckCircle, XCircle } from "lucide-react";
@@ -15,7 +16,15 @@ export const runColumns: ColumnDef<Run>[] = [
 	{
 		accessorKey: "runNo",
 		header: "批次号",
-		cell: ({ row }) => <span className="font-medium">{row.getValue("runNo")}</span>,
+		cell: ({ row }) => (
+			<Link
+				to="/mes/runs/$runNo"
+				params={{ runNo: row.getValue("runNo") as string }}
+				className="font-medium text-primary hover:underline"
+			>
+				{row.getValue("runNo")}
+			</Link>
+		),
 	},
 	{
 		id: "workOrder.woNo",

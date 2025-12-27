@@ -1,0 +1,320 @@
+# MES 系统角色权限设计
+
+**版本**: 1.1  
+**日期**: 2025-12-27  
+**状态**: 设计+实现对齐
+
+---
+
+## 1. 设计原则
+
+1. **最小权限原则**: 每个角色只拥有完成其职责所需的最小权限
+2. **职责分离**: 关键操作需要不同角色协作完成（如批次授权）
+3. **可审计性**: 所有关键操作记录操作人和角色
+4. **实用性**: 角色划分符合制造业实际组织结构
+
+---
+
+## 2. 角色定义
+
+### 2.1 角色列表
+
+| 角色代码 | 中文名称 | 英文名称 | 典型人员 |
+|---------|---------|---------|---------|
+| `admin` | 系统管理员 | System Admin | IT 管理员 |
+| `planner` | 生产计划员 | Production Planner | PMC 计划员 |
+| `engineer` | 工艺工程师 | Process Engineer | PE 工程师 |
+| `quality` | 质量工程师 | Quality Engineer | QE 工程师 |
+| `leader` | 产线组长 | Line Leader | 拉长/班组长 |
+| `operator` | 操作员 | Operator | 产线作业员 |
+
+### 2.2 角色详细说明
+
+#### 2.2.1 系统管理员 (admin)
+**职责**: 系统配置、用户管理、集成管理  
+**典型场景**:
+- 创建和管理用户账号
+- 配置系统参数
+- 管理 ERP/TPM 集成
+- 查看系统日志
+
+#### 2.2.2 生产计划员 (planner)
+**职责**: 工单管理、批次创建、生产调度  
+**典型场景**:
+- 从 ERP 接收工单
+- 发布工单到产线
+- 创建生产批次
+- 监控工单完成进度
+
+#### 2.2.3 工艺工程师 (engineer)
+**职责**: 路由配置、执行语义设置、流程优化  
+**典型场景**:
+- 查看和配置路由步骤
+- 设置执行语义（站点类型、FAI 要求等）
+- 编译路由版本
+- 分析生产数据优化流程
+
+#### 2.2.4 质量工程师 (quality)
+**职责**: 质量检验、缺陷处理、追溯分析  
+**典型场景**:
+- 执行 FAI 首件检验（M2）
+- 处理缺陷处置（返工/报废/冻结）（M2）
+- 执行 OQC 抽检（M2）
+- 追溯查询和质量分析
+
+#### 2.2.5 产线组长 (leader)
+**职责**: 产线管理、批次授权、异常处理  
+**典型场景**:
+- 授权生产批次
+- 监控产线进度
+- 处理生产异常
+- 管理产线人员排班
+
+#### 2.2.6 操作员 (operator)
+**职责**: 工位执行操作  
+**典型场景**:
+- 在指定工位执行进站/出站
+- 录入生产数据（M2）
+- 报告异常
+
+注：当前权限模型以权限点为最小单元，未单独预置只读角色；如需可通过自定义角色配置只读权限点。
+
+---
+
+## 3. 权限点
+
+权限点固定在代码中定义，角色仅配置权限点数组。
+
+```typescript
+export const Permission = {
+  // 工单域
+  WO_READ: 'wo:read',
+  WO_RECEIVE: 'wo:receive',
+  WO_RELEASE: 'wo:release',
+  WO_CANCEL: 'wo:cancel',
+
+  // 批次域
+  RUN_READ: 'run:read',
+  RUN_CREATE: 'run:create',
+  RUN_AUTHORIZE: 'run:authorize',
+  RUN_REVOKE: 'run:revoke',
+  RUN_CLOSE: 'run:close',
+
+  // 执行域
+  EXEC_READ: 'exec:read',
+  EXEC_TRACK_IN: 'exec:track_in',
+  EXEC_TRACK_OUT: 'exec:track_out',
+  EXEC_DATA_COLLECT: 'exec:data_collect',
+
+  // 路由域
+  ROUTE_READ: 'route:read',
+  ROUTE_CONFIGURE: 'route:configure',
+  ROUTE_COMPILE: 'route:compile',
+  ROUTE_CREATE: 'route:create',
+
+  // 质量域 (M2)
+  QUALITY_FAI: 'quality:fai',
+  QUALITY_OQC: 'quality:oqc',
+  QUALITY_DISPOSITION: 'quality:disposition',
+
+  // 追溯域
+  TRACE_READ: 'trace:read',
+  TRACE_EXPORT: 'trace:export',
+
+  // 系统域
+  SYSTEM_USER_MANAGE: 'system:user_manage',
+  SYSTEM_ROLE_MANAGE: 'system:role_manage',
+  SYSTEM_CONFIG: 'system:config',
+  SYSTEM_INTEGRATION: 'system:integration',
+} as const;
+```
+
+---
+
+## 4. 数据范围控制
+
+### 4.1 产线隔离
+某些角色只能访问其负责的产线数据：
+
+| 角色 | 数据范围 |
+|-----|---------|
+| `leader` | 仅管辖的产线 |
+| `operator` | 仅绑定的工位所属产线 |
+| 其他角色 | 全部产线 |
+
+### 4.2 工位绑定
+操作员需要绑定到特定工位：
+- 操作员账号关联一个或多个允许操作的工位
+- 进站/出站时验证操作员是否有权操作该工位
+- 组长可操作其管辖产线的所有工位
+
+---
+
+## 5. 角色组合场景
+
+### 5.1 小型工厂（人员复用）
+| 实际人员 | 系统角色 |
+|---------|---------|
+| 老板/厂长 | `admin` + `planner` |
+| 技术主管 | `engineer` + `quality` |
+| 拉长 | `leader` |
+| 作业员 | `operator` |
+
+### 5.2 中型工厂（标准配置）
+| 实际人员 | 系统角色 |
+|---------|---------|
+| IT 管理员 | `admin` |
+| PMC 计划员 | `planner` |
+| PE 工程师 | `engineer` |
+| QE 工程师 | `quality` |
+| 产线拉长 | `leader` |
+| 作业员 | `operator` |
+
+### 5.3 大型工厂（精细分工）
+可能需要更细的角色划分，如：
+- `senior_operator`: 可以处理简单异常
+- `shift_supervisor`: 跨产线的轮班主管
+- `quality_inspector`: 只做检验不做处置
+
+---
+
+## 6. 实现方案
+
+### 6.1 数据模型
+
+```prisma
+enum DataScope {
+  ALL
+  ASSIGNED_LINES
+  ASSIGNED_STATIONS
+}
+
+model Role {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  name        String
+  description String?
+  permissions String[]
+  dataScope   DataScope @default(ALL)
+  isSystem    Boolean   @default(false)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  users       UserRole[]
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  roleId    String
+  user      User     @relation(fields: [userId], references: [id])
+  role      Role     @relation(fields: [roleId], references: [id])
+  @@unique([userId, roleId])
+}
+
+model UserLineBinding {
+  id      String @id @default(cuid())
+  userId  String
+  lineId  String
+  user    User   @relation(fields: [userId], references: [id])
+  line    Line   @relation(fields: [lineId], references: [id])
+  @@unique([userId, lineId])
+}
+
+model UserStationBinding {
+  id        String  @id @default(cuid())
+  userId    String
+  stationId String
+  user      User    @relation(fields: [userId], references: [id])
+  station   Station @relation(fields: [stationId], references: [id])
+  @@unique([userId, stationId])
+}
+
+model User {
+  // ... existing fields
+  preferredHomePage String?
+
+  roles           UserRole[]
+  lineBindings    UserLineBinding[]
+  stationBindings UserStationBinding[]
+}
+```
+
+### 6.2 权限检查中间件
+
+```typescript
+// 后端以 Ability 为唯一权限源，API 按 action + subject 进行判断
+// abilityGuard(action, subject)
+```
+
+### 6.3 前端导航过滤
+
+```typescript
+// navigation.ts
+export const mesNavItems = [
+  {
+    title: '工单管理',
+    url: '/mes/work-orders',
+    requiredPermission: 'wo:read',
+  },
+  {
+    title: '批次管理',
+    url: '/mes/runs',
+    requiredPermission: 'run:read',
+  },
+  {
+    title: '工位执行',
+    url: '/mes/execution',
+    requiredPermission: 'exec:track_in',
+  },
+  // ...
+];
+```
+
+---
+
+## 7. 实现阶段
+
+### Phase 1: 基础权限框架
+1. 添加 @casl/ability 依赖
+2. 创建 packages/shared/permissions 模块
+3. 更新 Prisma schema，添加 Role/UserRole/Binding 表
+4. 创建数据库迁移，seed 预置角色
+5. 实现 ability 构建器
+
+### Phase 2: 后端集成
+1. 创建 ability guard 中间件
+2. 为 MES API 添加权限检查
+3. 实现数据范围过滤（查询时注入 where 条件）
+
+### Phase 3: 前端集成
+1. 实现 useAbility hook
+2. 实现 Can 组件
+3. 更新导航栏按权限过滤
+4. 更新按钮/操作按权限显示
+
+### Phase 4: 角色管理 UI
+1. 角色列表页
+2. 角色创建/编辑对话框
+3. 用户-角色分配 UI
+4. 用户-产线/工位绑定 UI
+
+---
+
+## 8. 待讨论问题
+
+1. **操作员是否需要看到批次列表？**
+   - 当前方向：按权限点 + 数据范围控制，可给 operator 赋予 run:read 并限制到工位/产线
+
+2. **质量工程师是否应该能操作执行页？**
+   - 场景：FAI 试产时 QE 可能需要操作
+   - 当前方向：通过权限点 exec:track_in / exec:track_out 控制
+
+3. **是否需要审批流？**
+   - 场景：批次授权是否需要多人审批
+   - 当前方向：权限点已支持单人授权，审批可作为后续流程增强
+
+---
+
+*此设计文档需要业务确认后再进行实现。*

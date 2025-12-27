@@ -72,7 +72,7 @@ export function AppSidebar({
 		await authClient.signOut({
 			fetchOptions: {
 				onSuccess: () => {
-  				queryClient.setQueryData(sessionQueryKey, null);
+					queryClient.setQueryData(sessionQueryKey, null);
 					toast.success("已成功退出登录");
 					router.navigate({ to: "/login" });
 				},

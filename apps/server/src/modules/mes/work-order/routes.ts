@@ -1,6 +1,7 @@
-import { AuditEntityType } from "@better-app/db";
+import { AuditEntityType, getEffectiveDataScope, type Prisma } from "@better-app/db";
 import { Elysia, t } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
+import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
 import { runResponseSchema } from "../run/schema";
@@ -20,13 +21,46 @@ export const workOrderModule = new Elysia({
 })
 	.use(prismaPlugin)
 	.use(authPlugin)
+	.use(permissionPlugin)
 	.get(
 		"/",
-		async ({ db, query }) => {
-			return listWorkOrders(db, query);
+		async ({ db, query, userPermissions }) => {
+			const scope = userPermissions
+				? getEffectiveDataScope(userPermissions, Permission.WO_READ)
+				: { scope: "ALL" as const, lineIds: [], stationIds: [] };
+
+			let extraWhere: Prisma.WorkOrderWhereInput | undefined;
+			if (scope.scope !== "ALL") {
+				const lineIds =
+					scope.scope === "ASSIGNED_LINES"
+						? (scope.lineIds ?? [])
+						: await db.station
+								.findMany({
+									where: { id: { in: scope.stationIds ?? [] } },
+									select: { lineId: true },
+								})
+								.then((stations) => [
+									...new Set(
+										stations
+											.map((s) => s.lineId)
+											.filter((lineId): lineId is string => Boolean(lineId)),
+									),
+								]);
+
+				extraWhere = {
+					runs: {
+						some: {
+							lineId: { in: lineIds },
+						},
+					},
+				};
+			}
+
+			return listWorkOrders(db, query, extraWhere);
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.WO_READ,
 			query: workOrderListQuerySchema,
 			detail: { tags: ["MES - Work Orders"] },
 		},
@@ -41,8 +75,8 @@ export const workOrderModule = new Elysia({
 			if (!result.success) {
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.WORK_ORDER,
-					entityId: before?.id ?? woNo,
-					entityDisplay: woNo,
+					entityId: String(before?.id ?? woNo),
+					entityDisplay: String(woNo),
 					action: "WORK_ORDER_RELEASE",
 					actor,
 					status: "FAIL",
@@ -60,8 +94,8 @@ export const workOrderModule = new Elysia({
 			}
 			await recordAuditEvent(db, {
 				entityType: AuditEntityType.WORK_ORDER,
-				entityId: result.data.id,
-				entityDisplay: result.data.woNo,
+				entityId: String(result.data.id),
+				entityDisplay: String(result.data.woNo),
 				action: "WORK_ORDER_RELEASE",
 				actor,
 				status: "SUCCESS",
@@ -77,6 +111,7 @@ export const workOrderModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.WO_RELEASE,
 			params: t.Object({ woNo: t.String() }),
 			body: workOrderReleaseSchema,
 			response: {
@@ -96,8 +131,8 @@ export const workOrderModule = new Elysia({
 			if (!result.success) {
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.RUN,
-					entityId: woNo,
-					entityDisplay: woNo,
+					entityId: String(woNo),
+					entityDisplay: String(woNo),
 					action: "RUN_CREATE",
 					actor,
 					status: "FAIL",
@@ -116,8 +151,8 @@ export const workOrderModule = new Elysia({
 			}
 			await recordAuditEvent(db, {
 				entityType: AuditEntityType.RUN,
-				entityId: result.data.id,
-				entityDisplay: result.data.runNo,
+				entityId: String(result.data.id),
+				entityDisplay: String(result.data.runNo),
 				action: "RUN_CREATE",
 				actor,
 				status: "SUCCESS",
@@ -135,6 +170,7 @@ export const workOrderModule = new Elysia({
 		},
 		{
 			isAuth: true,
+			requirePermission: Permission.RUN_CREATE,
 			params: t.Object({ woNo: t.String() }),
 			body: runCreateSchema,
 			response: {

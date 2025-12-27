@@ -1,11 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { client } from "@/lib/eden";
+import { client, unwrap } from "@/lib/eden";
 
 // Infer types from the API using Eden Treaty
 type ApiRunResponse = Awaited<ReturnType<typeof client.api.runs.get>>["data"];
 export type Run = NonNullable<ApiRunResponse>["items"][number];
 export type RunList = Exclude<ApiRunResponse, { code: string; message: string } | null | undefined>;
+
+const runDetailApi = (runNo: string) => client.api.runs({ runNo });
+type RunDetailResponse = Awaited<ReturnType<ReturnType<typeof runDetailApi>["get"]>>["data"];
+export type RunDetail = NonNullable<RunDetailResponse>;
 
 type RunCreateInput = Parameters<ReturnType<(typeof client.api)["work-orders"]>["runs"]["post"]>[0];
 type RunAuthorizeInput = Parameters<ReturnType<typeof client.api.runs>["authorize"]["post"]>[0];
@@ -53,6 +57,18 @@ export function useRunList(params: UseRunListParams) {
 		},
 		placeholderData: (previousData: RunList | undefined) => previousData,
 		staleTime: 30_000,
+	});
+}
+
+export function useRunDetail(runNo: string) {
+	return useQuery<RunDetail>({
+		queryKey: ["mes", "run-detail", runNo],
+		enabled: Boolean(runNo),
+		queryFn: async () => {
+			const response = await client.api.runs({ runNo }).get();
+			return unwrap(response);
+		},
+		staleTime: 10_000,
 	});
 }
 
