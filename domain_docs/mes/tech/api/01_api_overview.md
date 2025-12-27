@@ -76,6 +76,10 @@ The MES API is divided into the following functional areas:
 ### 2.8 Station & Group Lookup
 *   `GET /api/stations`
 *   `GET /api/stations/groups`
+*   `GET /api/stations/{stationCode}/queue` (units currently in station)
+
+### 2.9 Traceability
+*   `GET /api/trace/units/{sn}` (full unit trace with route version, tracks, data values, defects, materials)
 
 ---
 

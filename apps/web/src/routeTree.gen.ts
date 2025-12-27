@@ -22,6 +22,7 @@ import { Route as AuthenticatedSystemUserManagementRouteImport } from './routes/
 import { Route as AuthenticatedSystemSettingsRouteImport } from './routes/_authenticated/system/settings'
 import { Route as AuthenticatedSystemIntegrationsRouteImport } from './routes/_authenticated/system/integrations'
 import { Route as AuthenticatedMesWorkOrdersRouteImport } from './routes/_authenticated/mes/work-orders'
+import { Route as AuthenticatedMesTraceRouteImport } from './routes/_authenticated/mes/trace'
 import { Route as AuthenticatedMesRunsRouteImport } from './routes/_authenticated/mes/runs'
 import { Route as AuthenticatedMesRoutesRouteImport } from './routes/_authenticated/mes/routes'
 import { Route as AuthenticatedMesRouteVersionsRouteImport } from './routes/_authenticated/mes/route-versions'
@@ -102,6 +103,11 @@ const AuthenticatedMesWorkOrdersRoute =
     path: '/mes/work-orders',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedMesTraceRoute = AuthenticatedMesTraceRouteImport.update({
+  id: '/mes/trace',
+  path: '/mes/trace',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedMesRunsRoute = AuthenticatedMesRunsRouteImport.update({
   id: '/mes/runs',
   path: '/mes/runs',
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/mes/route-versions': typeof AuthenticatedMesRouteVersionsRoute
   '/mes/routes': typeof AuthenticatedMesRoutesRouteWithChildren
   '/mes/runs': typeof AuthenticatedMesRunsRoute
+  '/mes/trace': typeof AuthenticatedMesTraceRoute
   '/mes/work-orders': typeof AuthenticatedMesWorkOrdersRoute
   '/system/integrations': typeof AuthenticatedSystemIntegrationsRoute
   '/system/settings': typeof AuthenticatedSystemSettingsRoute
@@ -173,6 +180,7 @@ export interface FileRoutesByTo {
   '/mes/execution': typeof AuthenticatedMesExecutionRoute
   '/mes/route-versions': typeof AuthenticatedMesRouteVersionsRoute
   '/mes/runs': typeof AuthenticatedMesRunsRoute
+  '/mes/trace': typeof AuthenticatedMesTraceRoute
   '/mes/work-orders': typeof AuthenticatedMesWorkOrdersRoute
   '/system/integrations': typeof AuthenticatedSystemIntegrationsRoute
   '/system/settings': typeof AuthenticatedSystemSettingsRoute
@@ -196,6 +204,7 @@ export interface FileRoutesById {
   '/_authenticated/mes/route-versions': typeof AuthenticatedMesRouteVersionsRoute
   '/_authenticated/mes/routes': typeof AuthenticatedMesRoutesRouteWithChildren
   '/_authenticated/mes/runs': typeof AuthenticatedMesRunsRoute
+  '/_authenticated/mes/trace': typeof AuthenticatedMesTraceRoute
   '/_authenticated/mes/work-orders': typeof AuthenticatedMesWorkOrdersRoute
   '/_authenticated/system/integrations': typeof AuthenticatedSystemIntegrationsRoute
   '/_authenticated/system/settings': typeof AuthenticatedSystemSettingsRoute
@@ -219,6 +228,7 @@ export interface FileRouteTypes {
     | '/mes/route-versions'
     | '/mes/routes'
     | '/mes/runs'
+    | '/mes/trace'
     | '/mes/work-orders'
     | '/system/integrations'
     | '/system/settings'
@@ -239,6 +249,7 @@ export interface FileRouteTypes {
     | '/mes/execution'
     | '/mes/route-versions'
     | '/mes/runs'
+    | '/mes/trace'
     | '/mes/work-orders'
     | '/system/integrations'
     | '/system/settings'
@@ -261,6 +272,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/route-versions'
     | '/_authenticated/mes/routes'
     | '/_authenticated/mes/runs'
+    | '/_authenticated/mes/trace'
     | '/_authenticated/mes/work-orders'
     | '/_authenticated/system/integrations'
     | '/_authenticated/system/settings'
@@ -371,6 +383,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesWorkOrdersRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/mes/trace': {
+      id: '/_authenticated/mes/trace'
+      path: '/mes/trace'
+      fullPath: '/mes/trace'
+      preLoaderRoute: typeof AuthenticatedMesTraceRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/mes/runs': {
       id: '/_authenticated/mes/runs'
       path: '/mes/runs'
@@ -449,6 +468,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesRouteVersionsRoute: typeof AuthenticatedMesRouteVersionsRoute
   AuthenticatedMesRoutesRoute: typeof AuthenticatedMesRoutesRouteWithChildren
   AuthenticatedMesRunsRoute: typeof AuthenticatedMesRunsRoute
+  AuthenticatedMesTraceRoute: typeof AuthenticatedMesTraceRoute
   AuthenticatedMesWorkOrdersRoute: typeof AuthenticatedMesWorkOrdersRoute
   AuthenticatedSystemIntegrationsRoute: typeof AuthenticatedSystemIntegrationsRoute
   AuthenticatedSystemSettingsRoute: typeof AuthenticatedSystemSettingsRoute
@@ -469,6 +489,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMesRouteVersionsRoute: AuthenticatedMesRouteVersionsRoute,
   AuthenticatedMesRoutesRoute: AuthenticatedMesRoutesRouteWithChildren,
   AuthenticatedMesRunsRoute: AuthenticatedMesRunsRoute,
+  AuthenticatedMesTraceRoute: AuthenticatedMesTraceRoute,
   AuthenticatedMesWorkOrdersRoute: AuthenticatedMesWorkOrdersRoute,
   AuthenticatedSystemIntegrationsRoute: AuthenticatedSystemIntegrationsRoute,
   AuthenticatedSystemSettingsRoute: AuthenticatedSystemSettingsRoute,

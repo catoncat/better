@@ -26,3 +26,20 @@ export const stationGroupListResponseSchema = t.Object({
 		}),
 	),
 });
+
+export const stationQueueResponseSchema = t.Object({
+	station: t.Object({
+		code: t.String(),
+		name: t.String(),
+	}),
+	queue: t.Array(
+		t.Object({
+			sn: t.String(),
+			status: t.String(),
+			currentStepNo: t.Number(),
+			woNo: t.String(),
+			runNo: t.String(),
+			inAt: t.Union([t.String(), t.Null()]),
+		}),
+	),
+});
