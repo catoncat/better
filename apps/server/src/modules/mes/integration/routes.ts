@@ -1,43 +1,44 @@
-import { Elysia, t } from "elysia";
 import { AuditEntityType } from "@better-app/db";
+import { Elysia } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
-import {
-	erpBomPullResponseSchema,
-	erpMaterialPullResponseSchema,
-	erpRoutePullResponseSchema,
-	erpWorkCenterPullResponseSchema,
-	erpWorkOrderPullResponseSchema,
-	integrationReceiveWorkOrderSchema,
-	integrationWorkOrderResponseSchema,
-	erpRouteSyncQuerySchema,
-	tpmSyncQuerySchema,
-	erpMasterSyncQuerySchema,
-	tpmEquipmentPullResponseSchema,
-	tpmMaintenanceTaskPullResponseSchema,
-	tpmStatusLogPullResponseSchema,
-	integrationStatusResponseSchema,
-} from "./schema";
-import {
-	mockErpBoms,
-	mockErpWorkOrders,
-	mockTpmEquipments,
-	mockTpmMaintenanceTasks,
-	mockTpmStatusLogs,
-	getMockErpMaterials,
-	getMockErpRoutes,
-	getMockErpWorkCenters,
-} from "./mock-data";
-import { syncErpRoutes } from "./sync-service";
 import {
 	syncErpBoms,
 	syncErpMaterials,
 	syncErpWorkCenters,
 	syncErpWorkOrders,
 } from "./erp-master-sync-service";
-import { syncTpmEquipment, syncTpmMaintenanceTasks, syncTpmStatusLogs } from "./tpm-sync-service";
+import {
+	getMockErpMaterials,
+	getMockErpRoutes,
+	getMockErpWorkCenters,
+	mockErpBoms,
+	mockErpWorkOrders,
+	mockTpmEquipments,
+	mockTpmMaintenanceTasks,
+	mockTpmStatusLogs,
+} from "./mock-data";
+import {
+	erpBomPullResponseSchema,
+	erpMasterSyncQuerySchema,
+	erpMaterialPullResponseSchema,
+	erpRoutePullResponseSchema,
+	erpRouteSyncQuerySchema,
+	erpWorkCenterPullResponseSchema,
+	erpWorkOrderPullResponseSchema,
+	integrationErrorResponseSchema,
+	integrationReceiveWorkOrderSchema,
+	integrationStatusResponseSchema,
+	integrationWorkOrderResponseSchema,
+	tpmEquipmentPullResponseSchema,
+	tpmMaintenanceTaskPullResponseSchema,
+	tpmStatusLogPullResponseSchema,
+	tpmSyncQuerySchema,
+} from "./schema";
 import { receiveWorkOrder } from "./service";
+import { syncErpRoutes } from "./sync-service";
+import { syncTpmEquipment, syncTpmMaintenanceTasks, syncTpmStatusLogs } from "./tpm-sync-service";
 
 export const integrationModule = new Elysia({
 	prefix: "/integration",
@@ -55,7 +56,11 @@ export const integrationModule = new Elysia({
 				{ sourceSystem: "ERP", entityType: "WORK_CENTER", action: "CRON_ERP_WORK_CENTER_SYNC" },
 				{ sourceSystem: "TPM", entityType: "EQUIPMENT", action: "CRON_TPM_EQUIPMENT_SYNC" },
 				{ sourceSystem: "TPM", entityType: "STATUS_LOG", action: "CRON_TPM_STATUS_LOG_SYNC" },
-				{ sourceSystem: "TPM", entityType: "MAINTENANCE_TASK", action: "CRON_TPM_MAINTENANCE_TASK_SYNC" },
+				{
+					sourceSystem: "TPM",
+					entityType: "MAINTENANCE_TASK",
+					action: "CRON_TPM_MAINTENANCE_TASK_SYNC",
+				},
 			];
 
 			const cursorFilters = jobs.map((job) => ({
@@ -304,7 +309,11 @@ export const integrationModule = new Elysia({
 		{
 			isAuth: true,
 			query: erpRouteSyncQuerySchema,
-			response: erpRoutePullResponseSchema,
+			response: {
+				200: erpRoutePullResponseSchema,
+				400: integrationErrorResponseSchema,
+				502: integrationErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Integration"] },
 		},
 	)
@@ -351,7 +360,11 @@ export const integrationModule = new Elysia({
 		{
 			isAuth: true,
 			query: erpMasterSyncQuerySchema,
-			response: erpWorkOrderPullResponseSchema,
+			response: {
+				200: erpWorkOrderPullResponseSchema,
+				400: integrationErrorResponseSchema,
+				502: integrationErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Integration"] },
 		},
 	)
@@ -398,7 +411,11 @@ export const integrationModule = new Elysia({
 		{
 			isAuth: true,
 			query: erpMasterSyncQuerySchema,
-			response: erpMaterialPullResponseSchema,
+			response: {
+				200: erpMaterialPullResponseSchema,
+				400: integrationErrorResponseSchema,
+				502: integrationErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Integration"] },
 		},
 	)
@@ -445,7 +462,11 @@ export const integrationModule = new Elysia({
 		{
 			isAuth: true,
 			query: erpMasterSyncQuerySchema,
-			response: erpBomPullResponseSchema,
+			response: {
+				200: erpBomPullResponseSchema,
+				400: integrationErrorResponseSchema,
+				502: integrationErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Integration"] },
 		},
 	)
@@ -492,7 +513,11 @@ export const integrationModule = new Elysia({
 		{
 			isAuth: true,
 			query: erpMasterSyncQuerySchema,
-			response: erpWorkCenterPullResponseSchema,
+			response: {
+				200: erpWorkCenterPullResponseSchema,
+				400: integrationErrorResponseSchema,
+				502: integrationErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Integration"] },
 		},
 	)
@@ -539,7 +564,11 @@ export const integrationModule = new Elysia({
 		{
 			isAuth: true,
 			query: tpmSyncQuerySchema,
-			response: tpmEquipmentPullResponseSchema,
+			response: {
+				200: tpmEquipmentPullResponseSchema,
+				400: integrationErrorResponseSchema,
+				502: integrationErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Integration"] },
 		},
 	)
@@ -586,7 +615,11 @@ export const integrationModule = new Elysia({
 		{
 			isAuth: true,
 			query: tpmSyncQuerySchema,
-			response: tpmStatusLogPullResponseSchema,
+			response: {
+				200: tpmStatusLogPullResponseSchema,
+				400: integrationErrorResponseSchema,
+				502: integrationErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Integration"] },
 		},
 	)
@@ -633,7 +666,11 @@ export const integrationModule = new Elysia({
 		{
 			isAuth: true,
 			query: tpmSyncQuerySchema,
-			response: tpmMaintenanceTaskPullResponseSchema,
+			response: {
+				200: tpmMaintenanceTaskPullResponseSchema,
+				400: integrationErrorResponseSchema,
+				502: integrationErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Integration"] },
 		},
 	)

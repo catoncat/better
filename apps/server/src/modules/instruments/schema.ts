@@ -1,9 +1,11 @@
+import * as Prismabox from "@better-app/db/prismabox";
 import { t } from "elysia";
 import { CalibrationType } from "../../types/prisma-enums";
-import * as Prismabox from "@better-app/db/prismabox";
 
 // --- Helpers ---
-const createResponseSchema = <T extends unknown>(schema: T) =>
+type SchemaType = Parameters<typeof t.Object>[0][string];
+
+const createResponseSchema = <T extends SchemaType>(schema: T) =>
 	t.Object({
 		ok: t.Boolean(),
 		data: schema,
@@ -129,11 +131,10 @@ export const calibrationUpdateSchema = t.Object({
 
 // --- Response Schemas ---
 
-const instrumentResponseItem = Prismabox.InstrumentPlain;
 const instrumentWithRelations = t.Composite([
 	Prismabox.InstrumentPlain,
 	t.Object({
-		owner: t.Union([Prismabox.UserPlain, t.Null()]),
+		owner: t.Optional(t.Union([Prismabox.UserPlain, t.Null()])),
 	}),
 ]);
 
@@ -192,3 +193,11 @@ export const deleteResponseSchema = createResponseSchema(
 		deleted: t.Boolean(),
 	}),
 );
+
+export const instrumentErrorResponseSchema = t.Object({
+	ok: t.Boolean(),
+	error: t.Object({
+		code: t.String(),
+		message: t.String(),
+	}),
+});

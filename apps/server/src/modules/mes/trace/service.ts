@@ -18,9 +18,15 @@ const toIso = (value: Date | null | undefined) => (value ? value.toISOString() :
 
 const getSnapshotRoute = (snapshot: Prisma.JsonValue | null | undefined) => {
 	if (!snapshot || typeof snapshot !== "object") return null;
-	const record = snapshot as { route?: { code?: string; sourceSystem?: string; sourceKey?: string | null } };
+	const record = snapshot as {
+		route?: { code?: string; sourceSystem?: string; sourceKey?: string | null };
+	};
 	if (!record.route?.code || !record.route?.sourceSystem) return null;
-	return record.route;
+	return {
+		code: record.route.code,
+		sourceSystem: record.route.sourceSystem,
+		sourceKey: record.route.sourceKey ?? null,
+	};
 };
 
 const getSnapshotSteps = (snapshot: Prisma.JsonValue | null | undefined): SnapshotStep[] => {
@@ -34,55 +40,66 @@ export const getUnitTrace = async (
 	db: PrismaClient,
 	sn: string,
 	mode: TraceMode,
-): Promise<ServiceResult<{
-	unit: {
-		sn: string;
-		status: string;
-		woNo: string;
-		runNo: string | null;
-	};
-	route: {
-		code: string;
-		sourceSystem: string;
-		sourceKey: string | null;
-	};
-	routeVersion: {
-		id: string;
-		versionNo: number;
-		compiledAt: string;
-	};
-	steps: SnapshotStep[];
-	tracks: Array<{
-		stepNo: number;
-		operation: string | null;
-		inAt: string | null;
-		outAt: string | null;
-		result: string | null;
-	}>;
-	dataValues: Array<{
-		stepNo: number | null;
-		name: string;
-		valueNumber: number | null;
-		valueText: string | null;
-		valueBoolean: boolean | null;
-		valueJson: Prisma.JsonValue | null;
-		judge: string | null;
-	}>;
-	defects: Array<{
-		id: string;
-		code: string;
-		location: string | null;
-		qty: number;
-		status: string;
-	}>;
-	materials: Array<{
-		position: string | null;
-		materialCode: string;
-		lotNo: string;
-		isKeyPart: boolean;
-	}>;
-	snapshot: Record<string, unknown>;
-}>> => {
+): Promise<
+	ServiceResult<{
+		unit: {
+			sn: string;
+			status: string;
+			woNo: string;
+			runNo: string | null;
+		};
+		route: {
+			code: string;
+			sourceSystem: string;
+			sourceKey: string | null;
+		};
+		routeVersion: {
+			id: string;
+			versionNo: number;
+			compiledAt: string;
+		};
+		steps: Array<{
+			stepNo: number;
+			operationId: string;
+			stationType: string;
+			stationGroupId: string | null;
+			allowedStationIds: string[];
+			requiresFAI: boolean;
+			requiresAuthorization: boolean;
+			dataSpecIds: string[];
+		}>;
+		tracks: Array<{
+			stepNo: number;
+			operation: string | null;
+			inAt: string | null;
+			outAt: string | null;
+			result: string | null;
+		}>;
+		dataValues: Array<{
+			stepNo: number | null;
+			name: string;
+			valueNumber: number | null;
+			valueText: string | null;
+			valueBoolean: boolean | null;
+			valueJson: Prisma.JsonValue | null;
+			judge: string | null;
+		}>;
+		defects: Array<{
+			id: string;
+			code: string;
+			location: string | null;
+			qty: number;
+			status: string;
+		}>;
+		materials: Array<{
+			position: string | null;
+			materialCode: string;
+			lotNo: string;
+			isKeyPart: boolean;
+		}>;
+		snapshot: Record<string, unknown>;
+	}>
+> => {
 	const unit = await db.unit.findUnique({
 		where: { sn },
 		include: {
@@ -119,7 +136,12 @@ export const getUnitTrace = async (
 	const steps = getSnapshotSteps(routeVersion.snapshotJson);
 
 	if (steps.length === 0) {
-		return { success: false, code: "ROUTING_EMPTY", message: "Route snapshot has no steps", status: 400 };
+		return {
+			success: false,
+			code: "ROUTING_EMPTY",
+			message: "Route snapshot has no steps",
+			status: 400,
+		};
 	}
 
 	const route = snapshotRoute ?? {
@@ -144,9 +166,7 @@ export const getUnitTrace = async (
 	const trackById = new Map(tracks.map((track) => [track.id, track]));
 
 	const stepByNo = new Map(steps.map((step) => [step.stepNo, step]));
-	const operationIds = [
-		...new Set(steps.map((step) => step.operationId).filter((value) => value)),
-	];
+	const operationIds = [...new Set(steps.map((step) => step.operationId).filter((value) => value))];
 	const operations = operationIds.length
 		? await db.operation.findMany({
 				where: { id: { in: operationIds } },
@@ -200,14 +220,14 @@ export const getUnitTrace = async (
 				const step = stepByNo.get(track.stepNo);
 				return {
 					stepNo: track.stepNo,
-					operation: step ? operationById.get(step.operationId) ?? step.operationId : null,
+					operation: step ? (operationById.get(step.operationId) ?? step.operationId) : null,
 					inAt: toIso(track.inAt),
 					outAt: toIso(track.outAt),
 					result: track.result ?? null,
 				};
 			}),
 			dataValues: dataValues.map((value) => ({
-				stepNo: value.trackId ? trackById.get(value.trackId)?.stepNo ?? null : null,
+				stepNo: value.trackId ? (trackById.get(value.trackId)?.stepNo ?? null) : null,
 				name: value.spec.name,
 				valueNumber: value.valueNumber ?? null,
 				valueText: value.valueText ?? null,

@@ -7,9 +7,7 @@ type ApiRunResponse = Awaited<ReturnType<typeof client.api.runs.get>>["data"];
 export type Run = NonNullable<ApiRunResponse>["items"][number];
 export type RunList = Exclude<ApiRunResponse, { code: string; message: string } | null | undefined>;
 
-type RunCreateInput = Parameters<
-	ReturnType<(typeof client.api)["work-orders"]>["runs"]["post"]
->[0];
+type RunCreateInput = Parameters<ReturnType<(typeof client.api)["work-orders"]>["runs"]["post"]>[0];
 type RunAuthorizeInput = Parameters<ReturnType<typeof client.api.runs>["authorize"]["post"]>[0];
 
 interface UseRunListParams {

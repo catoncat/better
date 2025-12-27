@@ -1,10 +1,17 @@
-import type { PrismaClient } from "@better-app/db";
+import type { Prisma, PrismaClient } from "@better-app/db";
 import { WorkOrderStatus } from "@better-app/db";
+import type { Static } from "elysia";
+import type { integrationReceiveWorkOrderSchema } from "./schema";
 
-export const receiveWorkOrder = async (db: PrismaClient, data: any) => {
+type ReceiveWorkOrderInput = Omit<Static<typeof integrationReceiveWorkOrderSchema>, "meta"> & {
+	meta?: unknown;
+};
+
+export const receiveWorkOrder = async (db: PrismaClient, data: ReceiveWorkOrderInput) => {
 	const routing = data.routingCode
 		? await db.routing.findUnique({ where: { code: data.routingCode } })
 		: null;
+	const meta = data.meta as Prisma.InputJsonValue | undefined;
 
 	// TODO: Add Idempotency-Key handling if needed here.
 
@@ -16,7 +23,7 @@ export const receiveWorkOrder = async (db: PrismaClient, data: any) => {
 			routingId: routing?.id,
 			reviewStatus: data.reviewStatus,
 			dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
-			meta: data.meta,
+			meta,
 		},
 		create: {
 			woNo: data.woNo,
@@ -25,7 +32,7 @@ export const receiveWorkOrder = async (db: PrismaClient, data: any) => {
 			routingId: routing?.id,
 			reviewStatus: data.reviewStatus,
 			dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
-			meta: data.meta,
+			meta,
 			status: WorkOrderStatus.RECEIVED,
 		},
 	});

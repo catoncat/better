@@ -1,8 +1,10 @@
 import type { Prisma, PrismaClient } from "@better-app/db";
 import { NotificationPriority, NotificationStatus } from "@better-app/db";
+import type { ServiceResult } from "../../types/service-result";
 import { getWecomConfig } from "../system/service";
 
 export type NotificationType = "system";
+type NotificationRecord = Prisma.NotificationGetPayload<Prisma.NotificationDefaultArgs>;
 
 export interface DispatchNotificationParams {
 	recipients: string[];
@@ -51,8 +53,9 @@ export async function dispatchNotification(
 	}
 
 	// Send WeCom notification if enabled
-	const wecomConfig = await getWecomConfig(db);
-	if (!wecomConfig.enabled || !wecomConfig.webhookUrl) {
+	const wecomConfigResult = await getWecomConfig(db);
+	const wecomConfig = wecomConfigResult.success ? wecomConfigResult.data : null;
+	if (!wecomConfig?.enabled || !wecomConfig?.webhookUrl) {
 		return { createdIds, wecomSent: false };
 	}
 
@@ -166,13 +169,17 @@ export async function getUnreadCount(db: PrismaClient, userId: string) {
 	return { count };
 }
 
-export async function markAsRead(db: PrismaClient, id: string, userId: string) {
+export async function markAsRead(
+	db: PrismaClient,
+	id: string,
+	userId: string,
+): Promise<ServiceResult<NotificationRecord>> {
 	const notification = await db.notification.findUnique({
 		where: { id },
 	});
 
 	if (!notification || notification.recipientId !== userId) {
-		return { success: false, code: "NOT_FOUND" };
+		return { success: false, code: "NOT_FOUND", message: "Notification not found", status: 404 };
 	}
 
 	const updated = await db.notification.update({
@@ -201,18 +208,22 @@ export async function markAllAsRead(db: PrismaClient, userId: string) {
 	return { success: true };
 }
 
-export async function deleteNotification(db: PrismaClient, id: string, userId: string) {
+export async function deleteNotification(
+	db: PrismaClient,
+	id: string,
+	userId: string,
+): Promise<ServiceResult<{ deleted: true }>> {
 	const notification = await db.notification.findUnique({
 		where: { id },
 	});
 
 	if (!notification || notification.recipientId !== userId) {
-		return { success: false, code: "NOT_FOUND" };
+		return { success: false, code: "NOT_FOUND", message: "Notification not found", status: 404 };
 	}
 
 	await db.notification.delete({
 		where: { id },
 	});
 
-	return { success: true };
+	return { success: true, data: { deleted: true } };
 }

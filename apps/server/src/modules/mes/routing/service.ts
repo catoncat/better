@@ -1,5 +1,4 @@
-import type { Prisma, PrismaClient } from "@better-app/db";
-import { StationType } from "@better-app/db";
+import { Prisma, type PrismaClient, StationType } from "@better-app/db";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
 import type {
@@ -20,6 +19,8 @@ type ExecutionConfig = Prisma.RouteExecutionConfigGetPayload<{
 		stationGroup: true;
 	};
 }>;
+type ExecutableRouteVersionRecord =
+	Prisma.ExecutableRouteVersionGetPayload<Prisma.ExecutableRouteVersionDefaultArgs>;
 
 type StepConfig = {
 	stepNo: number;
@@ -55,17 +56,27 @@ const toStringArray = (value: Prisma.JsonValue | null | undefined) => {
 
 const pickLatest = (items: ExecutionConfig[]) => {
 	if (items.length === 0) return null;
-	return items
-		.slice()
-		.sort((a, b) => {
-			const timeDiff = b.updatedAt.getTime() - a.updatedAt.getTime();
-			if (timeDiff !== 0) return timeDiff;
-			return b.id.localeCompare(a.id);
-		})[0];
+	return items.slice().sort((a, b) => {
+		const timeDiff = b.updatedAt.getTime() - a.updatedAt.getTime();
+		if (timeDiff !== 0) return timeDiff;
+		return b.id.localeCompare(a.id);
+	})[0];
 };
 
 const buildSnapshotSignature = (snapshot: { route: unknown; steps: unknown }) =>
 	JSON.stringify(snapshot, (_key, value) => (value === undefined ? null : value));
+
+const safeJsonStringify = (value: unknown) =>
+	JSON.stringify(value, (_key, val) => (val === undefined ? null : val));
+
+const toJsonValue = (value: unknown): Prisma.InputJsonValue =>
+	JSON.parse(safeJsonStringify(value)) as Prisma.InputJsonValue;
+
+const toOptionalJsonValue = (value: unknown) => {
+	if (value === undefined) return undefined;
+	if (value === null) return Prisma.DbNull;
+	return toJsonValue(value);
+};
 
 const extractSnapshotSignature = (snapshotJson: Prisma.JsonValue | null | undefined) => {
 	if (!snapshotJson || typeof snapshotJson !== "object") return null;
@@ -89,7 +100,12 @@ const validateScope = (input: ExecutionConfigCreateInput) => {
 	}
 };
 
-const resolveStationGroupId = async (db: PrismaClient, stationGroupCode?: string | null) => {
+type StationGroupResult = { id: string | null | undefined } | { error: "STATION_GROUP_NOT_FOUND" };
+
+const resolveStationGroupId = async (
+	db: PrismaClient,
+	stationGroupCode?: string | null,
+): Promise<StationGroupResult> => {
 	if (stationGroupCode === undefined) return { id: undefined };
 	if (stationGroupCode === null) return { id: null };
 	const stationGroup = await db.stationGroup.findUnique({ where: { code: stationGroupCode } });
@@ -145,7 +161,12 @@ export const createExecutionConfig = async (
 ): Promise<ServiceResult<ExecutionConfig>> => {
 	const scopeError = validateScope(input);
 	if (scopeError) {
-		return { success: false, code: scopeError, message: "Invalid execution config scope", status: 400 };
+		return {
+			success: false,
+			code: scopeError,
+			message: "Invalid execution config scope",
+			status: 400,
+		};
 	}
 
 	const routing = await db.routing.findUnique({
@@ -163,7 +184,12 @@ export const createExecutionConfig = async (
 	if (input.scopeType === "STEP") {
 		const step = routing.steps.find((item) => item.stepNo === input.stepNo);
 		if (!step) {
-			return { success: false, code: "ROUTE_STEP_NOT_FOUND", message: "Routing step not found", status: 404 };
+			return {
+				success: false,
+				code: "ROUTE_STEP_NOT_FOUND",
+				message: "Routing step not found",
+				status: 404,
+			};
 		}
 		routingStepId = step.id;
 		sourceStepKey = step.sourceStepKey ?? null;
@@ -172,23 +198,46 @@ export const createExecutionConfig = async (
 	if (input.scopeType === "SOURCE_STEP") {
 		const step = routing.steps.find((item) => item.sourceStepKey === input.sourceStepKey);
 		if (!step) {
-			return { success: false, code: "ROUTE_STEP_NOT_FOUND", message: "Routing step not found", status: 404 };
+			return {
+				success: false,
+				code: "ROUTE_STEP_NOT_FOUND",
+				message: "Routing step not found",
+				status: 404,
+			};
 		}
 		routingStepId = step.id;
 		sourceStepKey = step.sourceStepKey ?? input.sourceStepKey ?? null;
 	}
 
 	if (input.scopeType === "OPERATION") {
-		const operation = await db.operation.findUnique({ where: { code: input.operationCode! } });
+		if (!input.operationCode) {
+			return {
+				success: false,
+				code: "OPERATION_CODE_REQUIRED",
+				message: "Operation code is required",
+				status: 400,
+			};
+		}
+		const operation = await db.operation.findUnique({ where: { code: input.operationCode } });
 		if (!operation) {
-			return { success: false, code: "OPERATION_NOT_FOUND", message: "Operation not found", status: 404 };
+			return {
+				success: false,
+				code: "OPERATION_NOT_FOUND",
+				message: "Operation not found",
+				status: 404,
+			};
 		}
 		operationId = operation.id;
 	}
 
 	const stationGroupResult = await resolveStationGroupId(db, input.stationGroupCode);
 	if ("error" in stationGroupResult) {
-		return { success: false, code: stationGroupResult.error, message: "Station group not found", status: 404 };
+		return {
+			success: false,
+			code: stationGroupResult.error,
+			message: "Station group not found",
+			status: 404,
+		};
 	}
 
 	const created = await db.routeExecutionConfig.create({
@@ -199,12 +248,12 @@ export const createExecutionConfig = async (
 			operationId,
 			stationType: input.stationType,
 			stationGroupId: stationGroupResult.id,
-			allowedStationIds: input.allowedStationIds ?? null,
+			allowedStationIds: toOptionalJsonValue(input.allowedStationIds),
 			requiresFAI: input.requiresFAI,
 			requiresAuthorization: input.requiresAuthorization,
-			dataSpecIds: input.dataSpecIds ?? null,
-			ingestMapping: input.ingestMapping ?? null,
-			meta: input.meta ?? null,
+			dataSpecIds: toOptionalJsonValue(input.dataSpecIds),
+			ingestMapping: toOptionalJsonValue(input.ingestMapping),
+			meta: toOptionalJsonValue(input.meta),
 		},
 		include: {
 			routing: true,
@@ -235,13 +284,20 @@ export const updateExecutionConfig = async (
 		where: { id: configId },
 	});
 	if (!config) {
-		return { success: false, code: "EXECUTION_CONFIG_NOT_FOUND", message: "Execution config not found", status: 404 };
+		return {
+			success: false,
+			code: "EXECUTION_CONFIG_NOT_FOUND",
+			message: "Execution config not found",
+			status: 404,
+		};
 	}
 
 	const stepIds = new Set(routing.steps.map((step) => step.id));
 	const operationIds = new Set(routing.steps.map((step) => step.operationId));
 	const sourceStepKeys = new Set(
-		routing.steps.map((step) => step.sourceStepKey).filter((value): value is string => Boolean(value)),
+		routing.steps
+			.map((step) => step.sourceStepKey)
+			.filter((value): value is string => Boolean(value)),
 	);
 
 	const belongsToRoute =
@@ -251,23 +307,36 @@ export const updateExecutionConfig = async (
 		(config.sourceStepKey && sourceStepKeys.has(config.sourceStepKey));
 
 	if (!belongsToRoute) {
-		return { success: false, code: "EXECUTION_CONFIG_SCOPE_MISMATCH", message: "Config not in routing", status: 400 };
+		return {
+			success: false,
+			code: "EXECUTION_CONFIG_SCOPE_MISMATCH",
+			message: "Config not in routing",
+			status: 400,
+		};
 	}
 
 	const stationGroupResult = await resolveStationGroupId(db, input.stationGroupCode);
 	if ("error" in stationGroupResult) {
-		return { success: false, code: stationGroupResult.error, message: "Station group not found", status: 404 };
+		return {
+			success: false,
+			code: stationGroupResult.error,
+			message: "Station group not found",
+			status: 404,
+		};
 	}
 
-	const data: Prisma.RouteExecutionConfigUpdateInput = {};
+	const data: Prisma.RouteExecutionConfigUncheckedUpdateInput = {};
 	if (input.stationType !== undefined) data.stationType = input.stationType;
 	if (stationGroupResult.id !== undefined) data.stationGroupId = stationGroupResult.id;
-	if (input.allowedStationIds !== undefined) data.allowedStationIds = input.allowedStationIds;
+	if (input.allowedStationIds !== undefined)
+		data.allowedStationIds = toOptionalJsonValue(input.allowedStationIds);
 	if (input.requiresFAI !== undefined) data.requiresFAI = input.requiresFAI;
-	if (input.requiresAuthorization !== undefined) data.requiresAuthorization = input.requiresAuthorization;
-	if (input.dataSpecIds !== undefined) data.dataSpecIds = input.dataSpecIds;
-	if (input.ingestMapping !== undefined) data.ingestMapping = input.ingestMapping;
-	if (input.meta !== undefined) data.meta = input.meta;
+	if (input.requiresAuthorization !== undefined)
+		data.requiresAuthorization = input.requiresAuthorization;
+	if (input.dataSpecIds !== undefined) data.dataSpecIds = toOptionalJsonValue(input.dataSpecIds);
+	if (input.ingestMapping !== undefined)
+		data.ingestMapping = toOptionalJsonValue(input.ingestMapping);
+	if (input.meta !== undefined) data.meta = toOptionalJsonValue(input.meta);
 
 	const updated = await db.routeExecutionConfig.update({
 		where: { id: configId },
@@ -286,7 +355,7 @@ export const updateExecutionConfig = async (
 export const compileRouteExecution = async (
 	db: PrismaClient,
 	routingCode: string,
-): Promise<ServiceResult<Prisma.ExecutableRouteVersionGetPayload<{}>>> => {
+): Promise<ServiceResult<ExecutableRouteVersionRecord>> => {
 	const routing = await db.routing.findUnique({
 		where: { code: routingCode },
 		include: { steps: { include: { operation: true } } },
@@ -361,8 +430,10 @@ export const compileRouteExecution = async (
 
 	for (const step of steps) {
 		const stepId = stepIdByNo.get(step.stepNo);
-		const stepConfigs = stepId ? configsByStepId.get(stepId) ?? [] : [];
-		const sourceConfigs = step.sourceStepKey ? configsBySourceStepKey.get(step.sourceStepKey) ?? [] : [];
+		const stepConfigs = stepId ? (configsByStepId.get(stepId) ?? []) : [];
+		const sourceConfigs = step.sourceStepKey
+			? (configsBySourceStepKey.get(step.sourceStepKey) ?? [])
+			: [];
 		const operationConfigs = configsByOperationId.get(step.operationId) ?? [];
 
 		const stepConfig = pickLatest([...stepConfigs, ...sourceConfigs]);
@@ -495,8 +566,8 @@ export const compileRouteExecution = async (
 			routingId: routing.id,
 			versionNo,
 			status,
-			snapshotJson,
-			errorsJson: errors.length > 0 ? errors : null,
+			snapshotJson: toJsonValue(snapshotJson),
+			errorsJson: errors.length > 0 ? toJsonValue(errors) : Prisma.DbNull,
 			compiledAt,
 		},
 	});
@@ -507,7 +578,7 @@ export const compileRouteExecution = async (
 export const listRouteVersions = async (
 	db: PrismaClient,
 	routingCode: string,
-): Promise<ServiceResult<Prisma.ExecutableRouteVersionGetPayload<{}>[]>> => {
+): Promise<ServiceResult<ExecutableRouteVersionRecord[]>> => {
 	const routing = await db.routing.findUnique({ where: { code: routingCode } });
 	if (!routing) {
 		return { success: false, code: "ROUTE_NOT_FOUND", message: "Routing not found", status: 404 };
@@ -525,7 +596,7 @@ export const getRouteVersion = async (
 	db: PrismaClient,
 	routingCode: string,
 	versionNo: number,
-): Promise<ServiceResult<Prisma.ExecutableRouteVersionGetPayload<{}>>> => {
+): Promise<ServiceResult<ExecutableRouteVersionRecord>> => {
 	const routing = await db.routing.findUnique({ where: { code: routingCode } });
 	if (!routing) {
 		return { success: false, code: "ROUTE_NOT_FOUND", message: "Routing not found", status: 404 };
@@ -541,7 +612,12 @@ export const getRouteVersion = async (
 	});
 
 	if (!version) {
-		return { success: false, code: "ROUTE_VERSION_NOT_FOUND", message: "Route version not found", status: 404 };
+		return {
+			success: false,
+			code: "ROUTE_VERSION_NOT_FOUND",
+			message: "Route version not found",
+			status: 404,
+		};
 	}
 
 	return { success: true, data: version };
@@ -594,9 +670,9 @@ export const listRoutes = async (db: PrismaClient, query: RouteListQuery) => {
 			productCode: item.productCode ?? null,
 			version: item.version ?? null,
 			isActive: item.isActive,
-			effectiveFrom: item.effectiveFrom ?? null,
-			effectiveTo: item.effectiveTo ?? null,
-			updatedAt: item.updatedAt,
+			effectiveFrom: item.effectiveFrom?.toISOString() ?? null,
+			effectiveTo: item.effectiveTo?.toISOString() ?? null,
+			updatedAt: item.updatedAt.toISOString(),
 			stepCount: item._count.steps,
 		})),
 		total,
@@ -608,33 +684,35 @@ export const listRoutes = async (db: PrismaClient, query: RouteListQuery) => {
 export const getRouteDetail = async (
 	db: PrismaClient,
 	routingCode: string,
-): Promise<ServiceResult<{
-	route: {
-		id: string;
-		code: string;
-		name: string;
-		sourceSystem: string;
-		sourceKey: string | null;
-		productCode: string | null;
-		version: string | null;
-		isActive: boolean;
-		effectiveFrom: Date | null;
-		effectiveTo: Date | null;
-		createdAt: Date;
-		updatedAt: Date;
-	};
-	steps: Array<{
-		stepNo: number;
-		sourceStepKey: string | null;
-		operationCode: string;
-		operationName: string;
-		stationGroupCode: string | null;
-		stationGroupName: string | null;
-		stationType: string;
-		requiresFAI: boolean;
-		isLast: boolean;
-	}>;
-}>> => {
+): Promise<
+	ServiceResult<{
+		route: {
+			id: string;
+			code: string;
+			name: string;
+			sourceSystem: string;
+			sourceKey: string | null;
+			productCode: string | null;
+			version: string | null;
+			isActive: boolean;
+			effectiveFrom: string | null;
+			effectiveTo: string | null;
+			createdAt: string;
+			updatedAt: string;
+		};
+		steps: Array<{
+			stepNo: number;
+			sourceStepKey: string | null;
+			operationCode: string;
+			operationName: string;
+			stationGroupCode: string | null;
+			stationGroupName: string | null;
+			stationType: string;
+			requiresFAI: boolean;
+			isLast: boolean;
+		}>;
+	}>
+> => {
 	const routing = await db.routing.findUnique({
 		where: { code: routingCode },
 		include: {
@@ -664,10 +742,10 @@ export const getRouteDetail = async (
 				productCode: routing.productCode ?? null,
 				version: routing.version ?? null,
 				isActive: routing.isActive,
-				effectiveFrom: routing.effectiveFrom ?? null,
-				effectiveTo: routing.effectiveTo ?? null,
-				createdAt: routing.createdAt,
-				updatedAt: routing.updatedAt,
+				effectiveFrom: routing.effectiveFrom?.toISOString() ?? null,
+				effectiveTo: routing.effectiveTo?.toISOString() ?? null,
+				createdAt: routing.createdAt.toISOString(),
+				updatedAt: routing.updatedAt.toISOString(),
 			},
 			steps: routing.steps.map((step) => ({
 				stepNo: step.stepNo,

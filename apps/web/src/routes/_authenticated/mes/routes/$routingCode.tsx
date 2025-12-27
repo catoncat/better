@@ -43,13 +43,13 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { useCompileRouteVersion } from "@/hooks/use-route-versions";
 import {
+	type ExecutionConfig,
 	useCreateExecutionConfig,
 	useExecutionConfigs,
 	useUpdateExecutionConfig,
-	type ExecutionConfig,
 } from "@/hooks/use-execution-configs";
+import { useCompileRouteVersion } from "@/hooks/use-route-versions";
 import { useRouteDetail } from "@/hooks/use-routes";
 import { useStations } from "@/hooks/use-station-execution";
 import { useStationGroups } from "@/hooks/use-station-groups";
@@ -65,13 +65,15 @@ const stationTypeOptions = [
 	{ value: "TEST", label: "测试" },
 ];
 
+const stationTypeEnum = z.enum(["AUTO", "BATCH", "MANUAL", "TEST"]);
+
 const configSchema = z
 	.object({
 		scopeType: z.enum(["ROUTE", "OPERATION", "STEP", "SOURCE_STEP"]),
 		stepNo: z.string().optional(),
 		sourceStepKey: z.string().optional(),
 		operationCode: z.string().optional(),
-		stationType: z.string().optional(),
+		stationType: z.union([stationTypeEnum, z.literal("")]).optional(),
 		stationGroupCode: z.string().optional(),
 		allowedStationIds: z.array(z.string()).optional(),
 		requiresFAI: z.boolean().optional(),
@@ -135,7 +137,9 @@ function RouteDetailPage() {
 
 	const stationById = useMemo(() => {
 		const map = new Map<string, StationOption>();
-		stationOptions.forEach((station) => map.set(station.id, station));
+		for (const station of stationOptions) {
+			map.set(station.id, station);
+		}
 		return map;
 	}, [stationOptions]);
 
@@ -164,10 +168,12 @@ function RouteDetailPage() {
 
 	const sourceStepOptions = useMemo(
 		() =>
-			stepOptions.filter((step) => step.sourceStepKey).map((step) => ({
-				value: step.sourceStepKey as string,
-				label: `${step.label} · ${step.sourceStepKey}`,
-			})),
+			stepOptions
+				.filter((step) => step.sourceStepKey)
+				.map((step) => ({
+					value: step.sourceStepKey as string,
+					label: `${step.label} · ${step.sourceStepKey}`,
+				})),
 		[stepOptions],
 	);
 
@@ -246,9 +252,7 @@ function RouteDetailPage() {
 							{routeDetail.route.effectiveFrom
 								? format(new Date(routeDetail.route.effectiveFrom), "yyyy-MM-dd")
 								: "-"}
-							{"  "}
-							~
-							{"  "}
+							{"  "}~{"  "}
 							{routeDetail.route.effectiveTo
 								? format(new Date(routeDetail.route.effectiveTo), "yyyy-MM-dd")
 								: "-"}
@@ -376,11 +380,7 @@ function RouteDetailPage() {
 												{format(new Date(config.updatedAt), "yyyy-MM-dd HH:mm")}
 											</TableCell>
 											<TableCell>
-												<Button
-													variant="ghost"
-													size="icon"
-													onClick={() => handleOpenEdit(config)}
-												>
+												<Button variant="ghost" size="icon" onClick={() => handleOpenEdit(config)}>
 													<Edit2 className="h-4 w-4" />
 												</Button>
 											</TableCell>
@@ -439,24 +439,21 @@ function ExecutionConfigDialog({
 	const createMutation = useCreateExecutionConfig(routingCode);
 	const updateMutation = useUpdateExecutionConfig(routingCode, editingConfig?.id ?? "");
 
-	const resolveScopeType = () => {
+	const resolvedScopeType = useMemo(() => {
 		if (editingConfig?.routingStepId) return "STEP";
 		if (editingConfig?.sourceStepKey) return "SOURCE_STEP";
 		if (editingConfig?.operationId) return "OPERATION";
 		return "ROUTE";
-	};
+	}, [editingConfig]);
 
 	const stationGroupCode =
-		editingConfig?.stationGroup?.code ??
-		(editingConfig?.stationGroupId ? "" : "");
+		editingConfig?.stationGroup?.code ?? (editingConfig?.stationGroupId ? "" : "");
 
 	const form = useForm<ConfigFormValues>({
 		resolver: zodResolver(configSchema),
 		defaultValues: {
-			scopeType: resolveScopeType(),
-			stepNo: editingConfig?.routingStep?.stepNo
-				? String(editingConfig.routingStep.stepNo)
-				: "",
+			scopeType: resolvedScopeType,
+			stepNo: editingConfig?.routingStep?.stepNo ? String(editingConfig.routingStep.stepNo) : "",
 			sourceStepKey: editingConfig?.sourceStepKey ?? "",
 			operationCode: editingConfig?.operation?.code ?? "",
 			stationType: editingConfig?.stationType ?? "",
@@ -474,7 +471,7 @@ function ExecutionConfigDialog({
 
 	useEffect(() => {
 		form.reset({
-			scopeType: resolveScopeType(),
+			scopeType: resolvedScopeType,
 			stepNo: editingConfig?.routingStep?.stepNo ? String(editingConfig.routingStep.stepNo) : "",
 			sourceStepKey: editingConfig?.sourceStepKey ?? "",
 			operationCode: editingConfig?.operation?.code ?? "",
@@ -489,7 +486,7 @@ function ExecutionConfigDialog({
 				: "",
 			metaText: editingConfig?.meta ? JSON.stringify(editingConfig.meta, null, 2) : "",
 		});
-	}, [editingConfig, form]);
+	}, [editingConfig, form, resolvedScopeType, stationGroupCode]);
 
 	useEffect(() => {
 		if (open && !editingConfig) {
@@ -510,11 +507,6 @@ function ExecutionConfigDialog({
 		}
 	}, [editingConfig, form, open]);
 
-	const stationOptions = stations.map((station) => ({
-		value: station.id,
-		label: `${station.code} · ${station.name}`,
-	}));
-
 	const onSubmit = async (values: ConfigFormValues) => {
 		const dataSpecIds = parseCommaList(values.dataSpecIdsText);
 		const ingestMapping = parseJson(values.ingestMappingText);
@@ -531,10 +523,11 @@ function ExecutionConfigDialog({
 
 		const stationGroupCode =
 			values.stationGroupCode === "__NONE__" ? null : values.stationGroupCode || undefined;
+		const stationType = values.stationType || undefined;
 
 		if (isEdit && editingConfig) {
 			await updateMutation.mutateAsync({
-				stationType: values.stationType || undefined,
+				stationType,
 				stationGroupCode,
 				allowedStationIds: values.allowedStationIds?.length ? values.allowedStationIds : null,
 				requiresFAI: values.requiresFAI ?? undefined,
@@ -552,7 +545,7 @@ function ExecutionConfigDialog({
 			stepNo: values.stepNo ? Number(values.stepNo) : undefined,
 			sourceStepKey: values.sourceStepKey || undefined,
 			operationCode: values.operationCode || undefined,
-			stationType: values.stationType || undefined,
+			stationType,
 			stationGroupCode,
 			allowedStationIds: values.allowedStationIds?.length ? values.allowedStationIds : null,
 			requiresFAI: values.requiresFAI ?? undefined,
@@ -587,11 +580,7 @@ function ExecutionConfigDialog({
 									<FormItem>
 										<FormLabel>配置范围</FormLabel>
 										<FormControl>
-											<Select
-												value={field.value}
-												onValueChange={field.onChange}
-												disabled={isEdit}
-											>
+											<Select value={field.value} onValueChange={field.onChange} disabled={isEdit}>
 												<SelectTrigger>
 													<SelectValue placeholder="选择范围" />
 												</SelectTrigger>
@@ -747,17 +736,16 @@ function ExecutionConfigDialog({
 									<FormLabel>允许站点</FormLabel>
 									<FormControl>
 										<div className="max-h-48 overflow-auto rounded-md border border-border p-3 space-y-2">
-											{stationOptions.length === 0 ? (
+											{stations.length === 0 ? (
 												<div className="text-sm text-muted-foreground">暂无工位数据</div>
 											) : (
-												stationOptions.map((station) => {
+												stations.map((station) => {
 													const checked = (field.value ?? []).includes(station.id);
+													const checkboxId = `station-${station.id}`;
 													return (
-														<label
-															key={station.id}
-															className="flex items-center gap-2 text-sm"
-														>
+														<div key={station.id} className="flex items-center gap-2 text-sm">
 															<Checkbox
+																id={checkboxId}
 																checked={checked}
 																onCheckedChange={(value) => {
 																	const next = new Set(field.value ?? []);
@@ -769,10 +757,10 @@ function ExecutionConfigDialog({
 																	field.onChange(Array.from(next));
 																}}
 															/>
-															<span>
+															<label htmlFor={checkboxId} className="cursor-pointer">
 																{station.code} · {station.name}
-															</span>
-														</label>
+															</label>
+														</div>
 													);
 												})
 											)}
@@ -841,10 +829,7 @@ function ExecutionConfigDialog({
 								<FormItem>
 									<FormLabel>采集项标识</FormLabel>
 									<FormControl>
-										<Input
-											placeholder="多个用逗号分隔，例如 TEMP,POWER"
-											{...field}
-										/>
+										<Input placeholder="多个用逗号分隔，例如 TEMP,POWER" {...field} />
 									</FormControl>
 									<FormMessage />
 								</FormItem>

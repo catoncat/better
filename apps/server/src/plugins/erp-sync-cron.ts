@@ -1,29 +1,32 @@
+import type { Prisma } from "@better-app/db";
 import { cron } from "@elysiajs/cron";
 import { Elysia } from "elysia";
-import { getTimezoneIana } from "../utils/datetime";
-import { prisma, prismaPlugin } from "./prisma";
-import { syncErpRoutes } from "../modules/mes/integration/sync-service";
 import {
 	syncErpBoms,
 	syncErpMaterials,
 	syncErpWorkCenters,
 	syncErpWorkOrders,
 } from "../modules/mes/integration/erp-master-sync-service";
+import { syncErpRoutes } from "../modules/mes/integration/sync-service";
 import {
 	syncTpmEquipment,
 	syncTpmMaintenanceTasks,
 	syncTpmStatusLogs,
 } from "../modules/mes/integration/tpm-sync-service";
+import { getTimezoneIana } from "../utils/datetime";
+import { prisma, prismaPlugin } from "./prisma";
 
-type SyncJobResult = {
-	success: true;
-	data: { payload: { items: unknown[]; cursor: { nextSyncAt?: string; hasMore: boolean } } };
-} | {
-	success: false;
-	code: string;
-	message: string;
-	status?: number;
-};
+type SyncJobResult =
+	| {
+			success: true;
+			data: { payload: { items: unknown[]; cursor: { nextSyncAt?: string; hasMore: boolean } } };
+	  }
+	| {
+			success: false;
+			code: string;
+			message: string;
+			status?: number;
+	  };
 
 const integrationEnabled = process.env.MES_INTEGRATION_CRON_ENABLED === "true";
 
@@ -38,13 +41,19 @@ const patterns = {
 	tpmMaintenanceTask: process.env.MES_INTEGRATION_TPM_MAINTENANCE_TASK_CRON ?? "0 */4 * * *",
 };
 
+const safeJsonStringify = (value: unknown) =>
+	JSON.stringify(value, (_key, val) => (val === undefined ? null : val));
+
+const toJsonValue = (value: unknown): Prisma.InputJsonValue =>
+	JSON.parse(safeJsonStringify(value)) as Prisma.InputJsonValue;
+
 const logCron = async (action: string, status: string, details: Record<string, unknown>) => {
 	await prisma.systemLog.create({
 		data: {
 			action,
 			module: "Integration",
 			status,
-			details,
+			details: toJsonValue(details),
 		},
 	});
 };
@@ -166,7 +175,9 @@ export const erpSyncCronPlugin = new Elysia({
 			timezone: getTimezoneIana(),
 			catch: true,
 			async run() {
-				await runSyncJob("CRON_TPM_MAINTENANCE_TASK_SYNC", () => syncTpmMaintenanceTasks(prisma, {}));
+				await runSyncJob("CRON_TPM_MAINTENANCE_TASK_SYNC", () =>
+					syncTpmMaintenanceTasks(prisma, {}),
+				);
 			},
 		}),
 	);

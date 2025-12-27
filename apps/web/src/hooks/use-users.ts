@@ -4,10 +4,17 @@ import { client, unwrap } from "@/lib/eden";
 // 定义 API 路由引用（避免 typeof 中使用方括号语法的问题）
 const changePasswordApi = client.api.users.me["change-password"];
 
-// Type definitions - assuming unwrap returns the data property of the envelope
-type UserListResponse = { items: unknown[]; total: number; page: number; pageSize: number };
-export type UserItem = UserListResponse["items"][number];
-export type UsersList = UserListResponse;
+type UnwrapEnvelope<T> = T extends { data: infer D } ? D : T;
+type UserListResponse = Awaited<ReturnType<typeof client.api.users.get>>["data"];
+type UserListData = UnwrapEnvelope<NonNullable<UserListResponse>>;
+export type UserItem = UserListData["items"][number];
+export type UsersList = UserListData;
+type UserProfileResponse = Awaited<ReturnType<typeof client.api.users.me.get>>["data"];
+type UserProfile = UnwrapEnvelope<NonNullable<UserProfileResponse>>;
+type UserCreateResponse = Awaited<ReturnType<typeof client.api.users.post>>["data"];
+type UserCreateData = UnwrapEnvelope<NonNullable<UserCreateResponse>>;
+type RolesResponse = Awaited<ReturnType<typeof client.api.meta.roles.get>>["data"];
+type RolesData = UnwrapEnvelope<NonNullable<RolesResponse>>;
 
 type UserUpdateInput = Parameters<ReturnType<typeof client.api.users>["patch"]>[0];
 
@@ -46,7 +53,7 @@ export function useUserRoles() {
 		queryKey: ["meta", "roles"],
 		queryFn: async () => {
 			const response = await client.api.meta.roles.get();
-			const data = unwrap(response);
+			const data = unwrap<RolesData>(response);
 			return data.roles;
 		},
 	});
@@ -57,7 +64,7 @@ type UserCreateInput = Parameters<typeof client.api.users.post>[0];
 export function useCreateUser() {
 	const queryClient = useQueryClient();
 
-	return useMutation({
+	return useMutation<UserCreateData, Error, UserCreateInput>({
 		mutationFn: async (data: UserCreateInput) => {
 			const response = await client.api.users.post(data);
 			return unwrap(response);
@@ -87,7 +94,7 @@ type ProfileUpdateInput = Parameters<typeof client.api.users.me.patch>[0];
 type ChangePasswordInput = Parameters<typeof changePasswordApi.post>[0];
 
 export function useUserProfile() {
-	return useQuery({
+	return useQuery<UserProfile>({
 		queryKey: ["user", "me"],
 		queryFn: async () => {
 			const response = await client.api.users.me.get();

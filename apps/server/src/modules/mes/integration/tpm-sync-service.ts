@@ -2,11 +2,7 @@ import { createHash } from "node:crypto";
 import type { PrismaClient } from "@better-app/db";
 import type { ServiceResult } from "../../../types/service-result";
 import type { IntegrationEnvelope } from "./erp-service";
-import {
-	mockTpmEquipments,
-	mockTpmMaintenanceTasks,
-	mockTpmStatusLogs,
-} from "./mock-data";
+import { mockTpmEquipments, mockTpmMaintenanceTasks, mockTpmStatusLogs } from "./mock-data";
 
 type SyncOptions = {
 	since?: string;
@@ -49,9 +45,9 @@ type TpmMaintenanceTask = {
 type TpmConfig = {
 	baseUrl?: string;
 	apiKey?: string;
-	equipmentPath?: string;
-	statusLogPath?: string;
-	maintenanceTaskPath?: string;
+	equipmentPath: string;
+	statusLogPath: string;
+	maintenanceTaskPath: string;
 };
 
 const getTpmConfig = (): TpmConfig => ({
@@ -123,7 +119,11 @@ const fetchTpmList = async <T>(
 	}
 };
 
-const buildEnvelope = <T>(entityType: string, items: T[], nextSyncAt: Date | null): IntegrationEnvelope<T> => ({
+const buildEnvelope = <T>(
+	entityType: string,
+	items: T[],
+	nextSyncAt: Date | null,
+): IntegrationEnvelope<T> => ({
 	sourceSystem: "TPM",
 	entityType,
 	cursor: { nextSyncAt: nextSyncAt?.toISOString(), hasMore: false },
@@ -160,7 +160,7 @@ export const syncTpmEquipment = async (
 
 	const config = getTpmConfig();
 	const pullResult = config.baseUrl
-		? await fetchTpmList<TpmEquipment>(config.baseUrl, config.equipmentPath!, config.apiKey, since)
+		? await fetchTpmList<TpmEquipment>(config.baseUrl, config.equipmentPath, config.apiKey, since)
 		: { success: true as const, data: mockTpmEquipments };
 
 	if (!pullResult.success) {
@@ -181,7 +181,8 @@ export const syncTpmEquipment = async (
 		return pullResult;
 	}
 
-	const nextSyncAt = getLatestTimestamp(pullResult.data.map((item) => item.updatedAt)) ?? new Date();
+	const nextSyncAt =
+		getLatestTimestamp(pullResult.data.map((item) => item.updatedAt)) ?? new Date();
 	const payload = buildEnvelope(entityType, pullResult.data, nextSyncAt);
 	const dedupeKey = `${sourceSystem}:${entityType}:${hashPayload(payload)}`;
 
@@ -292,7 +293,7 @@ export const syncTpmStatusLogs = async (
 
 	const config = getTpmConfig();
 	const pullResult = config.baseUrl
-		? await fetchTpmList<TpmStatusLog>(config.baseUrl, config.statusLogPath!, config.apiKey, since)
+		? await fetchTpmList<TpmStatusLog>(config.baseUrl, config.statusLogPath, config.apiKey, since)
 		: { success: true as const, data: mockTpmStatusLogs };
 
 	if (!pullResult.success) {
@@ -314,9 +315,7 @@ export const syncTpmStatusLogs = async (
 	}
 
 	const nextSyncAt =
-		getLatestTimestamp(
-			pullResult.data.map((item) => item.endedAt ?? item.startedAt),
-		) ?? new Date();
+		getLatestTimestamp(pullResult.data.map((item) => item.endedAt ?? item.startedAt)) ?? new Date();
 	const payload = buildEnvelope(entityType, pullResult.data, nextSyncAt);
 	const dedupeKey = `${sourceSystem}:${entityType}:${hashPayload(payload)}`;
 
@@ -432,7 +431,7 @@ export const syncTpmMaintenanceTasks = async (
 	const pullResult = config.baseUrl
 		? await fetchTpmList<TpmMaintenanceTask>(
 				config.baseUrl,
-				config.maintenanceTaskPath!,
+				config.maintenanceTaskPath,
 				config.apiKey,
 				since,
 			)
@@ -499,7 +498,9 @@ export const syncTpmMaintenanceTasks = async (
 					startTime: parseDate(item.startTime),
 					completedAt: parseDate(item.completedAt),
 					sourceUpdatedAt:
-						parseDate(item.completedAt) ?? parseDate(item.startTime) ?? parseDate(item.scheduledDate),
+						parseDate(item.completedAt) ??
+						parseDate(item.startTime) ??
+						parseDate(item.scheduledDate),
 				},
 				create: {
 					taskNo: item.taskNo,
@@ -510,7 +511,9 @@ export const syncTpmMaintenanceTasks = async (
 					startTime: parseDate(item.startTime),
 					completedAt: parseDate(item.completedAt),
 					sourceUpdatedAt:
-						parseDate(item.completedAt) ?? parseDate(item.startTime) ?? parseDate(item.scheduledDate),
+						parseDate(item.completedAt) ??
+						parseDate(item.startTime) ??
+						parseDate(item.scheduledDate),
 				},
 			});
 		}

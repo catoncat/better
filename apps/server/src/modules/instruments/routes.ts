@@ -1,5 +1,5 @@
-import { Elysia, status } from "elysia";
 import { AuditEntityType } from "@better-app/db";
+import { Elysia } from "elysia";
 import { authPlugin } from "../../plugins/auth";
 import { prismaPlugin } from "../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../audit/service";
@@ -17,6 +17,7 @@ import {
 	departmentListResponseSchema,
 	instrumentCalibrationUpdateSchema,
 	instrumentCreateSchema,
+	instrumentErrorResponseSchema,
 	instrumentListQuerySchema,
 	instrumentListResponseSchema,
 	instrumentParamsSchema,
@@ -45,51 +46,60 @@ export const instrumentModule = new Elysia({
 	.use(authPlugin)
 	.get(
 		"/",
-		async ({ db, query }) => {
+		async ({ db, query, set }) => {
 			const result = await listInstruments(db, query);
 			if (!result.success) {
-				return status(result.status ?? 400, {
+				set.status = result.status ?? 400;
+				return {
 					ok: false,
 					error: { code: result.code, message: result.message },
-				});
+				};
 			}
 			return { ok: true, data: result.data };
 		},
 		{
 			isAuth: true,
 			query: instrumentListQuerySchema,
-			response: instrumentListResponseSchema,
+			response: {
+				200: instrumentListResponseSchema,
+				400: instrumentErrorResponseSchema,
+			},
 			detail: { tags: ["Instruments"] },
 		},
 	)
 	.get(
 		"/departments",
-		async ({ db }) => {
+		async ({ db, set }) => {
 			const result = await listDepartments(db);
 			if (!result.success) {
-				return status(result.status ?? 400, {
+				set.status = result.status ?? 400;
+				return {
 					ok: false,
 					error: { code: result.code, message: result.message },
-				});
+				};
 			}
 			return { ok: true, data: result.data };
 		},
 		{
 			isAuth: true,
-			response: departmentListResponseSchema,
+			response: {
+				200: departmentListResponseSchema,
+				400: instrumentErrorResponseSchema,
+			},
 			detail: { tags: ["Instruments"] },
 		},
 	)
 	.get(
 		"/calibrations",
-		async ({ db, query }) => {
+		async ({ db, query, set }) => {
 			const result = await listAllCalibrationRecords(db, query);
 
 			if (!result.success) {
-				return status(result.status ?? 400, {
+				set.status = result.status ?? 400;
+				return {
 					ok: false,
 					error: { code: result.code, message: result.message },
-				});
+				};
 			}
 
 			return { ok: true, data: result.data };
@@ -97,20 +107,24 @@ export const instrumentModule = new Elysia({
 		{
 			isAuth: true,
 			query: calibrationListAllQuerySchema,
-			response: calibrationListAllResponseSchema,
+			response: {
+				200: calibrationListAllResponseSchema,
+				400: instrumentErrorResponseSchema,
+			},
 			detail: { tags: ["Calibrations"] },
 		},
 	)
 	.get(
 		"/:id",
-		async ({ db, params }) => {
+		async ({ db, params, set }) => {
 			const result = await getInstrument(db, params.id);
 
 			if (!result.success) {
-				return status(result.status ?? 404, {
+				set.status = result.status ?? 404;
+				return {
 					ok: false,
 					error: { code: result.code, message: result.message },
-				});
+				};
 			}
 
 			return { ok: true, data: result.data };
@@ -118,13 +132,16 @@ export const instrumentModule = new Elysia({
 		{
 			isAuth: true,
 			params: instrumentParamsSchema,
-			response: instrumentResponseSchema,
+			response: {
+				200: instrumentResponseSchema,
+				404: instrumentErrorResponseSchema,
+			},
 			detail: { tags: ["Instruments"] },
 		},
 	)
 	.post(
 		"/",
-		async ({ db, body, user, request }) => {
+		async ({ db, body, user, request, set }) => {
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
 			const result = await createInstrument(db, body);
@@ -142,10 +159,11 @@ export const instrumentModule = new Elysia({
 					request: requestMeta,
 					payload: { instrumentNo: body.instrumentNo },
 				});
-				return status(result.status ?? 400, {
+				set.status = result.status ?? 400;
+				return {
 					ok: false,
 					error: { code: result.code, message: result.message },
-				});
+				};
 			}
 
 			await recordAuditEvent(db, {
@@ -165,13 +183,16 @@ export const instrumentModule = new Elysia({
 		{
 			isAuth: true,
 			body: instrumentCreateSchema,
-			response: instrumentResponseSchema,
+			response: {
+				200: instrumentResponseSchema,
+				400: instrumentErrorResponseSchema,
+			},
 			detail: { tags: ["Instruments"] },
 		},
 	)
 	.patch(
 		"/:id",
-		async ({ db, params, body, user, request }) => {
+		async ({ db, params, body, user, request, set }) => {
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
 			const before = await db.instrument.findUnique({ where: { id: params.id } });
@@ -190,10 +211,11 @@ export const instrumentModule = new Elysia({
 					before,
 					request: requestMeta,
 				});
-				return status(result.status ?? 404, {
+				set.status = result.status ?? 404;
+				return {
 					ok: false,
 					error: { code: result.code, message: result.message },
-				});
+				};
 			}
 
 			await recordAuditEvent(db, {
@@ -214,13 +236,17 @@ export const instrumentModule = new Elysia({
 			isAuth: true,
 			params: instrumentParamsSchema,
 			body: instrumentUpdateSchema,
-			response: instrumentResponseSchema,
+			response: {
+				200: instrumentResponseSchema,
+				400: instrumentErrorResponseSchema,
+				404: instrumentErrorResponseSchema,
+			},
 			detail: { tags: ["Instruments"] },
 		},
 	)
 	.patch(
 		"/:id/calibration",
-		async ({ db, params, body, user, request }) => {
+		async ({ db, params, body, user, request, set }) => {
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
 			const before = await db.instrument.findUnique({ where: { id: params.id } });
@@ -239,10 +265,11 @@ export const instrumentModule = new Elysia({
 					before,
 					request: requestMeta,
 				});
-				return status(result.status ?? 404, {
+				set.status = result.status ?? 404;
+				return {
 					ok: false,
 					error: { code: result.code, message: result.message },
-				});
+				};
 			}
 
 			await recordAuditEvent(db, {
@@ -263,7 +290,11 @@ export const instrumentModule = new Elysia({
 			isAuth: true,
 			params: instrumentParamsSchema,
 			body: instrumentCalibrationUpdateSchema,
-			response: instrumentResponseSchema,
+			response: {
+				200: instrumentResponseSchema,
+				400: instrumentErrorResponseSchema,
+				404: instrumentErrorResponseSchema,
+			},
 			detail: { tags: ["Instruments"] },
 		},
 	)
@@ -271,14 +302,15 @@ export const instrumentModule = new Elysia({
 		app
 			.get(
 				"/",
-				async ({ db, params, query }) => {
+				async ({ db, params, query, set }) => {
 					const result = await listCalibrationRecords(db, params.id, query);
 
 					if (!result.success) {
-						return status(result.status ?? 404, {
+						set.status = result.status ?? 404;
+						return {
 							ok: false,
 							error: { code: result.code, message: result.message },
-						});
+						};
 					}
 
 					return { ok: true, data: result.data };
@@ -287,13 +319,17 @@ export const instrumentModule = new Elysia({
 					isAuth: true,
 					params: instrumentParamsSchema,
 					query: calibrationListQuerySchema,
-					response: calibrationListResponseSchema,
+					response: {
+						200: calibrationListResponseSchema,
+						400: instrumentErrorResponseSchema,
+						404: instrumentErrorResponseSchema,
+					},
 					detail: { tags: ["Calibrations"] },
 				},
 			)
 			.post(
 				"/",
-				async ({ db, params, body, user, request }) => {
+				async ({ db, params, body, user, request, set }) => {
 					const actor = buildAuditActor(user);
 					const requestMeta = buildAuditRequestMeta(request);
 					const result = await createCalibrationRecord(db, params.id, user.id, body);
@@ -311,10 +347,11 @@ export const instrumentModule = new Elysia({
 							request: requestMeta,
 							payload: { instrumentId: params.id },
 						});
-						return status(result.status ?? 400, {
+						set.status = result.status ?? 400;
+						return {
 							ok: false,
 							error: { code: result.code, message: result.message },
-						});
+						};
 					}
 
 					await recordAuditEvent(db, {
@@ -336,13 +373,16 @@ export const instrumentModule = new Elysia({
 					isAuth: true,
 					params: instrumentParamsSchema,
 					body: calibrationCreateSchema,
-					response: calibrationResponseSchema,
+					response: {
+						200: calibrationResponseSchema,
+						400: instrumentErrorResponseSchema,
+					},
 					detail: { tags: ["Calibrations"] },
 				},
 			)
 			.patch(
 				"/:recordId",
-				async ({ db, params, body, user, request }) => {
+				async ({ db, params, body, user, request, set }) => {
 					const actor = buildAuditActor(user);
 					const requestMeta = buildAuditRequestMeta(request);
 					const before = await db.calibrationRecord.findUnique({
@@ -364,10 +404,11 @@ export const instrumentModule = new Elysia({
 							request: requestMeta,
 							payload: { instrumentId: params.id },
 						});
-						return status(result.status ?? 400, {
+						set.status = result.status ?? 400;
+						return {
 							ok: false,
 							error: { code: result.code, message: result.message },
-						});
+						};
 					}
 
 					await recordAuditEvent(db, {
@@ -389,13 +430,16 @@ export const instrumentModule = new Elysia({
 					isAuth: true,
 					params: calibrationRecordParamsSchema,
 					body: calibrationUpdateSchema,
-					response: calibrationResponseSchema,
+					response: {
+						200: calibrationResponseSchema,
+						400: instrumentErrorResponseSchema,
+					},
 					detail: { tags: ["Calibrations"] },
 				},
 			)
 			.delete(
 				"/:recordId",
-				async ({ db, params, query, user, request }) => {
+				async ({ db, params, query, user, request, set }) => {
 					const actor = buildAuditActor(user);
 					const requestMeta = buildAuditRequestMeta(request);
 					const before = await db.calibrationRecord.findUnique({
@@ -417,10 +461,11 @@ export const instrumentModule = new Elysia({
 							request: requestMeta,
 							payload: { instrumentId: params.id },
 						});
-						return status(result.status ?? 400, {
+						set.status = result.status ?? 400;
+						return {
 							ok: false,
 							error: { code: result.code, message: result.message },
-						});
+						};
 					}
 
 					await recordAuditEvent(db, {
@@ -442,14 +487,17 @@ export const instrumentModule = new Elysia({
 					isAuth: true,
 					params: calibrationRecordParamsSchema,
 					query: calibrationDeleteQuerySchema,
-					response: deleteResponseSchema,
+					response: {
+						200: deleteResponseSchema,
+						400: instrumentErrorResponseSchema,
+					},
 					detail: { tags: ["Calibrations"] },
 				},
 			),
 	)
 	.delete(
 		"/:id",
-		async ({ db, params, user, request }) => {
+		async ({ db, params, user, request, set }) => {
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
 			const deletedResult = await deleteInstrument(db, params.id);
@@ -466,10 +514,11 @@ export const instrumentModule = new Elysia({
 					errorMessage: deletedResult.message,
 					request: requestMeta,
 				});
-				return status(deletedResult.status ?? 404, {
+				set.status = deletedResult.status ?? 404;
+				return {
 					ok: false,
 					error: { code: deletedResult.code, message: deletedResult.message },
-				});
+				};
 			}
 
 			// We need the deleted instrument data for the audit log, but deleteInstrument only returned success.
@@ -505,7 +554,10 @@ export const instrumentModule = new Elysia({
 		{
 			isAuth: true,
 			params: instrumentParamsSchema,
-			response: deleteResponseSchema,
+			response: {
+				200: deleteResponseSchema,
+				404: instrumentErrorResponseSchema,
+			},
 			detail: { tags: ["Instruments"] },
 		},
 	);

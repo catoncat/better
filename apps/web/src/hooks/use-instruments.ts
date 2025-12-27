@@ -2,10 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { client, unwrap } from "@/lib/eden";
 
-// Infer Instrument type from the API using Eden Treaty
-type ApiInstrumentResponse = Awaited<ReturnType<typeof client.api.instruments.get>>;
-// Assuming unwrap returns { items: Instrument[] }
-type InstrumentListData = { items: unknown[]; total: number; page: number; pageSize: number };
+type UnwrapEnvelope<T> = T extends { data: infer D } ? D : T;
+type InstrumentListResponse = Awaited<ReturnType<typeof client.api.instruments.get>>["data"];
+type InstrumentListData = UnwrapEnvelope<NonNullable<InstrumentListResponse>>;
 export type Instrument = InstrumentListData["items"][number];
 export type InstrumentList = InstrumentListData;
 

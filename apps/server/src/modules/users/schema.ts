@@ -1,9 +1,11 @@
+import * as Prismabox from "@better-app/db/prismabox";
 import { t } from "elysia";
 import { UserRole } from "../../types/prisma-enums";
-import * as Prismabox from "@better-app/db/prismabox";
 
 // --- Helpers ---
-const createResponseSchema = <T extends unknown>(schema: T) =>
+type SchemaType = Parameters<typeof t.Object>[0][string];
+
+const createResponseSchema = <T extends SchemaType>(schema: T) =>
 	t.Object({
 		ok: t.Boolean(),
 		data: schema,
@@ -87,3 +89,11 @@ export const successResponseSchema = createResponseSchema(
 		success: t.Boolean(),
 	}),
 );
+
+export const userErrorResponseSchema = t.Object({
+	ok: t.Boolean(),
+	error: t.Object({
+		code: t.String(),
+		message: t.String(),
+	}),
+});

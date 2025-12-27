@@ -3,9 +3,7 @@ import { toast } from "sonner";
 import { client } from "@/lib/eden";
 
 // Infer types from the API using Eden Treaty
-type ApiWorkOrderResponse = Awaited<
-	ReturnType<(typeof client.api)["work-orders"]["get"]>
->["data"];
+type ApiWorkOrderResponse = Awaited<ReturnType<(typeof client.api)["work-orders"]["get"]>>["data"];
 export type WorkOrder = NonNullable<ApiWorkOrderResponse>["items"][number];
 export type WorkOrderList = Exclude<
 	ApiWorkOrderResponse,

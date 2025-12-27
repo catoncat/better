@@ -1,6 +1,6 @@
-import { t } from "elysia";
 import { StationType } from "@better-app/db";
 import * as Prismabox from "@better-app/db/prismabox";
+import { t } from "elysia";
 
 export const routingCodeParamsSchema = t.Object({
 	routingCode: t.String(),
@@ -125,4 +125,12 @@ export const routeVersionListResponseSchema = t.Object({
 export const routeVersionResponseSchema = t.Object({
 	ok: t.Boolean(),
 	data: Prismabox.ExecutableRouteVersionPlain,
+});
+
+export const routeErrorResponseSchema = t.Object({
+	ok: t.Boolean(),
+	error: t.Object({
+		code: t.String(),
+		message: t.String(),
+	}),
 });

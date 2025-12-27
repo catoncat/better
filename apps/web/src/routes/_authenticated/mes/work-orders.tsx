@@ -161,7 +161,12 @@ function WorkOrdersPage() {
 						replace: true,
 					});
 				},
-				onReset: () => navigate({ to: ".", search: { page: 1, pageSize: searchParams.pageSize }, replace: true }),
+				onReset: () =>
+					navigate({
+						to: ".",
+						search: { page: 1, pageSize: searchParams.pageSize },
+						replace: true,
+					}),
 				isFiltered: !!searchParams.search || !!searchParams.status,
 				actions: (
 					<Button size="sm" className="h-8" onClick={() => setReceiveDialogOpen(true)}>

@@ -1,5 +1,5 @@
-import { Elysia, t } from "elysia";
 import { AuditEntityType } from "@better-app/db";
+import { Elysia, t } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
@@ -8,10 +8,11 @@ import {
 	executionConfigListResponseSchema,
 	executionConfigResponseSchema,
 	executionConfigUpdateSchema,
+	routeCompileResponseSchema,
 	routeDetailResponseSchema,
+	routeErrorResponseSchema,
 	routeListQuerySchema,
 	routeListResponseSchema,
-	routeCompileResponseSchema,
 	routeVersionListResponseSchema,
 	routeVersionResponseSchema,
 	routingCodeParamsSchema,
@@ -32,16 +33,12 @@ export const routingModule = new Elysia({
 })
 	.use(prismaPlugin)
 	.use(authPlugin)
-	.get(
-		"/",
-		async ({ db, query }) => listRoutes(db, query),
-		{
-			isAuth: true,
-			query: routeListQuerySchema,
-			response: routeListResponseSchema,
-			detail: { tags: ["MES - Routing"] },
-		},
-	)
+	.get("/", async ({ db, query }) => listRoutes(db, query), {
+		isAuth: true,
+		query: routeListQuerySchema,
+		response: routeListResponseSchema,
+		detail: { tags: ["MES - Routing"] },
+	})
 	.get(
 		"/:routingCode",
 		async ({ db, params, set }) => {
@@ -55,7 +52,11 @@ export const routingModule = new Elysia({
 		{
 			isAuth: true,
 			params: routingCodeParamsSchema,
-			response: routeDetailResponseSchema,
+			response: {
+				200: routeDetailResponseSchema,
+				400: routeErrorResponseSchema,
+				404: routeErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Routing"] },
 		},
 	)
@@ -72,7 +73,11 @@ export const routingModule = new Elysia({
 		{
 			isAuth: true,
 			params: routingCodeParamsSchema,
-			response: executionConfigListResponseSchema,
+			response: {
+				200: executionConfigListResponseSchema,
+				400: routeErrorResponseSchema,
+				404: routeErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Routing"] },
 		},
 	)
@@ -115,7 +120,11 @@ export const routingModule = new Elysia({
 			isAuth: true,
 			params: routingCodeParamsSchema,
 			body: executionConfigCreateSchema,
-			response: executionConfigResponseSchema,
+			response: {
+				200: executionConfigResponseSchema,
+				400: routeErrorResponseSchema,
+				404: routeErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Routing"] },
 		},
 	)
@@ -161,7 +170,11 @@ export const routingModule = new Elysia({
 			isAuth: true,
 			params: t.Intersect([routingCodeParamsSchema, t.Object({ configId: t.String() })]),
 			body: executionConfigUpdateSchema,
-			response: executionConfigResponseSchema,
+			response: {
+				200: executionConfigResponseSchema,
+				400: routeErrorResponseSchema,
+				404: routeErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Routing"] },
 		},
 	)
@@ -205,7 +218,11 @@ export const routingModule = new Elysia({
 		{
 			isAuth: true,
 			params: routingCodeParamsSchema,
-			response: routeCompileResponseSchema,
+			response: {
+				200: routeCompileResponseSchema,
+				400: routeErrorResponseSchema,
+				404: routeErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Routing"] },
 		},
 	)
@@ -222,7 +239,11 @@ export const routingModule = new Elysia({
 		{
 			isAuth: true,
 			params: routingCodeParamsSchema,
-			response: routeVersionListResponseSchema,
+			response: {
+				200: routeVersionListResponseSchema,
+				400: routeErrorResponseSchema,
+				404: routeErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Routing"] },
 		},
 	)
@@ -239,7 +260,11 @@ export const routingModule = new Elysia({
 		{
 			isAuth: true,
 			params: t.Intersect([routingCodeParamsSchema, t.Object({ versionNo: t.Numeric() })]),
-			response: routeVersionResponseSchema,
+			response: {
+				200: routeVersionResponseSchema,
+				400: routeErrorResponseSchema,
+				404: routeErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Routing"] },
 		},
 	);

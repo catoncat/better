@@ -173,11 +173,24 @@ const loadErpRoutesFromCsv = async (): Promise<ParsedRouteData> => {
 		const lines = text.split(/\r?\n/);
 		const headerIndex = lines.findIndex((line) => line.includes("FBillHead(ENG_Route)"));
 		if (headerIndex < 0) {
-			routeCache = { routes: fallbackErpRoutes, materials: fallbackErpMaterials, workCenters: fallbackErpWorkCenters };
+			routeCache = {
+				routes: fallbackErpRoutes,
+				materials: fallbackErpMaterials,
+				workCenters: fallbackErpWorkCenters,
+			};
 			return routeCache;
 		}
 
-		const headerColumns = parseCsvLine(lines[headerIndex]).map((value) => value.trim());
+		const headerLine = lines[headerIndex];
+		if (!headerLine) {
+			routeCache = {
+				routes: fallbackErpRoutes,
+				materials: fallbackErpMaterials,
+				workCenters: fallbackErpWorkCenters,
+			};
+			return routeCache;
+		}
+		const headerColumns = parseCsvLine(headerLine).map((value) => value.trim());
 		const indexOf = (name: string) => headerColumns.indexOf(name);
 		const headerRowIndex = headerIndex + 1;
 		let dataStart = headerRowIndex;
@@ -236,10 +249,11 @@ const loadErpRoutesFromCsv = async (): Promise<ParsedRouteData> => {
 					modifiedAt: toIso(cells[idxModifyDate]?.trim() ?? ""),
 				};
 				lastHeader = header;
-				if (!routeMap.has(routeNo)) {
-					routeMap.set(routeNo, { header, steps: [] });
+				const existingRoute = routeMap.get(routeNo);
+				if (existingRoute) {
+					existingRoute.header = header;
 				} else {
-					routeMap.get(routeNo)!.header = header;
+					routeMap.set(routeNo, { header, steps: [] });
 				}
 				if (header.productCode) {
 					materialMap.set(header.productCode, {
@@ -295,7 +309,11 @@ const loadErpRoutesFromCsv = async (): Promise<ParsedRouteData> => {
 		};
 		return routeCache;
 	} catch {
-		routeCache = { routes: fallbackErpRoutes, materials: fallbackErpMaterials, workCenters: fallbackErpWorkCenters };
+		routeCache = {
+			routes: fallbackErpRoutes,
+			materials: fallbackErpMaterials,
+			workCenters: fallbackErpWorkCenters,
+		};
 		return routeCache;
 	}
 };

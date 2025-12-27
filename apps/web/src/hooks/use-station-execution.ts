@@ -1,24 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { client } from "@/lib/eden";
+import { client, unwrap } from "@/lib/eden";
 
 type TrackInInput = Parameters<ReturnType<typeof client.api.stations>["track-in"]["post"]>[0];
 type TrackOutInput = Parameters<ReturnType<typeof client.api.stations>["track-out"]["post"]>[0];
-type ApiStationResponse = Awaited<ReturnType<typeof client.api.stations.get>>["data"];
-export type StationList = Exclude<
-	ApiStationResponse,
-	{ code: string; message: string } | null | undefined
->;
+type StationListResponse = Awaited<ReturnType<typeof client.api.stations.get>>["data"];
+export type StationList = NonNullable<StationListResponse>;
 export type Station = StationList["items"][number];
 
 export function useStations() {
 	return useQuery<StationList>({
 		queryKey: ["mes", "stations"],
 		queryFn: async () => {
-			const { data, error } = await client.api.stations.get();
-			if (error) throw new Error("获取工位失败");
-			if (!data) throw new Error("未返回工位数据");
-			return data;
+			const response = await client.api.stations.get();
+			return unwrap(response);
 		},
 	});
 }

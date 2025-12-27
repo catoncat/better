@@ -1,9 +1,10 @@
 import { Elysia } from "elysia";
 import { authPlugin } from "../../plugins/auth";
 import { prismaPlugin } from "../../plugins/prisma";
-import { UserRole } from "../../types/prisma-enums";
+import type { UserRole } from "../../types/prisma-enums";
 import {
-	auditEventSchema,
+	auditErrorResponseSchema,
+	auditEventResponseSchema,
 	auditListQuerySchema,
 	auditListResponseSchema,
 	auditParamsSchema,
@@ -28,16 +29,22 @@ export const auditModule = new Elysia({
 			const allowAll = canViewAllAuditLogs(user.role as UserRole | undefined);
 			if (!allowAll && query.actorId && query.actorId !== user.id) {
 				set.status = 403;
-				return { code: "FORBIDDEN", message: "无法查看其他用户的审计记录" };
+				return {
+					ok: false,
+					error: { code: "FORBIDDEN", message: "无法查看其他用户的审计记录" },
+				};
 			}
 
 			const result = await listAuditEvents(db, query, allowAll ? undefined : user.id);
-			return result;
+			return { ok: true, data: result };
 		},
 		{
 			isAuth: true,
 			query: auditListQuerySchema,
-			response: auditListResponseSchema,
+			response: {
+				200: auditListResponseSchema,
+				403: auditErrorResponseSchema,
+			},
 			detail: { tags: ["Audit Logs"] },
 		},
 	)
@@ -48,18 +55,25 @@ export const auditModule = new Elysia({
 			const record = await getAuditEvent(db, params.id);
 			if (!record) {
 				set.status = 404;
-				return { code: "NOT_FOUND", message: "未找到审计记录" };
+				return { ok: false, error: { code: "NOT_FOUND", message: "未找到审计记录" } };
 			}
 			if (!allowAll && record.actorId && record.actorId !== user.id) {
 				set.status = 403;
-				return { code: "FORBIDDEN", message: "无法查看其他用户的审计记录" };
+				return {
+					ok: false,
+					error: { code: "FORBIDDEN", message: "无法查看其他用户的审计记录" },
+				};
 			}
-			return record;
+			return { ok: true, data: record };
 		},
 		{
 			isAuth: true,
 			params: auditParamsSchema,
-			response: auditEventSchema,
+			response: {
+				200: auditEventResponseSchema,
+				403: auditErrorResponseSchema,
+				404: auditErrorResponseSchema,
+			},
 			detail: { tags: ["Audit Logs"] },
 		},
 	);

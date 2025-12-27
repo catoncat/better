@@ -1,5 +1,5 @@
-import { t } from "elysia";
 import * as Prismabox from "@better-app/db/prismabox";
+import { t } from "elysia";
 
 export const workOrderReceiveSchema = t.Object({
 	woNo: t.String(),
@@ -15,6 +15,14 @@ export const workOrderReceiveSchema = t.Object({
 export const workOrderResponseSchema = t.Object({
 	ok: t.Boolean(),
 	data: Prismabox.WorkOrderPlain,
+});
+
+export const workOrderErrorResponseSchema = t.Object({
+	ok: t.Boolean(),
+	error: t.Object({
+		code: t.String(),
+		message: t.String(),
+	}),
 });
 
 export const workOrderReleaseSchema = t.Object({

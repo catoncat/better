@@ -1,8 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import { useState } from "react";
+import { type Resolver, useForm } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
 	Dialog,
 	DialogContent,
@@ -20,8 +22,6 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { DatePicker } from "@/components/ui/date-picker";
-import { Combobox } from "@/components/ui/combobox";
 import { useRouteSearch } from "@/hooks/use-routes";
 
 const workOrderSchema = z.object({
@@ -54,8 +54,8 @@ export function WorkOrderReceiveDialog({
 	onSubmit,
 	isSubmitting,
 }: WorkOrderReceiveDialogProps) {
-	const form = useForm<WorkOrderFormValues>({
-		resolver: zodResolver(workOrderSchema),
+	const form = useForm<WorkOrderFormValues, unknown, WorkOrderFormValues>({
+		resolver: zodResolver(workOrderSchema) as Resolver<WorkOrderFormValues>,
 		defaultValues: {
 			woNo: "",
 			productCode: "",

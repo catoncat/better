@@ -145,13 +145,23 @@ const tpmMaintenanceTaskSchema = t.Object({
 });
 
 export const erpRoutePullResponseSchema = integrationEnvelopeSchema(t.Array(erpRouteSchema));
-export const erpWorkOrderPullResponseSchema = integrationEnvelopeSchema(t.Array(erpWorkOrderSchema));
+export const erpWorkOrderPullResponseSchema = integrationEnvelopeSchema(
+	t.Array(erpWorkOrderSchema),
+);
 export const erpMaterialPullResponseSchema = integrationEnvelopeSchema(t.Array(erpMaterialSchema));
 export const erpBomPullResponseSchema = integrationEnvelopeSchema(t.Array(erpBomSchema));
-export const erpWorkCenterPullResponseSchema = integrationEnvelopeSchema(t.Array(erpWorkCenterSchema));
-export const tpmEquipmentPullResponseSchema = integrationEnvelopeSchema(t.Array(tpmEquipmentSchema));
-export const tpmStatusLogPullResponseSchema = integrationEnvelopeSchema(t.Array(tpmStatusLogSchema));
-export const tpmMaintenanceTaskPullResponseSchema = integrationEnvelopeSchema(t.Array(tpmMaintenanceTaskSchema));
+export const erpWorkCenterPullResponseSchema = integrationEnvelopeSchema(
+	t.Array(erpWorkCenterSchema),
+);
+export const tpmEquipmentPullResponseSchema = integrationEnvelopeSchema(
+	t.Array(tpmEquipmentSchema),
+);
+export const tpmStatusLogPullResponseSchema = integrationEnvelopeSchema(
+	t.Array(tpmStatusLogSchema),
+);
+export const tpmMaintenanceTaskPullResponseSchema = integrationEnvelopeSchema(
+	t.Array(tpmMaintenanceTaskSchema),
+);
 
 const integrationCursorStatusSchema = t.Object({
 	sourceSystem: t.String(),
@@ -180,5 +190,13 @@ export const integrationStatusResponseSchema = t.Object({
 	ok: t.Boolean(),
 	data: t.Object({
 		jobs: t.Array(integrationSyncStatusSchema),
+	}),
+});
+
+export const integrationErrorResponseSchema = t.Object({
+	ok: t.Boolean(),
+	error: t.Object({
+		code: t.String(),
+		message: t.String(),
 	}),
 });

@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
 	Table,
 	TableBody,
@@ -13,8 +14,11 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { Label } from "@/components/ui/label";
-import { useCompileRouteVersion, useRouteVersions, type RouteVersion } from "@/hooks/use-route-versions";
+import {
+	type RouteVersion,
+	useCompileRouteVersion,
+	useRouteVersions,
+} from "@/hooks/use-route-versions";
 
 export const Route = createFileRoute("/_authenticated/mes/route-versions")({
 	component: RouteVersionsPage,
@@ -72,7 +76,11 @@ function RouteVersionsPage() {
 							/>
 						</div>
 						<div className="flex flex-wrap gap-2">
-							<Button variant="secondary" onClick={() => refetch()} disabled={!routingCode || isFetching}>
+							<Button
+								variant="secondary"
+								onClick={() => refetch()}
+								disabled={!routingCode || isFetching}
+							>
 								刷新
 							</Button>
 							<Button onClick={handleCompile} disabled={!routingCode || isCompiling}>

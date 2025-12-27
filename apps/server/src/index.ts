@@ -13,12 +13,12 @@ import { metaModule } from "./modules/meta";
 import { notificationModule } from "./modules/notifications";
 import { systemModule } from "./modules/system";
 import { usersModule } from "./modules/users";
-import { authPlugin } from "./plugins/auth";
 import { auditArchiveCronPlugin } from "./plugins/audit-archive-cron";
+import { authPlugin } from "./plugins/auth";
+import { erpSyncCronPlugin } from "./plugins/erp-sync-cron";
 import { instrumentCronPlugin } from "./plugins/instrument-cron";
 import { prismaPlugin } from "./plugins/prisma";
 import { serveWebRequest } from "./web/serve-web";
-import { erpSyncCronPlugin } from "./plugins/erp-sync-cron";
 
 const normalizeOrigin = (value: string | undefined) => {
 	if (!value) return null;
@@ -64,6 +64,21 @@ const getAuthOpenApi = async () => {
 	];
 
 	const filteredAuthPaths: typeof authPaths = {};
+	const httpMethods = [
+		"get",
+		"post",
+		"put",
+		"patch",
+		"delete",
+		"options",
+		"head",
+		"trace",
+	] as const;
+	const isReferenceObject = (
+		value: unknown,
+	): value is import("openapi-types").OpenAPIV3.ReferenceObject =>
+		typeof value === "object" && value !== null && "$ref" in value;
+
 	for (const [path, config] of Object.entries(authPaths)) {
 		// BetterAuth openapi paths might not include the prefix if configured differently,
 		// but typically they match the route. Let's check with and without prefix just in case,
@@ -72,10 +87,10 @@ const getAuthOpenApi = async () => {
 		const fullPath = `/api/auth${path}`;
 		if (allowedAuthPaths.includes(fullPath)) {
 			// Add a tag for better organization
-			const newConfig = { ...config };
-			for (const method of Object.keys(newConfig)) {
-				const operation = (newConfig as any)[method];
-				if (operation) {
+			const newConfig = { ...config } as import("openapi-types").OpenAPIV3.PathItemObject;
+			for (const method of httpMethods) {
+				const operation = newConfig[method];
+				if (operation && !isReferenceObject(operation)) {
 					operation.tags = ["Authentication"];
 				}
 			}
@@ -86,16 +101,8 @@ const getAuthOpenApi = async () => {
 	return { authComponents, authPaths: filteredAuthPaths };
 };
 
-const api = new Elysia({
-	prefix: "/api",
-	normalize: true,
-});
-
-if (otelPlugin) {
-	api.use(otelPlugin);
-}
-
-api
+const api = new Elysia({ prefix: "/api", normalize: true })
+	.use(otelPlugin ?? new Elysia())
 	.onError(({ code, error, path, request, set }) => {
 		// 记录错误日志
 		const timestamp = new Date().toISOString();
