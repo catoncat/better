@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { Command, Loader2, User } from "lucide-react";
 import { useState } from "react";
@@ -16,6 +17,7 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { USER_ROLE_MAP } from "@/lib/constants";
+import { sessionQueryKey } from "@/lib/session-query";
 import { cn } from "@/lib/utils";
 
 // 测试账号配置（仅开发环境使用）
@@ -35,6 +37,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 	const [password, setPassword] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
 	const router = useRouter();
+	const queryClient = useQueryClient();
 	const isDev = import.meta.env.DEV;
 
 	const handleTestAccountSelect = (testAccount: (typeof TEST_ACCOUNTS)[number]) => {
@@ -55,6 +58,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 				},
 				{
 					onSuccess: () => {
+  					queryClient.removeQueries({ queryKey: sessionQueryKey });
 						toast.success("登录成功");
 						router.navigate({ to: "/instruments" });
 					},
