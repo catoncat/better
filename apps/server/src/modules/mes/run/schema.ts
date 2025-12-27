@@ -1,5 +1,5 @@
-import { t } from "elysia";
 import * as Prismabox from "@better-app/db/prismabox";
+import { t } from "elysia";
 
 export const runAuthorizeSchema = t.Object({
 	action: t.String(), // AUTHORIZE or REVOKE
@@ -9,6 +9,14 @@ export const runAuthorizeSchema = t.Object({
 export const runResponseSchema = t.Object({
 	ok: t.Boolean(),
 	data: Prismabox.RunPlain,
+});
+
+export const runErrorResponseSchema = t.Object({
+	ok: t.Boolean(),
+	error: t.Object({
+		code: t.String(),
+		message: t.String(),
+	}),
 });
 
 export const runListQuerySchema = t.Object({

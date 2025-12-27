@@ -79,7 +79,9 @@ export const archiveAuditEvents = async (
 			rangeEnd = record.createdAt;
 		}
 
-		cursor = { id: batch[batch.length - 1].id };
+		const last = batch[batch.length - 1];
+		if (!last) break;
+		cursor = { id: last.id };
 	}
 
 	await new Promise<void>((resolve, reject) => {

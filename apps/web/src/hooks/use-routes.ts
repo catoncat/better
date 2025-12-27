@@ -1,53 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchClient } from "@/lib/api-client";
+import { client, unwrap } from "@/lib/eden";
 
-export type RouteSummary = {
-	code: string;
-	name: string;
-	sourceSystem: string;
-	productCode: string | null;
-	version: string | null;
-	isActive: boolean;
-	effectiveFrom: string | null;
-	effectiveTo: string | null;
-	updatedAt: string;
-	stepCount: number;
-};
+const routesApi = client.api.routes;
+type RouteListResponse = Awaited<ReturnType<typeof routesApi.get>>["data"];
+type RouteListData = NonNullable<RouteListResponse>;
+export type RouteSummary = RouteListData["items"][number];
+export type RouteList = RouteListData;
 
-export type RouteDetail = {
-	route: {
-		id: string;
-		code: string;
-		name: string;
-		sourceSystem: string;
-		sourceKey: string | null;
-		productCode: string | null;
-		version: string | null;
-		isActive: boolean;
-		effectiveFrom: string | null;
-		effectiveTo: string | null;
-		createdAt: string;
-		updatedAt: string;
-	};
-	steps: Array<{
-		stepNo: number;
-		sourceStepKey: string | null;
-		operationCode: string;
-		operationName: string;
-		stationGroupCode: string | null;
-		stationGroupName: string | null;
-		stationType: string;
-		requiresFAI: boolean;
-		isLast: boolean;
-	}>;
-};
-
-export type RouteListResponse = {
-	items: RouteSummary[];
-	total: number;
-	page: number;
-	pageSize: number;
-};
+const routeDetailApi = (code: string) => client.api.routes({ routingCode: code });
+type RouteDetailResponse = Awaited<ReturnType<ReturnType<typeof routeDetailApi>["get"]>>["data"];
+export type RouteDetail = NonNullable<RouteDetailResponse>;
 
 interface UseRouteListParams {
 	page?: number;
@@ -62,41 +24,49 @@ export function useRouteList(params: UseRouteListParams) {
 	const search = params.search ?? "";
 	const sourceSystem = params.sourceSystem ?? "";
 
-	return useQuery({
+	return useQuery<RouteList>({
 		queryKey: ["mes", "routes", page, pageSize, search, sourceSystem],
 		queryFn: async () => {
-			const query = new URLSearchParams();
-			query.set("page", String(page));
-			query.set("pageSize", String(pageSize));
-			if (search) query.set("search", search);
-			if (sourceSystem) query.set("sourceSystem", sourceSystem);
-			return fetchClient<RouteListResponse>(`/routes?${query.toString()}`);
+			const response = await routesApi.get({
+				query: {
+					page,
+					pageSize,
+					search: search || undefined,
+					sourceSystem: sourceSystem && sourceSystem !== "all" ? sourceSystem : undefined,
+				},
+			});
+			return unwrap(response);
 		},
-		placeholderData: (previousData: RouteListResponse | undefined) => previousData,
+		placeholderData: (previousData: RouteList | undefined) => previousData,
 		staleTime: 15_000,
 	});
 }
 
 export function useRouteSearch(search: string) {
-	return useQuery({
+	return useQuery<RouteList>({
 		queryKey: ["mes", "routes-search", search],
 		queryFn: async () => {
-			const query = new URLSearchParams();
-			query.set("page", "1");
-			query.set("pageSize", "50");
-			if (search) query.set("search", search);
-			return fetchClient<RouteListResponse>(`/routes?${query.toString()}`);
+			const response = await routesApi.get({
+				query: {
+					page: 1,
+					pageSize: 50,
+					search: search || undefined,
+				},
+			});
+			return unwrap(response);
 		},
 		staleTime: 15_000,
 	});
 }
 
 export function useRouteDetail(routingCode: string) {
-	return useQuery({
+	return useQuery<RouteDetail>({
 		queryKey: ["mes", "route-detail", routingCode],
 		enabled: Boolean(routingCode),
-		queryFn: async () =>
-			fetchClient<RouteDetail>(`/routes/${encodeURIComponent(routingCode)}`),
+		queryFn: async () => {
+			const response = await client.api.routes({ routingCode }).get();
+			return unwrap(response);
+		},
 		staleTime: 15_000,
 	});
 }

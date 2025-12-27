@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { PrismaClient } from "@better-app/db";
+import type { Prisma, PrismaClient } from "@better-app/db";
 import { WorkOrderStatus } from "@better-app/db";
 import type { ServiceResult } from "../../../types/service-result";
 import type { IntegrationEnvelope } from "./erp-service";
@@ -59,10 +59,10 @@ type ErpWorkCenter = {
 type ErpMasterConfig = {
 	baseUrl?: string;
 	apiKey?: string;
-	workOrderPath?: string;
-	materialPath?: string;
-	bomPath?: string;
-	workCenterPath?: string;
+	workOrderPath: string;
+	materialPath: string;
+	bomPath: string;
+	workCenterPath: string;
 };
 
 const getErpMasterConfig = (): ErpMasterConfig => ({
@@ -79,6 +79,40 @@ const safeJsonStringify = (value: unknown) =>
 
 const hashPayload = (value: unknown) =>
 	createHash("sha256").update(safeJsonStringify(value)).digest("hex");
+
+const toJsonValue = (value: unknown): Prisma.InputJsonValue =>
+	JSON.parse(safeJsonStringify(value)) as Prisma.InputJsonValue;
+
+const serializeError = (error: unknown) => {
+	if (error instanceof Error) {
+		return { name: error.name, message: error.message, stack: error.stack };
+	}
+	if (error && typeof error === "object") return error;
+	return { message: String(error ?? "Unknown error") };
+};
+
+const getServiceErrorMessage = (error: unknown, fallback: string) => {
+	if (error instanceof Error) return error.message;
+	if (error && typeof error === "object" && "success" in error) {
+		const value = error as { success?: boolean; message?: string };
+		if (value.success === false && typeof value.message === "string") return value.message;
+	}
+	return fallback;
+};
+
+const toServiceError = (
+	error: unknown,
+	fallbackCode: string,
+	fallbackMessage: string,
+): ServiceResult<never> => {
+	if (error && typeof error === "object" && "success" in error) {
+		const value = error as { success?: boolean };
+		if (value.success === false) {
+			return error as ServiceResult<never>;
+		}
+	}
+	return { success: false, code: fallbackCode, message: fallbackMessage };
+};
 
 const parseDate = (value?: string | null) => {
 	if (!value) return null;
@@ -135,7 +169,11 @@ const fetchErpList = async <T>(
 	}
 };
 
-const buildEnvelope = <T>(entityType: string, items: T[], nextSyncAt: Date | null): IntegrationEnvelope<T> => ({
+const buildEnvelope = <T>(
+	entityType: string,
+	items: T[],
+	nextSyncAt: Date | null,
+): IntegrationEnvelope<T> => ({
 	sourceSystem: "ERP",
 	entityType,
 	cursor: { nextSyncAt: nextSyncAt?.toISOString(), hasMore: false },
@@ -167,7 +205,7 @@ const syncEnvelope = async <T>(
 	entityType: string,
 	since: string | null,
 	payloadBuilder: () => Promise<T[]>,
-	applyItems: (tx: PrismaClient, items: T[]) => Promise<void>,
+	applyItems: (tx: Prisma.TransactionClient, items: T[]) => Promise<void>,
 ): Promise<ServiceResult<SyncResult<T>>> => {
 	const businessKey = `${sourceSystem}:${entityType}:since:${since ?? "NONE"}`;
 	const existing = await db.integrationMessage.findFirst({
@@ -230,7 +268,7 @@ const syncEnvelope = async <T>(
 				businessKey,
 				dedupeKey,
 				status: "SUCCESS",
-				payload,
+				payload: toJsonValue(payload),
 			},
 			select: { id: true, dedupeKey: true },
 		});
@@ -269,7 +307,7 @@ export const syncErpWorkOrders = async (
 		if (config.baseUrl) {
 			const result = await fetchErpList<ErpWorkOrder>(
 				config.baseUrl,
-				config.workOrderPath!,
+				config.workOrderPath,
 				config.apiKey,
 				since,
 			);
@@ -279,7 +317,7 @@ export const syncErpWorkOrders = async (
 		return mockErpWorkOrders;
 	};
 
-	const applyItems = async (tx: PrismaClient, items: ErpWorkOrder[]) => {
+	const applyItems = async (tx: Prisma.TransactionClient, items: ErpWorkOrder[]) => {
 		for (const item of items) {
 			const routing = item.routingCode
 				? await tx.routing.findUnique({ where: { code: item.routingCode } })
@@ -310,7 +348,8 @@ export const syncErpWorkOrders = async (
 	try {
 		return await syncEnvelope(db, sourceSystem, entityType, since, payloadBuilder, applyItems);
 	} catch (error) {
-		const result = error as ServiceResult<never>;
+		const errorMessage = getServiceErrorMessage(error, "ERP work order fetch failed");
+		const result = toServiceError(error, "ERP_SYNC_FAILED", errorMessage);
 		await db.integrationMessage.create({
 			data: {
 				direction: "IN",
@@ -318,8 +357,8 @@ export const syncErpWorkOrders = async (
 				entityType,
 				businessKey: `${sourceSystem}:${entityType}:since:${since ?? "NONE"}`,
 				status: "FAILED",
-				payload: { request: { since }, error },
-				error: result.message ?? "ERP work order fetch failed",
+				payload: toJsonValue({ request: { since }, error: serializeError(error) }),
+				error: errorMessage,
 			},
 		});
 		return result;
@@ -342,7 +381,7 @@ export const syncErpMaterials = async (
 		if (config.baseUrl) {
 			const result = await fetchErpList<ErpMaterial>(
 				config.baseUrl,
-				config.materialPath!,
+				config.materialPath,
 				config.apiKey,
 				since,
 			);
@@ -352,7 +391,7 @@ export const syncErpMaterials = async (
 		return await getMockErpMaterials();
 	};
 
-	const applyItems = async (tx: PrismaClient, items: ErpMaterial[]) => {
+	const applyItems = async (tx: Prisma.TransactionClient, items: ErpMaterial[]) => {
 		for (const item of items) {
 			await tx.material.upsert({
 				where: { code: item.materialCode },
@@ -378,7 +417,8 @@ export const syncErpMaterials = async (
 	try {
 		return await syncEnvelope(db, sourceSystem, entityType, since, payloadBuilder, applyItems);
 	} catch (error) {
-		const result = error as ServiceResult<never>;
+		const errorMessage = getServiceErrorMessage(error, "ERP material fetch failed");
+		const result = toServiceError(error, "ERP_SYNC_FAILED", errorMessage);
 		await db.integrationMessage.create({
 			data: {
 				direction: "IN",
@@ -386,8 +426,8 @@ export const syncErpMaterials = async (
 				entityType,
 				businessKey: `${sourceSystem}:${entityType}:since:${since ?? "NONE"}`,
 				status: "FAILED",
-				payload: { request: { since }, error },
-				error: result.message ?? "ERP material fetch failed",
+				payload: toJsonValue({ request: { since }, error: serializeError(error) }),
+				error: errorMessage,
 			},
 		});
 		return result;
@@ -410,7 +450,7 @@ export const syncErpBoms = async (
 		if (config.baseUrl) {
 			const result = await fetchErpList<ErpBomItem>(
 				config.baseUrl,
-				config.bomPath!,
+				config.bomPath,
 				config.apiKey,
 				since,
 			);
@@ -420,7 +460,7 @@ export const syncErpBoms = async (
 		return mockErpBoms;
 	};
 
-	const applyItems = async (tx: PrismaClient, items: ErpBomItem[]) => {
+	const applyItems = async (tx: Prisma.TransactionClient, items: ErpBomItem[]) => {
 		for (const item of items) {
 			await tx.bomItem.upsert({
 				where: { parentCode_childCode: { parentCode: item.parentCode, childCode: item.childCode } },
@@ -443,7 +483,8 @@ export const syncErpBoms = async (
 	try {
 		return await syncEnvelope(db, sourceSystem, entityType, since, payloadBuilder, applyItems);
 	} catch (error) {
-		const result = error as ServiceResult<never>;
+		const errorMessage = getServiceErrorMessage(error, "ERP BOM fetch failed");
+		const result = toServiceError(error, "ERP_SYNC_FAILED", errorMessage);
 		await db.integrationMessage.create({
 			data: {
 				direction: "IN",
@@ -451,8 +492,8 @@ export const syncErpBoms = async (
 				entityType,
 				businessKey: `${sourceSystem}:${entityType}:since:${since ?? "NONE"}`,
 				status: "FAILED",
-				payload: { request: { since }, error },
-				error: result.message ?? "ERP BOM fetch failed",
+				payload: toJsonValue({ request: { since }, error: serializeError(error) }),
+				error: errorMessage,
 			},
 		});
 		return result;
@@ -475,7 +516,7 @@ export const syncErpWorkCenters = async (
 		if (config.baseUrl) {
 			const result = await fetchErpList<ErpWorkCenter>(
 				config.baseUrl,
-				config.workCenterPath!,
+				config.workCenterPath,
 				config.apiKey,
 				since,
 			);
@@ -485,7 +526,7 @@ export const syncErpWorkCenters = async (
 		return await getMockErpWorkCenters();
 	};
 
-	const applyItems = async (tx: PrismaClient, items: ErpWorkCenter[]) => {
+	const applyItems = async (tx: Prisma.TransactionClient, items: ErpWorkCenter[]) => {
 		for (const item of items) {
 			await tx.workCenter.upsert({
 				where: { code: item.workCenterCode },
@@ -509,7 +550,8 @@ export const syncErpWorkCenters = async (
 	try {
 		return await syncEnvelope(db, sourceSystem, entityType, since, payloadBuilder, applyItems);
 	} catch (error) {
-		const result = error as ServiceResult<never>;
+		const errorMessage = getServiceErrorMessage(error, "ERP work center fetch failed");
+		const result = toServiceError(error, "ERP_SYNC_FAILED", errorMessage);
 		await db.integrationMessage.create({
 			data: {
 				direction: "IN",
@@ -517,8 +559,8 @@ export const syncErpWorkCenters = async (
 				entityType,
 				businessKey: `${sourceSystem}:${entityType}:since:${since ?? "NONE"}`,
 				status: "FAILED",
-				payload: { request: { since }, error },
-				error: result.message ?? "ERP work center fetch failed",
+				payload: toJsonValue({ request: { since }, error: serializeError(error) }),
+				error: errorMessage,
 			},
 		});
 		return result;

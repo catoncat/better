@@ -1,6 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { client } from "@/lib/eden";
+import { client, unwrap } from "@/lib/eden";
+
+type UnwrapEnvelope<T> = T extends { data: infer D } ? D : T;
+type NotificationListResponse = Awaited<ReturnType<typeof client.api.notifications.get>>["data"];
+type NotificationListData = UnwrapEnvelope<NonNullable<NotificationListResponse>>;
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+	if (error instanceof Error) return error.message;
+	if (error && typeof error === "object" && "message" in error) {
+		const value = error as { message?: unknown };
+		if (typeof value.message === "string") return value.message;
+	}
+	return fallback;
+};
 
 export function useNotifications(params: {
 	page?: number;
@@ -13,10 +26,10 @@ export function useNotifications(params: {
 	const status = params.status ?? "";
 	const type = params.type ?? "";
 
-	return useQuery({
+	return useQuery<NotificationListData>({
 		queryKey: ["notifications", page, limit, status, type],
 		queryFn: async () => {
-			const { data, error } = await client.api.notifications.get({
+			const response = await client.api.notifications.get({
 				query: {
 					page,
 					limit,
@@ -24,10 +37,9 @@ export function useNotifications(params: {
 					type: type || undefined,
 				},
 			});
-			if (error) throw error;
-			return data;
+			return unwrap(response);
 		},
-		placeholderData: (previousData) => previousData,
+		placeholderData: (previousData: NotificationListData | undefined) => previousData,
 	});
 }
 
@@ -55,9 +67,8 @@ export function useMarkAsRead() {
 			queryClient.invalidateQueries({ queryKey: ["notifications"] });
 			toast.success("已标记为已读");
 		},
-		// biome-ignore lint/suspicious/noExplicitAny: Generic error handling
-		onError: (error: any) => {
-			toast.error(error.message || "操作失败");
+		onError: (error: unknown) => {
+			toast.error(getErrorMessage(error, "操作失败"));
 		},
 	});
 }
@@ -74,9 +85,8 @@ export function useMarkAllAsRead() {
 			queryClient.invalidateQueries({ queryKey: ["notifications"] });
 			toast.success("全部已标记为已读");
 		},
-		// biome-ignore lint/suspicious/noExplicitAny: Generic error handling
-		onError: (error: any) => {
-			toast.error(error.message || "操作失败");
+		onError: (error: unknown) => {
+			toast.error(getErrorMessage(error, "操作失败"));
 		},
 	});
 }
@@ -93,9 +103,8 @@ export function useDeleteNotification() {
 			queryClient.invalidateQueries({ queryKey: ["notifications"] });
 			toast.success("已删除");
 		},
-		// biome-ignore lint/suspicious/noExplicitAny: Generic error handling
-		onError: (error: any) => {
-			toast.error(error.message || "删除失败");
+		onError: (error: unknown) => {
+			toast.error(getErrorMessage(error, "删除失败"));
 		},
 	});
 }

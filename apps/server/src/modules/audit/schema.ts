@@ -1,6 +1,14 @@
 import { t } from "elysia";
-import { AuditEntityType } from "../../types/prisma-enums";
 import { auditDiffSchema } from "../../schemas/json-schemas";
+import { AuditEntityType } from "../../types/prisma-enums";
+
+type SchemaType = Parameters<typeof t.Object>[0][string];
+
+const createResponseSchema = <T extends SchemaType>(schema: T) =>
+	t.Object({
+		ok: t.Boolean(),
+		data: schema,
+	});
 
 export const auditEventSchema = t.Object({
 	id: t.String(),
@@ -26,6 +34,8 @@ export const auditEventSchema = t.Object({
 	createdAt: t.String(),
 });
 
+export const auditEventResponseSchema = createResponseSchema(auditEventSchema);
+
 export const auditListQuerySchema = t.Object({
 	page: t.Optional(t.Number({ minimum: 1 })),
 	pageSize: t.Optional(t.Number({ minimum: 1, maximum: 100 })),
@@ -38,11 +48,21 @@ export const auditListQuerySchema = t.Object({
 	to: t.Optional(t.String()),
 });
 
-export const auditListResponseSchema = t.Object({
-	items: t.Array(auditEventSchema),
-	total: t.Number(),
-	page: t.Number(),
-	pageSize: t.Number(),
+export const auditListResponseSchema = createResponseSchema(
+	t.Object({
+		items: t.Array(auditEventSchema),
+		total: t.Number(),
+		page: t.Number(),
+		pageSize: t.Number(),
+	}),
+);
+
+export const auditErrorResponseSchema = t.Object({
+	ok: t.Boolean(),
+	error: t.Object({
+		code: t.String(),
+		message: t.String(),
+	}),
 });
 
 export const auditParamsSchema = t.Object({

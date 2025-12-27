@@ -1,11 +1,12 @@
-import { Elysia, t } from "elysia";
 import { AuditEntityType } from "@better-app/db";
+import { Elysia, t } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
 import { runResponseSchema } from "../run/schema";
 import {
 	runCreateSchema,
+	workOrderErrorResponseSchema,
 	workOrderListQuerySchema,
 	workOrderReleaseSchema,
 	workOrderResponseSchema,
@@ -49,9 +50,12 @@ export const workOrderModule = new Elysia({
 					errorMessage: result.message,
 					before,
 					request: requestMeta,
-					payload: { lineCode: body.lineCode ?? null, stationGroupCode: body.stationGroupCode ?? null },
+					payload: {
+						lineCode: body.lineCode ?? null,
+						stationGroupCode: body.stationGroupCode ?? null,
+					},
 				});
-				set.status = notFoundCodes.has(result.code) ? 404 : 400;
+				set.status = result.status ?? (notFoundCodes.has(result.code) ? 404 : 400);
 				return { ok: false, error: { code: result.code, message: result.message } };
 			}
 			await recordAuditEvent(db, {
@@ -64,7 +68,10 @@ export const workOrderModule = new Elysia({
 				before,
 				after: result.data,
 				request: requestMeta,
-				payload: { lineCode: body.lineCode ?? null, stationGroupCode: body.stationGroupCode ?? null },
+				payload: {
+					lineCode: body.lineCode ?? null,
+					stationGroupCode: body.stationGroupCode ?? null,
+				},
 			});
 			return { ok: true, data: result.data };
 		},
@@ -72,7 +79,11 @@ export const workOrderModule = new Elysia({
 			isAuth: true,
 			params: t.Object({ woNo: t.String() }),
 			body: workOrderReleaseSchema,
-			response: workOrderResponseSchema,
+			response: {
+				200: workOrderResponseSchema,
+				400: workOrderErrorResponseSchema,
+				404: workOrderErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Work Orders"] },
 		},
 	)
@@ -100,7 +111,7 @@ export const workOrderModule = new Elysia({
 						changeoverNo: body.changeoverNo ?? null,
 					},
 				});
-				set.status = notFoundCodes.has(result.code) ? 404 : 400;
+				set.status = result.status ?? (notFoundCodes.has(result.code) ? 404 : 400);
 				return { ok: false, error: { code: result.code, message: result.message } };
 			}
 			await recordAuditEvent(db, {
@@ -126,7 +137,11 @@ export const workOrderModule = new Elysia({
 			isAuth: true,
 			params: t.Object({ woNo: t.String() }),
 			body: runCreateSchema,
-			response: runResponseSchema,
+			response: {
+				200: runResponseSchema,
+				400: workOrderErrorResponseSchema,
+				404: workOrderErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Work Orders"] },
 		},
 	);

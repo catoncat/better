@@ -18,6 +18,17 @@ export const Route = createFileRoute("/_authenticated/notifications")({
 	component: NotificationsPage,
 });
 
+type NotificationsResponse = Awaited<ReturnType<typeof client.api.notifications.get>>["data"];
+type NotificationItem = NonNullable<NotificationsResponse>["items"][number];
+type NotificationData = {
+	link?: { url?: string };
+	entityType?: string;
+	entityId?: string;
+} & Record<string, unknown>;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null;
+
 function NotificationsPage() {
 	const [activeTab, setActiveTab] = useState<string>("all");
 	const status = activeTab === "unread" ? "unread" : undefined;
@@ -29,10 +40,7 @@ function NotificationsPage() {
 	});
 
 	const markAllReadMutation = useMarkAllAsRead();
-	type NotificationsResponse = Awaited<ReturnType<typeof client.api.notifications.get>>["data"];
-	type NotificationItem = NonNullable<NotificationsResponse>["items"][number];
-	const unreadCount =
-		data?.items.filter((i: NotificationItem) => i.status === "unread").length ?? 0;
+	const unreadCount = data?.items.filter((item) => item.status === "unread").length ?? 0;
 
 	return (
 		<div className="max-w-3xl space-y-6">
@@ -93,8 +101,7 @@ function NotificationContent({
 	items,
 }: {
 	isLoading: boolean;
-	// biome-ignore lint/suspicious/noExplicitAny: TODO: Define Notification type
-	items: any[];
+	items: NotificationItem[];
 }) {
 	if (isLoading) {
 		return (
@@ -126,8 +133,7 @@ function NotificationContent({
 	}
 
 	// Group by date
-	// biome-ignore lint/suspicious/noExplicitAny: TODO
-	const grouped = items.reduce((acc: Record<string, any[]>, item) => {
+	const grouped = items.reduce<Record<string, NotificationItem[]>>((acc, item) => {
 		const date = new Date(item.createdAt);
 		let key: string;
 		if (isToday(date)) key = "今天";
@@ -154,8 +160,7 @@ function NotificationContent({
 				<div key={dateKey}>
 					<div className="text-sm font-medium text-muted-foreground mb-2">{dateKey}</div>
 					<div className="space-y-2">
-						{/* biome-ignore lint/suspicious/noExplicitAny: TODO */}
-						{grouped[dateKey].map((item: any) => (
+						{(grouped[dateKey] ?? []).map((item) => (
 							<NotificationCard key={item.id} item={item} />
 						))}
 					</div>
@@ -170,15 +175,13 @@ const typeConfig: Record<string, { icon: typeof Bell; label: string }> = {
 	system: { icon: Bell, label: "系统" },
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: TODO: Define Notification type
-function NotificationCard({ item }: { item: any }) {
+function NotificationCard({ item }: { item: NotificationItem }) {
 	const navigate = useNavigate();
 	const markReadMutation = useMarkAsRead();
 	const deleteMutation = useDeleteNotification();
 
 	const isUnread = item.status === "unread";
-	// biome-ignore lint/suspicious/noExplicitAny: JSON data
-	const data = item.data as Record<string, any> | null;
+	const data = isRecord(item.data) ? (item.data as NotificationData) : null;
 
 	// Get type config
 	const config = typeConfig[item.type] || typeConfig.system;

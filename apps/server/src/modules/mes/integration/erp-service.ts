@@ -162,10 +162,11 @@ export const pullErpRoutes = async (
 				modifiedAt: toIso(getCell(rawRow, 11).trim()),
 			};
 			lastHeader = header;
-			if (!routeMap.has(routeNo)) {
-				routeMap.set(routeNo, { header, steps: [] });
+			const existingRoute = routeMap.get(routeNo);
+			if (existingRoute) {
+				existingRoute.header = header;
 			} else {
-				routeMap.get(routeNo)!.header = header;
+				routeMap.set(routeNo, { header, steps: [] });
 			}
 			if (header.modifiedAt) {
 				if (!latestModifiedAt || header.modifiedAt > latestModifiedAt) {

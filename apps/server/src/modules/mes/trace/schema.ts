@@ -75,3 +75,11 @@ export const traceUnitResponseSchema = t.Object({
 		snapshot: t.Any(),
 	}),
 });
+
+export const traceErrorResponseSchema = t.Object({
+	ok: t.Boolean(),
+	error: t.Object({
+		code: t.String(),
+		message: t.String(),
+	}),
+});

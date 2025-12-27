@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
-import type { PrismaClient } from "@better-app/db";
-import { StationType } from "@better-app/db";
+import { Prisma, type PrismaClient, StationType } from "@better-app/db";
 import type { ServiceResult } from "../../../types/service-result";
 import type { ErpRoute, IntegrationEnvelope } from "./erp-service";
 import { pullErpRoutes } from "./erp-service";
@@ -40,6 +39,9 @@ const safeJsonStringify = (value: unknown) =>
 const hashPayload = (value: unknown) =>
 	createHash("sha256").update(safeJsonStringify(value)).digest("hex");
 
+const toJsonValue = (value: unknown): Prisma.InputJsonValue =>
+	JSON.parse(safeJsonStringify(value)) as Prisma.InputJsonValue;
+
 const parseCursorMeta = (meta: unknown): CursorMeta | null => {
 	if (!meta || typeof meta !== "object") return null;
 	const raw = meta as Record<string, unknown>;
@@ -71,7 +73,11 @@ const toDateOrNull = (value?: string) => {
 	return Number.isNaN(parsed.valueOf()) ? null : parsed;
 };
 
-const normalizeErpRoutes = async (tx: PrismaClient, routes: ErpRoute[], dedupeKey: string) => {
+const normalizeErpRoutes = async (
+	tx: Prisma.TransactionClient,
+	routes: ErpRoute[],
+	dedupeKey: string,
+) => {
 	for (const route of routes) {
 		if (!route.header.routeNo) continue;
 		const routing = await tx.routing.upsert({
@@ -83,7 +89,7 @@ const normalizeErpRoutes = async (tx: PrismaClient, routes: ErpRoute[], dedupeKe
 				productCode: route.header.productCode || null,
 				effectiveFrom: toDateOrNull(route.header.effectiveFrom),
 				effectiveTo: toDateOrNull(route.header.effectiveTo),
-				meta: {
+				meta: toJsonValue({
 					erp: {
 						useOrgCode: route.header.useOrgCode,
 						createOrgCode: route.header.createOrgCode,
@@ -91,7 +97,7 @@ const normalizeErpRoutes = async (tx: PrismaClient, routes: ErpRoute[], dedupeKe
 						bomCode: route.header.bomCode,
 						modifiedAt: route.header.modifiedAt,
 					},
-				},
+				}),
 			},
 			create: {
 				code: route.header.routeNo,
@@ -101,7 +107,7 @@ const normalizeErpRoutes = async (tx: PrismaClient, routes: ErpRoute[], dedupeKe
 				productCode: route.header.productCode || null,
 				effectiveFrom: toDateOrNull(route.header.effectiveFrom),
 				effectiveTo: toDateOrNull(route.header.effectiveTo),
-				meta: {
+				meta: toJsonValue({
 					erp: {
 						useOrgCode: route.header.useOrgCode,
 						createOrgCode: route.header.createOrgCode,
@@ -109,7 +115,7 @@ const normalizeErpRoutes = async (tx: PrismaClient, routes: ErpRoute[], dedupeKe
 						bomCode: route.header.bomCode,
 						modifiedAt: route.header.modifiedAt,
 					},
-				},
+				}),
 			},
 		});
 
@@ -118,7 +124,7 @@ const normalizeErpRoutes = async (tx: PrismaClient, routes: ErpRoute[], dedupeKe
 				sourceSystem: "ERP",
 				sourceKey: route.header.routeNo,
 				headId: route.header.headId || null,
-				payload: route.header,
+				payload: toJsonValue(route.header),
 				dedupeKey,
 			},
 		});
@@ -176,28 +182,30 @@ const normalizeErpRoutes = async (tx: PrismaClient, routes: ErpRoute[], dedupeKe
 			}
 
 			if (step.workCenterCode || step.departmentCode) {
+				const sourceWorkCenter = step.workCenterCode ?? "";
+				const sourceDepartment = step.departmentCode ?? "";
 				await tx.workCenterStationGroupMapping.upsert({
 					where: {
 						sourceSystem_sourceWorkCenter_sourceDepartment: {
 							sourceSystem: "ERP",
-							sourceWorkCenter: step.workCenterCode || null,
-							sourceDepartment: step.departmentCode || null,
+							sourceWorkCenter,
+							sourceDepartment,
 						},
 					},
 					update: {
-						meta: {
+						meta: toJsonValue({
 							workCenterName: step.workCenterName,
 							departmentName: step.departmentName,
-						},
+						}),
 					},
 					create: {
 						sourceSystem: "ERP",
-						sourceWorkCenter: step.workCenterCode || null,
-						sourceDepartment: step.departmentCode || null,
-						meta: {
+						sourceWorkCenter,
+						sourceDepartment,
+						meta: toJsonValue({
 							workCenterName: step.workCenterName,
 							departmentName: step.departmentName,
-						},
+						}),
 					},
 				});
 			}
@@ -210,7 +218,7 @@ const normalizeErpRoutes = async (tx: PrismaClient, routes: ErpRoute[], dedupeKe
 					sourceSystem: "ERP",
 					sourceKey: route.header.routeNo,
 					lineNo: step.stepNo,
-					payload: step,
+					payload: toJsonValue(step),
 					dedupeKey,
 				},
 			});
@@ -226,7 +234,7 @@ const normalizeErpRoutes = async (tx: PrismaClient, routes: ErpRoute[], dedupeKe
 					operationId: operation.operationId,
 					sourceStepKey,
 					stationType,
-					meta: {
+					meta: toJsonValue({
 						erp: {
 							processCode,
 							processName,
@@ -240,7 +248,7 @@ const normalizeErpRoutes = async (tx: PrismaClient, routes: ErpRoute[], dedupeKe
 							processRecordStation: step.processRecordStation,
 							qualityInspectStation: step.qualityInspectStation,
 						},
-					},
+					}),
 				},
 				create: {
 					routingId: routing.id,
@@ -248,7 +256,7 @@ const normalizeErpRoutes = async (tx: PrismaClient, routes: ErpRoute[], dedupeKe
 					sourceStepKey,
 					operationId: operation.operationId,
 					stationType,
-					meta: {
+					meta: toJsonValue({
 						erp: {
 							processCode,
 							processName,
@@ -262,7 +270,7 @@ const normalizeErpRoutes = async (tx: PrismaClient, routes: ErpRoute[], dedupeKe
 							processRecordStation: step.processRecordStation,
 							qualityInspectStation: step.qualityInspectStation,
 						},
-					},
+					}),
 				},
 			});
 		}
@@ -343,10 +351,10 @@ export const syncErpRoutes = async (
 				entityType,
 				businessKey,
 				status: "FAILED",
-				payload: {
+				payload: toJsonValue({
 					request: { since, startRow, limit },
 					error: { code: pullResult.code, message: pullResult.message },
-				},
+				}),
 				error: pullResult.message,
 			},
 		});
@@ -376,12 +384,12 @@ export const syncErpRoutes = async (
 				create: {
 					sourceSystem,
 					entityType,
-					lastSyncAt: nextSyncAt,
-					meta: null,
+					lastSyncAt: nextSyncAt ?? null,
+					meta: Prisma.DbNull,
 				},
 				update: {
-					lastSyncAt: nextSyncAt ?? undefined,
-					meta: null,
+					lastSyncAt: nextSyncAt ?? null,
+					meta: Prisma.DbNull,
 				},
 			});
 		} else {
@@ -391,16 +399,10 @@ export const syncErpRoutes = async (
 					sourceSystem,
 					entityType,
 					lastSyncAt: cursor?.lastSyncAt ?? null,
-					meta: {
-						nextStartRow,
-						since,
-					},
+					meta: toJsonValue({ nextStartRow, since }),
 				},
 				update: {
-					meta: {
-						nextStartRow,
-						since,
-					},
+					meta: toJsonValue({ nextStartRow, since }),
 				},
 			});
 		}
@@ -425,7 +427,7 @@ export const syncErpRoutes = async (
 				businessKey,
 				dedupeKey,
 				status: "SUCCESS",
-				payload: pullResult.data,
+				payload: toJsonValue(pullResult.data),
 			},
 			select: { id: true, dedupeKey: true },
 		});

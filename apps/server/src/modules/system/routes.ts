@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
-import { Elysia, status } from "elysia";
 import { AuditEntityType } from "@better-app/db";
+import { Elysia } from "elysia";
 import { authPlugin } from "../../plugins/auth";
 import { prismaPlugin } from "../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../audit/service";
@@ -9,6 +9,7 @@ import {
 	appBrandingResponseSchema,
 	appBrandingSchema,
 	saveConfigResponseSchema,
+	systemErrorResponseSchema,
 	uploadResponseSchema,
 	uploadSchema,
 	wecomConfigResponseSchema,
@@ -41,25 +42,26 @@ export const systemModule = new Elysia({
 	.use(authPlugin)
 	.get(
 		"/app-branding",
-		async ({ db }) => {
+		async ({ db, set }) => {
 			const result = await getAppBrandingConfig(db);
 			if (!result.success) {
-				return status(result.status ?? 400, {
-					ok: false,
-					error: { code: result.code, message: result.message },
-				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
 			}
 			return { ok: true, data: result.data };
 		},
 		{
 			isAuth: true,
-			response: appBrandingResponseSchema,
+			response: {
+				200: appBrandingResponseSchema,
+				400: systemErrorResponseSchema,
+			},
 			detail: { tags: ["System"] },
 		},
 	)
 	.post(
 		"/app-branding",
-		async ({ db, body, user, request }) => {
+		async ({ db, body, user, request, set }) => {
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
 			const beforeResult = await getAppBrandingConfig(db);
@@ -80,10 +82,8 @@ export const systemModule = new Elysia({
 					before,
 					request: requestMeta,
 				});
-				return status(result.status ?? 400, {
-					ok: false,
-					error: { code: result.code, message: result.message },
-				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
 			}
 
 			await recordAuditEvent(db, {
@@ -103,31 +103,35 @@ export const systemModule = new Elysia({
 		{
 			isAuth: true,
 			body: appBrandingSchema,
-			response: appBrandingResponseSchema,
+			response: {
+				200: appBrandingResponseSchema,
+				400: systemErrorResponseSchema,
+			},
 			detail: { tags: ["System"] },
 		},
 	)
 	.get(
 		"/wecom-config",
-		async ({ db }) => {
+		async ({ db, set }) => {
 			const result = await getWecomConfig(db);
 			if (!result.success) {
-				return status(result.status ?? 400, {
-					ok: false,
-					error: { code: result.code, message: result.message },
-				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
 			}
 			return { ok: true, data: result.data };
 		},
 		{
 			isAuth: true,
-			response: wecomConfigResponseSchema,
+			response: {
+				200: wecomConfigResponseSchema,
+				400: systemErrorResponseSchema,
+			},
 			detail: { tags: ["System"] },
 		},
 	)
 	.post(
 		"/wecom-config",
-		async ({ db, body, user, request }) => {
+		async ({ db, body, user, request, set }) => {
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
 			const beforeResult = await getWecomConfig(db);
@@ -148,10 +152,8 @@ export const systemModule = new Elysia({
 					before,
 					request: requestMeta,
 				});
-				return status(result.status ?? 400, {
-					ok: false,
-					error: { code: result.code, message: result.message },
-				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
 			}
 
 			const afterResult = await getWecomConfig(db);
@@ -174,13 +176,16 @@ export const systemModule = new Elysia({
 		{
 			isAuth: true,
 			body: wecomConfigSchema,
-			response: saveConfigResponseSchema,
+			response: {
+				200: saveConfigResponseSchema,
+				400: systemErrorResponseSchema,
+			},
 			detail: { tags: ["System"] },
 		},
 	)
 	.post(
 		"/wecom-test",
-		async ({ body, user, request, db }) => {
+		async ({ body, user, request, db, set }) => {
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
 
@@ -198,10 +203,8 @@ export const systemModule = new Elysia({
 					errorMessage,
 					request: requestMeta,
 				});
-				return status(400, {
-					ok: false,
-					error: { code: errorCode, message: errorMessage },
-				});
+				set.status = 400;
+				return { ok: false, error: { code: errorCode, message: errorMessage } };
 			}
 
 			const result = await testWecomWebhook(body.webhookUrl, body.mentionAll);
@@ -222,10 +225,8 @@ export const systemModule = new Elysia({
 						mentionAll: body.mentionAll,
 					},
 				});
-				return status(result.status ?? 500, {
-					ok: false,
-					error: { code: result.code, message: result.message },
-				});
+				set.status = result.status ?? 500;
+				return { ok: false, error: { code: result.code, message: result.message } };
 			}
 
 			await recordAuditEvent(db, {
@@ -247,13 +248,18 @@ export const systemModule = new Elysia({
 		{
 			isAuth: true,
 			body: wecomTestSchema,
-			response: wecomTestResponseSchema,
+			response: {
+				200: wecomTestResponseSchema,
+				400: systemErrorResponseSchema,
+				500: systemErrorResponseSchema,
+				502: systemErrorResponseSchema,
+			},
 			detail: { tags: ["System"] },
 		},
 	)
 	.post(
 		"/upload",
-		async ({ body, set, user, request, db }) => {
+		async ({ body, user, request, db, set }) => {
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
 			const file = body.file;
@@ -272,10 +278,8 @@ export const systemModule = new Elysia({
 					errorMessage,
 					request: requestMeta,
 				});
-				return status(400, {
-					ok: false,
-					error: { code: errorCode, message: errorMessage },
-				});
+				set.status = 400;
+				return { ok: false, error: { code: errorCode, message: errorMessage } };
 			}
 
 			if (file.size > MAX_UPLOAD_SIZE) {
@@ -293,10 +297,8 @@ export const systemModule = new Elysia({
 					request: requestMeta,
 					payload: { filename: file.name, contentType: file.type, size: file.size },
 				});
-				return status(400, {
-					ok: false,
-					error: { code: errorCode, message: errorMessage },
-				});
+				set.status = 400;
+				return { ok: false, error: { code: errorCode, message: errorMessage } };
 			}
 
 			if (!ALLOWED_VIDEO_TYPES.has(file.type)) {
@@ -314,10 +316,8 @@ export const systemModule = new Elysia({
 					request: requestMeta,
 					payload: { filename: file.name, contentType: file.type, size: file.size },
 				});
-				return status(400, {
-					ok: false,
-					error: { code: errorCode, message: errorMessage },
-				});
+				set.status = 400;
+				return { ok: false, error: { code: errorCode, message: errorMessage } };
 			}
 
 			await mkdir(UPLOAD_DIR, { recursive: true });
@@ -347,7 +347,10 @@ export const systemModule = new Elysia({
 		{
 			isAuth: true,
 			body: uploadSchema,
-			response: uploadResponseSchema,
+			response: {
+				200: uploadResponseSchema,
+				400: systemErrorResponseSchema,
+			},
 			detail: { tags: ["System"] },
 		},
 	)

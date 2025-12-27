@@ -1,14 +1,10 @@
+import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { Eye } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
-import { TableActions } from "@/components/data-table/table-actions";
+import { Button } from "@/components/ui/button";
 import type { RouteSummary } from "@/hooks/use-routes";
-
-export type RouteTableMeta = {
-	onView?: (routingCode: string) => void;
-};
 
 export const routeColumns: ColumnDef<RouteSummary>[] = [
 	{
@@ -56,19 +52,14 @@ export const routeColumns: ColumnDef<RouteSummary>[] = [
 	},
 	{
 		id: "actions",
-		cell: ({ row, table }) => {
-			const meta = table.options.meta as RouteTableMeta | undefined;
+		cell: ({ row }) => {
 			const routingCode = row.original.code;
 			return (
-				<TableActions
-					actions={[
-						{
-							icon: Eye,
-							label: "查看详情",
-							onClick: () => meta?.onView?.(routingCode),
-						},
-					]}
-				/>
+				<Button asChild variant="ghost" size="icon" aria-label="查看详情">
+					<Link to="/mes/routes/$routingCode" params={{ routingCode }} title="查看详情">
+						<Eye className="h-4 w-4" />
+					</Link>
+				</Button>
 			);
 		},
 	},

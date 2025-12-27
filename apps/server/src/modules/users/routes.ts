@@ -1,13 +1,14 @@
-import { Elysia, status } from "elysia";
-import { AuditEntityType, UserRole } from "../../types/prisma-enums";
+import { Elysia } from "elysia";
 import { authPlugin } from "../../plugins/auth";
 import { prismaPlugin } from "../../plugins/prisma";
+import { AuditEntityType, UserRole } from "../../types/prisma-enums";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../audit/service";
 import {
 	changePasswordSchema,
 	successResponseSchema,
 	userCreateResponseSchema,
 	userCreateSchema,
+	userErrorResponseSchema,
 	userListQuerySchema,
 	userListResponseSchema,
 	userParamsSchema,
@@ -31,34 +32,33 @@ export const usersModule = new Elysia({
 	.use(authPlugin)
 	.get(
 		"/",
-		async ({ query, db }) => {
+		async ({ query, db, set }) => {
 			const result = await listUsers(db, query);
 			if (!result.success) {
-				return status(result.status ?? 400, {
-					ok: false,
-					error: { code: result.code, message: result.message },
-				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
 			}
 			return { ok: true, data: result.data };
 		},
 		{
 			isAuth: true,
 			query: userListQuerySchema,
-			response: userListResponseSchema,
+			response: {
+				200: userListResponseSchema,
+				400: userErrorResponseSchema,
+			},
 			detail: { tags: ["Users"] },
 		},
 	)
 	.post(
 		"/",
-		async ({ body, db, user, request }) => {
+		async ({ body, db, user, request, set }) => {
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
 
 			if (user.role !== UserRole.admin) {
-				return status(403, {
-					ok: false,
-					error: { code: "FORBIDDEN", message: "只有管理员可以创建用户" },
-				});
+				set.status = 403;
+				return { ok: false, error: { code: "FORBIDDEN", message: "只有管理员可以创建用户" } };
 			}
 
 			const result = await createUser(db, body);
@@ -75,10 +75,8 @@ export const usersModule = new Elysia({
 					errorMessage: result.message,
 					request: requestMeta,
 				});
-				return status(result.status ?? 500, {
-					ok: false,
-					error: { code: result.code, message: result.message },
-				});
+				set.status = result.status ?? 500;
+				return { ok: false, error: { code: result.code, message: result.message } };
 			}
 
 			await recordAuditEvent(db, {
@@ -98,21 +96,27 @@ export const usersModule = new Elysia({
 		{
 			isAuth: true,
 			body: userCreateSchema,
-			response: userCreateResponseSchema,
+			response: {
+				200: userCreateResponseSchema,
+				403: userErrorResponseSchema,
+				409: userErrorResponseSchema,
+				500: userErrorResponseSchema,
+			},
 			detail: { tags: ["Users"] },
 		},
 	)
 	.patch(
 		"/:id",
-		async ({ params, body, db, user, request }) => {
+		async ({ params, body, db, user, request, set }) => {
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
 
 			if (user.role !== UserRole.admin) {
-				return status(403, {
+				set.status = 403;
+				return {
 					ok: false,
 					error: { code: "FORBIDDEN", message: "只有管理员可以更新用户信息" },
-				});
+				};
 			}
 
 			const beforeResult = await getUserProfile(db, params.id);
@@ -133,10 +137,8 @@ export const usersModule = new Elysia({
 					before,
 					request: requestMeta,
 				});
-				return status(result.status ?? 500, {
-					ok: false,
-					error: { code: result.code, message: result.message },
-				});
+				set.status = result.status ?? 500;
+				return { ok: false, error: { code: result.code, message: result.message } };
 			}
 
 			await recordAuditEvent(db, {
@@ -157,31 +159,38 @@ export const usersModule = new Elysia({
 			isAuth: true,
 			params: userParamsSchema,
 			body: userUpdateSchema,
-			response: userResponseSchema,
+			response: {
+				200: userResponseSchema,
+				403: userErrorResponseSchema,
+				404: userErrorResponseSchema,
+				409: userErrorResponseSchema,
+				500: userErrorResponseSchema,
+			},
 			detail: { tags: ["Users"] },
 		},
 	)
 	.get(
 		"/me",
-		async ({ user, db }) => {
+		async ({ user, db, set }) => {
 			const result = await getUserProfile(db, user.id);
 			if (!result.success) {
-				return status(result.status ?? 404, {
-					ok: false,
-					error: { code: result.code, message: result.message },
-				});
+				set.status = result.status ?? 404;
+				return { ok: false, error: { code: result.code, message: result.message } };
 			}
 			return { ok: true, data: result.data };
 		},
 		{
 			isAuth: true,
-			response: userResponseSchema,
+			response: {
+				200: userResponseSchema,
+				404: userErrorResponseSchema,
+			},
 			detail: { tags: ["Users - Self"] },
 		},
 	)
 	.patch(
 		"/me",
-		async ({ user, db, body, request }) => {
+		async ({ user, db, body, request, set }) => {
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
 
@@ -203,10 +212,8 @@ export const usersModule = new Elysia({
 					before,
 					request: requestMeta,
 				});
-				return status(result.status ?? 500, {
-					ok: false,
-					error: { code: result.code, message: result.message },
-				});
+				set.status = result.status ?? 500;
+				return { ok: false, error: { code: result.code, message: result.message } };
 			}
 
 			await recordAuditEvent(db, {
@@ -226,13 +233,18 @@ export const usersModule = new Elysia({
 		{
 			isAuth: true,
 			body: userProfileUpdateSchema,
-			response: userResponseSchema,
+			response: {
+				200: userResponseSchema,
+				404: userErrorResponseSchema,
+				409: userErrorResponseSchema,
+				500: userErrorResponseSchema,
+			},
 			detail: { tags: ["Users - Self"] },
 		},
 	)
 	.post(
 		"/me/change-password",
-		async ({ request, body, db, user }) => {
+		async ({ request, body, db, user, set }) => {
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
 
@@ -250,10 +262,8 @@ export const usersModule = new Elysia({
 					errorMessage: result.message,
 					request: requestMeta,
 				});
-				return status(result.status ?? 400, {
-					ok: false,
-					error: { code: result.code, message: result.message },
-				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
 			}
 
 			await recordAuditEvent(db, {
@@ -271,7 +281,11 @@ export const usersModule = new Elysia({
 		{
 			isAuth: true,
 			body: changePasswordSchema,
-			response: successResponseSchema,
+			response: {
+				200: successResponseSchema,
+				400: userErrorResponseSchema,
+				404: userErrorResponseSchema,
+			},
 			detail: { tags: ["Users - Self"] },
 		},
 	);

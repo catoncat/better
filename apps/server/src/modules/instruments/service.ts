@@ -1,8 +1,8 @@
 import { Prisma, type PrismaClient } from "@better-app/db";
 import type { Static } from "elysia";
 import { CalibrationType } from "../../types/prisma-enums";
-import { parseSortOrderBy } from "../../utils/sort";
 import type { ServiceResult } from "../../types/service-result";
+import { parseSortOrderBy } from "../../utils/sort";
 import type {
 	calibrationCreateSchema,
 	calibrationDeleteQuerySchema,
@@ -26,6 +26,14 @@ type CalibrationUpdateInput = Static<typeof calibrationUpdateSchema>;
 type CalibrationDeleteQuery = Static<typeof calibrationDeleteQuerySchema>;
 
 type PrismaTx = PrismaClient | Prisma.TransactionClient;
+type PagedResult<T> = { items: T[]; total: number; page: number; pageSize: number };
+type InstrumentWithOwner = Prisma.InstrumentGetPayload<{ include: { owner: true } }>;
+type CalibrationRecordWithRelations = Prisma.CalibrationRecordGetPayload<{
+	include: { operator: true; createdBy: true };
+}>;
+type CalibrationRecordWithInstrument = Prisma.CalibrationRecordGetPayload<{
+	include: { operator: true; createdBy: true; instrument: true };
+}>;
 
 const parseDateNullable = (value?: string | null) => {
 	if (value === undefined) return undefined;
@@ -128,7 +136,7 @@ const syncInstrumentCalibrationDates = async (
 export const listInstruments = async (
 	db: PrismaClient,
 	query: InstrumentListQuery,
-): Promise<ServiceResult<any>> => {
+): Promise<ServiceResult<PagedResult<InstrumentWithOwner>>> => {
 	const page = query.page ?? 1;
 	const pageSize = Math.min(query.pageSize ?? 20, 100);
 	const where: Prisma.InstrumentWhereInput = {};
@@ -204,7 +212,7 @@ export const listInstruments = async (
 export const getInstrument = async (
 	db: PrismaClient,
 	id: string,
-): Promise<ServiceResult<any>> => {
+): Promise<ServiceResult<InstrumentWithOwner>> => {
 	const instrument = await db.instrument.findUnique({
 		where: { id },
 		include: { owner: true },
@@ -225,7 +233,7 @@ export const getInstrument = async (
 export const createInstrument = async (
 	db: PrismaClient,
 	body: InstrumentCreateInput,
-): Promise<ServiceResult<any>> => {
+): Promise<ServiceResult<InstrumentWithOwner>> => {
 	const lastCalibrationDate = parseDateNullable(body.lastCalibrationDate);
 	const intervalDays = body.intervalDays ?? null;
 	const nextCalibrationDate = computeNextCalibrationDate(
@@ -254,7 +262,10 @@ export const createInstrument = async (
 	}
 
 	try {
-		const created = await db.instrument.create({ data });
+		const created = await db.instrument.create({
+			data,
+			include: { owner: true },
+		});
 		return { success: true, data: created };
 	} catch (error) {
 		if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
@@ -273,7 +284,7 @@ export const updateInstrument = async (
 	db: PrismaClient,
 	id: string,
 	body: InstrumentUpdateInput,
-): Promise<ServiceResult<any>> => {
+): Promise<ServiceResult<InstrumentWithOwner>> => {
 	const existing = await db.instrument.findUnique({ where: { id } });
 
 	if (!existing) {
@@ -334,6 +345,7 @@ export const updateInstrument = async (
 		const updated = await db.instrument.update({
 			where: { id },
 			data,
+			include: { owner: true },
 		});
 		return { success: true, data: updated };
 	} catch (error) {
@@ -353,7 +365,7 @@ export const updateInstrumentCalibration = async (
 	db: PrismaClient,
 	id: string,
 	body: InstrumentCalibrationUpdateInput,
-): Promise<ServiceResult<any>> => {
+): Promise<ServiceResult<InstrumentWithOwner>> => {
 	const existing = await db.instrument.findUnique({ where: { id } });
 	if (!existing) {
 		return {
@@ -391,6 +403,7 @@ export const updateInstrumentCalibration = async (
 	const updated = await db.instrument.update({
 		where: { id },
 		data,
+		include: { owner: true },
 	});
 
 	return { success: true, data: updated };
@@ -399,7 +412,7 @@ export const updateInstrumentCalibration = async (
 export const deleteInstrument = async (
 	db: PrismaClient,
 	id: string,
-): Promise<ServiceResult<any>> => {
+): Promise<ServiceResult<{ deleted: true }>> => {
 	const existing = await db.instrument.findUnique({ where: { id } });
 	if (!existing) {
 		return {
@@ -418,7 +431,7 @@ export const listCalibrationRecords = async (
 	db: PrismaClient,
 	instrumentId: string,
 	query: CalibrationListQuery,
-): Promise<ServiceResult<any>> => {
+): Promise<ServiceResult<PagedResult<CalibrationRecordWithRelations>>> => {
 	const instrument = await db.instrument.findUnique({
 		where: { id: instrumentId },
 		select: { id: true },
@@ -525,7 +538,7 @@ export const listCalibrationRecords = async (
 export const listAllCalibrationRecords = async (
 	db: PrismaClient,
 	query: CalibrationListAllQuery,
-): Promise<ServiceResult<any>> => {
+): Promise<ServiceResult<PagedResult<CalibrationRecordWithInstrument>>> => {
 	const page = query.page ?? 1;
 	const pageSize = Math.min(query.pageSize ?? 20, 100);
 	const where: Prisma.CalibrationRecordWhereInput = {};
@@ -675,7 +688,7 @@ export const createCalibrationRecord = async (
 	instrumentId: string,
 	userId: string,
 	body: CalibrationCreateInput,
-): Promise<ServiceResult<any>> => {
+): Promise<ServiceResult<CalibrationRecordWithRelations>> => {
 	const instrument = await db.instrument.findUnique({ where: { id: instrumentId } });
 
 	if (!instrument) {
@@ -801,7 +814,7 @@ export const updateCalibrationRecord = async (
 	instrumentId: string,
 	recordId: string,
 	body: CalibrationUpdateInput,
-): Promise<ServiceResult<any>> => {
+): Promise<ServiceResult<CalibrationRecordWithRelations>> => {
 	const instrument = await db.instrument.findUnique({ where: { id: instrumentId } });
 	if (!instrument) {
 		return { success: false, code: "NOT_FOUND", message: "Instrument not found", status: 404 };
@@ -990,17 +1003,13 @@ export const deleteCalibrationRecord = async (
 	return { success: true, data: { deleted: true } };
 };
 
-export const listDepartments = async (
-	db: PrismaClient,
-): Promise<ServiceResult<string[]>> => {
+export const listDepartments = async (db: PrismaClient): Promise<ServiceResult<string[]>> => {
 	const results = await db.instrument.groupBy({
 		by: ["department"],
 		where: {
 			department: { not: null },
 		},
 	});
-	const items = results
-		.map((r) => r.department)
-		.filter((d): d is string => d !== null && d !== "");
+	const items = results.map((r) => r.department).filter((d): d is string => d !== null && d !== "");
 	return { success: true, data: items };
 };

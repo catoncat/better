@@ -1,8 +1,10 @@
 import { authClient } from "@/lib/auth-client";
 import type { client } from "@/lib/eden";
 
+type UnwrapEnvelope<T> = T extends { data: infer D } ? D : T;
 type RolesResponse = Awaited<ReturnType<typeof client.api.meta.roles.get>>["data"];
-type RoleValue = NonNullable<RolesResponse>["roles"][number];
+type RolesData = UnwrapEnvelope<NonNullable<RolesResponse>>;
+type RoleValue = RolesData["roles"][number];
 
 export const UserRole: { [K in RoleValue]: K } = {
 	admin: "admin",

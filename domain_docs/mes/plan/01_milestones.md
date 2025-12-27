@@ -23,13 +23,13 @@ This document outlines the development milestones for the MES system, focusing o
 
 ### M1.7: Experience & Demo Readiness
 * **Goal**: Make the current system easy to experience end-to-end.
-* **Features**: One-command demo flow, default MES seed data, UI entry points for route compile and integration sync.
+* **Features**: One-command demo flow, default MES seed data, routing management + execution config editing UI, UI entry points for route compile and integration sync.
 * **Acceptance Criteria**: Fresh setup can run the full flow without manual API steps.
 
 ### M2: Quality Control and Authorization
 * **Goal**: Implement quality control checks, including FAI and batch authorization.
-* **Features**: Quality checks, defect registration, rework handling, batch authorization.
-* **Acceptance Criteria**: Units must pass quality checks before batch production can proceed.
+* **Features**: Line readiness checks + exception loop, FAI tasks (trial run + inspection), defect/NG registration, disposition (rework/scrap/hold/release), OQC sampling tasks, batch authorization, final confirmation/closeout.
+* **Acceptance Criteria**: Runs cannot authorize without readiness + FAI pass; defects/disposition and OQC gates are enforced; runs/WO close only after final confirmation.
 
 ### M3: Data Collection and Traceability
 * **Goal**: Implement data collection and traceability features.
@@ -38,8 +38,8 @@ This document outlines the development milestones for the MES system, focusing o
 
 ### M4: Ingest and Batch Processing
 * **Goal**: Extend the system to handle automated and batch processing scenarios.
-* **Features**: Integration with equipment for automatic event tracking, batch data collection.
-* **Acceptance Criteria**: System must handle batch events and integrate automatically with equipment.
+* **Features**: Automatic/BATCH/TEST event ingest, equipment integration for auto track-in/out, batch data collection.
+* **Acceptance Criteria**: System handles auto/batch/test events with consistent routing and data validation.
 
 ## Future (Out of Current Scope)
 

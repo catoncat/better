@@ -1,6 +1,7 @@
 import { type Prisma, type PrismaClient, RunStatus, WorkOrderStatus } from "@better-app/db";
-import { SpanStatusCode, trace, type Span } from "@opentelemetry/api";
+import { type Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
+import type { ServiceResult } from "../../../types/service-result";
 import { parseSortOrderBy } from "../../../utils/sort";
 import type {
 	runCreateSchema,
@@ -126,136 +127,175 @@ export const releaseWorkOrder = async (
 	db: PrismaClient,
 	woNo: string,
 	data: WorkOrderReleaseInput,
-) => {
-	return await tracer.startActiveSpan("mes.work_orders.release", async (span) => {
-		setSpanAttributes(span, {
-			"mes.work_order.wo_no": woNo,
-			"mes.release.line_code": data.lineCode,
-			"mes.release.station_group_code": data.stationGroupCode,
-		});
-
-		try {
-			const wo = await db.workOrder.findUnique({ where: { woNo } });
-			if (!wo) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "WORK_ORDER_NOT_FOUND");
-				return { success: false, code: "WORK_ORDER_NOT_FOUND", message: "Work order not found" };
-			}
-
-			if (wo.status !== WorkOrderStatus.RECEIVED) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "WORK_ORDER_NOT_RECEIVED");
-				return {
-					success: false,
-					code: "WORK_ORDER_NOT_RECEIVED",
-					message: "Work order already released or in progress",
-				};
-			}
-
-			const updated = await db.workOrder.update({
-				where: { woNo },
-				data: {
-					status: WorkOrderStatus.RELEASED,
-				},
+): Promise<ServiceResult<Prisma.WorkOrderGetPayload<Prisma.WorkOrderDefaultArgs>>> => {
+	return await tracer.startActiveSpan(
+		"mes.work_orders.release",
+		async (
+			span,
+		): Promise<ServiceResult<Prisma.WorkOrderGetPayload<Prisma.WorkOrderDefaultArgs>>> => {
+			setSpanAttributes(span, {
+				"mes.work_order.wo_no": woNo,
+				"mes.release.line_code": data.lineCode,
+				"mes.release.station_group_code": data.stationGroupCode,
 			});
 
-			return { success: true, data: updated };
-		} catch (error) {
-			span.recordException(error as Error);
-			span.setStatus({ code: SpanStatusCode.ERROR });
-			throw error;
-		} finally {
-			span.end();
-		}
-	});
-};
+			try {
+				const wo = await db.workOrder.findUnique({ where: { woNo } });
+				if (!wo) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "WORK_ORDER_NOT_FOUND");
+					return {
+						success: false,
+						code: "WORK_ORDER_NOT_FOUND",
+						message: "Work order not found",
+						status: 404,
+					};
+				}
 
-export const createRun = async (db: PrismaClient, woNo: string, data: RunCreateInput) => {
-	return await tracer.startActiveSpan("mes.runs.create", async (span) => {
-		setSpanAttributes(span, {
-			"mes.work_order.wo_no": woNo,
-			"mes.run.line_code": data.lineCode,
-			"mes.run.shift_code": data.shiftCode,
-			"mes.run.changeover_no": data.changeoverNo,
-		});
+				if (wo.status !== WorkOrderStatus.RECEIVED) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "WORK_ORDER_NOT_RECEIVED");
+					return {
+						success: false,
+						code: "WORK_ORDER_NOT_RECEIVED",
+						message: "Work order already released or in progress",
+						status: 400,
+					};
+				}
 
-		try {
-			const wo = await db.workOrder.findUnique({ where: { woNo } });
-			if (!wo) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "WORK_ORDER_NOT_FOUND");
-				return { success: false, code: "WORK_ORDER_NOT_FOUND", message: "Work order not found" };
-			}
-			if (wo.status !== WorkOrderStatus.RELEASED && wo.status !== WorkOrderStatus.IN_PROGRESS) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "WORK_ORDER_NOT_RELEASED");
-				return { success: false, code: "WORK_ORDER_NOT_RELEASED", message: "Work order not released" };
-			}
-
-			if (!wo.routingId) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "ROUTE_NOT_FOUND");
-				return { success: false, code: "ROUTE_NOT_FOUND", message: "Work order has no routing" };
-			}
-
-			const line = await db.line.findUnique({ where: { code: data.lineCode } });
-			if (!line) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "LINE_NOT_FOUND");
-				return { success: false, code: "LINE_NOT_FOUND", message: "Line not found" };
-			}
-
-			const latestVersion = await db.executableRouteVersion.findFirst({
-				where: {
-					routingId: wo.routingId,
-					status: "READY",
-				},
-				orderBy: { versionNo: "desc" },
-			});
-			if (!latestVersion) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "ROUTE_VERSION_NOT_READY");
-				return {
-					success: false,
-					code: "ROUTE_VERSION_NOT_READY",
-					message: "No executable route version available",
-				};
-			}
-
-			// Generate a simple run number if not provided
-			const runNo = `RUN-${woNo}-${Date.now()}`;
-
-			const run = await db.$transaction(async (tx) => {
-				const created = await tx.run.create({
+				const updated = await db.workOrder.update({
+					where: { woNo },
 					data: {
-						runNo,
-						woId: wo.id,
-						lineId: line.id,
-						routeVersionId: latestVersion.id,
-						shiftCode: data.shiftCode,
-						changeoverNo: data.changeoverNo,
-						status: RunStatus.PREP,
+						status: WorkOrderStatus.RELEASED,
 					},
 				});
 
-				if (wo.status !== WorkOrderStatus.IN_PROGRESS) {
-					await tx.workOrder.update({
-						where: { woNo },
-						data: { status: WorkOrderStatus.IN_PROGRESS },
-					});
-				}
+				return { success: true, data: updated };
+			} catch (error) {
+				span.recordException(error as Error);
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				throw error;
+			} finally {
+				span.end();
+			}
+		},
+	);
+};
 
-				return created;
+export const createRun = async (
+	db: PrismaClient,
+	woNo: string,
+	data: RunCreateInput,
+): Promise<ServiceResult<Prisma.RunGetPayload<Prisma.RunDefaultArgs>>> => {
+	return await tracer.startActiveSpan(
+		"mes.runs.create",
+		async (span): Promise<ServiceResult<Prisma.RunGetPayload<Prisma.RunDefaultArgs>>> => {
+			setSpanAttributes(span, {
+				"mes.work_order.wo_no": woNo,
+				"mes.run.line_code": data.lineCode,
+				"mes.run.shift_code": data.shiftCode,
+				"mes.run.changeover_no": data.changeoverNo,
 			});
 
-			setSpanAttributes(span, { "mes.run.run_no": run.runNo });
-			return { success: true, data: run };
-		} catch (error) {
-			span.recordException(error as Error);
-			span.setStatus({ code: SpanStatusCode.ERROR });
-			throw error;
-		} finally {
-			span.end();
-		}
-	});
+			try {
+				const wo = await db.workOrder.findUnique({ where: { woNo } });
+				if (!wo) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "WORK_ORDER_NOT_FOUND");
+					return {
+						success: false,
+						code: "WORK_ORDER_NOT_FOUND",
+						message: "Work order not found",
+						status: 404,
+					};
+				}
+				if (wo.status !== WorkOrderStatus.RELEASED && wo.status !== WorkOrderStatus.IN_PROGRESS) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "WORK_ORDER_NOT_RELEASED");
+					return {
+						success: false,
+						code: "WORK_ORDER_NOT_RELEASED",
+						message: "Work order not released",
+						status: 400,
+					};
+				}
+
+				if (!wo.routingId) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "ROUTE_NOT_FOUND");
+					return {
+						success: false,
+						code: "ROUTE_NOT_FOUND",
+						message: "Work order has no routing",
+						status: 404,
+					};
+				}
+
+				const line = await db.line.findUnique({ where: { code: data.lineCode } });
+				if (!line) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "LINE_NOT_FOUND");
+					return {
+						success: false,
+						code: "LINE_NOT_FOUND",
+						message: "Line not found",
+						status: 404,
+					};
+				}
+
+				const latestVersion = await db.executableRouteVersion.findFirst({
+					where: {
+						routingId: wo.routingId,
+						status: "READY",
+					},
+					orderBy: { versionNo: "desc" },
+				});
+				if (!latestVersion) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "ROUTE_VERSION_NOT_READY");
+					return {
+						success: false,
+						code: "ROUTE_VERSION_NOT_READY",
+						message: "No executable route version available",
+						status: 404,
+					};
+				}
+
+				// Generate a simple run number if not provided
+				const runNo = `RUN-${woNo}-${Date.now()}`;
+
+				const run = await db.$transaction(async (tx) => {
+					const created = await tx.run.create({
+						data: {
+							runNo,
+							woId: wo.id,
+							lineId: line.id,
+							routeVersionId: latestVersion.id,
+							shiftCode: data.shiftCode,
+							changeoverNo: data.changeoverNo,
+							status: RunStatus.PREP,
+						},
+					});
+
+					if (wo.status !== WorkOrderStatus.IN_PROGRESS) {
+						await tx.workOrder.update({
+							where: { woNo },
+							data: { status: WorkOrderStatus.IN_PROGRESS },
+						});
+					}
+
+					return created;
+				});
+
+				setSpanAttributes(span, { "mes.run.run_no": run.runNo });
+				return { success: true, data: run };
+			} catch (error) {
+				span.recordException(error as Error);
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				throw error;
+			} finally {
+				span.end();
+			}
+		},
+	);
 };

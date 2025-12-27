@@ -5,29 +5,34 @@ import { client, unwrap } from "@/lib/eden";
 const calibrationListRoute = client.api.instruments({ id: "instrument-id" }).calibrations;
 const calibrationDetailRoute = calibrationListRoute({ recordId: "record-id" });
 const allCalibrationRoute = client.api.instruments.calibrations;
+const instrumentDetailRoute = client.api.instruments({ id: "instrument-id" });
 
 type CalibrationListArgs = NonNullable<Parameters<typeof calibrationListRoute.get>[0]>;
 type CalibrationListQuery = CalibrationListArgs["query"];
 export type CalibrationCreateInput = Parameters<typeof calibrationListRoute.post>[0];
 
-// Update types to reflect unwrapped data
-type CalibrationListData = { items: unknown[]; total: number; page: number; pageSize: number };
+type UnwrapEnvelope<T> = T extends { data: infer D } ? D : T;
+type CalibrationListRawResponse = Awaited<ReturnType<typeof calibrationListRoute.get>>["data"];
+type CalibrationListData = UnwrapEnvelope<NonNullable<CalibrationListRawResponse>>;
 export type CalibrationListResponse = CalibrationListData;
 export type CalibrationListSuccess = CalibrationListData;
 
 type CalibrationAllArgs = NonNullable<Parameters<typeof allCalibrationRoute.get>[0]>;
 type CalibrationAllQuery = CalibrationAllArgs["query"];
-export type CalibrationAllResponse = CalibrationListData;
-export type CalibrationAllSuccess = CalibrationListData;
+type CalibrationAllRawResponse = Awaited<ReturnType<typeof allCalibrationRoute.get>>["data"];
+type CalibrationAllData = UnwrapEnvelope<NonNullable<CalibrationAllRawResponse>>;
+export type CalibrationAllResponse = CalibrationAllData;
+export type CalibrationAllSuccess = CalibrationAllData;
 
 // Instrument detail type
-export type InstrumentDetailSuccess = { id: string; [key: string]: any };
+type InstrumentDetailResponse = Awaited<ReturnType<typeof instrumentDetailRoute.get>>["data"];
+export type InstrumentDetailSuccess = UnwrapEnvelope<NonNullable<InstrumentDetailResponse>>;
 
 type CalibrationUpdateInput = Parameters<typeof calibrationDetailRoute.patch>[0];
 type CalibrationDeleteInput = NonNullable<Parameters<typeof calibrationDetailRoute.delete>[0]>;
 
 export function useInstrumentDetail(id?: string) {
-	return useQuery({
+	return useQuery<InstrumentDetailSuccess>({
 		queryKey: ["instrument", id],
 		enabled: Boolean(id),
 		queryFn: async () => {
@@ -46,7 +51,7 @@ export function useCalibrationRecords(instrumentId: string, query: CalibrationLi
 	const dateTo = query.dateTo ?? "";
 	const sort = query.sort ?? "";
 
-	return useQuery({
+	return useQuery<CalibrationListData>({
 		queryKey: ["calibrations", instrumentId, page, pageSize, result, dateFrom, dateTo, sort],
 		enabled: Boolean(instrumentId),
 		queryFn: async () => {
@@ -62,7 +67,7 @@ export function useCalibrationRecords(instrumentId: string, query: CalibrationLi
 			});
 			return unwrap(response);
 		},
-		placeholderData: (previousData) => previousData,
+		placeholderData: (previousData: CalibrationListData | undefined) => previousData,
 		staleTime: 30_000,
 		gcTime: 5 * 60_000,
 		refetchOnWindowFocus: false,
@@ -79,7 +84,7 @@ export function useAllCalibrationRecords(query: CalibrationAllQuery = {}) {
 	const instrumentId = query.instrumentId ?? "";
 	const sort = query.sort ?? "";
 
-	return useQuery({
+	return useQuery<CalibrationAllData>({
 		queryKey: [
 			"calibrations",
 			"all",
@@ -108,7 +113,7 @@ export function useAllCalibrationRecords(query: CalibrationAllQuery = {}) {
 			});
 			return unwrap(response);
 		},
-		placeholderData: (previousData) => previousData,
+		placeholderData: (previousData: CalibrationAllData | undefined) => previousData,
 		staleTime: 30_000,
 		gcTime: 5 * 60_000,
 		refetchOnWindowFocus: false,
@@ -120,9 +125,7 @@ export function useCreateCalibrationRecord(instrumentId: string) {
 
 	return useMutation({
 		mutationFn: async (body: CalibrationCreateInput) => {
-			const response = await client.api
-				.instruments({ id: instrumentId })
-				.calibrations.post(body);
+			const response = await client.api.instruments({ id: instrumentId }).calibrations.post(body);
 			return unwrap(response);
 		},
 		onSuccess: () => {
@@ -145,9 +148,7 @@ export function useCreateCalibrationRecordForAnyInstrument() {
 			instrumentId: string;
 			data: CalibrationCreateInput;
 		}) => {
-			const response = await client.api
-				.instruments({ id: instrumentId })
-				.calibrations.post(data);
+			const response = await client.api.instruments({ id: instrumentId }).calibrations.post(data);
 			const result = unwrap(response);
 			return { result, instrumentId };
 		},

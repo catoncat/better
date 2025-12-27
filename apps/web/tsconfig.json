@@ -11,7 +11,9 @@
 		"types": ["vite/client"],
 		"rootDirs": ["."],
 		"paths": {
-			"@/*": ["./src/*"]
+			"*": ["./*"],
+			"@/*": ["./src/*"],
+			"elysia": ["./node_modules/elysia"]
 		}
 	}
 }

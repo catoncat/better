@@ -1,5 +1,5 @@
-import { Prisma, type PrismaClient } from "@better-app/db";
 import { auth } from "@better-app/auth";
+import { Prisma, type PrismaClient } from "@better-app/db";
 import { hashPassword } from "better-auth/crypto";
 import type { Static } from "elysia";
 import { UserRole } from "../../types/prisma-enums";
@@ -17,6 +17,9 @@ type UserCreateInput = Static<typeof userCreateSchema>;
 type UserUpdateInput = Static<typeof userUpdateSchema>;
 type UserProfileUpdateInput = Static<typeof userProfileUpdateSchema>;
 type ChangePasswordInput = Static<typeof changePasswordSchema>;
+type UserRecord = Prisma.UserGetPayload<{ select: typeof userSelectFields }>;
+type UserListResponse = { items: UserRecord[]; total: number; page: number; pageSize: number };
+type UserCreateResponse = UserRecord & { initialPassword: string };
 
 const DEFAULT_USER_PASSWORD = process.env.DEFAULT_USER_PASSWORD || "ChangeMe123!";
 
@@ -31,16 +34,16 @@ const userSelectFields = {
 	phone: true,
 	isActive: true,
 	enableWecomNotification: true,
-    emailVerified: true,
-    createdAt: true,
-    updatedAt: true,
-    passwordHash: false
+	emailVerified: true,
+	createdAt: true,
+	updatedAt: true,
+	passwordHash: false,
 } satisfies Prisma.UserSelect;
 
 export const listUsers = async (
 	db: PrismaClient,
 	query: UserListQuery,
-): Promise<ServiceResult<any>> => {
+): Promise<ServiceResult<UserListResponse>> => {
 	const page = query.page ?? 1;
 	const pageSize = Math.min(query.pageSize ?? 20, 100);
 	const where: Prisma.UserWhereInput = {};
@@ -82,7 +85,7 @@ export const listUsers = async (
 export const createUser = async (
 	db: PrismaClient,
 	body: UserCreateInput,
-): Promise<ServiceResult<any>> => {
+): Promise<ServiceResult<UserCreateResponse>> => {
 	try {
 		// Use Better Auth to create the user/account
 		// This handles password hashing and basic user record creation
@@ -123,7 +126,7 @@ export const createUser = async (
 				};
 			}
 		}
-        // Better Auth errors might come as APIError or similar, we catch generic
+		// Better Auth errors might come as APIError or similar, we catch generic
 		return {
 			success: false,
 			code: "USER_CREATE_FAILED",
@@ -137,7 +140,7 @@ export const updateUser = async (
 	db: PrismaClient,
 	id: string,
 	body: UserUpdateInput,
-): Promise<ServiceResult<any>> => {
+): Promise<ServiceResult<UserRecord>> => {
 	try {
 		const updated = await db.user.update({
 			where: { id },
@@ -175,7 +178,7 @@ export const updateUser = async (
 export const getUserProfile = async (
 	db: PrismaClient,
 	id: string,
-): Promise<ServiceResult<any>> => {
+): Promise<ServiceResult<UserRecord>> => {
 	const user = await db.user.findUnique({
 		where: { id },
 		select: userSelectFields,
@@ -192,7 +195,7 @@ export const updateUserProfile = async (
 	db: PrismaClient,
 	id: string,
 	body: UserProfileUpdateInput,
-): Promise<ServiceResult<any>> => {
+): Promise<ServiceResult<UserRecord>> => {
 	try {
 		const updated = await db.user.update({
 			where: { id },
@@ -226,16 +229,16 @@ export const changePassword = async (
 	userId: string,
 	body: ChangePasswordInput,
 	headers: Headers,
-): Promise<ServiceResult<any>> => {
+): Promise<ServiceResult<{ success: true }>> => {
 	try {
 		// Handle legacy users that were created without a password (password column is null)
 		// Assuming 'Account' table holds the password credential for 'email' provider
 		// Better Auth schema is complex, but we can try to use Better Auth API first.
-		
+
 		// Wait, if it's a legacy user (from old system), they might not have a Better Auth password credential.
 		// The original code checked `db.account.findFirst` and updated `password` directly if null.
 		// We should replicate that logic safely.
-		
+
 		const account = await db.account.findFirst({
 			where: { userId },
 		});
@@ -260,19 +263,24 @@ export const changePassword = async (
 					newPassword: body.newPassword,
 				},
 			});
-            
-            if (res && 'error' in res) {
-                 // Better Auth error handling if it returns error object
-                 // Types might vary, usually throws on error or returns object with error
-            }
+
+			if (res && "error" in res) {
+				// Better Auth error handling if it returns error object
+				// Types might vary, usually throws on error or returns object with error
+			}
 		}
 
 		return { success: true, data: { success: true } };
 	} catch (error) {
-        // Better Auth throws APIError
-        if (error instanceof Error) {
-             return { success: false, code: "PASSWORD_CHANGE_FAILED", message: error.message, status: 400 };
-        }
+		// Better Auth throws APIError
+		if (error instanceof Error) {
+			return {
+				success: false,
+				code: "PASSWORD_CHANGE_FAILED",
+				message: error.message,
+				status: 400,
+			};
+		}
 		return {
 			success: false,
 			code: "PASSWORD_CHANGE_FAILED",

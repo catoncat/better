@@ -5,7 +5,11 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useIntegrationStatus, useTriggerIntegrationSync } from "@/hooks/use-integration";
+import {
+	type IntegrationJobStatus,
+	useIntegrationStatus,
+	useTriggerIntegrationSync,
+} from "@/hooks/use-integration";
 
 export const Route = createFileRoute("/_authenticated/system/integrations")({
 	component: IntegrationSyncPage,
@@ -75,7 +79,7 @@ function IntegrationSyncPage() {
 	const [activeKey, setActiveKey] = useState<string | null>(null);
 
 	const jobsByKey = useMemo(() => {
-		const map = new Map<string, (typeof data)[number]>();
+		const map = new Map<string, IntegrationJobStatus>();
 		(data ?? []).forEach((job) => {
 			map.set(`${job.sourceSystem}:${job.entityType}`, job);
 		});
@@ -103,7 +107,10 @@ function IntegrationSyncPage() {
 		const isRunning = isPending && activeKey === key;
 
 		return (
-			<div key={key} className="rounded-lg border border-border p-4 flex flex-col gap-3 md:flex-row md:items-center">
+			<div
+				key={key}
+				className="rounded-lg border border-border p-4 flex flex-col gap-3 md:flex-row md:items-center"
+			>
 				<div className="flex-1 space-y-2">
 					<div className="flex flex-wrap items-center gap-2">
 						<span className="text-base font-semibold">{job.label}</span>
@@ -135,7 +142,11 @@ function IntegrationSyncPage() {
 
 			<div className="flex justify-end">
 				<Button variant="secondary" size="sm" onClick={() => refetch()} disabled={isFetching}>
-					{isFetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+					{isFetching ? (
+						<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+					) : (
+						<RefreshCw className="mr-2 h-4 w-4" />
+					)}
 					刷新状态
 				</Button>
 			</div>
@@ -160,9 +171,7 @@ function IntegrationSyncPage() {
 				</CardContent>
 			</Card>
 
-			{isLoading && (
-				<div className="text-sm text-muted-foreground">正在加载同步状态...</div>
-			)}
+			{isLoading && <div className="text-sm text-muted-foreground">正在加载同步状态...</div>}
 		</div>
 	);
 }

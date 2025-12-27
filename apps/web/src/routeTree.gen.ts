@@ -27,6 +27,7 @@ import { Route as AuthenticatedMesRoutesRouteImport } from './routes/_authentica
 import { Route as AuthenticatedMesRouteVersionsRouteImport } from './routes/_authenticated/mes/route-versions'
 import { Route as AuthenticatedMesExecutionRouteImport } from './routes/_authenticated/mes/execution'
 import { Route as AuthenticatedInstrumentsInstrumentIdRouteImport } from './routes/_authenticated/instruments/$instrumentId'
+import { Route as AuthenticatedMesRoutesIndexRouteImport } from './routes/_authenticated/mes/routes/index'
 import { Route as AuthenticatedMesRoutesRoutingCodeRouteImport } from './routes/_authenticated/mes/routes/$routingCode'
 
 const LoginRoute = LoginRouteImport.update({
@@ -129,6 +130,12 @@ const AuthenticatedInstrumentsInstrumentIdRoute =
     path: '/instruments/$instrumentId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedMesRoutesIndexRoute =
+  AuthenticatedMesRoutesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedMesRoutesRoute,
+  } as any)
 const AuthenticatedMesRoutesRoutingCodeRoute =
   AuthenticatedMesRoutesRoutingCodeRouteImport.update({
     id: '/$routingCode',
@@ -155,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/mes': typeof AuthenticatedMesIndexRoute
   '/system': typeof AuthenticatedSystemIndexRoute
   '/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
+  '/mes/routes/': typeof AuthenticatedMesRoutesIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -164,7 +172,6 @@ export interface FileRoutesByTo {
   '/instruments/$instrumentId': typeof AuthenticatedInstrumentsInstrumentIdRoute
   '/mes/execution': typeof AuthenticatedMesExecutionRoute
   '/mes/route-versions': typeof AuthenticatedMesRouteVersionsRoute
-  '/mes/routes': typeof AuthenticatedMesRoutesRouteWithChildren
   '/mes/runs': typeof AuthenticatedMesRunsRoute
   '/mes/work-orders': typeof AuthenticatedMesWorkOrdersRoute
   '/system/integrations': typeof AuthenticatedSystemIntegrationsRoute
@@ -175,6 +182,7 @@ export interface FileRoutesByTo {
   '/mes': typeof AuthenticatedMesIndexRoute
   '/system': typeof AuthenticatedSystemIndexRoute
   '/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
+  '/mes/routes': typeof AuthenticatedMesRoutesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/_authenticated/mes/': typeof AuthenticatedMesIndexRoute
   '/_authenticated/system/': typeof AuthenticatedSystemIndexRoute
   '/_authenticated/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
+  '/_authenticated/mes/routes/': typeof AuthenticatedMesRoutesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -219,6 +228,7 @@ export interface FileRouteTypes {
     | '/mes'
     | '/system'
     | '/mes/routes/$routingCode'
+    | '/mes/routes/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -228,7 +238,6 @@ export interface FileRouteTypes {
     | '/instruments/$instrumentId'
     | '/mes/execution'
     | '/mes/route-versions'
-    | '/mes/routes'
     | '/mes/runs'
     | '/mes/work-orders'
     | '/system/integrations'
@@ -239,6 +248,7 @@ export interface FileRouteTypes {
     | '/mes'
     | '/system'
     | '/mes/routes/$routingCode'
+    | '/mes/routes'
   id:
     | '__root__'
     | '/_authenticated'
@@ -260,6 +270,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/'
     | '/_authenticated/system/'
     | '/_authenticated/mes/routes/$routingCode'
+    | '/_authenticated/mes/routes/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -395,6 +406,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInstrumentsInstrumentIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/mes/routes/': {
+      id: '/_authenticated/mes/routes/'
+      path: '/'
+      fullPath: '/mes/routes/'
+      preLoaderRoute: typeof AuthenticatedMesRoutesIndexRouteImport
+      parentRoute: typeof AuthenticatedMesRoutesRoute
+    }
     '/_authenticated/mes/routes/$routingCode': {
       id: '/_authenticated/mes/routes/$routingCode'
       path: '/$routingCode'
@@ -407,12 +425,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedMesRoutesRouteChildren {
   AuthenticatedMesRoutesRoutingCodeRoute: typeof AuthenticatedMesRoutesRoutingCodeRoute
+  AuthenticatedMesRoutesIndexRoute: typeof AuthenticatedMesRoutesIndexRoute
 }
 
 const AuthenticatedMesRoutesRouteChildren: AuthenticatedMesRoutesRouteChildren =
   {
     AuthenticatedMesRoutesRoutingCodeRoute:
       AuthenticatedMesRoutesRoutingCodeRoute,
+    AuthenticatedMesRoutesIndexRoute: AuthenticatedMesRoutesIndexRoute,
   }
 
 const AuthenticatedMesRoutesRouteWithChildren =

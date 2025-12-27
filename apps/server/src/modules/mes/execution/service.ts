@@ -1,6 +1,6 @@
 import type { PrismaClient } from "@better-app/db";
 import { RunStatus, TrackResult, TrackSource, UnitStatus } from "@better-app/db";
-import { SpanStatusCode, trace, type Span } from "@opentelemetry/api";
+import { type Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
 import type { trackInSchema, trackOutSchema } from "./schema";
 
@@ -140,7 +140,11 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 			if (!run.workOrder.routing) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "WORK_ORDER_NO_ROUTING");
-				return { success: false, code: "WORK_ORDER_NO_ROUTING", message: "Work order has no routing" };
+				return {
+					success: false,
+					code: "WORK_ORDER_NO_ROUTING",
+					message: "Work order has no routing",
+				};
 			}
 
 			const unit = await db.unit.findUnique({ where: { sn: data.sn } });
@@ -156,7 +160,11 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 			if (unit?.runId && unit.runId !== run.id) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "UNIT_RUN_MISMATCH");
-				return { success: false, code: "UNIT_RUN_MISMATCH", message: "Unit does not belong to run" };
+				return {
+					success: false,
+					code: "UNIT_RUN_MISMATCH",
+					message: "Unit does not belong to run",
+				};
 			}
 			if (unit?.status === UnitStatus.IN_STATION) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
@@ -175,17 +183,22 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 
 			const snapshotSteps = getSnapshotSteps(run.routeVersion.snapshotJson);
 			const steps = snapshotSteps ? [...snapshotSteps].sort((a, b) => a.stepNo - b.stepNo) : [];
-			if (steps.length === 0) {
+			const firstStep = steps[0];
+			if (!firstStep) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "ROUTING_EMPTY");
 				return { success: false, code: "ROUTING_EMPTY", message: "Routing has no steps" };
 			}
-			const currentStepNo = unit?.currentStepNo ?? steps[0].stepNo;
+			const currentStepNo = unit?.currentStepNo ?? firstStep.stepNo;
 			const currentStep = steps.find((s) => s.stepNo === currentStepNo);
 			if (!currentStep) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "STEP_MISMATCH");
-				return { success: false, code: "STEP_MISMATCH", message: "Current step not found in routing" };
+				return {
+					success: false,
+					code: "STEP_MISMATCH",
+					message: "Current step not found in routing",
+				};
 			}
 			if (!isValidStationForStep(currentStep, station)) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
@@ -329,7 +342,11 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 			if (unit.runId && unit.runId !== run.id) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "UNIT_RUN_MISMATCH");
-				return { success: false, code: "UNIT_RUN_MISMATCH", message: "Unit does not belong to run" };
+				return {
+					success: false,
+					code: "UNIT_RUN_MISMATCH",
+					message: "Unit does not belong to run",
+				};
 			}
 
 			const track = await db.track.findFirst({
@@ -339,7 +356,11 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 			if (!track) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "TRACK_NOT_FOUND");
-				return { success: false, code: "TRACK_NOT_FOUND", message: "No active TrackIn record found" };
+				return {
+					success: false,
+					code: "TRACK_NOT_FOUND",
+					message: "No active TrackIn record found",
+				};
 			}
 
 			const result = data.result === "PASS" ? TrackResult.PASS : TrackResult.FAIL;
@@ -355,7 +376,11 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 			if (!currentStep) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "STEP_MISMATCH");
-				return { success: false, code: "STEP_MISMATCH", message: "Current step not found in routing" };
+				return {
+					success: false,
+					code: "STEP_MISMATCH",
+					message: "Current step not found in routing",
+				};
 			}
 
 			if (!isValidStationForStep(currentStep, station)) {
@@ -459,7 +484,10 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 				if (dataItems.length > 0) {
 					await tx.dataValue.createMany({
 						data: dataItems.map((item) => {
-							const spec = specsByName.get(item.specName)!;
+							const spec = specsByName.get(item.specName);
+							if (!spec) {
+								throw new Error(`Data spec not found: ${item.specName}`);
+							}
 							return {
 								specId: spec.id,
 								trackId: track.id,
@@ -475,7 +503,7 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 				}
 
 				if (result === TrackResult.PASS) {
-					if (currentStep.isLast || !nextStep) {
+					if (!nextStep) {
 						return await tx.unit.update({
 							where: { id: unit.id },
 							data: { status: UnitStatus.DONE },

@@ -77,7 +77,13 @@ export const kingdeeLogin = async (
 		format: 1,
 		useragent: "ApiClient",
 		rid: "1",
-		parameters: JSON.stringify([config.dbId, config.username, config.appId, config.appSecret, config.lcid]),
+		parameters: JSON.stringify([
+			config.dbId,
+			config.username,
+			config.appId,
+			config.appSecret,
+			config.lcid,
+		]),
 		timestamp: "0",
 		v: "1.0",
 	};

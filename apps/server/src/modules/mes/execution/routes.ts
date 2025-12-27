@@ -1,5 +1,5 @@
-import { Elysia, t } from "elysia";
 import { AuditEntityType } from "@better-app/db";
+import { Elysia, t } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
@@ -19,6 +19,8 @@ export const executionModule = new Elysia({
 			const beforeUnit = await db.unit.findUnique({ where: { sn: body.sn } });
 			const result = await trackIn(db, params.stationCode, body);
 			if (!result.success) {
+				const errorCode = result.code ?? "EXECUTION_ERROR";
+				const errorMessage = result.message ?? "Track in failed";
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.UNIT,
 					entityId: beforeUnit?.id ?? body.sn,
@@ -26,8 +28,8 @@ export const executionModule = new Elysia({
 					action: "TRACK_IN",
 					actor,
 					status: "FAIL",
-					errorCode: result.code,
-					errorMessage: result.message,
+					errorCode,
+					errorMessage,
 					before: beforeUnit,
 					request: requestMeta,
 					payload: {
@@ -37,12 +39,12 @@ export const executionModule = new Elysia({
 					},
 				});
 				set.status =
-					result.code === "STATION_NOT_FOUND" ||
-					result.code === "RUN_NOT_FOUND" ||
-					result.code === "UNIT_NOT_FOUND"
+					errorCode === "STATION_NOT_FOUND" ||
+					errorCode === "RUN_NOT_FOUND" ||
+					errorCode === "UNIT_NOT_FOUND"
 						? 404
 						: 400;
-				return { ok: false, error: { code: result.code, message: result.message } };
+				return { ok: false, error: { code: errorCode, message: errorMessage } };
 			}
 			const afterUnit = await db.unit.findUnique({ where: { sn: body.sn } });
 			await recordAuditEvent(db, {
@@ -69,8 +71,14 @@ export const executionModule = new Elysia({
 			body: trackInSchema,
 			response: {
 				200: trackResponseSchema,
-				400: t.Object({ ok: t.Boolean(), error: t.Object({ code: t.String(), message: t.String() }) }),
-				404: t.Object({ ok: t.Boolean(), error: t.Object({ code: t.String(), message: t.String() }) }),
+				400: t.Object({
+					ok: t.Boolean(),
+					error: t.Object({ code: t.String(), message: t.String() }),
+				}),
+				404: t.Object({
+					ok: t.Boolean(),
+					error: t.Object({ code: t.String(), message: t.String() }),
+				}),
 			},
 			detail: { tags: ["MES - Execution"] },
 		},
@@ -83,6 +91,8 @@ export const executionModule = new Elysia({
 			const beforeUnit = await db.unit.findUnique({ where: { sn: body.sn } });
 			const result = await trackOut(db, params.stationCode, body);
 			if (!result.success) {
+				const errorCode = result.code ?? "EXECUTION_ERROR";
+				const errorMessage = result.message ?? "Track out failed";
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.UNIT,
 					entityId: beforeUnit?.id ?? body.sn,
@@ -90,8 +100,8 @@ export const executionModule = new Elysia({
 					action: "TRACK_OUT",
 					actor,
 					status: "FAIL",
-					errorCode: result.code,
-					errorMessage: result.message,
+					errorCode,
+					errorMessage,
 					before: beforeUnit,
 					request: requestMeta,
 					payload: {
@@ -101,12 +111,12 @@ export const executionModule = new Elysia({
 					},
 				});
 				set.status =
-					result.code === "STATION_NOT_FOUND" ||
-					result.code === "RUN_NOT_FOUND" ||
-					result.code === "UNIT_NOT_FOUND"
+					errorCode === "STATION_NOT_FOUND" ||
+					errorCode === "RUN_NOT_FOUND" ||
+					errorCode === "UNIT_NOT_FOUND"
 						? 404
 						: 400;
-				return { ok: false, error: { code: result.code, message: result.message } };
+				return { ok: false, error: { code: errorCode, message: errorMessage } };
 			}
 			const afterUnit = await db.unit.findUnique({ where: { sn: body.sn } });
 			await recordAuditEvent(db, {
@@ -133,8 +143,14 @@ export const executionModule = new Elysia({
 			body: trackOutSchema,
 			response: {
 				200: trackResponseSchema,
-				400: t.Object({ ok: t.Boolean(), error: t.Object({ code: t.String(), message: t.String() }) }),
-				404: t.Object({ ok: t.Boolean(), error: t.Object({ code: t.String(), message: t.String() }) }),
+				400: t.Object({
+					ok: t.Boolean(),
+					error: t.Object({ code: t.String(), message: t.String() }),
+				}),
+				404: t.Object({
+					ok: t.Boolean(),
+					error: t.Object({ code: t.String(), message: t.String() }),
+				}),
 			},
 			detail: { tags: ["MES - Execution"] },
 		},

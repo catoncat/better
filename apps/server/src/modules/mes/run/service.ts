@@ -1,11 +1,13 @@
 import { type Prisma, type PrismaClient, RunStatus } from "@better-app/db";
-import { SpanStatusCode, trace, type Span } from "@opentelemetry/api";
+import { type Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
+import type { ServiceResult } from "../../../types/service-result";
 import { parseSortOrderBy } from "../../../utils/sort";
 import type { runAuthorizeSchema, runListQuerySchema } from "./schema";
 
 type RunAuthorizeInput = Static<typeof runAuthorizeSchema>;
 type RunListQuery = Static<typeof runListQuerySchema>;
+type RunRecord = Prisma.RunGetPayload<Prisma.RunDefaultArgs>;
 
 const tracer = trace.getTracer("mes");
 
@@ -60,60 +62,73 @@ export const listRuns = async (db: PrismaClient, query: RunListQuery) => {
 	return { items, total, page, pageSize };
 };
 
-export const authorizeRun = async (db: PrismaClient, runNo: string, data: RunAuthorizeInput) => {
-	return await tracer.startActiveSpan("mes.runs.authorize", async (span) => {
-		setSpanAttributes(span, {
-			"mes.run.run_no": runNo,
-			"mes.run.action": data.action,
-			"mes.run.reason": data.reason,
-		});
+export const authorizeRun = async (
+	db: PrismaClient,
+	runNo: string,
+	data: RunAuthorizeInput,
+): Promise<ServiceResult<RunRecord>> => {
+	return await tracer.startActiveSpan(
+		"mes.runs.authorize",
+		async (span): Promise<ServiceResult<RunRecord>> => {
+			setSpanAttributes(span, {
+				"mes.run.run_no": runNo,
+				"mes.run.action": data.action,
+				"mes.run.reason": data.reason,
+			});
 
-		try {
-			const run = await db.run.findUnique({ where: { runNo } });
-			if (!run) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "RUN_NOT_FOUND");
-				return { success: false, code: "RUN_NOT_FOUND", message: "Run not found" };
-			}
-
-			if (data.action === "AUTHORIZE") {
-				if (run.status === RunStatus.AUTHORIZED) {
-					return { success: true, data: run };
-				}
-				if (run.status !== RunStatus.PREP && run.status !== RunStatus.FAI_PENDING) {
+			try {
+				const run = await db.run.findUnique({ where: { runNo } });
+				if (!run) {
 					span.setStatus({ code: SpanStatusCode.ERROR });
-					span.setAttribute("mes.error_code", "RUN_NOT_READY");
+					span.setAttribute("mes.error_code", "RUN_NOT_FOUND");
 					return {
 						success: false,
-						code: "RUN_NOT_READY",
-						message: "Run is not in a state that can be authorized",
+						code: "RUN_NOT_FOUND",
+						message: "Run not found",
+						status: 404,
 					};
+				}
+
+				if (data.action === "AUTHORIZE") {
+					if (run.status === RunStatus.AUTHORIZED) {
+						return { success: true, data: run };
+					}
+					if (run.status !== RunStatus.PREP && run.status !== RunStatus.FAI_PENDING) {
+						span.setStatus({ code: SpanStatusCode.ERROR });
+						span.setAttribute("mes.error_code", "RUN_NOT_READY");
+						return {
+							success: false,
+							code: "RUN_NOT_READY",
+							message: "Run is not in a state that can be authorized",
+							status: 400,
+						};
+					}
+					const updated = await db.run.update({
+						where: { runNo },
+						data: {
+							status: RunStatus.AUTHORIZED,
+						},
+					});
+					return { success: true, data: updated };
+				}
+
+				if (run.status !== RunStatus.AUTHORIZED) {
+					return { success: true, data: run };
 				}
 				const updated = await db.run.update({
 					where: { runNo },
 					data: {
-						status: RunStatus.AUTHORIZED,
+						status: RunStatus.PREP,
 					},
 				});
 				return { success: true, data: updated };
+			} catch (error) {
+				span.recordException(error as Error);
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				throw error;
+			} finally {
+				span.end();
 			}
-
-			if (run.status !== RunStatus.AUTHORIZED) {
-				return { success: true, data: run };
-			}
-			const updated = await db.run.update({
-				where: { runNo },
-				data: {
-					status: RunStatus.PREP,
-				},
-			});
-			return { success: true, data: updated };
-		} catch (error) {
-			span.recordException(error as Error);
-			span.setStatus({ code: SpanStatusCode.ERROR });
-			throw error;
-		} finally {
-			span.end();
-		}
-	});
+		},
+	);
 };

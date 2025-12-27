@@ -282,3 +282,8 @@ Goal: Complete the basic production loop, from work order reception to unit comp
     2.  Support station group, allowed station, FAI, authorization, data spec, and mapping fields.
 *   **Definition of Done**: Execution configs can be created/updated without raw ID entry.
 *   **Status**: [x] Done (2025-12-26)
+
+---
+
+## Next Phase Planning
+*   See `domain_docs/mes/plan/phase2_tasks.md` for the detailed M2 task breakdown.

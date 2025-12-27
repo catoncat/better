@@ -1,9 +1,14 @@
-import { Elysia, t } from "elysia";
 import { AuditEntityType } from "@better-app/db";
+import { Elysia, t } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
-import { runAuthorizeSchema, runListQuerySchema, runResponseSchema } from "./schema";
+import {
+	runAuthorizeSchema,
+	runErrorResponseSchema,
+	runListQuerySchema,
+	runResponseSchema,
+} from "./schema";
 import { authorizeRun, listRuns } from "./service";
 
 export const runModule = new Elysia({
@@ -42,7 +47,7 @@ export const runModule = new Elysia({
 					before,
 					request: requestMeta,
 				});
-				set.status = result.code === "NOT_FOUND" ? 404 : 400;
+				set.status = result.status ?? 400;
 				return { ok: false, error: { code: result.code, message: result.message } };
 			}
 			await recordAuditEvent(db, {
@@ -62,7 +67,11 @@ export const runModule = new Elysia({
 			isAuth: true,
 			params: t.Object({ runNo: t.String() }),
 			body: runAuthorizeSchema,
-			response: runResponseSchema,
+			response: {
+				200: runResponseSchema,
+				400: runErrorResponseSchema,
+				404: runErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Runs"] },
 		},
 	);

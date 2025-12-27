@@ -1,6 +1,5 @@
-import type { Prisma, PrismaClient } from "@better-app/db";
-import { AuditEntityType } from "@better-app/db";
-import { buildAuditDiff, type AuditDiffOp } from "../../utils/audit-diff";
+import type { AuditEntityType, Prisma, PrismaClient } from "@better-app/db";
+import { type AuditDiffOp, buildAuditDiff } from "../../utils/audit-diff";
 
 export type AuditActor = {
 	id?: string;
@@ -55,14 +54,11 @@ const pickTraceId = (traceparent: string | null) => {
 
 export const buildAuditRequestMeta = (request: Request): AuditRequestMeta => {
 	const forwardedFor = request.headers.get("x-forwarded-for");
-	const ip =
-		forwardedFor?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || undefined;
+	const ip = forwardedFor?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || undefined;
 
 	return {
 		requestId:
-			request.headers.get("x-request-id") ||
-			request.headers.get("x-requestid") ||
-			undefined,
+			request.headers.get("x-request-id") || request.headers.get("x-requestid") || undefined,
 		ip,
 		userAgent: request.headers.get("user-agent") || undefined,
 		traceId: pickTraceId(request.headers.get("traceparent")),
@@ -73,8 +69,12 @@ export const recordAuditEvent = async (
 	db: PrismaClient,
 	input: RecordAuditEventInput,
 ): Promise<{ id: string; diff: AuditDiffOp[] }> => {
-	const diff = input.before !== undefined || input.after !== undefined ? buildAuditDiff(input.before, input.after) : [];
-	const diffValue = diff.length > 0 ? diff : null;
+	const diff =
+		input.before !== undefined || input.after !== undefined
+			? buildAuditDiff(input.before, input.after)
+			: [];
+	const diffValue: Prisma.InputJsonValue | undefined =
+		diff.length > 0 ? (diff as Prisma.InputJsonValue) : undefined;
 	const actorType = input.actor?.type ?? (input.actor?.id ? "USER" : "SYSTEM");
 
 	const event = await db.auditEvent.create({
@@ -103,6 +103,12 @@ export const recordAuditEvent = async (
 	});
 
 	return { id: event.id, diff };
+};
+
+const normalizeAuditDiff = (value: Prisma.JsonValue | null): AuditDiffOp[] | null => {
+	if (!value) return null;
+	if (!Array.isArray(value)) return null;
+	return value as AuditDiffOp[];
 };
 
 export type AuditListQuery = {
@@ -157,6 +163,7 @@ export const listAuditEvents = async (
 	return {
 		items: items.map((item) => ({
 			...item,
+			diff: normalizeAuditDiff(item.diff),
 			createdAt: item.createdAt.toISOString(),
 		})),
 		total,
@@ -170,6 +177,7 @@ export const getAuditEvent = async (db: PrismaClient, id: string) => {
 	if (!record) return null;
 	return {
 		...record,
+		diff: normalizeAuditDiff(record.diff),
 		createdAt: record.createdAt.toISOString(),
 	};
 };
