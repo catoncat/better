@@ -285,5 +285,48 @@ Goal: Complete the basic production loop, from work order reception to unit comp
 
 ---
 
+# UX Enhancement Addendum (M1.7+)
+
+## Task 1.27: Unit Traceability UI
+*   **Goal**: Provide a UI for querying unit production history.
+*   **Input**: Backend `/api/trace/units/:sn` endpoint
+*   **Actions**:
+    1.  Create `use-trace.ts` hook with Eden Treaty types.
+    2.  Add `/mes/trace` page with SN search and mode selection.
+    3.  Display unit info, route version, execution records, data values, defects, and materials.
+    4.  Add navigation entry in sidebar.
+*   **Definition of Done**: Users can query any SN and see full production history.
+*   **Status**: [x] Done (2025-12-27)
+
+## Task 1.28: Station Queue Display
+*   **Goal**: Show units currently at a station for easier execution.
+*   **Input**: `domain_docs/mes/spec/routing/01_routing_engine.md`
+*   **Actions**:
+    1.  Add `GET /api/stations/:stationCode/queue` endpoint returning in-station units.
+    2.  Add `useStationQueue` hook with auto-refresh.
+    3.  Enhance execution page with queue display and one-click track-out.
+*   **Definition of Done**: Operators can see and act on units at their station without manual SN entry.
+*   **Status**: [x] Done (2025-12-27)
+
+## Task 1.29: Routing Detail Compile Button
+*   **Goal**: Allow compiling routes directly from the detail page.
+*   **Input**: `domain_docs/mes/spec/routing/04_route_versioning_and_change_management.md`
+*   **Actions**:
+    1.  Add compile button to route detail page header.
+    2.  Reuse `useCompileRouteVersion` hook.
+*   **Definition of Done**: Users can compile a route without navigating to a separate versions page.
+*   **Status**: [x] Done (2025-12-26) - Already implemented in initial route detail page.
+
+## Task 1.30: Work Order Routing Selection
+*   **Goal**: Improve routing selection UX when receiving work orders.
+*   **Input**: `agent_docs/02_frontend/create_edit_dialog.md`
+*   **Actions**:
+    1.  Add `useRouteSearch` hook for searchable route list.
+    2.  Use Combobox component for routing selection in receive dialog.
+*   **Definition of Done**: Users can search and select routes instead of typing codes.
+*   **Status**: [x] Done (2025-12-26) - Already implemented in work order receive dialog.
+
+---
+
 ## Next Phase Planning
 *   See `domain_docs/mes/plan/phase2_tasks.md` for the detailed M2 task breakdown.

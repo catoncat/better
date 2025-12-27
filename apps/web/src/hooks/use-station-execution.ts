@@ -8,11 +8,28 @@ type StationListResponse = Awaited<ReturnType<typeof client.api.stations.get>>["
 export type StationList = NonNullable<StationListResponse>;
 export type Station = StationList["items"][number];
 
+const stationQueueApi = (code: string) => client.api.stations({ stationCode: code }).queue;
+type StationQueueResponse = Awaited<ReturnType<ReturnType<typeof stationQueueApi>["get"]>>["data"];
+export type StationQueue = NonNullable<StationQueueResponse>;
+export type QueueItem = StationQueue["queue"][number];
+
 export function useStations() {
 	return useQuery<StationList>({
 		queryKey: ["mes", "stations"],
 		queryFn: async () => {
 			const response = await client.api.stations.get();
+			return unwrap(response);
+		},
+	});
+}
+
+export function useStationQueue(stationCode: string) {
+	return useQuery<StationQueue>({
+		queryKey: ["mes", "station-queue", stationCode],
+		enabled: Boolean(stationCode),
+		refetchInterval: 10_000,
+		queryFn: async () => {
+			const response = await client.api.stations({ stationCode }).queue.get();
 			return unwrap(response);
 		},
 	});

@@ -38,6 +38,10 @@ export const navMain: NavItem[] = [
 				title: "路由版本",
 				url: "/mes/route-versions",
 			},
+			{
+				title: "追溯查询",
+				url: "/mes/trace",
+			},
 		],
 	},
 	{
