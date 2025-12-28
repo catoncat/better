@@ -38,6 +38,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@better-app/auth": "workspace:*",
+        "@better-app/db": "workspace:*",
         "@elysiajs/eden": "^1.4.5",
         "@hookform/resolvers": "^5.2.2",
         "@radix-ui/react-alert-dialog": "^1.1.15",

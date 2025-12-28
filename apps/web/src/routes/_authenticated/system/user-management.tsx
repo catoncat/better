@@ -24,12 +24,12 @@ import { UserDialog, type UserFormValues } from "./-components/user-dialog";
 
 interface UserFilters {
 	search: string;
-	role: string[];
+	roleId: string[];
 }
 
 interface UserSearchParams {
 	search?: string;
-	role?: string;
+	roleId?: string;
 	page?: number;
 	pageSize?: number;
 }
@@ -37,7 +37,7 @@ interface UserSearchParams {
 export const Route = createFileRoute("/_authenticated/system/user-management")({
 	validateSearch: (search: Record<string, unknown>): UserSearchParams => ({
 		search: (search.search as string) || undefined,
-		role: (search.role as string) || undefined,
+		roleId: (search.roleId as string) || undefined,
 		page: Number(search.page) || 1,
 		pageSize: Number(search.pageSize) || 20,
 	}),
@@ -50,9 +50,10 @@ function SystemUserManagementPage() {
 	const navigate = useNavigate();
 	const searchParams = useSearch({ from: "/_authenticated/system/user-management" });
 	const { data: roles = [] } = useUserRoles();
+	const roleIdByCode = useMemo(() => new Map(roles.map((role) => [role.code, role.id])), [roles]);
 
 	const roleOptions = useMemo(
-		() => roles.map((role: string) => ({ label: USER_ROLE_MAP[role] || role, value: role })),
+		() => roles.map((role) => ({ label: role.name, value: role.id })),
 		[roles],
 	);
 
@@ -60,13 +61,13 @@ function SystemUserManagementPage() {
 	const filters: UserFilters = useMemo(
 		() => ({
 			search: searchParams.search || "",
-			role: searchParams.role?.split(",").filter(Boolean) || [],
+			roleId: searchParams.roleId?.split(",").filter(Boolean) || [],
 		}),
 		[searchParams],
 	);
 
 	const isFiltered = useMemo(() => {
-		return filters.search !== "" || filters.role.length > 0;
+		return filters.search !== "" || filters.roleId.length > 0;
 	}, [filters]);
 
 	// Update URL with new filters
@@ -141,13 +142,33 @@ function SystemUserManagementPage() {
 
 	// System presets
 	const systemPresets = useMemo((): SystemPreset<UserFilters>[] => {
-		return [
-			{ id: "all", name: "全部", filters: {} },
-			{ id: "admin", name: USER_ROLE_MAP.admin, filters: { role: ["admin"] } },
-			{ id: "technician", name: USER_ROLE_MAP.technician, filters: { role: ["technician"] } },
-			{ id: "operator", name: USER_ROLE_MAP.operator, filters: { role: ["operator"] } },
-		];
-	}, []);
+		const presets: SystemPreset<UserFilters>[] = [{ id: "all", name: "全部", filters: {} }];
+		const adminRoleId = roleIdByCode.get("admin");
+		const plannerRoleId = roleIdByCode.get("planner");
+		const operatorRoleId = roleIdByCode.get("operator");
+		if (adminRoleId) {
+			presets.push({
+				id: "admin",
+				name: USER_ROLE_MAP.admin,
+				filters: { roleId: [adminRoleId] },
+			});
+		}
+		if (plannerRoleId) {
+			presets.push({
+				id: "planner",
+				name: USER_ROLE_MAP.planner,
+				filters: { roleId: [plannerRoleId] },
+			});
+		}
+		if (operatorRoleId) {
+			presets.push({
+				id: "operator",
+				name: USER_ROLE_MAP.operator,
+				filters: { roleId: [operatorRoleId] },
+			});
+		}
+		return presets;
+	}, [roleIdByCode]);
 
 	// All presets for matching
 	const allPresets = useMemo(
@@ -165,7 +186,7 @@ function SystemUserManagementPage() {
 		(presetId: string, presetFilters: Partial<UserFilters>) => {
 			const newFilters: Partial<UserFilters> = {
 				search: "",
-				role: [],
+				roleId: [],
 				...presetFilters,
 			};
 			setFilters(newFilters);
@@ -178,7 +199,7 @@ function SystemUserManagementPage() {
 		page: pagination.pageIndex + 1,
 		pageSize: pagination.pageSize,
 		search: filters.search.trim() || undefined,
-		role: filters.role.length > 0 ? filters.role : undefined,
+		roleId: filters.roleId.length > 0 ? filters.roleId : undefined,
 	});
 	const updateMutation = useUpdateUser();
 	const createMutation = useCreateUser();
@@ -203,7 +224,6 @@ function SystemUserManagementPage() {
 
 		const payload = {
 			...values,
-			role: values.role as UserItem["role"],
 		};
 
 		try {
@@ -287,7 +307,7 @@ function SystemUserManagementPage() {
 						placeholder: "搜索姓名、邮箱或用户名...",
 					},
 					{
-						key: "role",
+						key: "roleId",
 						type: "multiSelect",
 						label: "角色",
 						options: roleOptions,

@@ -38,11 +38,22 @@ export const userColumns: ColumnDef<UserItem>[] = [
 		cell: ({ row }) => row.getValue("username") || "-",
 	},
 	{
-		accessorKey: "role",
+		id: "roles",
 		header: "角色",
 		cell: ({ row }) => {
-			const role = row.getValue("role") as UserItem["role"];
-			return <Badge variant="secondary">{USER_ROLE_MAP[role] ?? role}</Badge>;
+			const roles = row.original.roles;
+			if (roles.length === 0) {
+				return <Badge variant="secondary">未分配</Badge>;
+			}
+			return (
+				<div className="flex flex-wrap gap-2">
+					{roles.map((role) => (
+						<Badge key={role.id} variant="secondary">
+							{USER_ROLE_MAP[role.code] ?? role.name ?? role.code}
+						</Badge>
+					))}
+				</div>
+			);
 		},
 	},
 	{

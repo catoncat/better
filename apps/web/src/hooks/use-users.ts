@@ -15,6 +15,7 @@ type UserCreateResponse = Awaited<ReturnType<typeof client.api.users.post>>["dat
 type UserCreateData = UnwrapEnvelope<NonNullable<UserCreateResponse>>;
 type RolesResponse = Awaited<ReturnType<typeof client.api.meta.roles.get>>["data"];
 type RolesData = UnwrapEnvelope<NonNullable<RolesResponse>>;
+export type RoleOption = RolesData["roles"][number];
 
 type UserUpdateInput = Parameters<ReturnType<typeof client.api.users>["patch"]>[0];
 
@@ -22,24 +23,24 @@ interface UseUserListParams {
 	page?: number;
 	pageSize?: number;
 	search?: string;
-	role?: string | string[];
+	roleId?: string | string[];
 }
 
 export function useUserList(params: UseUserListParams) {
 	const page = params.page ?? 1;
 	const pageSize = params.pageSize ?? 30;
 	const search = params.search ?? "";
-	const role = Array.isArray(params.role) ? params.role.join(",") : (params.role ?? "");
+	const roleId = Array.isArray(params.roleId) ? params.roleId.join(",") : (params.roleId ?? "");
 
 	return useQuery<UsersList>({
-		queryKey: ["users", page, pageSize, search, role],
+		queryKey: ["users", page, pageSize, search, roleId],
 		queryFn: async () => {
 			const response = await client.api.users.get({
 				query: {
 					page,
 					pageSize,
 					search: search || undefined,
-					role: role || undefined,
+					roleId: roleId || undefined,
 				},
 			});
 			return unwrap(response);

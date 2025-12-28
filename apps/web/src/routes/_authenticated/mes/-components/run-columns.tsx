@@ -1,9 +1,11 @@
+import { Permission } from "@better-app/db/permissions";
 import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { CheckCircle, XCircle } from "lucide-react";
 import { TableActions } from "@/components/data-table/table-actions";
 import { Badge } from "@/components/ui/badge";
+import { useAbility } from "@/hooks/use-ability";
 import type { Run } from "@/hooks/use-runs";
 import { RUN_STATUS_MAP } from "@/lib/constants";
 
@@ -67,10 +69,14 @@ export const runColumns: ColumnDef<Run>[] = [
 		cell: ({ row, table }) => {
 			const run = row.original;
 			const meta = table.options.meta as RunTableMeta | undefined;
+			const { hasPermission } = useAbility();
 
 			const actions = [];
 
-			if (run.status === "PREP" || run.status === "FAI_PENDING") {
+			if (
+				(run.status === "PREP" || run.status === "FAI_PENDING") &&
+				hasPermission(Permission.RUN_AUTHORIZE)
+			) {
 				actions.push({
 					icon: CheckCircle,
 					label: "授权生产",
@@ -78,7 +84,7 @@ export const runColumns: ColumnDef<Run>[] = [
 				});
 			}
 
-			if (run.status === "AUTHORIZED") {
+			if (run.status === "AUTHORIZED" && hasPermission(Permission.RUN_REVOKE)) {
 				actions.push({
 					icon: XCircle,
 					label: "撤销授权",

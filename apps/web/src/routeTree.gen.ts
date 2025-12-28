@@ -20,6 +20,7 @@ import { Route as AuthenticatedInstrumentsIndexRouteImport } from './routes/_aut
 import { Route as AuthenticatedCalibrationsIndexRouteImport } from './routes/_authenticated/calibrations/index'
 import { Route as AuthenticatedSystemUserManagementRouteImport } from './routes/_authenticated/system/user-management'
 import { Route as AuthenticatedSystemSettingsRouteImport } from './routes/_authenticated/system/settings'
+import { Route as AuthenticatedSystemRoleManagementRouteImport } from './routes/_authenticated/system/role-management'
 import { Route as AuthenticatedSystemIntegrationsRouteImport } from './routes/_authenticated/system/integrations'
 import { Route as AuthenticatedMesWorkOrdersRouteImport } from './routes/_authenticated/mes/work-orders'
 import { Route as AuthenticatedMesTraceRouteImport } from './routes/_authenticated/mes/trace'
@@ -90,6 +91,12 @@ const AuthenticatedSystemSettingsRoute =
   AuthenticatedSystemSettingsRouteImport.update({
     id: '/system/settings',
     path: '/system/settings',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedSystemRoleManagementRoute =
+  AuthenticatedSystemRoleManagementRouteImport.update({
+    id: '/system/role-management',
+    path: '/system/role-management',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedSystemIntegrationsRoute =
@@ -169,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/mes/trace': typeof AuthenticatedMesTraceRoute
   '/mes/work-orders': typeof AuthenticatedMesWorkOrdersRoute
   '/system/integrations': typeof AuthenticatedSystemIntegrationsRoute
+  '/system/role-management': typeof AuthenticatedSystemRoleManagementRoute
   '/system/settings': typeof AuthenticatedSystemSettingsRoute
   '/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/calibrations': typeof AuthenticatedCalibrationsIndexRoute
@@ -191,6 +199,7 @@ export interface FileRoutesByTo {
   '/mes/trace': typeof AuthenticatedMesTraceRoute
   '/mes/work-orders': typeof AuthenticatedMesWorkOrdersRoute
   '/system/integrations': typeof AuthenticatedSystemIntegrationsRoute
+  '/system/role-management': typeof AuthenticatedSystemRoleManagementRoute
   '/system/settings': typeof AuthenticatedSystemSettingsRoute
   '/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/calibrations': typeof AuthenticatedCalibrationsIndexRoute
@@ -216,6 +225,7 @@ export interface FileRoutesById {
   '/_authenticated/mes/trace': typeof AuthenticatedMesTraceRoute
   '/_authenticated/mes/work-orders': typeof AuthenticatedMesWorkOrdersRoute
   '/_authenticated/system/integrations': typeof AuthenticatedSystemIntegrationsRoute
+  '/_authenticated/system/role-management': typeof AuthenticatedSystemRoleManagementRoute
   '/_authenticated/system/settings': typeof AuthenticatedSystemSettingsRoute
   '/_authenticated/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/_authenticated/calibrations/': typeof AuthenticatedCalibrationsIndexRoute
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
     | '/mes/trace'
     | '/mes/work-orders'
     | '/system/integrations'
+    | '/system/role-management'
     | '/system/settings'
     | '/system/user-management'
     | '/calibrations'
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/mes/trace'
     | '/mes/work-orders'
     | '/system/integrations'
+    | '/system/role-management'
     | '/system/settings'
     | '/system/user-management'
     | '/calibrations'
@@ -287,6 +299,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/trace'
     | '/_authenticated/mes/work-orders'
     | '/_authenticated/system/integrations'
+    | '/_authenticated/system/role-management'
     | '/_authenticated/system/settings'
     | '/_authenticated/system/user-management'
     | '/_authenticated/calibrations/'
@@ -381,6 +394,13 @@ declare module '@tanstack/react-router' {
       path: '/system/settings'
       fullPath: '/system/settings'
       preLoaderRoute: typeof AuthenticatedSystemSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/system/role-management': {
+      id: '/_authenticated/system/role-management'
+      path: '/system/role-management'
+      fullPath: '/system/role-management'
+      preLoaderRoute: typeof AuthenticatedSystemRoleManagementRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/system/integrations': {
@@ -491,6 +511,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesTraceRoute: typeof AuthenticatedMesTraceRoute
   AuthenticatedMesWorkOrdersRoute: typeof AuthenticatedMesWorkOrdersRoute
   AuthenticatedSystemIntegrationsRoute: typeof AuthenticatedSystemIntegrationsRoute
+  AuthenticatedSystemRoleManagementRoute: typeof AuthenticatedSystemRoleManagementRoute
   AuthenticatedSystemSettingsRoute: typeof AuthenticatedSystemSettingsRoute
   AuthenticatedSystemUserManagementRoute: typeof AuthenticatedSystemUserManagementRoute
   AuthenticatedCalibrationsIndexRoute: typeof AuthenticatedCalibrationsIndexRoute
@@ -513,6 +534,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMesTraceRoute: AuthenticatedMesTraceRoute,
   AuthenticatedMesWorkOrdersRoute: AuthenticatedMesWorkOrdersRoute,
   AuthenticatedSystemIntegrationsRoute: AuthenticatedSystemIntegrationsRoute,
+  AuthenticatedSystemRoleManagementRoute:
+    AuthenticatedSystemRoleManagementRoute,
   AuthenticatedSystemSettingsRoute: AuthenticatedSystemSettingsRoute,
   AuthenticatedSystemUserManagementRoute:
     AuthenticatedSystemUserManagementRoute,

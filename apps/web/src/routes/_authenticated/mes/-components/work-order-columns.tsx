@@ -1,8 +1,10 @@
+import { Permission } from "@better-app/db/permissions";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { Play, Send } from "lucide-react";
 import { TableActions } from "@/components/data-table/table-actions";
 import { Badge } from "@/components/ui/badge";
+import { useAbility } from "@/hooks/use-ability";
 import type { WorkOrder } from "@/hooks/use-work-orders";
 import { WORK_ORDER_STATUS_MAP } from "@/lib/constants";
 
@@ -62,10 +64,11 @@ export const workOrderColumns: ColumnDef<WorkOrder>[] = [
 		cell: ({ row, table }) => {
 			const wo = row.original;
 			const meta = table.options.meta as WorkOrderTableMeta | undefined;
+			const { hasPermission } = useAbility();
 
 			const actions = [];
 
-			if (wo.status === "RECEIVED") {
+			if (wo.status === "RECEIVED" && hasPermission(Permission.WO_RELEASE)) {
 				actions.push({
 					icon: Send,
 					label: "发布工单",
@@ -73,7 +76,10 @@ export const workOrderColumns: ColumnDef<WorkOrder>[] = [
 				});
 			}
 
-			if (wo.status === "RELEASED" || wo.status === "IN_PROGRESS") {
+			if (
+				(wo.status === "RELEASED" || wo.status === "IN_PROGRESS") &&
+				hasPermission(Permission.RUN_CREATE)
+			) {
 				actions.push({
 					icon: Play,
 					label: "创建批次",

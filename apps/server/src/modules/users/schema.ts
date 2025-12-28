@@ -1,6 +1,5 @@
 import * as Prismabox from "@better-app/db/prismabox";
 import { t } from "elysia";
-import { UserRole } from "../../types/prisma-enums";
 
 // --- Helpers ---
 type SchemaType = Parameters<typeof t.Object>[0][string];
@@ -16,7 +15,7 @@ export const userListQuerySchema = t.Object({
 	page: t.Optional(t.Number({ minimum: 1 })),
 	pageSize: t.Optional(t.Number({ minimum: 1, maximum: 100 })),
 	search: t.Optional(t.String()),
-	role: t.Optional(t.String()),
+	roleId: t.Optional(t.String()),
 });
 
 export const userParamsSchema = t.Object({
@@ -27,22 +26,26 @@ export const userParamsSchema = t.Object({
 export const userCreateSchema = t.Object({
 	name: t.String({ minLength: 1 }),
 	email: t.String(),
-	role: t.Enum(UserRole),
 	department: t.Optional(t.String()),
 	phone: t.Optional(t.String()),
 	isActive: t.Boolean(),
 	username: t.Optional(t.String()),
 	enableWecomNotification: t.Optional(t.Boolean()),
+	roleIds: t.Optional(t.Array(t.String())),
+	lineIds: t.Optional(t.Array(t.String())),
+	stationIds: t.Optional(t.Array(t.String())),
 });
 
 export const userUpdateSchema = t.Object({
 	name: t.Optional(t.String({ minLength: 1 })),
 	email: t.Optional(t.String()),
-	role: t.Optional(t.Enum(UserRole)),
 	department: t.Optional(t.String()),
 	phone: t.Optional(t.String()),
 	isActive: t.Optional(t.Boolean()),
 	enableWecomNotification: t.Optional(t.Boolean()),
+	roleIds: t.Optional(t.Array(t.String())),
+	lineIds: t.Optional(t.Array(t.String())),
+	stationIds: t.Optional(t.Array(t.String())),
 });
 
 export const userProfileUpdateSchema = t.Object({
@@ -60,7 +63,28 @@ export const changePasswordSchema = t.Object({
 });
 
 // --- Response Schemas ---
-const userResponseItem = t.Omit(Prismabox.UserPlain, ["passwordHash"]);
+const roleAssignmentSchema = t.Object({
+	id: t.String(),
+	code: t.String(),
+	name: t.String(),
+	description: t.Optional(t.String()),
+	permissions: t.Array(t.String()),
+	dataScope: t.Union([
+		t.Literal("ALL"),
+		t.Literal("ASSIGNED_LINES"),
+		t.Literal("ASSIGNED_STATIONS"),
+	]),
+	isSystem: t.Boolean(),
+});
+
+const userResponseItem = t.Intersect([
+	t.Omit(Prismabox.UserPlain, ["passwordHash", "role"]),
+	t.Object({
+		roles: t.Array(roleAssignmentSchema),
+		lineIds: t.Array(t.String()),
+		stationIds: t.Array(t.String()),
+	}),
+]);
 
 export const userListResponseSchema = createResponseSchema(
 	t.Object({

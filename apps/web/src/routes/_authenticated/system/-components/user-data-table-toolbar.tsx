@@ -14,7 +14,7 @@ interface UserDataTableToolbarProps<TData> {
 	setSearchTerm: (value: string) => void;
 	roleFilter: string[];
 	setRoleFilter: (value: string[]) => void;
-	roles: string[];
+	roles: Array<{ id: string; code: string; name: string }>;
 	onReset: () => void;
 	actions?: React.ReactNode;
 }
@@ -32,8 +32,8 @@ export function UserDataTableToolbar<TData>({
 	const isFiltered = searchTerm !== "" || roleFilter.length > 0;
 
 	const roleOptions = roles.map((role) => ({
-		label: USER_ROLE_MAP[role] || role,
-		value: role,
+		label: USER_ROLE_MAP[role.code] ?? role.name,
+		value: role.id,
 	}));
 
 	return (

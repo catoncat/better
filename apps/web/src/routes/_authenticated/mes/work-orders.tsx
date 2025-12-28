@@ -1,6 +1,8 @@
+import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useCallback, useState } from "react";
+import { Can } from "@/components/ability/can";
 import { DataListLayout } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
 import { useCreateRun } from "@/hooks/use-runs";
@@ -169,10 +171,12 @@ function WorkOrdersPage() {
 					}),
 				isFiltered: !!searchParams.search || !!searchParams.status,
 				actions: (
-					<Button size="sm" className="h-8" onClick={() => setReceiveDialogOpen(true)}>
-						<Plus className="mr-2 h-4 w-4" />
-						接收工单
-					</Button>
+					<Can permissions={Permission.WO_RECEIVE}>
+						<Button size="sm" className="h-8" onClick={() => setReceiveDialogOpen(true)}>
+							<Plus className="mr-2 h-4 w-4" />
+							接收工单
+						</Button>
+					</Can>
 				),
 			}}
 		>

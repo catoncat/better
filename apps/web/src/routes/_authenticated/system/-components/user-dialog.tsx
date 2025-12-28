@@ -22,16 +22,11 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { Switch } from "@/components/ui/switch";
-import type { UserItem } from "@/hooks/use-users";
-import { USER_ROLE_MAP } from "@/lib/constants";
+import { useLines } from "@/hooks/use-lines";
+import { useStations } from "@/hooks/use-station-execution";
+import type { RoleOption, UserItem } from "@/hooks/use-users";
 import type { client } from "@/lib/eden";
 
 type UserCreateInput = Parameters<typeof client.api.users.post>[0];
@@ -39,11 +34,13 @@ type UserCreateInput = Parameters<typeof client.api.users.post>[0];
 export const formSchema = z.object({
 	name: z.string().min(1, "请输入姓名"),
 	email: z.string().email("请输入正确的邮箱格式"),
-	role: z.enum(["admin", "supervisor", "workshop_supervisor", "technician", "operator"]),
 	department: z.string().optional(),
 	phone: z.string().optional(),
 	isActive: z.boolean(),
 	enableWecomNotification: z.boolean().optional(),
+	roleIds: z.array(z.string()).min(1, "至少选择一个角色"),
+	lineIds: z.array(z.string()).optional(),
+	stationIds: z.array(z.string()).optional(),
 }) satisfies z.ZodType<UserCreateInput>;
 
 export type UserFormValues = z.infer<typeof formSchema>;
@@ -52,7 +49,7 @@ interface UserDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	user: UserItem | null;
-	roles: string[];
+	roles: RoleOption[];
 	onSubmit: (values: UserFormValues) => Promise<void>;
 	isSubmitting?: boolean;
 }
@@ -65,18 +62,41 @@ export function UserDialog({
 	onSubmit,
 	isSubmitting,
 }: UserDialogProps) {
-	const roleOptions = useMemo(() => roles ?? [], [roles]);
+	const { data: lines } = useLines();
+	const { data: stations } = useStations();
+	const roleOptions = useMemo(
+		() => roles.map((role) => ({ value: role.id, label: role.name })),
+		[roles],
+	);
+	const lineOptions = useMemo(
+		() =>
+			(lines?.items ?? []).map((line) => ({
+				value: line.id,
+				label: `${line.code} · ${line.name}`,
+			})),
+		[lines?.items],
+	);
+	const stationOptions = useMemo(
+		() =>
+			(stations?.items ?? []).map((station) => ({
+				value: station.id,
+				label: `${station.code} · ${station.name} · ${station.line?.name ?? "未绑定产线"}`,
+			})),
+		[stations?.items],
+	);
 
 	const form = useForm<UserFormValues>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			name: "",
 			email: "",
-			role: (roleOptions[0] as UserFormValues["role"]) ?? "operator",
 			department: "",
 			phone: "",
 			isActive: true,
 			enableWecomNotification: false,
+			roleIds: roleOptions.length > 0 ? [roleOptions[0]?.value] : [],
+			lineIds: [],
+			stationIds: [],
 		},
 	});
 
@@ -85,21 +105,25 @@ export function UserDialog({
 			form.reset({
 				name: user.name,
 				email: user.email || "",
-				role: user.role,
 				department: user.department || "",
 				phone: user.phone || "",
 				isActive: user.isActive,
 				enableWecomNotification: user.enableWecomNotification || false,
+				roleIds: user.roles.map((role) => role.id),
+				lineIds: user.lineIds,
+				stationIds: user.stationIds,
 			});
 		} else {
 			form.reset({
 				name: "",
 				email: "",
-				role: (roleOptions[0] as UserFormValues["role"]) ?? "operator",
 				department: "",
 				phone: "",
 				isActive: true,
 				enableWecomNotification: false,
+				roleIds: roleOptions.length > 0 ? [roleOptions[0]?.value] : [],
+				lineIds: [],
+				stationIds: [],
 			});
 		}
 	}, [user, form, roleOptions]);
@@ -149,27 +173,18 @@ export function UserDialog({
 								/>
 								<FormField
 									control={form.control}
-									name="role"
+									name="roleIds"
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel>角色</FormLabel>
 											<FormControl>
-												<Select
+												<MultiSelect
+													options={roleOptions}
 													value={field.value}
 													onValueChange={field.onChange}
+													placeholder="选择角色"
 													disabled={roleOptions.length === 0}
-												>
-													<SelectTrigger className="w-full">
-														<SelectValue placeholder="选择角色" />
-													</SelectTrigger>
-													<SelectContent>
-														{roleOptions.map((role) => (
-															<SelectItem key={role} value={role}>
-																{USER_ROLE_MAP[role] ?? role}
-															</SelectItem>
-														))}
-													</SelectContent>
-												</Select>
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -197,6 +212,49 @@ export function UserDialog({
 											<FormControl>
 												<Input placeholder="用于紧急联系，可留空" {...field} />
 											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+
+							<div className="grid gap-4 md:grid-cols-2">
+								<FormField
+									control={form.control}
+									name="lineIds"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>产线绑定</FormLabel>
+											<FormControl>
+												<MultiSelect
+													options={lineOptions}
+													value={field.value ?? []}
+													onValueChange={field.onChange}
+													placeholder="选择产线"
+													emptyText="暂无产线"
+												/>
+											</FormControl>
+											<FormDescription>仅对产线组长/操作员的数据范围生效</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="stationIds"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>工位绑定</FormLabel>
+											<FormControl>
+												<MultiSelect
+													options={stationOptions}
+													value={field.value ?? []}
+													onValueChange={field.onChange}
+													placeholder="选择工位"
+													emptyText="暂无工位"
+												/>
+											</FormControl>
+											<FormDescription>仅对操作员的数据范围生效</FormDescription>
 											<FormMessage />
 										</FormItem>
 									)}

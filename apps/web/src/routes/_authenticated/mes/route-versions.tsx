@@ -1,6 +1,8 @@
+import { Permission } from "@better-app/db/permissions";
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { useMemo, useState } from "react";
+import { Can } from "@/components/ability/can";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -83,9 +85,11 @@ function RouteVersionsPage() {
 							>
 								刷新
 							</Button>
-							<Button onClick={handleCompile} disabled={!routingCode || isCompiling}>
-								编译路由
-							</Button>
+							<Can permissions={Permission.ROUTE_COMPILE}>
+								<Button onClick={handleCompile} disabled={!routingCode || isCompiling}>
+									编译路由
+								</Button>
+							</Can>
 						</div>
 					</div>
 				</CardContent>

@@ -15,7 +15,17 @@ export function UserCard({ user, onEdit }: UserCardProps) {
 		<Card>
 			<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 				<CardTitle className="text-sm font-medium">{user.name}</CardTitle>
-				<Badge variant="outline">{USER_ROLE_MAP[user.role] || user.role}</Badge>
+				<div className="flex flex-wrap gap-2 justify-end">
+					{user.roles.length > 0 ? (
+						user.roles.map((role) => (
+							<Badge key={role.id} variant="outline">
+								{USER_ROLE_MAP[role.code] ?? role.name ?? role.code}
+							</Badge>
+						))
+					) : (
+						<Badge variant="outline">未分配角色</Badge>
+					)}
+				</div>
 			</CardHeader>
 			<CardContent>
 				<div className="grid gap-1.5 text-sm">

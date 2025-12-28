@@ -1,8 +1,9 @@
 export const USER_ROLE_MAP: Record<string, string> = {
-	admin: "管理员",
-	supervisor: "主管",
-	workshop_supervisor: "车间主管",
-	technician: "维修技师",
+	admin: "系统管理员",
+	planner: "生产计划员",
+	engineer: "工艺工程师",
+	quality: "质量工程师",
+	leader: "产线组长",
 	operator: "操作员",
 };
 

@@ -1,7 +1,8 @@
+import { Permission } from "@better-app/db/permissions";
 import { Elysia } from "elysia";
+import { userHasAnyPermission } from "../../lib/permissions";
 import { authPlugin } from "../../plugins/auth";
 import { prismaPlugin } from "../../plugins/prisma";
-import type { UserRole } from "../../types/prisma-enums";
 import {
 	auditErrorResponseSchema,
 	auditEventResponseSchema,
@@ -11,12 +12,7 @@ import {
 } from "./schema";
 import { getAuditEvent, listAuditEvents } from "./service";
 
-const VIEW_ALL_ROLES = new Set<UserRole>();
-
-const canViewAllAuditLogs = (role?: UserRole | null) => {
-	if (!role) return false;
-	return VIEW_ALL_ROLES.has(role);
-};
+const auditPermissions = [Permission.SYSTEM_USER_MANAGE, Permission.SYSTEM_ROLE_MANAGE];
 
 export const auditModule = new Elysia({
 	prefix: "/audit-logs",
@@ -26,7 +22,7 @@ export const auditModule = new Elysia({
 	.get(
 		"/",
 		async ({ db, query, user, set }) => {
-			const allowAll = canViewAllAuditLogs(user.role as UserRole | undefined);
+			const allowAll = await userHasAnyPermission(db, user.id, auditPermissions);
 			if (!allowAll && query.actorId && query.actorId !== user.id) {
 				set.status = 403;
 				return {
@@ -51,7 +47,7 @@ export const auditModule = new Elysia({
 	.get(
 		"/:id",
 		async ({ db, params, user, set }) => {
-			const allowAll = canViewAllAuditLogs(user.role as UserRole | undefined);
+			const allowAll = await userHasAnyPermission(db, user.id, auditPermissions);
 			const record = await getAuditEvent(db, params.id);
 			if (!record) {
 				set.status = 404;
