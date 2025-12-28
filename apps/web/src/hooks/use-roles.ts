@@ -46,7 +46,6 @@ export function useUpdateRole() {
 	});
 }
 
-
 export function useDeleteRole() {
 	const queryClient = useQueryClient();
 

@@ -1,7 +1,7 @@
 import { PERMISSION_GROUPS } from "@better-app/db/permissions";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "@tanstack/react-form";
+import { zodValidator } from "@tanstack/zod-form-adapter";
 import { useEffect, useMemo } from "react";
-import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -14,16 +14,9 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import {
-	Form,
-	FormControl,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@/components/ui/form";
+import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -32,6 +25,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import type { RoleItem } from "@/hooks/use-roles";
+import type { client } from "@/lib/eden";
 
 const dataScopeOptions = [
 	{ value: "ALL", label: "全部产线" },
@@ -39,13 +33,16 @@ const dataScopeOptions = [
 	{ value: "ASSIGNED_STATIONS", label: "仅绑定工位" },
 ] as const;
 
+// Type Safety: Infer input type from Eden
+type RoleCreateInput = Parameters<typeof client.api.roles.post>[0];
+
 const formSchema = z.object({
 	code: z.string().min(1, "请输入角色代码"),
 	name: z.string().min(1, "请输入角色名称"),
-	description: z.string().optional(),
-	dataScope: z.enum(["ALL", "ASSIGNED_LINES", "ASSIGNED_STATIONS"]),
+	description: z.string().optional().default(""),
+	dataScope: z.enum(["ALL", "ASSIGNED_LINES", "ASSIGNED_STATIONS"]).default("ALL"),
 	permissions: z.array(z.string()).min(1, "至少选择一个权限"),
-});
+}) satisfies z.ZodType<RoleCreateInput>;
 
 export type RoleFormValues = z.infer<typeof formSchema>;
 
@@ -59,14 +56,18 @@ interface RoleDialogProps {
 
 export function RoleDialog({ open, onOpenChange, role, onSubmit, isSubmitting }: RoleDialogProps) {
 	const permissionGroups = useMemo(() => Object.values(PERMISSION_GROUPS), []);
-	const form = useForm<RoleFormValues>({
-		resolver: zodResolver(formSchema),
+	const form = useForm({
 		defaultValues: {
-			code: "",
-			name: "",
-			description: "",
-			dataScope: "ALL",
-			permissions: [],
+			code: role?.code ?? "",
+			name: role?.name ?? "",
+			description: role?.description ?? "",
+			dataScope: role?.dataScope ?? "ALL",
+			permissions: role?.permissions ?? [],
+		} as RoleFormValues,
+		// @ts-expect-error - Adapter type mismatch but runtime safe
+		validatorAdapter: zodValidator(),
+		onSubmit: async ({ value }: { value: any }) => {
+			await onSubmit(value);
 		},
 	});
 
@@ -79,15 +80,15 @@ export function RoleDialog({ open, onOpenChange, role, onSubmit, isSubmitting }:
 				dataScope: role.dataScope,
 				permissions: role.permissions,
 			});
-			return;
+		} else {
+			form.reset({
+				code: "",
+				name: "",
+				description: "",
+				dataScope: "ALL",
+				permissions: [],
+			});
 		}
-		form.reset({
-			code: "",
-			name: "",
-			description: "",
-			dataScope: "ALL",
-			permissions: [],
-		});
 	}, [form, role]);
 
 	const isSystemRole = role?.isSystem ?? false;
@@ -101,131 +102,162 @@ export function RoleDialog({ open, onOpenChange, role, onSubmit, isSubmitting }:
 						{role ? "更新角色名称、描述与权限范围" : "创建一个新的自定义角色"}
 					</DialogDescription>
 				</DialogHeader>
-				<Form {...form}>
-					<form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
-						<DialogBody className="space-y-6">
-							<div className="grid gap-4 md:grid-cols-2">
-								<FormField
-									control={form.control}
-									name="code"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>角色代码</FormLabel>
-											<FormControl>
-												<Input placeholder="例如: planner" {...field} disabled={Boolean(role)} />
-											</FormControl>
-											<FormDescription>创建后不可修改</FormDescription>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="name"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>角色名称</FormLabel>
-											<FormControl>
-												<Input placeholder="例如: 生产计划员" {...field} />
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="description"
-									render={({ field }) => (
-										<FormItem className="md:col-span-2">
-											<FormLabel>描述</FormLabel>
-											<FormControl>
-												<Input placeholder="可选" {...field} />
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="dataScope"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>数据范围</FormLabel>
-											<FormControl>
-												<Select
-													value={field.value}
-													onValueChange={field.onChange}
-													disabled={isSystemRole}
-												>
-													<SelectTrigger className="w-full">
-														<SelectValue placeholder="选择数据范围" />
-													</SelectTrigger>
-													<SelectContent>
-														{dataScopeOptions.map((option) => (
-															<SelectItem key={option.value} value={option.value}>
-																{option.label}
-															</SelectItem>
-														))}
-													</SelectContent>
-												</Select>
-											</FormControl>
-											<FormDescription>系统角色数据范围固定</FormDescription>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-							</div>
-
-							<FormField
-								control={form.control}
-								name="permissions"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>权限点</FormLabel>
-										<FormDescription>选择该角色可执行的操作</FormDescription>
-										<div className="space-y-5">
-											{permissionGroups.map((group) => (
-												<div key={group.label} className="rounded-lg border p-4">
-													<p className="mb-3 text-sm font-semibold">{group.label}</p>
-													<div className="grid gap-3 md:grid-cols-2">
-														{group.permissions.map((perm) => {
-															const checkboxId = `perm-${perm.value}`;
-															return (
-																<div key={perm.value} className="flex items-center gap-2 text-sm">
-																	<Checkbox
-																		id={checkboxId}
-																		disabled={isSystemRole}
-																		checked={field.value.includes(perm.value)}
-																		onCheckedChange={(checked) => {
-																			const next = checked
-																				? [...field.value, perm.value]
-																				: field.value.filter((value) => value !== perm.value);
-																			field.onChange(next);
-																		}}
-																	/>
-																	<label htmlFor={checkboxId}>{perm.label}</label>
-																</div>
-															);
-														})}
-													</div>
-												</div>
-											))}
-										</div>
-										<FormMessage />
-									</FormItem>
+				<form
+					onSubmit={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						form.handleSubmit();
+					}}
+					className="flex flex-col min-h-0"
+				>
+					<DialogBody className="space-y-6">
+						<div className="grid gap-4 md:grid-cols-2">
+							<Field
+								form={form}
+								name="code"
+								label="角色代码"
+								tooltip="创建后不可修改"
+								validators={{
+									onChange: formSchema.shape.code,
+								}}
+							>
+								{(field: any) => (
+									<Input
+										value={field.state.value}
+										onBlur={field.handleBlur}
+										onChange={(e) => field.handleChange(e.target.value)}
+										placeholder="例如: planner"
+										disabled={Boolean(role)}
+									/>
 								)}
-							/>
-						</DialogBody>
-						<DialogFooter>
-							<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-								取消
-							</Button>
-							<Button type="submit" disabled={isSubmitting}>
-								{role ? "保存" : "创建"}
-							</Button>
-						</DialogFooter>
-					</form>
-				</Form>
+							</Field>
+
+							<Field
+								form={form}
+								name="name"
+								label="角色名称"
+								validators={{
+									onChange: formSchema.shape.name,
+								}}
+							>
+								{(field: any) => (
+									<Input
+										value={field.state.value}
+										onBlur={field.handleBlur}
+										onChange={(e) => field.handleChange(e.target.value)}
+										placeholder="例如: 生产计划员"
+									/>
+								)}
+							</Field>
+
+							<Field
+								form={form}
+								name="description"
+								label="描述"
+								className="md:col-span-2"
+								validators={{
+									onChange: formSchema.shape.description,
+								}}
+							>
+								{(field: any) => (
+									<Input
+										value={field.state.value}
+										onBlur={field.handleBlur}
+										onChange={(e) => field.handleChange(e.target.value)}
+										placeholder="可选"
+									/>
+								)}
+							</Field>
+
+							<Field
+								form={form}
+								name="dataScope"
+								label="数据范围"
+								description="系统角色数据范围固定"
+								validators={{
+									onChange: formSchema.shape.dataScope,
+								}}
+							>
+								{(field: any) => (
+									<Select
+										value={field.state.value}
+										onValueChange={field.handleChange}
+										disabled={isSystemRole}
+									>
+										<SelectTrigger className="w-full">
+											<SelectValue placeholder="选择数据范围" />
+										</SelectTrigger>
+										<SelectContent>
+											{dataScopeOptions.map((option) => (
+												<SelectItem key={option.value} value={option.value}>
+													{option.label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								)}
+							</Field>
+						</div>
+
+						<Field
+							form={form}
+							name="permissions"
+							label="权限点"
+							description="选择该角色可执行的操作"
+							validators={{
+								onChange: formSchema.shape.permissions,
+							}}
+						>
+							{(field: any) => (
+								<div className="space-y-5">
+									{permissionGroups.map((group) => (
+										<div key={group.label} className="rounded-lg border p-4">
+											<p className="mb-3 text-sm font-semibold">{group.label}</p>
+											<div className="grid gap-3 md:grid-cols-2">
+												{group.permissions.map((perm) => {
+													const checkboxId = `perm-${perm.value}`;
+													return (
+														<div key={perm.value} className="flex items-center gap-2 text-sm">
+															<Checkbox
+																id={checkboxId}
+																disabled={isSystemRole}
+																checked={field.state.value.includes(perm.value)}
+																onCheckedChange={(checked: any) => {
+																	const next = checked
+																		? [...field.state.value, perm.value]
+																		: field.state.value.filter(
+																				(value) => value !== perm.value,
+																			);
+																	field.handleChange(next);
+																}}
+															/>
+															<Label htmlFor={checkboxId} className="font-normal cursor-pointer">
+																{perm.label}
+															</Label>
+														</div>
+													);
+												})}
+											</div>
+										</div>
+									))}
+								</div>
+							)}
+						</Field>
+					</DialogBody>
+					<DialogFooter>
+						<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+							取消
+						</Button>
+						<form.Subscribe
+							selector={(state) => [state.canSubmit, state.isSubmitting]}
+							children={([canSubmit, isSubmitting]) => (
+								<Button type="submit" disabled={!canSubmit}>
+									{isSubmitting ? "保存中..." : role ? "保存" : "创建"}
+								</Button>
+							)}
+						/>
+					</DialogFooter>
+				</form>
 			</DialogContent>
 		</Dialog>
 	);

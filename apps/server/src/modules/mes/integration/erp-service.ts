@@ -56,30 +56,32 @@ export type ErpRoute = {
 };
 
 const ENG_ROUTE_FIELDS = [
-	"FBillHead",
-	"FNumber",
-	"FName",
-	"FMATERIALID.FNumber",
-	"FMATERIALID.FName",
-	"FUseOrgId.FNumber",
-	"FCreateOrgId.FNumber",
-	"FEFFECTDATE",
-	"FExpireDate",
-	"FRouteSrc",
-	"FBomId.FNumber",
-	"FModifyDate",
-	"FOperNumber",
-	"FProcessId.FNumber",
-	"FProcessId.FName",
-	"FWorkCenterId.FNumber",
-	"FWorkCenterId.FName",
-	"FDepartmentId.FNumber",
-	"FDepartmentId.FName",
-	"FOperDescription",
-	"FKeyOper",
-	"FIsFirstPieceInspect",
-	"FIsProcessRecordStation",
-	"FIsQualityInspectStation",
+	// Header fields (FBillHead / 单据头)
+	"FBillHead", // 0: 单据头序号
+	"FNumber", // 1: 工艺路线编码
+	"FName", // 2: 工艺路线名称
+	"FMATERIALID.FNumber", // 3: 物料编码
+	"FMATERIALID.FName", // 4: 物料名称
+	"FUseOrgId.FNumber", // 5: 使用组织编码
+	"FCreateOrgId.FNumber", // 6: 创建组织编码
+	"FEFFECTDATE", // 7: 生效日期
+	"FExpireDate", // 8: 失效日期
+	"FRouteSrc", // 9: 数据来源
+	"FBomId.FNumber", // 10: BOM版本编码
+	"FModifyDate", // 11: 修改日期
+	// Step fields (FSubEntity / 工序列表)
+	"FSubEntity.FOperNumber", // 12: 工序号
+	"FSubEntity.FProcessId.FNumber", // 13: 作业编码
+	"FSubEntity.FProcessId.FName", // 14: 作业名称
+	"FSubEntity.FWorkCenterId.FNumber", // 15: 工作中心编码
+	"FSubEntity.FWorkCenterId.FName", // 16: 工作中心名称
+	"FSubEntity.FDepartmentId.FNumber", // 17: 加工车间编码
+	"FSubEntity.FDepartmentId.FName", // 18: 加工车间名称
+	"FSubEntity.FOperDescription", // 19: 工序说明
+	"FSubEntity.FKeyOper", // 20: 关键工序
+	"FSubEntity.FIsFirstPieceInspect", // 21: 首检
+	"FSubEntity.FIsProcessRecordStation", // 22: 过程记录工位
+	"FSubEntity.FIsQualityInspectStation", // 23: 质量检测工位
 ];
 
 const toBool = (value: string) => {

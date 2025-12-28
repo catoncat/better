@@ -106,24 +106,32 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
 	);
 }
 
-function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
+function FormDescription({
+	className,
+	reserve = false,
+	...props
+}: React.ComponentProps<"p"> & { reserve?: boolean }) {
 	const { formDescriptionId } = useFormField();
 
 	return (
 		<p
 			data-slot="form-description"
 			id={formDescriptionId}
-			className={cn("text-muted-foreground text-sm", className)}
+			className={cn("text-muted-foreground text-sm", reserve && "min-h-[1.25rem]", className)}
 			{...props}
 		/>
 	);
 }
 
-function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
+function FormMessage({
+	className,
+	reserve = true,
+	...props
+}: React.ComponentProps<"p"> & { reserve?: boolean }) {
 	const { error, formMessageId } = useFormField();
 	const body = error ? String(error?.message ?? "") : props.children;
 
-	if (!body) {
+	if (!body && !reserve) {
 		return null;
 	}
 
@@ -131,7 +139,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
 		<p
 			data-slot="form-message"
 			id={formMessageId}
-			className={cn("text-destructive text-sm", className)}
+			className={cn("text-destructive text-sm min-h-[1.25rem]", className)}
 			{...props}
 		>
 			{body}

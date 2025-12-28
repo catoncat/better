@@ -1,4 +1,9 @@
-import { ALL_PERMISSIONS, PRESET_ROLES, type PrismaClient, type RoleDataScope } from "@better-app/db";
+import {
+	ALL_PERMISSIONS,
+	PRESET_ROLES,
+	type PrismaClient,
+	type RoleDataScope,
+} from "@better-app/db";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../types/service-result";
 import type { roleCreateSchema, roleUpdateSchema } from "./schema";
