@@ -57,7 +57,8 @@ export function Field<
 				// Field state
 				const { meta } = field.state;
 				const isInvalid = meta.isTouched && meta.errors.length > 0;
-				const errorMessage = meta.errors.join(", ");
+				// biome-ignore lint/suspicious/noExplicitAny: error message can be complex
+				const errorMessage = meta.errors.map((err: any) => err?.message || err).join(", ");
 
 				// Accessibility IDs
 				const id = field.name;
