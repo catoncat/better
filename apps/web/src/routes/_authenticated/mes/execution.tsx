@@ -1,3 +1,4 @@
+import { Permission } from "@better-app/db/permissions";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
@@ -33,6 +34,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAbility } from "@/hooks/use-ability";
 import {
 	useStationQueue,
 	useStations,
@@ -66,6 +68,9 @@ function ExecutionPage() {
 	} = useStationQueue(selectedStation);
 	const { mutateAsync: trackIn, isPending: isInPending } = useTrackIn();
 	const { mutateAsync: trackOut, isPending: isOutPending } = useTrackOut();
+	const { hasPermission } = useAbility();
+	const canTrackIn = hasPermission(Permission.EXEC_TRACK_IN);
+	const canTrackOut = hasPermission(Permission.EXEC_TRACK_OUT);
 
 	const inForm = useForm<z.infer<typeof trackInSchema>>({
 		resolver: zodResolver(trackInSchema),
@@ -78,20 +83,21 @@ function ExecutionPage() {
 	});
 
 	const onInSubmit = async (values: z.infer<typeof trackInSchema>) => {
-		if (!selectedStation) return;
+		if (!selectedStation || !canTrackIn) return;
 		await trackIn({ stationCode: selectedStation, ...values });
 		inForm.reset({ ...values, sn: "" });
 		refetchQueue();
 	};
 
 	const onOutSubmit = async (values: z.infer<typeof trackOutSchema>) => {
-		if (!selectedStation) return;
+		if (!selectedStation || !canTrackOut) return;
 		await trackOut({ stationCode: selectedStation, ...values });
 		outForm.reset({ ...values, sn: "" });
 		refetchQueue();
 	};
 
 	const handleQueueItemClick = (item: { sn: string; woNo: string; runNo: string }) => {
+		if (!canTrackOut) return;
 		outForm.setValue("sn", item.sn);
 		outForm.setValue("runNo", item.runNo);
 	};
@@ -173,6 +179,7 @@ function ExecutionPage() {
 													<Button
 														variant="secondary"
 														size="sm"
+														disabled={!canTrackOut}
 														onClick={() => handleQueueItemClick(item)}
 													>
 														出站
@@ -241,8 +248,12 @@ function ExecutionPage() {
 													)}
 												/>
 											</div>
-											<Button type="submit" className="w-full" disabled={isInPending}>
-												{isInPending ? "处理中..." : "确认进站"}
+											<Button
+												type="submit"
+												className="w-full"
+												disabled={isInPending || !canTrackIn}
+											>
+												{!canTrackIn ? "无进站权限" : isInPending ? "处理中..." : "确认进站"}
 											</Button>
 										</form>
 									</Form>
@@ -305,8 +316,12 @@ function ExecutionPage() {
 													</FormItem>
 												)}
 											/>
-											<Button type="submit" className="w-full" disabled={isOutPending}>
-												{isOutPending ? "处理中..." : "确认出站"}
+											<Button
+												type="submit"
+												className="w-full"
+												disabled={isOutPending || !canTrackOut}
+											>
+												{!canTrackOut ? "无出站权限" : isOutPending ? "处理中..." : "确认出站"}
 											</Button>
 										</form>
 									</Form>

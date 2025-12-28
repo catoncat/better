@@ -2,7 +2,6 @@ import { auth } from "@better-app/auth";
 import { Prisma, type PrismaClient } from "@better-app/db";
 import { hashPassword } from "better-auth/crypto";
 import type { Static } from "elysia";
-import { UserRole } from "../../types/prisma-enums";
 import type { ServiceResult } from "../../types/service-result";
 import type {
 	changePasswordSchema,
@@ -18,8 +17,9 @@ type UserUpdateInput = Static<typeof userUpdateSchema>;
 type UserProfileUpdateInput = Static<typeof userProfileUpdateSchema>;
 type ChangePasswordInput = Static<typeof changePasswordSchema>;
 type UserRecord = Prisma.UserGetPayload<{ select: typeof userSelectFields }>;
-type UserListResponse = { items: UserRecord[]; total: number; page: number; pageSize: number };
-type UserCreateResponse = UserRecord & { initialPassword: string };
+type SerializedUser = ReturnType<typeof serializeUser>;
+type UserListResponse = { items: SerializedUser[]; total: number; page: number; pageSize: number };
+type UserCreateResponse = SerializedUser & { initialPassword: string };
 
 const DEFAULT_USER_PASSWORD = process.env.DEFAULT_USER_PASSWORD || "ChangeMe123!";
 
@@ -28,7 +28,6 @@ const userSelectFields = {
 	name: true,
 	email: true,
 	image: true,
-	role: true,
 	username: true,
 	department: true,
 	phone: true,
@@ -39,7 +38,85 @@ const userSelectFields = {
 	updatedAt: true,
 	preferredHomePage: true,
 	passwordHash: false,
+	userRoles: {
+		select: {
+			role: true,
+		},
+	},
+	lineBindings: {
+		select: {
+			lineId: true,
+		},
+	},
+	stationBindings: {
+		select: {
+			stationId: true,
+		},
+	},
 } satisfies Prisma.UserSelect;
+
+const serializeUser = (user: UserRecord) => {
+	const { userRoles, lineBindings, stationBindings, ...rest } = user;
+	return {
+		...rest,
+		roles: userRoles.map((assignment) => ({
+			id: assignment.role.id,
+			code: assignment.role.code,
+			name: assignment.role.name,
+			description: assignment.role.description ?? undefined,
+			permissions: JSON.parse(assignment.role.permissions) as string[],
+			dataScope: assignment.role.dataScope,
+			isSystem: assignment.role.isSystem,
+		})),
+		lineIds: lineBindings.map((binding) => binding.lineId),
+		stationIds: stationBindings.map((binding) => binding.stationId),
+	};
+};
+
+const resolveRoleIds = async (
+	db: PrismaClient,
+	roleIds: string[] | undefined,
+	options: { fallbackToDefault: boolean },
+): Promise<ServiceResult<string[]>> => {
+	if (roleIds) {
+		if (roleIds.length === 0) {
+			return {
+				success: false,
+				code: "ROLE_REQUIRED",
+				message: "至少需要选择一个角色",
+				status: 400,
+			};
+		}
+		const existing = await db.role.findMany({
+			where: { id: { in: roleIds } },
+			select: { id: true },
+		});
+		if (existing.length !== roleIds.length) {
+			return {
+				success: false,
+				code: "ROLE_NOT_FOUND",
+				message: "部分角色不存在",
+				status: 400,
+			};
+		}
+		return { success: true, data: roleIds };
+	}
+
+	if (!options.fallbackToDefault) {
+		return { success: true, data: [] };
+	}
+
+	const defaultRole = await db.role.findFirst({ where: { code: "operator" } });
+	if (!defaultRole) {
+		return {
+			success: false,
+			code: "DEFAULT_ROLE_MISSING",
+			message: "默认角色不存在",
+			status: 400,
+		};
+	}
+	return { success: true, data: [defaultRole.id] };
+};
 
 export const listUsers = async (
 	db: PrismaClient,
@@ -57,15 +134,18 @@ export const listUsers = async (
 		];
 	}
 
-	if (query.role) {
-		const allowedRoles = new Set(Object.values(UserRole));
-		const roles = query.role
+	if (query.roleId) {
+		const roleIds = query.roleId
 			.split(",")
-			.map((role) => role.trim())
-			.filter((role): role is UserRole => allowedRoles.has(role as UserRole));
+			.map((roleId) => roleId.trim())
+			.filter(Boolean);
 
-		if (roles.length > 0) {
-			where.role = { in: roles };
+		if (roleIds.length > 0) {
+			where.userRoles = {
+				some: {
+					roleId: { in: roleIds },
+				},
+			};
 		}
 	}
 
@@ -80,7 +160,15 @@ export const listUsers = async (
 		db.user.count({ where }),
 	]);
 
-	return { success: true, data: { items, total, page, pageSize } };
+	return {
+		success: true,
+		data: {
+			items: items.map(serializeUser),
+			total,
+			page,
+			pageSize,
+		},
+	};
 };
 
 export const createUser = async (
@@ -98,23 +186,68 @@ export const createUser = async (
 			},
 		});
 
-		// Update the user record with additional fields that Better Auth might not set via signUpEmail
-		const createdUser = await db.user.update({
-			where: { email: body.email },
-			data: {
-				role: body.role,
-				department: body.department,
-				phone: body.phone,
-				isActive: body.isActive,
-				username: body.username || body.email.split("@")[0] || `user_${Date.now()}`,
-				enableWecomNotification: body.enableWecomNotification ?? false,
-			},
-			select: userSelectFields,
+		const user = await db.user.findUnique({ where: { email: body.email } });
+		if (!user) {
+			return {
+				success: false,
+				code: "USER_CREATE_FAILED",
+				message: "创建用户失败",
+				status: 500,
+			};
+		}
+
+		const roleIdsResult = await resolveRoleIds(db, body.roleIds, { fallbackToDefault: true });
+		if (!roleIdsResult.success) return roleIdsResult;
+
+		const lineIds = body.lineIds ?? [];
+		const stationIds = body.stationIds ?? [];
+
+		const createdUser = await db.$transaction(async (tx) => {
+			await tx.user.update({
+				where: { id: user.id },
+				data: {
+					department: body.department,
+					phone: body.phone,
+					isActive: body.isActive,
+					username: body.username || body.email.split("@")[0] || `user_${Date.now()}`,
+					enableWecomNotification: body.enableWecomNotification ?? false,
+				},
+			});
+
+			await tx.userRoleAssignment.deleteMany({ where: { userId: user.id } });
+			if (roleIdsResult.data.length > 0) {
+				await tx.userRoleAssignment.createMany({
+					data: roleIdsResult.data.map((roleId) => ({ userId: user.id, roleId })),
+				});
+			}
+
+			await tx.userLineBinding.deleteMany({ where: { userId: user.id } });
+			if (lineIds.length > 0) {
+				await tx.userLineBinding.createMany({
+					data: lineIds.map((lineId) => ({ userId: user.id, lineId })),
+				});
+			}
+
+			await tx.userStationBinding.deleteMany({ where: { userId: user.id } });
+			if (stationIds.length > 0) {
+				await tx.userStationBinding.createMany({
+					data: stationIds.map((stationId) => ({ userId: user.id, stationId })),
+				});
+			}
+
+			const updatedUser = await tx.user.findUnique({
+				where: { id: user.id },
+				select: userSelectFields,
+			});
+			if (!updatedUser) {
+				throw new Error("User not found after create");
+			}
+			return updatedUser;
 		});
 
 		return {
 			success: true,
-			data: { ...createdUser, initialPassword: DEFAULT_USER_PASSWORD },
+			data: { ...serializeUser(createdUser), initialPassword: DEFAULT_USER_PASSWORD },
 		};
 	} catch (error) {
 		if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -141,23 +274,58 @@ export const updateUser = async (
 	db: PrismaClient,
 	id: string,
 	body: UserUpdateInput,
-): Promise<ServiceResult<UserRecord>> => {
+): Promise<ServiceResult<SerializedUser>> => {
 	try {
-		const updated = await db.user.update({
-			where: { id },
-			data: {
-				name: body.name,
-				email: body.email,
-				role: body.role,
-				department: body.department,
-				phone: body.phone,
-				isActive: body.isActive,
-				enableWecomNotification: body.enableWecomNotification,
-			},
-			select: userSelectFields,
+		const roleIdsResult = await resolveRoleIds(db, body.roleIds, {
+			fallbackToDefault: false,
+		});
+		if (!roleIdsResult.success) return roleIdsResult;
+
+		const updated = await db.$transaction(async (tx) => {
+			const user = await tx.user.update({
+				where: { id },
+				data: {
+					name: body.name,
+					email: body.email,
+					department: body.department,
+					phone: body.phone,
+					isActive: body.isActive,
+					enableWecomNotification: body.enableWecomNotification,
+				},
+				select: userSelectFields,
+			});
+
+			if (body.roleIds) {
+				await tx.userRoleAssignment.deleteMany({ where: { userId: id } });
+				if (roleIdsResult.data.length > 0) {
+					await tx.userRoleAssignment.createMany({
+						data: roleIdsResult.data.map((roleId) => ({ userId: id, roleId })),
+					});
+				}
+			}
+
+			if (body.lineIds) {
+				await tx.userLineBinding.deleteMany({ where: { userId: id } });
+				if (body.lineIds.length > 0) {
+					await tx.userLineBinding.createMany({
+						data: body.lineIds.map((lineId) => ({ userId: id, lineId })),
+					});
+				}
+			}
+
+			if (body.stationIds) {
+				await tx.userStationBinding.deleteMany({ where: { userId: id } });
+				if (body.stationIds.length > 0) {
+					await tx.userStationBinding.createMany({
+						data: body.stationIds.map((stationId) => ({ userId: id, stationId })),
+					});
+				}
+			}
+
+			return user;
 		});
 
-		return { success: true, data: updated };
+		return { success: true, data: serializeUser(updated) };
 	} catch (error) {
 		if (error instanceof Prisma.PrismaClientKnownRequestError) {
 			if (error.code === "P2025") {
@@ -179,7 +347,7 @@ export const updateUser = async (
 export const getUserProfile = async (
 	db: PrismaClient,
 	id: string,
-): Promise<ServiceResult<UserRecord>> => {
+): Promise<ServiceResult<SerializedUser>> => {
 	const user = await db.user.findUnique({
 		where: { id },
 		select: userSelectFields,
@@ -189,14 +357,14 @@ export const getUserProfile = async (
 		return { success: false, code: "NOT_FOUND", message: "User not found", status: 404 };
 	}
 
-	return { success: true, data: user };
+	return { success: true, data: serializeUser(user) };
 };
 
 export const updateUserProfile = async (
 	db: PrismaClient,
 	id: string,
 	body: UserProfileUpdateInput,
-): Promise<ServiceResult<UserRecord>> => {
+): Promise<ServiceResult<SerializedUser>> => {
 	try {
 		const updated = await db.user.update({
 			where: { id },
@@ -211,7 +379,7 @@ export const updateUserProfile = async (
 			select: userSelectFields,
 		});
 
-		return { success: true, data: updated };
+		return { success: true, data: serializeUser(updated) };
 	} catch (error) {
 		if (error instanceof Prisma.PrismaClientKnownRequestError) {
 			if (error.code === "P2025") {

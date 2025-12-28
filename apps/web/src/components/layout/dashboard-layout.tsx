@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import type { UserRole } from "@/config/navigation";
 
 export function DashboardLayout({
 	children,
@@ -26,7 +25,6 @@ export function DashboardLayout({
 	};
 }) {
 	const location = useLocation();
-	const userRole = user.role as UserRole | undefined;
 
 	// Simple breadcrumb logic based on path
 	const breadcrumbNameMap: Record<string, string> = {
@@ -35,6 +33,7 @@ export function DashboardLayout({
 		notifications: "通知管理",
 		system: "系统管理",
 		"user-management": "用户管理",
+		"role-management": "角色管理",
 		settings: "系统设置",
 		profile: "个人设置",
 	};
@@ -60,7 +59,7 @@ export function DashboardLayout({
 
 	return (
 		<SidebarProvider>
-			<AppSidebar user={user} userRole={userRole} />
+			<AppSidebar user={user} />
 			<SidebarInset>
 				<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
 					<div className="flex items-center gap-2 px-4">

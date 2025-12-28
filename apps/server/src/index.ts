@@ -11,6 +11,8 @@ import { instrumentModule } from "./modules/instruments";
 import { mesModule } from "./modules/mes";
 import { metaModule } from "./modules/meta";
 import { notificationModule } from "./modules/notifications";
+import { permissionsModule } from "./modules/permissions";
+import { rolesModule } from "./modules/roles";
 import { systemModule } from "./modules/system";
 import { usersModule } from "./modules/users";
 import { auditArchiveCronPlugin } from "./plugins/audit-archive-cron";
@@ -163,6 +165,8 @@ const api = new Elysia({ prefix: "/api", normalize: true })
 	.use(mesModule)
 	.use(notificationModule)
 	.use(metaModule)
+	.use(permissionsModule)
+	.use(rolesModule)
 	.use(usersModule)
 	.use(systemModule)
 	.use(instrumentCronPlugin)

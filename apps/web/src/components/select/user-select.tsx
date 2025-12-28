@@ -7,7 +7,7 @@ interface UserSelectProps {
 	onValueChange: (value: string) => void;
 	disabled?: boolean;
 	placeholder?: string;
-	filterRole?: string | string[];
+	filterRoleId?: string | string[];
 	className?: string;
 }
 
@@ -16,13 +16,13 @@ export function UserSelect({
 	onValueChange,
 	disabled,
 	placeholder = "选择用户",
-	filterRole,
+	filterRoleId,
 	className,
 }: UserSelectProps) {
 	const { data, isLoading } = useUserList({
 		page: 1,
 		pageSize: 100,
-		role: filterRole,
+		roleId: filterRoleId,
 	});
 
 	const options: ComboboxOption[] = React.useMemo(() => {

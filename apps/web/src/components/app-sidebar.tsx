@@ -47,18 +47,17 @@ import {
 	SidebarRail,
 	useSidebar,
 } from "@/components/ui/sidebar";
-import { navMain, type UserRole } from "@/config/navigation";
+import { type NavItem, navMain } from "@/config/navigation";
+import { useAbility } from "@/hooks/use-ability";
 import { useUnreadCount } from "@/hooks/use-notifications";
 import { authClient } from "@/lib/auth-client";
 import { sessionQueryKey } from "@/lib/session-query";
 
 export function AppSidebar({
 	user,
-	userRole,
 	...props
 }: React.ComponentProps<typeof Sidebar> & {
 	user?: { name: string; email: string; image?: string | null };
-	userRole?: UserRole;
 }) {
 	const router = useRouter();
 	const location = useLocation();
@@ -67,6 +66,15 @@ export function AppSidebar({
 	const { data: unreadData } = useUnreadCount();
 	const unreadCount = unreadData?.count || 0;
 	const queryClient = useQueryClient();
+	const { hasAnyPermission, hasAllPermissions, isLoading: permissionsLoading } = useAbility();
+
+	const canViewItem = (item: NavItem) => {
+		if (!item.permissions || item.permissions.length === 0) return true;
+		if (permissionsLoading) return false;
+		return item.permissionMode === "all"
+			? hasAllPermissions(item.permissions)
+			: hasAnyPermission(item.permissions);
+	};
 
 	const handleLogout = async () => {
 		await authClient.signOut({
@@ -104,17 +112,18 @@ export function AppSidebar({
 					<SidebarGroupLabel>管理平台</SidebarGroupLabel>
 					<SidebarMenu className="gap-2">
 						{navMain
-							.filter((item) => !item.roles || (userRole && item.roles.includes(userRole)))
+							.filter((item) => canViewItem(item))
 							.map((item) => {
-								const visibleItems = item.items?.filter(
-									(subItem) => !subItem.roles || (userRole && subItem.roles.includes(userRole)),
-								);
+								const visibleItems = item.items?.filter((subItem) => canViewItem(subItem));
 
 								const isGroupActive =
 									location.pathname.startsWith(item.url) ||
 									(visibleItems ?? []).some((subItem) => location.pathname.startsWith(subItem.url));
-								// Filter sub-items based on role
-								if (visibleItems?.length) {
+								if (item.items) {
+									if (!visibleItems?.length) {
+										return null;
+									}
+
 									if (state === "collapsed") {
 										return (
 											<CollapsedSidebarMenuItem

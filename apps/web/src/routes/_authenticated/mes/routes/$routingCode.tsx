@@ -1,3 +1,4 @@
+import { Permission } from "@better-app/db/permissions";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { format } from "date-fns";
@@ -5,6 +6,7 @@ import { Edit2, PlusCircle, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { Can } from "@/components/ability/can";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +45,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { useAbility } from "@/hooks/use-ability";
 import {
 	type ExecutionConfig,
 	useCreateExecutionConfig,
@@ -210,9 +213,11 @@ function RouteDetailPage() {
 						<RefreshCw className="mr-2 h-4 w-4" />
 						刷新
 					</Button>
-					<Button onClick={() => compileRoute(routingCode)} disabled={isCompiling}>
-						{isCompiling ? "编译中..." : "编译路由"}
-					</Button>
+					<Can permissions={Permission.ROUTE_COMPILE}>
+						<Button onClick={() => compileRoute(routingCode)} disabled={isCompiling}>
+							{isCompiling ? "编译中..." : "编译路由"}
+						</Button>
+					</Can>
 				</div>
 			</div>
 
@@ -322,10 +327,12 @@ function RouteDetailPage() {
 						<CardTitle>执行语义配置</CardTitle>
 						<CardDescription>控制站点范围、数据采集与授权要求。</CardDescription>
 					</div>
-					<Button size="sm" onClick={handleOpenCreate}>
-						<PlusCircle className="mr-2 h-4 w-4" />
-						新增配置
-					</Button>
+					<Can permissions={Permission.ROUTE_CONFIGURE}>
+						<Button size="sm" onClick={handleOpenCreate}>
+							<PlusCircle className="mr-2 h-4 w-4" />
+							新增配置
+						</Button>
+					</Can>
 				</CardHeader>
 				<CardContent>
 					<Table>
@@ -380,9 +387,15 @@ function RouteDetailPage() {
 												{format(new Date(config.updatedAt), "yyyy-MM-dd HH:mm")}
 											</TableCell>
 											<TableCell>
-												<Button variant="ghost" size="icon" onClick={() => handleOpenEdit(config)}>
-													<Edit2 className="h-4 w-4" />
-												</Button>
+												<Can permissions={Permission.ROUTE_CONFIGURE}>
+													<Button
+														variant="ghost"
+														size="icon"
+														onClick={() => handleOpenEdit(config)}
+													>
+														<Edit2 className="h-4 w-4" />
+													</Button>
+												</Can>
 											</TableCell>
 										</TableRow>
 									);
@@ -435,6 +448,7 @@ function ExecutionConfigDialog({
 	stationGroupOptions: Array<{ value: string; label: string }>;
 	stations: StationOption[];
 }) {
+	const { hasPermission } = useAbility();
 	const isEdit = Boolean(editingConfig);
 	const createMutation = useCreateExecutionConfig(routingCode);
 	const updateMutation = useUpdateExecutionConfig(routingCode, editingConfig?.id ?? "");
@@ -870,7 +884,14 @@ function ExecutionConfigDialog({
 						</div>
 
 						<DialogFooter>
-							<Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+							<Button
+								type="submit"
+								disabled={
+									createMutation.isPending ||
+									updateMutation.isPending ||
+									!hasPermission(Permission.ROUTE_CONFIGURE)
+								}
+							>
 								{createMutation.isPending || updateMutation.isPending ? "保存中..." : "保存配置"}
 							</Button>
 						</DialogFooter>

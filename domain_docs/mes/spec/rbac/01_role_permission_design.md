@@ -2,7 +2,7 @@
 
 **版本**: 1.1  
 **日期**: 2025-12-27  
-**状态**: 设计+实现对齐
+**状态**: 已实现（前后端对齐）
 
 ---
 
@@ -194,23 +194,29 @@ model Role {
   code        String    @unique
   name        String
   description String?
-  permissions String[]
+  permissions String    // JSON array of permission strings
   dataScope   DataScope @default(ALL)
   isSystem    Boolean   @default(false)
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  users       UserRole[]
+  userRoles   UserRoleAssignment[]
+
+  @@map("roles")
 }
 
-model UserRole {
+model UserRoleAssignment {
   id        String   @id @default(cuid())
   userId    String
   roleId    String
-  user      User     @relation(fields: [userId], references: [id])
-  role      Role     @relation(fields: [roleId], references: [id])
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  role Role @relation(fields: [roleId], references: [id])
+
   @@unique([userId, roleId])
+  @@map("user_role_assignments")
 }
 
 model UserLineBinding {
@@ -220,6 +226,7 @@ model UserLineBinding {
   user    User   @relation(fields: [userId], references: [id])
   line    Line   @relation(fields: [lineId], references: [id])
   @@unique([userId, lineId])
+  @@map("user_line_bindings")
 }
 
 model UserStationBinding {
@@ -229,44 +236,46 @@ model UserStationBinding {
   user      User    @relation(fields: [userId], references: [id])
   station   Station @relation(fields: [stationId], references: [id])
   @@unique([userId, stationId])
+  @@map("user_station_bindings")
 }
 
 model User {
   // ... existing fields
   preferredHomePage String?
 
-  roles           UserRole[]
-  lineBindings    UserLineBinding[]
+  userRoles      UserRoleAssignment[]
+  lineBindings   UserLineBinding[]
   stationBindings UserStationBinding[]
 }
-```
 
 ### 6.2 权限检查中间件
 
 ```typescript
-// 后端以 Ability 为唯一权限源，API 按 action + subject 进行判断
-// abilityGuard(action, subject)
+// 后端以权限点 + Ability 为权限源
+// - permissionPlugin 提供 requirePermission 宏
+// - /api/permissions/me 返回当前用户角色 + 数据范围
 ```
 
 ### 6.3 前端导航过滤
 
 ```typescript
-// navigation.ts
-export const mesNavItems = [
+// navigation.ts (permissions + permissionMode)
+export const navMain = [
   {
     title: '工单管理',
     url: '/mes/work-orders',
-    requiredPermission: 'wo:read',
+    permissions: ['wo:read'],
   },
   {
     title: '批次管理',
     url: '/mes/runs',
-    requiredPermission: 'run:read',
+    permissions: ['run:read'],
   },
   {
     title: '工位执行',
     url: '/mes/execution',
-    requiredPermission: 'exec:track_in',
+    permissions: ['exec:read', 'exec:track_in', 'exec:track_out'],
+    permissionMode: 'any',
   },
   // ...
 ];
@@ -276,29 +285,26 @@ export const mesNavItems = [
 
 ## 7. 实现阶段
 
-### Phase 1: 基础权限框架
-1. 添加 @casl/ability 依赖
-2. 创建 packages/shared/permissions 模块
-3. 更新 Prisma schema，添加 Role/UserRole/Binding 表
-4. 创建数据库迁移，seed 预置角色
-5. 实现 ability 构建器
+### Phase 1: 基础权限框架（已完成）
+1. [x] 权限常量与 Ability 构建器
+2. [x] Prisma 模型（Role/UserRoleAssignment/Binding）
+3. [x] 预置角色与权限点
 
-### Phase 2: 后端集成
-1. 创建 ability guard 中间件
-2. 为 MES API 添加权限检查
-3. 实现数据范围过滤（查询时注入 where 条件）
+### Phase 2: 后端集成（已完成）
+1. [x] permissionPlugin + requirePermission 宏
+2. [x] MES API 权限检查与数据范围过滤
+3. [x] /api/permissions/me 与 /api/roles CRUD
 
-### Phase 3: 前端集成
-1. 实现 useAbility hook
-2. 实现 Can 组件
-3. 更新导航栏按权限过滤
-4. 更新按钮/操作按权限显示
+### Phase 3: 前端集成（已完成）
+1. [x] useAbility hook + Can 组件
+2. [x] 导航按权限过滤
+3. [x] 关键按钮/操作按权限显示
 
-### Phase 4: 角色管理 UI
-1. 角色列表页
-2. 角色创建/编辑对话框
-3. 用户-角色分配 UI
-4. 用户-产线/工位绑定 UI
+### Phase 4: 角色管理 UI（已完成）
+1. [x] 角色列表页（/system/role-management）
+2. [x] 角色创建/编辑对话框
+3. [x] 用户多角色分配
+4. [x] 用户-产线/工位绑定
 
 ---
 
@@ -317,4 +323,4 @@ export const mesNavItems = [
 
 ---
 
-*此设计文档需要业务确认后再进行实现。*
+*本设计文档与当前实现保持一致。*

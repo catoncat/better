@@ -19,12 +19,18 @@ export const buildAuditActor = (user?: {
 	id?: string;
 	name?: string | null;
 	role?: string | null;
+	roles?: Array<{ code?: string | null }> | string[] | null;
 }) => {
 	if (!user?.id) return { type: "SYSTEM" } satisfies AuditActor;
+	const roleFromArray = Array.isArray(user.roles)
+		? typeof user.roles[0] === "string"
+			? (user.roles[0] ?? null)
+			: (user.roles[0]?.code ?? null)
+		: null;
 	return {
 		id: user.id,
 		name: user.name ?? null,
-		role: user.role ?? null,
+		role: user.role ?? roleFromArray,
 		type: "USER",
 	} satisfies AuditActor;
 };
