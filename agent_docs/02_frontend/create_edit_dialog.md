@@ -56,3 +56,4 @@ const formSchema = z
 ## Related Docs
 - `agent_docs/01_core/coding_standards.md`
 - `agent_docs/01_core/datetime_handling.md`
+- `agent_docs/02_frontend/form_building.md`

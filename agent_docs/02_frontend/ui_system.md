@@ -40,6 +40,8 @@
 - Control layout via parent grid or flex.
 - Use `FormLabel` from shadcn/ui.
 - Do not ask users to type raw IDs; use selectors (e.g., `InstrumentSelect`).
+- Use `reserve` prop on `FormMessage` to maintain layout stability.
+- See `agent_docs/02_frontend/form_building.md` for full guide.
 
 ## Date and Time Inputs
 - Use shared components:

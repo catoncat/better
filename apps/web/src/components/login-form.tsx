@@ -16,19 +16,46 @@ import {
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
-import { USER_ROLE_MAP } from "@/lib/constants";
 import { sessionQueryKey } from "@/lib/session-query";
 import { cn } from "@/lib/utils";
 
 // 测试账号配置（仅开发环境使用）
-// 注意：这些账号需要在数据库中创建，邮箱格式为 {username}@example.com
-// 如果账号不存在，请先通过用户管理创建，或使用默认密码 ChangeMe123!
 const TEST_ACCOUNTS = [
 	{
-		role: USER_ROLE_MAP.admin,
+		role: "系统管理员",
 		email: "admin@example.com",
 		password: "ChangeMe123!",
-		description: "默认管理员账号（由种子数据创建）",
+		description: "系统配置、用户管理、集成管理",
+	},
+	{
+		role: "生产计划员",
+		email: "planner@example.com",
+		password: "Test123!",
+		description: "工单接收/发布、批次创建、进度跟踪",
+	},
+	{
+		role: "工艺工程师",
+		email: "engineer@example.com",
+		password: "Test123!",
+		description: "路由配置、执行语义设置、版本编译",
+	},
+	{
+		role: "质量工程师",
+		email: "quality@example.com",
+		password: "Test123!",
+		description: "质量检验、缺陷处置、追溯分析",
+	},
+	{
+		role: "产线组长",
+		email: "leader@example.com",
+		password: "Test123!",
+		description: "批次授权、产线监控、工位执行",
+	},
+	{
+		role: "操作员",
+		email: "operator@example.com",
+		password: "Test123!",
+		description: "工位进站/出站操作",
 	},
 ] as const;
 
@@ -119,7 +146,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 													))}
 													<DropdownMenuSeparator />
 													<div className="px-2 py-1.5 text-xs text-muted-foreground">
-														提示：如果账号不存在，请先通过用户管理创建，或使用默认密码
+														运行 bun run seed 创建测试账号
 													</div>
 												</DropdownMenuContent>
 											</DropdownMenu>

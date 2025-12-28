@@ -26,6 +26,11 @@ This document outlines the development milestones for the MES system, focusing o
 * **Features**: One-command demo flow, default MES seed data, routing management + execution config editing UI, UI entry points for route compile and integration sync.
 * **Acceptance Criteria**: Fresh setup can run the full flow without manual API steps.
 
+### M1.8: RBAC & Data Scope
+* **Goal**: Provide role-based access control with data scope isolation.
+* **Features**: Role/permission model, user-role assignment, line/station bindings, permission-based navigation/actions, role management UI.
+* **Acceptance Criteria**: Permissions gate API and UI actions; data scope filters enforce line/station access; roles can be managed in UI.
+
 ### M2: Quality Control and Authorization
 * **Goal**: Implement quality control checks, including FAI and batch authorization.
 * **Features**: Line readiness checks + exception loop, FAI tasks (trial run + inspection), defect/NG registration, disposition (rework/scrap/hold/release), OQC sampling tasks, batch authorization, final confirmation/closeout.

@@ -77,14 +77,19 @@ const roleAssignmentSchema = t.Object({
 	isSystem: t.Boolean(),
 });
 
-const userResponseItem = t.Intersect([
-	t.Omit(Prismabox.UserPlain, ["passwordHash", "role"]),
-	t.Object({
-		roles: t.Array(roleAssignmentSchema),
-		lineIds: t.Array(t.String()),
-		stationIds: t.Array(t.String()),
-	}),
-]);
+// Use t.Composite to merge Prismabox schema with additional fields
+// t.Composite merges into single Object, avoiding allOf + additionalProperties conflict
+const userResponseItem = t.Composite(
+	[
+		t.Omit(Prismabox.UserPlain, ["passwordHash", "role"]),
+		t.Object({
+			roles: t.Array(roleAssignmentSchema),
+			lineIds: t.Array(t.String()),
+			stationIds: t.Array(t.String()),
+		}),
+	],
+	{ additionalProperties: false },
+);
 
 export const userListResponseSchema = createResponseSchema(
 	t.Object({
@@ -100,12 +105,15 @@ export const userResponseSchema = createResponseSchema(userResponseItem);
 // For create user, we might return the user with an initial password or just the user.
 // The existing implementation returns { ...user, initialPassword: ... }
 export const userCreateResponseSchema = createResponseSchema(
-	t.Intersect([
-		userResponseItem,
-		t.Object({
-			initialPassword: t.String(),
-		}),
-	]),
+	t.Composite(
+		[
+			userResponseItem,
+			t.Object({
+				initialPassword: t.String(),
+			}),
+		],
+		{ additionalProperties: false },
+	),
 );
 
 export const successResponseSchema = createResponseSchema(

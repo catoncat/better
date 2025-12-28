@@ -194,6 +194,148 @@ const ensureDefaultRouteVersion = async () => {
 	}
 };
 
+/**
+ * Seed test users for each system role
+ */
+const seedTestUsers = async () => {
+	console.log("Seeding test users...");
+
+	const testUsers = [
+		{
+			email: "planner@example.com",
+			name: "张计划",
+			username: "planner",
+			department: "生产计划部",
+			roleCode: "planner",
+		},
+		{
+			email: "engineer@example.com",
+			name: "李工艺",
+			username: "engineer",
+			department: "工艺工程部",
+			roleCode: "engineer",
+		},
+		{
+			email: "quality@example.com",
+			name: "王质量",
+			username: "quality",
+			department: "质量部",
+			roleCode: "quality",
+		},
+		{
+			email: "leader@example.com",
+			name: "赵组长",
+			username: "leader",
+			department: "生产部",
+			roleCode: "leader",
+		},
+		{
+			email: "operator@example.com",
+			name: "钱操作",
+			username: "operator",
+			department: "生产部",
+			roleCode: "operator",
+		},
+	];
+
+	// Get line and stations for binding
+	const lineA = await prisma.line.findUnique({ where: { code: "LINE-A" } });
+	const stations = await prisma.station.findMany({
+		where: { lineId: lineA?.id },
+		take: 2,
+	});
+
+	for (const testUser of testUsers) {
+		// Check if user exists
+		let user = await prisma.user.findUnique({
+			where: { email: testUser.email },
+		});
+
+		if (!user) {
+			// Create user via auth
+			await auth.api.signUpEmail({
+				body: {
+					email: testUser.email,
+					password: "Test123!",
+					name: testUser.name,
+				},
+			});
+
+			user = await prisma.user.findUnique({
+				where: { email: testUser.email },
+			});
+		}
+
+		if (!user) {
+			console.warn(`Failed to create user ${testUser.email}`);
+			continue;
+		}
+
+		// Update user details
+		await prisma.user.update({
+			where: { id: user.id },
+			data: {
+				username: testUser.username,
+				department: testUser.department,
+				isActive: true,
+				emailVerified: true,
+			},
+		});
+
+		// Get role
+		const role = await prisma.role.findUnique({
+			where: { code: testUser.roleCode },
+		});
+
+		if (role) {
+			// Assign role (upsert to avoid duplicates)
+			await prisma.userRoleAssignment.upsert({
+				where: {
+					userId_roleId: { userId: user.id, roleId: role.id },
+				},
+				update: {},
+				create: {
+					userId: user.id,
+					roleId: role.id,
+				},
+			});
+		}
+
+		// For leader and operator, bind to line/stations
+		if (testUser.roleCode === "leader" && lineA) {
+			await prisma.userLineBinding.upsert({
+				where: {
+					userId_lineId: { userId: user.id, lineId: lineA.id },
+				},
+				update: {},
+				create: {
+					userId: user.id,
+					lineId: lineA.id,
+				},
+			});
+		}
+
+		if (testUser.roleCode === "operator" && stations.length > 0) {
+			for (const station of stations) {
+				await prisma.userStationBinding.upsert({
+					where: {
+						userId_stationId: { userId: user.id, stationId: station.id },
+					},
+					update: {},
+					create: {
+						userId: user.id,
+						stationId: station.id,
+					},
+				});
+			}
+		}
+
+		console.log(`Created/updated user: ${testUser.email} with role ${testUser.roleCode}`);
+	}
+
+	console.log("Test users seeded");
+};
+
 const run = async () => {
 	const adminId = await ensureAdminUser();
 	await seedSystemConfig(adminId);
@@ -201,6 +343,7 @@ const run = async () => {
 	await seedMESMasterData();
 	await seedRoles();
 	await assignAdminRoleToUser(adminId);
+	await seedTestUsers();
 	await ensureDefaultRouteVersion();
 };
 
