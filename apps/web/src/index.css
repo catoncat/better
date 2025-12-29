@@ -4,18 +4,54 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: "Inter", "Geist", ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  /* 英文/数字 字体栈 - @fontsource 提供 "Inter Variable" */
+  --font-sans: "Inter Variable", "Inter", "Geist", "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+  
+  /* 中文回退 字体栈 */
+  --font-cjk: "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
 }
 
 html,
 body {
   @apply bg-white dark:bg-gray-950;
+  font-family: var(--font-sans), var(--font-cjk);
+  font-weight: 400;
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
+
+  /* macOS 默认保持平滑 */
+  .is-macos & {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* 2. Windows & Android 字重补偿方案 */
+  .is-windows &,
+  .is-android & {
+    /* 将基准字重从 400 提升至 450，解决“瘦”的问题 */
+    font-weight: 450; 
+    -webkit-font-smoothing: auto;
+  }
 
   @media (prefers-color-scheme: dark) {
     color-scheme: dark;
   }
 }
+
+/* 3. 针对小字号的进一步补偿 */
+.is-windows .text-sm, .is-android .text-sm {
+  font-weight: 450;
+}
+.is-windows .text-xs, .is-android .text-android .text-xs {
+  font-weight: 500;
+}
+
+/* 4. 加粗文本补偿 */
+.is-windows strong, .is-windows b,
+.is-android strong, .is-android b {
+  font-weight: 650;
+}
+
 /*
 :root {
   --radius: 0.625rem;
