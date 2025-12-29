@@ -20,6 +20,3 @@
 - Use helpers from `utils/datetime.ts`:
   - `getTimezoneIana()`
   - `getTimezoneOffsetMinutes()`
-
-## Related Docs
-- `agent_docs/05_ops/cron_jobs.md`

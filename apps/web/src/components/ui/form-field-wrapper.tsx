@@ -1,40 +1,174 @@
-import type { FieldApi, ReactFormApi } from "@tanstack/react-form";
 import { HelpCircle } from "lucide-react";
 import type * as React from "react";
+import type {
+	DeepKeys,
+	DeepValue,
+	FieldApi,
+	FieldAsyncValidateOrFn,
+	FieldValidateOrFn,
+	FieldValidators,
+	FormAsyncValidateOrFn,
+	FormValidateOrFn,
+	ReactFormExtendedApi,
+} from "@tanstack/react-form";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
+type FieldValue<TFormData, TName extends DeepKeys<TFormData>> = DeepValue<TFormData, TName>;
+
+type FieldSyncValidator<TFormData, TName extends DeepKeys<TFormData>> =
+	| FieldValidateOrFn<TFormData, TName, FieldValue<TFormData, TName>>
+	| undefined;
+
+type FieldAsyncValidator<TFormData, TName extends DeepKeys<TFormData>> =
+	| FieldAsyncValidateOrFn<TFormData, TName, FieldValue<TFormData, TName>>
+	| undefined;
+
+type FieldValidatorsFor<TFormData, TName extends DeepKeys<TFormData>> = FieldValidators<
+	TFormData,
+	TName,
+	FieldValue<TFormData, TName>,
+	FieldSyncValidator<TFormData, TName>,
+	FieldSyncValidator<TFormData, TName>,
+	FieldAsyncValidator<TFormData, TName>,
+	FieldSyncValidator<TFormData, TName>,
+	FieldAsyncValidator<TFormData, TName>,
+	FieldSyncValidator<TFormData, TName>,
+	FieldAsyncValidator<TFormData, TName>,
+	FieldSyncValidator<TFormData, TName>,
+	FieldAsyncValidator<TFormData, TName>
+>;
+
+type FieldApiFor<
+	TFormData,
+	TName extends DeepKeys<TFormData>,
+	TFormOnMount extends undefined | FormValidateOrFn<TFormData>,
+	TFormOnChange extends undefined | FormValidateOrFn<TFormData>,
+	TFormOnChangeAsync extends undefined | FormAsyncValidateOrFn<TFormData>,
+	TFormOnBlur extends undefined | FormValidateOrFn<TFormData>,
+	TFormOnBlurAsync extends undefined | FormAsyncValidateOrFn<TFormData>,
+	TFormOnSubmit extends undefined | FormValidateOrFn<TFormData>,
+	TFormOnSubmitAsync extends undefined | FormAsyncValidateOrFn<TFormData>,
+	TFormOnDynamic extends undefined | FormValidateOrFn<TFormData>,
+	TFormOnDynamicAsync extends undefined | FormAsyncValidateOrFn<TFormData>,
+	TFormOnServer extends undefined | FormAsyncValidateOrFn<TFormData>,
+	TSubmitMeta,
+> = FieldApi<
+	TFormData,
+	TName,
+	FieldValue<TFormData, TName>,
+	FieldSyncValidator<TFormData, TName>,
+	FieldSyncValidator<TFormData, TName>,
+	FieldAsyncValidator<TFormData, TName>,
+	FieldSyncValidator<TFormData, TName>,
+	FieldAsyncValidator<TFormData, TName>,
+	FieldSyncValidator<TFormData, TName>,
+	FieldAsyncValidator<TFormData, TName>,
+	FieldSyncValidator<TFormData, TName>,
+	FieldAsyncValidator<TFormData, TName>,
+	TFormOnMount,
+	TFormOnChange,
+	TFormOnChangeAsync,
+	TFormOnBlur,
+	TFormOnBlurAsync,
+	TFormOnSubmit,
+	TFormOnSubmitAsync,
+	TFormOnDynamic,
+	TFormOnDynamicAsync,
+	TFormOnServer,
+	TSubmitMeta
+>;
+
+type ErrorWithMessage = {
+	message?: unknown;
+};
+
+function getErrorMessage(error: unknown): string | null {
+	if (typeof error === "string") {
+		return error;
+	}
+
+	if (error && typeof error === "object" && "message" in error) {
+		const message = (error as ErrorWithMessage).message;
+		if (typeof message === "string") {
+			return message;
+		}
+	}
+
+	return null;
+}
+
 export interface FormFieldWrapperProps<
-	TParentData,
-	TName extends string,
-	TFieldValidator extends
-		// biome-ignore lint/suspicious/noExplicitAny: Complex validator types
-		| any
-		| undefined = undefined,
+	TFormData,
+	TName extends DeepKeys<TFormData>,
+	TFormOnMount extends undefined | FormValidateOrFn<TFormData>,
+	TFormOnChange extends undefined | FormValidateOrFn<TFormData>,
+	TFormOnChangeAsync extends undefined | FormAsyncValidateOrFn<TFormData>,
+	TFormOnBlur extends undefined | FormValidateOrFn<TFormData>,
+	TFormOnBlurAsync extends undefined | FormAsyncValidateOrFn<TFormData>,
+	TFormOnSubmit extends undefined | FormValidateOrFn<TFormData>,
+	TFormOnSubmitAsync extends undefined | FormAsyncValidateOrFn<TFormData>,
+	TFormOnDynamic extends undefined | FormValidateOrFn<TFormData>,
+	TFormOnDynamicAsync extends undefined | FormAsyncValidateOrFn<TFormData>,
+	TFormOnServer extends undefined | FormAsyncValidateOrFn<TFormData>,
+	TSubmitMeta,
 > {
-	// biome-ignore lint/suspicious/noExplicitAny: Complex TanStack Form types
-	form: any;
+	form: ReactFormExtendedApi<
+		TFormData,
+		TFormOnMount,
+		TFormOnChange,
+		TFormOnChangeAsync,
+		TFormOnBlur,
+		TFormOnBlurAsync,
+		TFormOnSubmit,
+		TFormOnSubmitAsync,
+		TFormOnDynamic,
+		TFormOnDynamicAsync,
+		TFormOnServer,
+		TSubmitMeta
+	>;
 	name: TName;
 	label?: string;
 	description?: string;
 	tooltip?: string;
 	className?: string;
-	// biome-ignore lint/suspicious/noExplicitAny: Complex TanStack Form types
-	// @ts-expect-error - Too complex to type correctly
-	children: (field: FieldApi<TParentData, TName, TFieldValidator, any>) => React.ReactNode;
-	validators?: any;
+	children: (
+		field: FieldApiFor<
+			TFormData,
+			TName,
+			TFormOnMount,
+			TFormOnChange,
+			TFormOnChangeAsync,
+			TFormOnBlur,
+			TFormOnBlurAsync,
+			TFormOnSubmit,
+			TFormOnSubmitAsync,
+			TFormOnDynamic,
+			TFormOnDynamicAsync,
+			TFormOnServer,
+			TSubmitMeta
+		>,
+	) => React.ReactNode;
+	validators?: FieldValidatorsFor<TFormData, TName>;
 	required?: boolean;
 	reserveErrorSpace?: boolean;
 }
 
 export function Field<
-	TParentData,
-	TName extends string,
-	TFieldValidator extends
-		// biome-ignore lint/suspicious/noExplicitAny: Complex validator types
-		| any
-		| undefined = undefined,
+	TFormData,
+	TName extends DeepKeys<TFormData>,
+	TFormOnMount extends undefined | FormValidateOrFn<TFormData>,
+	TFormOnChange extends undefined | FormValidateOrFn<TFormData>,
+	TFormOnChangeAsync extends undefined | FormAsyncValidateOrFn<TFormData>,
+	TFormOnBlur extends undefined | FormValidateOrFn<TFormData>,
+	TFormOnBlurAsync extends undefined | FormAsyncValidateOrFn<TFormData>,
+	TFormOnSubmit extends undefined | FormValidateOrFn<TFormData>,
+	TFormOnSubmitAsync extends undefined | FormAsyncValidateOrFn<TFormData>,
+	TFormOnDynamic extends undefined | FormValidateOrFn<TFormData>,
+	TFormOnDynamicAsync extends undefined | FormAsyncValidateOrFn<TFormData>,
+	TFormOnServer extends undefined | FormAsyncValidateOrFn<TFormData>,
+	TSubmitMeta,
 >({
 	form,
 	name,
@@ -46,19 +180,33 @@ export function Field<
 	validators,
 	required,
 	reserveErrorSpace = true,
-}: FormFieldWrapperProps<TParentData, TName, TFieldValidator>) {
+}: FormFieldWrapperProps<
+	TFormData,
+	TName,
+	TFormOnMount,
+	TFormOnChange,
+	TFormOnChangeAsync,
+	TFormOnBlur,
+	TFormOnBlurAsync,
+	TFormOnSubmit,
+	TFormOnSubmitAsync,
+	TFormOnDynamic,
+	TFormOnDynamicAsync,
+	TFormOnServer,
+	TSubmitMeta
+>) {
 	return (
 		<form.Field
 			name={name}
-			validators={validators as any}
-			// biome-ignore lint/suspicious/noExplicitAny: Complex TanStack Form types
-			// @ts-expect-error - Too complex to type correctly
-			children={(field: FieldApi<TParentData, TName, TFieldValidator, any>) => {
+			validators={validators}
+			children={(field) => {
 				// Field state
 				const { meta } = field.state;
 				const isInvalid = meta.isTouched && meta.errors.length > 0;
-				// biome-ignore lint/suspicious/noExplicitAny: error message can be complex
-				const errorMessage = meta.errors.map((err: any) => err?.message || err).join(", ");
+				const errorMessage = meta.errors
+					.map(getErrorMessage)
+					.filter((message): message is string => Boolean(message))
+					.join(", ");
 
 				// Accessibility IDs
 				const id = field.name;

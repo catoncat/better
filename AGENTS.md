@@ -45,6 +45,8 @@ Use the smallest set of docs needed for the task. Skip anything not required.
   2. `agent_docs/02_frontend/list_sorting.md`
 - Create/Edit dialog:
   1. `agent_docs/02_frontend/create_edit_dialog.md`
+- Form building:
+  1. `agent_docs/02_frontend/form_building.md`
 - UI labels for enums:
   1. `agent_docs/02_frontend/localization_constants.md`
 
@@ -69,6 +71,8 @@ Use the smallest set of docs needed for the task. Skip anything not required.
 ## Scheduled Tasks / Ops
 - Cron job:
   1. `agent_docs/05_ops/cron_jobs.md`
+- Observability (Jaeger):
+  1. `agent_docs/05_ops/observability_jaeger.md`
 
 ## Quality and Release
 - Before commit or PR:

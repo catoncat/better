@@ -80,7 +80,3 @@ Set:
 ### Optional External Web Dir
 - `APP_WEB_MODE=dir`
 - `APP_WEB_DIR=/absolute/path/to/web/dist`
-
-## Related Docs
-- `agent_docs/01_core/architecture_overview.md`
-- `agent_docs/04_data/prisma.md`
