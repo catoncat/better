@@ -118,18 +118,22 @@ export function ImageUpload({
 
 				// 2. 尝试上传到服务器
 				try {
-					const { data, error } = await client.api.system.upload.post({
+					const response = await client.api.system.upload.post({
 						file: fileToProcess as File,
 					});
-					if (error || !data?.url) {
+
+					// 适配 better 项目的后端包装格式 { ok: true, data: { url: "..." } }
+					const result = response.data as any;
+
+					if (response.error || !result?.ok || !result?.data?.url) {
 						// @ts-expect-error - Eden types are complex
-						const errorMessage = error?.value?.error?.message || error?.value?.message || "上传失败";
+						const errorMessage = response.error?.value?.error?.message || result?.error?.message || "上传失败";
 						throw new Error(errorMessage);
 					}
 
 					// Use server URL
 					const baseUrl = import.meta.env.VITE_SERVER_URL?.replace(/\/$/, "") || window.location.origin;
-					return baseUrl + (data as { url: string }).url;
+					return baseUrl + result.data.url;
 				} catch (uploadError) {
 					// Fallback to base64 if upload fails
 					console.warn("服务器上传失败，使用base64:", uploadError);
