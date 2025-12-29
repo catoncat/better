@@ -211,3 +211,20 @@ body {
     display: none;
   }
 }
+ 
+ /* View Transitions - 彻底消除闪烁的斜向扫抹 */
+ ::view-transition-old(root),
+ ::view-transition-new(root) {
+   animation: none;
+   mix-blend-mode: normal;
+   display: block;
+   opacity: 1; /* 强制不透明，防止默认的淡入淡出干扰 */
+ }
+ 
+ ::view-transition-new(root) {
+   z-index: 9999;
+ }
+ 
+ ::view-transition-old(root) {
+   z-index: 1;
+ }

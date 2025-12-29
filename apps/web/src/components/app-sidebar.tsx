@@ -13,7 +13,7 @@ import {
 	Sun,
 	User,
 } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/theme-provider";
 import type * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
