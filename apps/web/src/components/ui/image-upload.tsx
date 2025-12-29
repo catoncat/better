@@ -135,20 +135,8 @@ export function ImageUpload({
 					const baseUrl = import.meta.env.VITE_SERVER_URL?.replace(/\/$/, "") || window.location.origin;
 					return baseUrl + result.data.url;
 				} catch (uploadError) {
-					// Fallback to base64 if upload fails
-					console.warn("服务器上传失败，使用base64:", uploadError);
-					return new Promise<string>((resolve, reject) => {
-						const reader = new FileReader();
-						reader.onload = (e) => {
-							if (e.target?.result) {
-								resolve(e.target.result as string);
-							} else {
-								reject(new Error(`读取文件 ${file.name} 失败`));
-							}
-						};
-						reader.onerror = () => reject(new Error(`读取文件 ${file.name} 失败`));
-						reader.readAsDataURL(fileToProcess);
-					});
+					console.error("服务器上传失败:", uploadError);
+					throw uploadError;
 				}
 			});
 
