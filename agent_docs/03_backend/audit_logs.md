@@ -95,7 +95,3 @@ Archive tooling:
 - `GET /api/audit-logs`
   - Query: `page`, `pageSize`, `actorId`, `entityType`, `entityId`, `action`, `status`, `from`, `to`
 - `GET /api/audit-logs/:id`
-
-## Related Docs
-- `agent_docs/03_backend/notifications.md`
-- `agent_docs/03_backend/api_patterns.md`

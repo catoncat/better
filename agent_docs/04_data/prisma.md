@@ -24,7 +24,3 @@ Use SQLite file URLs.
 
 ## Validation Flow
 Prisma schema -> Prismabox TypeBox schemas -> Elysia validation -> Eden Treaty types.
-
-## Related Docs
-- `agent_docs/03_backend/api_patterns.md`
-- `agent_docs/04_data/json_schema_types.md`

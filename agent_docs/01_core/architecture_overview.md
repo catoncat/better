@@ -27,8 +27,3 @@
 ## Defaults and Limits
 - Pagination defaults: 20 per page, max 100.
 - Use `db.$transaction` for multi-step writes.
-
-## Related Docs
-- `agent_docs/03_backend/api_patterns.md`
-- `agent_docs/03_backend/domain_instruments_calibrations.md`
-- `agent_docs/05_ops/cron_jobs.md`

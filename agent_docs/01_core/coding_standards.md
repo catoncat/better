@@ -48,8 +48,3 @@ type CalibrationListInput = Parameters<typeof calibrationsApi.get>[0];
 ## Localization and UI Text
 - Do not hardcode enum label maps in components.
 - Use `apps/web/src/lib/constants.ts`.
-- See `agent_docs/02_frontend/localization_constants.md`.
-
-## Related Docs
-- `agent_docs/02_frontend/create_edit_dialog.md`
-- `agent_docs/04_data/json_schema_types.md`

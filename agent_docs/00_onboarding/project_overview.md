@@ -25,8 +25,3 @@
 - `apps/server`: API server (entry `src/index.ts`).
 - `packages/db`: Prisma schema + generated client and Prismabox schemas.
 - `packages/auth`: Better Auth configuration and adapters.
-
-## Related Docs
-- `agent_docs/00_onboarding/setup.md`
-- `agent_docs/01_core/architecture_overview.md`
-- `agent_docs/01_core/coding_standards.md`

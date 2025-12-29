@@ -82,6 +82,3 @@ export class ApiError extends Error {
   status?: number;   // HTTP Status Code
 }
 ```
-
-## Related Docs
-- `agent_docs/03_backend/api_patterns.md` (The backend contract)

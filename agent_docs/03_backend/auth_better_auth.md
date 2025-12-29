@@ -19,7 +19,3 @@
 ## Server Usage
 - The auth plugin decorates context with `auth`.
 - Use `isAuth: true` in route options to require authentication.
-
-## Related Docs
-- `agent_docs/01_core/architecture_overview.md`
-- `agent_docs/03_backend/api_patterns.md`
