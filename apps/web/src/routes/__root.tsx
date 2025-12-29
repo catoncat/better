@@ -3,6 +3,7 @@ import { createRootRouteWithContext, HeadContent, Link, Outlet } from "@tanstack
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { useDynamicFavicon } from "@/hooks/use-dynamic-favicon";
 import { authClient } from "@/lib/auth-client";
 import "../index.css";
 
@@ -44,6 +45,8 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 });
 
 function RootComponent() {
+	useDynamicFavicon();
+
 	return (
 		<QueryClientProvider client={queryClient}>
 			<HeadContent />
