@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { AuditEntityType } from "@better-app/db";
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
+import { Jimp } from "jimp";
 import { authPlugin } from "../../plugins/auth";
 import { prismaPlugin } from "../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../audit/service";
@@ -26,7 +27,13 @@ import {
 } from "./service";
 
 const MAX_UPLOAD_SIZE = 50 * 1024 * 1024; // 50MB
-const ALLOWED_VIDEO_TYPES = new Set([
+const ALLOWED_TYPES = new Set([
+	// Images
+	"image/jpeg",
+	"image/png",
+	"image/webp",
+	"image/gif",
+	// Videos
 	"video/mp4",
 	"video/quicktime",
 	"video/x-matroska",
@@ -301,9 +308,9 @@ export const systemModule = new Elysia({
 				return { ok: false, error: { code: errorCode, message: errorMessage } };
 			}
 
-			if (!ALLOWED_VIDEO_TYPES.has(file.type)) {
+			if (!ALLOWED_TYPES.has(file.type)) {
 				const errorCode = "UNSUPPORTED_TYPE";
-				const errorMessage = "仅支持 mp4/mov/mkv/webm/avi 视频";
+				const errorMessage = "不支持的文件类型";
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.SYSTEM,
 					entityId: file.name ?? "upload",
@@ -322,10 +329,25 @@ export const systemModule = new Elysia({
 
 			await mkdir(UPLOAD_DIR, { recursive: true });
 			const ext = file.name?.split(".").pop() || "bin";
-			const filename = `${Date.now()}-${randomUUID()}.${ext}`;
+			const filename = `${Date.now()}-${randomUUID()}.${file.type.startsWith("image/") ? "jpg" : ext}`;
 			const path = `${UPLOAD_DIR}/${filename}`;
 
-			await Bun.write(path, file);
+			// 图像处理逻辑 (使用 Jimp，纯 JS 实现，兼容单文件打包)
+			if (file.type.startsWith("image/")) {
+				const buffer = await file.arrayBuffer();
+				const image = await Jimp.read(Buffer.from(buffer));
+
+				// 限制宽度
+				if (image.width > 1024) {
+					image.resize({ w: 1024 });
+				}
+
+				// 设置压缩质量并转换为 Buffer (JPEG 格式)
+				const compressedBuffer = await image.getBuffer("image/jpeg", { quality: 60 });
+				await Bun.write(path, compressedBuffer);
+			} else {
+				await Bun.write(path, file);
+			}
 
 			await recordAuditEvent(db, {
 				entityType: AuditEntityType.SYSTEM,
@@ -356,10 +378,52 @@ export const systemModule = new Elysia({
 	)
 	.get(
 		"/uploads/:filename",
-		({ params: { filename } }) => {
-			return Bun.file(`public/uploads/${filename}`);
+		async ({ params: { filename }, query, set }) => {
+			const filePath = `${UPLOAD_DIR}/${filename}`;
+			const file = Bun.file(filePath);
+
+			if (!(await file.exists())) {
+				set.status = 404;
+				return { ok: false, error: { code: "NOT_FOUND", message: "文件不存在" } };
+			}
+
+			// 强效缓存控制
+			const cacheHeaders = {
+				"Cache-Control": "public, max-age=31536000, immutable",
+			};
+
+			// 处理缩略图逻辑 (?w=xxx)
+			const w = query.w ? Number.parseInt(query.w, 10) : 0;
+			if (w > 0 && w < 1024 && filename.match(/\.(jpg|jpeg|png|webp)$/i)) {
+				const thumbDir = `${UPLOAD_DIR}/thumb`;
+				const thumbPath = `${thumbDir}/w${w}_${filename}`;
+				const thumbFile = Bun.file(thumbPath);
+
+				// 如果缩略图已存在，直接返回
+				if (await thumbFile.exists()) {
+					return new Response(thumbFile, { headers: cacheHeaders });
+				}
+
+				// 否则生成缩略图并缓存
+				try {
+					await mkdir(thumbDir, { recursive: true });
+					const image = await Jimp.read(filePath);
+					image.resize({ w });
+					const buffer = await image.getBuffer("image/jpeg", { quality: 60 });
+					await Bun.write(thumbPath, buffer);
+					return new Response(Bun.file(thumbPath), { headers: cacheHeaders });
+				} catch (err) {
+					console.error("生成缩略图失败:", err);
+					// 失败则降级返回原图
+				}
+			}
+
+			return new Response(file, { headers: cacheHeaders });
 		},
 		{
+			query: t.Object({
+				w: t.Optional(t.String()),
+			}),
 			detail: { tags: ["System"] },
 		},
 	);
