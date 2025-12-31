@@ -19,6 +19,7 @@ import { Route as AuthenticatedMesIndexRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedInstrumentsIndexRouteImport } from './routes/_authenticated/instruments/index'
 import { Route as AuthenticatedCalibrationsIndexRouteImport } from './routes/_authenticated/calibrations/index'
 import { Route as AuthenticatedSystemUserManagementRouteImport } from './routes/_authenticated/system/user-management'
+import { Route as AuthenticatedSystemTestUploadRouteImport } from './routes/_authenticated/system/test-upload'
 import { Route as AuthenticatedSystemSettingsRouteImport } from './routes/_authenticated/system/settings'
 import { Route as AuthenticatedSystemRoleManagementRouteImport } from './routes/_authenticated/system/role-management'
 import { Route as AuthenticatedSystemIntegrationsRouteImport } from './routes/_authenticated/system/integrations'
@@ -85,6 +86,12 @@ const AuthenticatedSystemUserManagementRoute =
   AuthenticatedSystemUserManagementRouteImport.update({
     id: '/system/user-management',
     path: '/system/user-management',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedSystemTestUploadRoute =
+  AuthenticatedSystemTestUploadRouteImport.update({
+    id: '/system/test-upload',
+    path: '/system/test-upload',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedSystemSettingsRoute =
@@ -178,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/system/integrations': typeof AuthenticatedSystemIntegrationsRoute
   '/system/role-management': typeof AuthenticatedSystemRoleManagementRoute
   '/system/settings': typeof AuthenticatedSystemSettingsRoute
+  '/system/test-upload': typeof AuthenticatedSystemTestUploadRoute
   '/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/calibrations': typeof AuthenticatedCalibrationsIndexRoute
   '/instruments': typeof AuthenticatedInstrumentsIndexRoute
@@ -201,6 +209,7 @@ export interface FileRoutesByTo {
   '/system/integrations': typeof AuthenticatedSystemIntegrationsRoute
   '/system/role-management': typeof AuthenticatedSystemRoleManagementRoute
   '/system/settings': typeof AuthenticatedSystemSettingsRoute
+  '/system/test-upload': typeof AuthenticatedSystemTestUploadRoute
   '/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/calibrations': typeof AuthenticatedCalibrationsIndexRoute
   '/instruments': typeof AuthenticatedInstrumentsIndexRoute
@@ -227,6 +236,7 @@ export interface FileRoutesById {
   '/_authenticated/system/integrations': typeof AuthenticatedSystemIntegrationsRoute
   '/_authenticated/system/role-management': typeof AuthenticatedSystemRoleManagementRoute
   '/_authenticated/system/settings': typeof AuthenticatedSystemSettingsRoute
+  '/_authenticated/system/test-upload': typeof AuthenticatedSystemTestUploadRoute
   '/_authenticated/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/_authenticated/calibrations/': typeof AuthenticatedCalibrationsIndexRoute
   '/_authenticated/instruments/': typeof AuthenticatedInstrumentsIndexRoute
@@ -253,6 +263,7 @@ export interface FileRouteTypes {
     | '/system/integrations'
     | '/system/role-management'
     | '/system/settings'
+    | '/system/test-upload'
     | '/system/user-management'
     | '/calibrations'
     | '/instruments'
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/system/integrations'
     | '/system/role-management'
     | '/system/settings'
+    | '/system/test-upload'
     | '/system/user-management'
     | '/calibrations'
     | '/instruments'
@@ -301,6 +313,7 @@ export interface FileRouteTypes {
     | '/_authenticated/system/integrations'
     | '/_authenticated/system/role-management'
     | '/_authenticated/system/settings'
+    | '/_authenticated/system/test-upload'
     | '/_authenticated/system/user-management'
     | '/_authenticated/calibrations/'
     | '/_authenticated/instruments/'
@@ -387,6 +400,13 @@ declare module '@tanstack/react-router' {
       path: '/system/user-management'
       fullPath: '/system/user-management'
       preLoaderRoute: typeof AuthenticatedSystemUserManagementRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/system/test-upload': {
+      id: '/_authenticated/system/test-upload'
+      path: '/system/test-upload'
+      fullPath: '/system/test-upload'
+      preLoaderRoute: typeof AuthenticatedSystemTestUploadRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/system/settings': {
@@ -513,6 +533,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSystemIntegrationsRoute: typeof AuthenticatedSystemIntegrationsRoute
   AuthenticatedSystemRoleManagementRoute: typeof AuthenticatedSystemRoleManagementRoute
   AuthenticatedSystemSettingsRoute: typeof AuthenticatedSystemSettingsRoute
+  AuthenticatedSystemTestUploadRoute: typeof AuthenticatedSystemTestUploadRoute
   AuthenticatedSystemUserManagementRoute: typeof AuthenticatedSystemUserManagementRoute
   AuthenticatedCalibrationsIndexRoute: typeof AuthenticatedCalibrationsIndexRoute
   AuthenticatedInstrumentsIndexRoute: typeof AuthenticatedInstrumentsIndexRoute
@@ -537,6 +558,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSystemRoleManagementRoute:
     AuthenticatedSystemRoleManagementRoute,
   AuthenticatedSystemSettingsRoute: AuthenticatedSystemSettingsRoute,
+  AuthenticatedSystemTestUploadRoute: AuthenticatedSystemTestUploadRoute,
   AuthenticatedSystemUserManagementRoute:
     AuthenticatedSystemUserManagementRoute,
   AuthenticatedCalibrationsIndexRoute: AuthenticatedCalibrationsIndexRoute,
