@@ -7,7 +7,7 @@ export const integrationReceiveWorkOrderSchema = t.Object({
 	plannedQty: t.Number(),
 	routingCode: t.Optional(t.String()),
 	sourceSystem: t.Optional(t.String()),
-	reviewStatus: t.Optional(t.String()),
+	pickStatus: t.Optional(t.String()), // MES 领料状态 (手动工单用)
 	dueDate: t.Optional(t.String({ format: "date-time" })),
 	meta: t.Optional(t.Any()),
 });
@@ -86,9 +86,9 @@ const erpWorkOrderSchema = t.Object({
 	woNo: t.String(),
 	productCode: t.String(),
 	plannedQty: t.Number(),
-	routingCode: t.String(),
+	routingCode: t.Optional(t.String()),
 	status: t.String(),
-	dueDate: t.String({ format: "date-time" }),
+	dueDate: t.Optional(t.String({ format: "date-time" })),
 	updatedAt: t.String({ format: "date-time" }),
 });
 
