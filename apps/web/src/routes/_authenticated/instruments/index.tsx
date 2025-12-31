@@ -162,7 +162,6 @@ function InstrumentsListPage() {
 	// System presets
 	const systemPresets = useMemo((): SystemPreset<InstrumentFilters>[] => {
 		return [
-			{ id: "all", name: "全部", filters: {} },
 			{ id: "internal", name: "内校仪器", filters: { calibrationType: ["internal"] } },
 			{ id: "external", name: "外校仪器", filters: { calibrationType: ["external"] } },
 		];

@@ -299,7 +299,6 @@ function CalibrationRecordsPage() {
 	// System presets
 	const systemPresets = useMemo((): SystemPreset<CalibrationFilters>[] => {
 		return [
-			{ id: "all", name: "全部", filters: {} },
 			{ id: "internal", name: "内校", filters: { calibrationType: "internal" } },
 			{ id: "external", name: "外校", filters: { calibrationType: "external" } },
 			{ id: "pass", name: "合格", filters: { result: "pass" } },

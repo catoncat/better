@@ -94,18 +94,15 @@ export function useFilterState<T extends Record<string, unknown>>(
 	const { fields, syncUrl = true, urlReplace = true } = options;
 	const navigate = useNavigate();
 
-	// Get current search params - this will be empty object if not in a route context
-	let searchParams: Record<string, unknown> = {};
-	try {
-		// biome-ignore lint/correctness/useHookAtTopLevel: conditional hook usage for route context
-		searchParams = useSearch({ strict: false }) || {};
-	} catch {
-		// Not in a route context, use empty object
-	}
+	// Always call useSearch at top level (React hooks rule)
+	// Use strict: false to avoid throwing when not in route context
+	const searchParams = useSearch({ strict: false }) || {};
 
 	// Memoize searchParams to avoid object reference issues
-	// biome-ignore lint/correctness/useExhaustiveDependencies: searchParams is intentionally used here for serialization
-	const memoizedSearchParams = useMemo(() => JSON.stringify(searchParams), [searchParams]);
+	const memoizedSearchParams = useMemo(
+		() => JSON.stringify(searchParams),
+		[searchParams],
+	);
 
 	// Parse current filters from URL or use defaults
 	const filters = useMemo(() => {

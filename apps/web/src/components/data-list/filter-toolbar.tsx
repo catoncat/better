@@ -121,14 +121,14 @@ export interface FilterFieldDefinition {
 
 interface FilterToolbarProps {
 	fields: FilterFieldDefinition[];
-	// biome-ignore lint/suspicious/noExplicitAny: filters can be of any shape
+	// biome-ignore lint/suspicious/noExplicitAny: filters can be of various shapes depending on the page
 	filters: Record<string, any>;
 	onFilterChange: (key: string, value: unknown) => void;
 	onReset: () => void;
 	isFiltered: boolean;
 	actions?: React.ReactNode;
 	showViewToggle?: boolean;
-	// biome-ignore lint/suspicious/noExplicitAny: Table can be of any type
+	// biome-ignore lint/suspicious/noExplicitAny: Table generic requires propagating TData through entire component tree
 	table?: Table<any>;
 	className?: string;
 	viewPreferencesKey?: string;
