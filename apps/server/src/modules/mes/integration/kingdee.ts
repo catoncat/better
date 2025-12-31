@@ -1,6 +1,6 @@
 import type { ServiceResult } from "../../../types/service-result";
 
-type KingdeeConfig = {
+export type KingdeeConfig = {
 	baseUrl: string;
 	dbId: string;
 	username: string;
@@ -139,6 +139,18 @@ type ExecuteBillQueryInput = {
 	limit?: number;
 };
 
+const extractResponseStatusError = (value: unknown) => {
+	if (!value || typeof value !== "object") return null;
+	if (!("ResponseStatus" in value)) return null;
+	const status = (value as { ResponseStatus?: { IsSuccess?: boolean; Errors?: { Message?: string }[] } })
+		.ResponseStatus;
+	if (!status || status.IsSuccess !== false) return null;
+	const message =
+		status.Errors?.map((error) => error.Message).filter(Boolean).join("; ") ||
+		"Kingdee query rejected.";
+	return message;
+};
+
 export const kingdeeExecuteBillQuery = async (
 	config: KingdeeConfig,
 	cookie: string,
@@ -177,10 +189,35 @@ export const kingdeeExecuteBillQuery = async (
 		}
 		const result = (await response.json()) as unknown;
 		if (Array.isArray(result)) {
+			const firstRow = result[0];
+			const firstValue = Array.isArray(firstRow) ? firstRow[0] : firstRow;
+			const errorMessage =
+				extractResponseStatusError(firstValue) ??
+				extractResponseStatusError(
+					(firstValue as { Result?: unknown } | undefined)?.Result ?? null,
+				);
+			if (errorMessage) {
+				return {
+					success: false,
+					code: "KINGDEE_QUERY_REJECTED",
+					message: errorMessage,
+					status: 502,
+				};
+			}
 			return { success: true, data: result };
 		}
 		if (result && typeof result === "object" && "Result" in result) {
-			const rows = (result as { Result?: unknown[] }).Result ?? [];
+			const resultValue = (result as { Result?: unknown }).Result;
+			const errorMessage = extractResponseStatusError(resultValue ?? result);
+			if (errorMessage) {
+				return {
+					success: false,
+					code: "KINGDEE_QUERY_REJECTED",
+					message: errorMessage,
+					status: 502,
+				};
+			}
+			const rows = Array.isArray(resultValue) ? resultValue : [];
 			return { success: true, data: rows };
 		}
 		return { success: true, data: [] };
