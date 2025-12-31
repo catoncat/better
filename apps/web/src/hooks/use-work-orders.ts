@@ -19,6 +19,8 @@ interface UseWorkOrderListParams {
 	page?: number;
 	pageSize?: number;
 	status?: string | string[];
+	erpPickStatus?: string | string[];
+	routingId?: string | string[];
 	search?: string;
 	sort?: string;
 }
@@ -27,11 +29,17 @@ export function useWorkOrderList(params: UseWorkOrderListParams) {
 	const page = params.page ?? 1;
 	const pageSize = params.pageSize ?? 30;
 	const status = Array.isArray(params.status) ? params.status.join(",") : (params.status ?? "");
+	const erpPickStatus = Array.isArray(params.erpPickStatus)
+		? params.erpPickStatus.join(",")
+		: (params.erpPickStatus ?? "");
+	const routingId = Array.isArray(params.routingId)
+		? params.routingId.join(",")
+		: (params.routingId ?? "");
 	const search = params.search ?? "";
 	const sort = params.sort ?? "";
 
 	return useQuery<WorkOrderList>({
-		queryKey: ["mes", "work-orders", page, pageSize, search, status, sort],
+		queryKey: ["mes", "work-orders", page, pageSize, search, status, erpPickStatus, routingId, sort],
 		queryFn: async () => {
 			const { data, error } = await client.api["work-orders"].get({
 				query: {
@@ -39,6 +47,8 @@ export function useWorkOrderList(params: UseWorkOrderListParams) {
 					pageSize,
 					search: search || undefined,
 					status: status || undefined,
+					erpPickStatus: erpPickStatus || undefined,
+					routingId: routingId || undefined,
 					sort: sort || undefined,
 				},
 			});
@@ -93,6 +103,28 @@ export function useReleaseWorkOrder() {
 		},
 		onSuccess: () => {
 			toast.success("工单已发布");
+			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
+		},
+	});
+}
+
+export function useUpdatePickStatus() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({ woNo, pickStatus }: { woNo: string; pickStatus: string }) => {
+			const { data, error } = await client.api["work-orders"]({ woNo })["pick-status"].patch({
+				pickStatus,
+			});
+
+			if (error) {
+				throw new Error(error.value ? JSON.stringify(error.value) : "更新领料状态失败");
+			}
+
+			return data;
+		},
+		onSuccess: () => {
+			toast.success("领料状态已更新");
 			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
 		},
 	});

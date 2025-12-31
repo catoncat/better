@@ -22,13 +22,28 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { useRouteSearch } from "@/hooks/use-routes";
+
+const PICK_STATUS_OPTIONS = [
+	{ value: "1", label: "未领料" },
+	{ value: "2", label: "部分领料" },
+	{ value: "3", label: "全部领料" },
+	{ value: "4", label: "超额领料" },
+];
 
 const workOrderSchema = z.object({
 	woNo: z.string().min(1, "工单号不能为空"),
 	productCode: z.string().min(1, "产品编码不能为空"),
 	plannedQty: z.coerce.number().min(1, "计划数量必须大于0"),
 	routingCode: z.string().optional(),
+	pickStatus: z.enum(["1", "2", "3", "4"]).optional(),
 	dueDate: z.date().optional(),
 });
 
@@ -38,6 +53,7 @@ type WorkOrderSubmitValues = {
 	productCode: string;
 	plannedQty: number;
 	routingCode?: string;
+	pickStatus?: string;
 	dueDate?: string;
 };
 
@@ -61,6 +77,7 @@ export function WorkOrderReceiveDialog({
 			productCode: "",
 			plannedQty: 0,
 			routingCode: "PCBA-STD-V1",
+			pickStatus: "3", // Default to "全部领料"
 			dueDate: undefined,
 		},
 	});
@@ -80,6 +97,7 @@ export function WorkOrderReceiveDialog({
 			productCode: values.productCode,
 			plannedQty: values.plannedQty,
 			routingCode,
+			pickStatus: values.pickStatus,
 			dueDate: values.dueDate ? values.dueDate.toISOString() : undefined,
 		};
 		await onSubmit(payload);
@@ -153,6 +171,30 @@ export function WorkOrderReceiveDialog({
 											onSearchValueChange={setRouteSearch}
 										/>
 									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="pickStatus"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>物料状态</FormLabel>
+									<Select onValueChange={field.onChange} value={field.value}>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder="选择物料状态" />
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											{PICK_STATUS_OPTIONS.map((option) => (
+												<SelectItem key={option.value} value={option.value}>
+													{option.label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
 									<FormMessage />
 								</FormItem>
 							)}
