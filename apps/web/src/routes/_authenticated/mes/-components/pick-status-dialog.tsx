@@ -82,22 +82,20 @@ export function PickStatusDialog({
 			<DialogContent className="sm:max-w-[425px]">
 				<DialogHeader>
 					<DialogTitle>修改物料状态</DialogTitle>
-					<DialogDescription>
-						更新工单 {workOrder?.woNo} 的物料领取状态。
-					</DialogDescription>
+					<DialogDescription>更新工单 {workOrder?.woNo} 的物料领取状态。</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
 					<form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
 						<FormField
 							control={form.control}
-                                                        name="pickStatus"
-                                                        render={({ field }) => (
-                                                                <FormItem>
-                                                                        <FormLabel>物料状态</FormLabel>
-                                                                        <Select onValueChange={field.onChange} value={field.value}>
-                                                                                <FormControl>
-                                                                                        <SelectTrigger>
-                                                                                                <SelectValue placeholder="选择物料状态" />
+							name="pickStatus"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>物料状态</FormLabel>
+									<Select onValueChange={field.onChange} value={field.value}>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder="选择物料状态" />
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
