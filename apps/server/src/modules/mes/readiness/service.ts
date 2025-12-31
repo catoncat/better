@@ -624,9 +624,8 @@ export async function listRunsWithExceptions(
 	if (from) dateFilter.gte = new Date(from);
 	if (to) dateFilter.lte = new Date(to);
 
-	const checksWithFailures = await db.readinessCheck.findMany({
+	const checks = await db.readinessCheck.findMany({
 		where: {
-			status: ReadinessCheckStatus.FAILED,
 			run: {
 				status: { in: runStatusFilter as never[] },
 				...(lineId && { lineId }),
@@ -650,13 +649,13 @@ export async function listRunsWithExceptions(
 	const runCheckMap = new Map<
 		string,
 		{
-			check: (typeof checksWithFailures)[0];
+			check: (typeof checks)[0];
 			failedCount: number;
 			waivedCount: number;
 		}
 	>();
 
-	for (const check of checksWithFailures) {
+	for (const check of checks) {
 		const existing = runCheckMap.get(check.run.runNo);
 		if (!existing || new Date(check.checkedAt) > new Date(existing.check.checkedAt)) {
 			const failedCount = check.items.filter((i) => i.status === ReadinessItemStatus.FAILED).length;
@@ -667,6 +666,9 @@ export async function listRunsWithExceptions(
 
 	const allItems: ExceptionItem[] = [];
 	for (const [runNo, { check, failedCount, waivedCount }] of runCheckMap.entries()) {
+		if (check.status !== ReadinessCheckStatus.FAILED) {
+			continue;
+		}
 		allItems.push({
 			runNo,
 			runStatus: check.run.status,
