@@ -9,6 +9,7 @@ export const Permission = {
 	WO_READ: "wo:read",
 	WO_RECEIVE: "wo:receive",
 	WO_RELEASE: "wo:release",
+	WO_UPDATE: "wo:update",
 	WO_CANCEL: "wo:cancel",
 
 	// Run (Batch) domain
@@ -35,6 +36,12 @@ export const Permission = {
 	QUALITY_OQC: "quality:oqc",
 	QUALITY_DISPOSITION: "quality:disposition",
 
+	// Readiness domain (M2)
+	READINESS_VIEW: "readiness:view",
+	READINESS_CHECK: "readiness:check",
+	READINESS_OVERRIDE: "readiness:override",
+	READINESS_CONFIG: "readiness:config",
+
 	// Trace domain
 	TRACE_READ: "trace:read",
 	TRACE_EXPORT: "trace:export",
@@ -60,6 +67,7 @@ export const PERMISSION_GROUPS = {
 			{ value: Permission.WO_READ, label: "查看工单" },
 			{ value: Permission.WO_RECEIVE, label: "接收工单" },
 			{ value: Permission.WO_RELEASE, label: "发布工单" },
+			{ value: Permission.WO_UPDATE, label: "更新工单" },
 			{ value: Permission.WO_CANCEL, label: "取消工单" },
 		],
 	},
@@ -97,6 +105,15 @@ export const PERMISSION_GROUPS = {
 			{ value: Permission.QUALITY_FAI, label: "首件检验" },
 			{ value: Permission.QUALITY_OQC, label: "出货检验" },
 			{ value: Permission.QUALITY_DISPOSITION, label: "缺陷处置" },
+		],
+	},
+	readiness: {
+		label: "准备检查",
+		permissions: [
+			{ value: Permission.READINESS_VIEW, label: "查看检查结果" },
+			{ value: Permission.READINESS_CHECK, label: "执行准备检查" },
+			{ value: Permission.READINESS_OVERRIDE, label: "豁免检查项" },
+			{ value: Permission.READINESS_CONFIG, label: "管理检查配置" },
 		],
 	},
 	trace: {

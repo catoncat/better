@@ -34,6 +34,7 @@ export const listWorkOrders = async (
 	const page = query.page ?? 1;
 	const pageSize = Math.min(query.pageSize ?? 30, 100);
 	const where: Prisma.WorkOrderWhereInput = {};
+	const andFilters: Prisma.WorkOrderWhereInput[] = [];
 
 	if (query.status) {
 		const statuses = query.status.split(",").filter(Boolean) as WorkOrderStatus[];
@@ -42,25 +43,59 @@ export const listWorkOrders = async (
 		}
 	}
 
+	if (query.erpPickStatus) {
+		const pickStatuses = query.erpPickStatus.split(",").filter(Boolean);
+		if (pickStatuses.length > 0) {
+			andFilters.push({
+				OR: [
+					{ erpPickStatus: { in: pickStatuses } },
+					{
+						AND: [
+							{ OR: [{ erpStatus: null }, { erpStatus: "" }] },
+							{ pickStatus: { in: pickStatuses } },
+						],
+					},
+				],
+			});
+		}
+	}
+
+	if (query.routingId) {
+		const routingIds = query.routingId.split(",").filter(Boolean);
+		if (routingIds.length > 0) {
+			where.routingId = { in: routingIds };
+		}
+	}
+
 	if (query.search) {
 		where.OR = [{ woNo: { contains: query.search } }, { productCode: { contains: query.search } }];
 	}
 
 	if (extraWhere) {
-		const andFilters: Prisma.WorkOrderWhereInput[] = [];
-		if (where.AND) {
-			if (Array.isArray(where.AND)) {
-				andFilters.push(...where.AND);
-			} else {
-				andFilters.push(where.AND);
-			}
-		}
 		andFilters.push(extraWhere);
-		where.AND = andFilters;
+	}
+
+	if (andFilters.length > 0) {
+		if (where.AND) {
+			where.AND = Array.isArray(where.AND)
+				? [...where.AND, ...andFilters]
+				: [where.AND, ...andFilters];
+		} else {
+			where.AND = andFilters;
+		}
 	}
 
 	const orderBy = parseSortOrderBy<Prisma.WorkOrderOrderByWithRelationInput>(query.sort, {
-		allowedFields: ["woNo", "productCode", "status", "plannedQty", "dueDate", "createdAt"],
+		allowedFields: [
+			"woNo",
+			"productCode",
+			"status",
+			"plannedQty",
+			"dueDate",
+			"createdAt",
+			"erpStatus",
+			"erpPickStatus",
+		],
 		fallback: [{ createdAt: "desc" }],
 	});
 
@@ -70,6 +105,15 @@ export const listWorkOrders = async (
 			orderBy,
 			skip: (page - 1) * pageSize,
 			take: pageSize,
+			include: {
+				routing: {
+					select: {
+						id: true,
+						code: true,
+						name: true,
+					},
+				},
+			},
 		}),
 		db.workOrder.count({ where }),
 	]);
@@ -83,7 +127,7 @@ export const receiveWorkOrder = async (db: PrismaClient, data: WorkOrderReceiveI
 			"mes.work_order.wo_no": data.woNo,
 			"mes.work_order.product_code": data.productCode,
 			"mes.work_order.planned_qty": data.plannedQty,
-			"mes.work_order.review_status": data.reviewStatus,
+			"mes.work_order.pick_status": data.pickStatus,
 			"mes.work_order.routing_code": data.routingCode,
 			"mes.source_system": data.sourceSystem,
 		});
@@ -100,8 +144,10 @@ export const receiveWorkOrder = async (db: PrismaClient, data: WorkOrderReceiveI
 						productCode: data.productCode,
 						plannedQty: data.plannedQty,
 						routingId: routing?.id,
-						reviewStatus: data.reviewStatus,
+						pickStatus: data.pickStatus,
 						dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+						erpStatus: data.erpStatus,
+						erpPickStatus: data.erpPickStatus,
 						meta: data.meta,
 					},
 					create: {
@@ -109,10 +155,12 @@ export const receiveWorkOrder = async (db: PrismaClient, data: WorkOrderReceiveI
 						productCode: data.productCode,
 						plannedQty: data.plannedQty,
 						routingId: routing?.id,
-						reviewStatus: data.reviewStatus,
+						pickStatus: data.pickStatus,
 						dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+						erpStatus: data.erpStatus,
+						erpPickStatus: data.erpPickStatus,
 						meta: data.meta,
-						status: WorkOrderStatus.RECEIVED,
+						status: (data.status as any) || WorkOrderStatus.RECEIVED,
 					},
 				});
 
@@ -180,6 +228,33 @@ export const releaseWorkOrder = async (
 					};
 				}
 
+				// 检查路由是否存在
+				if (!wo.routingId) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "ROUTE_NOT_FOUND");
+					return {
+						success: false,
+						code: "ROUTE_NOT_FOUND",
+						message: "工单未关联路由",
+						status: 400,
+					};
+				}
+
+				// 检查路由是否有 READY 版本
+				const readyVersion = await db.executableRouteVersion.findFirst({
+					where: { routingId: wo.routingId, status: "READY" },
+				});
+				if (!readyVersion) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "ROUTE_NOT_READY");
+					return {
+						success: false,
+						code: "ROUTE_NOT_READY",
+						message: "路由尚未编译或无可用版本",
+						status: 400,
+					};
+				}
+
 				const updated = await db.workOrder.update({
 					where: { woNo },
 					data: {
@@ -233,6 +308,21 @@ export const createRun = async (
 						success: false,
 						code: "WORK_ORDER_NOT_RELEASED",
 						message: "Work order not released",
+						status: 400,
+					};
+				}
+
+				// 判断物料是否就绪：ERP 工单使用 erpPickStatus，手动工单使用 pickStatus
+				const isMaterialReady = wo.erpStatus
+					? ["2", "3", "4"].includes(wo.erpPickStatus ?? "")
+					: ["2", "3", "4"].includes(wo.pickStatus ?? "");
+				if (!isMaterialReady) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "WORK_ORDER_MATERIAL_NOT_READY");
+					return {
+						success: false,
+						code: "WORK_ORDER_MATERIAL_NOT_READY",
+						message: "Work order material not ready",
 						status: 400,
 					};
 				}
@@ -315,4 +405,36 @@ export const createRun = async (
 			}
 		},
 	);
+};
+
+export const updatePickStatus = async (
+	db: PrismaClient,
+	woNo: string,
+	pickStatus: string,
+): Promise<ServiceResult<Prisma.WorkOrderGetPayload<Prisma.WorkOrderDefaultArgs>>> => {
+	const wo = await db.workOrder.findUnique({ where: { woNo } });
+	if (!wo) {
+		return {
+			success: false,
+			code: "WORK_ORDER_NOT_FOUND",
+			message: "工单不存在",
+			status: 404,
+		};
+	}
+
+	// 只有手动工单（erpStatus 为空）才能修改
+	if (wo.erpStatus) {
+		return {
+			success: false,
+			code: "ERP_WORK_ORDER_NOT_EDITABLE",
+			message: "ERP 工单不允许手动修改物料状态",
+			status: 400,
+		};
+	}
+
+	const updated = await db.workOrder.update({
+		where: { woNo },
+		data: { pickStatus },
+	});
+	return { success: true, data: updated };
 };
