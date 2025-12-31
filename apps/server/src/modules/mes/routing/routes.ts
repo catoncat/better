@@ -4,6 +4,7 @@ import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
+import { triggerPrecheckForAffectedRuns } from "../readiness/service";
 import {
 	executionConfigCreateSchema,
 	executionConfigListResponseSchema,
@@ -220,6 +221,7 @@ export const routingModule = new Elysia({
 					versionNo: result.data.versionNo,
 				},
 			});
+			triggerPrecheckForAffectedRuns(db, { routeVersionId: result.data.id }).catch(() => {});
 			return { ok: true, data: result.data };
 		},
 		{
