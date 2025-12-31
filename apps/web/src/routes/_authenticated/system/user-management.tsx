@@ -1,11 +1,8 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
-import { getCoreRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
 import { Plus } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { FilterToolbar, QueryPresetBar, type SystemPreset } from "@/components/data-list";
-import { DataListView } from "@/components/data-table/data-list-view";
-import { DataTablePagination } from "@/components/data-table/data-table-pagination";
+import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePermission } from "@/hooks/use-permission";
@@ -49,6 +46,7 @@ function SystemUserManagementPage() {
 	const { canManageUsers } = usePermission();
 	const navigate = useNavigate();
 	const searchParams = useSearch({ from: "/_authenticated/system/user-management" });
+	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
 	const { data: roles = [] } = useUserRoles();
 	const roleIdByCode = useMemo(() => new Map(roles.map((role) => [role.code, role.id])), [roles]);
 
@@ -120,11 +118,15 @@ function SystemUserManagementPage() {
 		});
 	}, [navigate, searchParams.pageSize]);
 
-	// Pagination
-	const [pagination, setPagination] = useState({
-		pageIndex: (searchParams.page || 1) - 1,
-		pageSize: searchParams.pageSize || 20,
-	});
+	// Pagination state (driven by URL via DataListLayout server mode)
+	const [pageIndex, setPageIndex] = useState((searchParams.page || 1) - 1);
+	const [pageSize, setPageSize] = useState(searchParams.pageSize || 20);
+
+	// Sync pagination state from URL (sorting/filtering resets page)
+	useEffect(() => {
+		setPageIndex((searchParams.page || 1) - 1);
+		setPageSize(searchParams.pageSize || 20);
+	}, [searchParams.page, searchParams.pageSize]);
 
 	// Dialog states
 	const [dialogOpen, setDialogOpen] = useState(false);
@@ -140,9 +142,9 @@ function SystemUserManagementPage() {
 		matchPreset,
 	} = useQueryPresets<UserFilters>({ storageKey: "user-management" });
 
-	// System presets
+	// System presets (removed "all" per global rule)
 	const systemPresets = useMemo((): SystemPreset<UserFilters>[] => {
-		const presets: SystemPreset<UserFilters>[] = [{ id: "all", name: "全部", filters: {} }];
+		const presets: SystemPreset<UserFilters>[] = [];
 		const adminRoleId = roleIdByCode.get("admin");
 		const plannerRoleId = roleIdByCode.get("planner");
 		const operatorRoleId = roleIdByCode.get("operator");
@@ -196,8 +198,8 @@ function SystemUserManagementPage() {
 	);
 
 	const { data, isLoading, isError, error } = useUserList({
-		page: pagination.pageIndex + 1,
-		pageSize: pagination.pageSize,
+		page: pageIndex + 1,
+		pageSize,
 		search: filters.search.trim() || undefined,
 		roleId: filters.roleId.length > 0 ? filters.roleId : undefined,
 	});
@@ -263,44 +265,65 @@ function SystemUserManagementPage() {
 		}
 	};
 
-	const table = useReactTable({
-		data: data?.items ?? [],
-		columns: userColumns,
-		getCoreRowModel: getCoreRowModel(),
-		getSortedRowModel: getSortedRowModel(),
-		manualPagination: true,
-		pageCount: data?.total ? Math.ceil(data.total / pagination.pageSize) : 1,
-		state: {
-			pagination,
+	const handlePaginationChange = useCallback(
+		(next: { pageIndex: number; pageSize: number }) => {
+			setPageIndex(next.pageIndex);
+			setPageSize(next.pageSize);
+			navigate({
+				to: ".",
+				search: { ...searchParams, page: next.pageIndex + 1, pageSize: next.pageSize },
+				replace: true,
+			});
 		},
-		onPaginationChange: setPagination,
-		meta: {
-			onEdit: handleEdit,
-		},
-	});
+		[navigate, searchParams],
+	);
 
 	return (
-		<div className="space-y-6">
-			<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-				<div>
-					<h1 className="text-2xl font-bold tracking-tight">用户管理</h1>
+		<DataListLayout
+			mode="server"
+			data={data?.items || []}
+			columns={userColumns}
+			pageCount={data?.total ? Math.ceil(data.total / pageSize) : 1}
+			onPaginationChange={handlePaginationChange}
+			initialPageIndex={(searchParams.page || 1) - 1}
+			initialPageSize={searchParams.pageSize || 20}
+			locationSearch={locationSearch}
+			isLoading={isLoading}
+			loadingFallback={
+				<div className="space-y-3">
+					<Skeleton className="h-12 w-full" />
+					<Skeleton className="h-12 w-full" />
+					<Skeleton className="h-12 w-full" />
 				</div>
-			</div>
-
-			{/* Query Preset Bar */}
-			<QueryPresetBar
-				systemPresets={systemPresets}
-				userPresets={userPresets}
-				matchedPresetId={currentActivePresetId}
-				onApplyPreset={handleApplyPreset}
-				onSavePreset={(name) => savePreset(name, filters)}
-				onDeletePreset={deletePreset}
-				onRenamePreset={renamePreset}
-			/>
-
-			{/* Filter Toolbar */}
-			<FilterToolbar
-				fields={[
+			}
+			error={
+				isError ? (
+					<div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-destructive">
+						加载用户数据失败：{error?.message}
+					</div>
+				) : undefined
+			}
+			tableMeta={{
+				onEdit: handleEdit,
+			}}
+			header={
+				<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+					<div>
+						<h1 className="text-2xl font-bold tracking-tight">用户管理</h1>
+					</div>
+				</div>
+			}
+			queryPresetBarProps={{
+				systemPresets,
+				userPresets,
+				matchedPresetId: currentActivePresetId,
+				onApplyPreset: handleApplyPreset,
+				onSavePreset: (name) => savePreset(name, filters),
+				onDeletePreset: deletePreset,
+				onRenamePreset: renamePreset,
+			}}
+			filterToolbarProps={{
+				fields: [
 					{
 						key: "search",
 						type: "search",
@@ -312,44 +335,26 @@ function SystemUserManagementPage() {
 						label: "角色",
 						options: roleOptions,
 					},
-				]}
-				filters={filters}
-				onFilterChange={setFilter}
-				onReset={resetFilters}
-				isFiltered={isFiltered}
-				table={table}
-				viewPreferencesKey={viewPreferencesKey}
-				actions={
+				],
+				filters,
+				onFilterChange: setFilter,
+				onReset: resetFilters,
+				isFiltered,
+				viewPreferencesKey,
+				actions:
 					canManageUsers && (
 						<Button size="sm" className="h-8" onClick={handleCreate}>
 							<Plus className="mr-2 h-4 w-4" />
 							新增用户
 						</Button>
 					)
-				}
-			/>
-
-			{isLoading ? (
-				<div className="space-y-3">
-					<Skeleton className="h-12 w-full" />
-					<Skeleton className="h-12 w-full" />
-					<Skeleton className="h-12 w-full" />
-				</div>
-			) : isError ? (
-				<div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-destructive">
-					加载用户数据失败：{error?.message}
-				</div>
-			) : (
-				<DataListView
-					table={table}
-					columns={userColumns}
-					viewPreferencesKey={viewPreferencesKey}
-					renderCard={(item) => <UserCard user={item} onEdit={handleEdit} />}
-				/>
-			)}
-
-			<DataTablePagination table={table} />
-
+				,
+			}}
+			dataListViewProps={{
+				viewPreferencesKey,
+				renderCard: (item) => <UserCard user={item as UserItem} onEdit={handleEdit} />,
+			}}
+		>
 			<UserDialog
 				open={dialogOpen}
 				onOpenChange={handleDialogOpenChange}
@@ -358,6 +363,6 @@ function SystemUserManagementPage() {
 				onSubmit={handleSubmit}
 				isSubmitting={createMutation.isPending || updateMutation.isPending}
 			/>
-		</div>
+		</DataListLayout>
 	);
 }

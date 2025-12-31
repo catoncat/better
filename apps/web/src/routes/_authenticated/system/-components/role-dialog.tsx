@@ -1,6 +1,5 @@
 import { PERMISSION_GROUPS } from "@better-app/db/permissions";
 import { useForm } from "@tanstack/react-form";
-import { zodValidator } from "@tanstack/zod-form-adapter";
 import { useEffect, useMemo } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -39,8 +38,8 @@ type RoleCreateInput = Parameters<typeof client.api.roles.post>[0];
 const formSchema = z.object({
 	code: z.string().min(1, "请输入角色代码"),
 	name: z.string().min(1, "请输入角色名称"),
-	description: z.string().optional().default(""),
-	dataScope: z.enum(["ALL", "ASSIGNED_LINES", "ASSIGNED_STATIONS"]).default("ALL"),
+	description: z.string(),
+	dataScope: z.enum(["ALL", "ASSIGNED_LINES", "ASSIGNED_STATIONS"]),
 	permissions: z.array(z.string()).min(1, "至少选择一个权限"),
 }) satisfies z.ZodType<RoleCreateInput>;
 
@@ -63,10 +62,11 @@ export function RoleDialog({ open, onOpenChange, role, onSubmit, isSubmitting }:
 			description: role?.description ?? "",
 			dataScope: role?.dataScope ?? "ALL",
 			permissions: role?.permissions ?? [],
-		} as RoleFormValues,
-		// @ts-expect-error - Adapter type mismatch but runtime safe
-		validatorAdapter: zodValidator(),
-		onSubmit: async ({ value }: { value: any }) => {
+		} satisfies RoleFormValues,
+		validators: {
+			onSubmit: formSchema,
+		},
+		onSubmit: async ({ value }) => {
 			await onSubmit(value);
 		},
 	});
@@ -110,8 +110,8 @@ export function RoleDialog({ open, onOpenChange, role, onSubmit, isSubmitting }:
 					}}
 					className="flex flex-col min-h-0"
 				>
-					<DialogBody className="space-y-6">
-						<div className="grid gap-4 md:grid-cols-2">
+					<DialogBody className="space-y-2">
+						<div className="grid gap-y-1 gap-x-4 md:grid-cols-2">
 							<Field
 								form={form}
 								name="code"
@@ -121,7 +121,7 @@ export function RoleDialog({ open, onOpenChange, role, onSubmit, isSubmitting }:
 									onChange: formSchema.shape.code,
 								}}
 							>
-								{(field: any) => (
+								{(field) => (
 									<Input
 										value={field.state.value}
 										onBlur={field.handleBlur}
@@ -140,7 +140,7 @@ export function RoleDialog({ open, onOpenChange, role, onSubmit, isSubmitting }:
 									onChange: formSchema.shape.name,
 								}}
 							>
-								{(field: any) => (
+								{(field) => (
 									<Input
 										value={field.state.value}
 										onBlur={field.handleBlur}
@@ -159,7 +159,7 @@ export function RoleDialog({ open, onOpenChange, role, onSubmit, isSubmitting }:
 									onChange: formSchema.shape.description,
 								}}
 							>
-								{(field: any) => (
+								{(field) => (
 									<Input
 										value={field.state.value}
 										onBlur={field.handleBlur}
@@ -173,12 +173,12 @@ export function RoleDialog({ open, onOpenChange, role, onSubmit, isSubmitting }:
 								form={form}
 								name="dataScope"
 								label="数据范围"
-								description="系统角色数据范围固定"
+								tooltip="系统角色数据范围固定"
 								validators={{
 									onChange: formSchema.shape.dataScope,
 								}}
 							>
-								{(field: any) => (
+								{(field) => (
 									<Select
 										value={field.state.value}
 										onValueChange={field.handleChange}
@@ -203,12 +203,12 @@ export function RoleDialog({ open, onOpenChange, role, onSubmit, isSubmitting }:
 							form={form}
 							name="permissions"
 							label="权限点"
-							description="选择该角色可执行的操作"
+							tooltip="选择该角色可执行的操作"
 							validators={{
 								onChange: formSchema.shape.permissions,
 							}}
 						>
-							{(field: any) => (
+							{(field) => (
 								<div className="space-y-5">
 									{permissionGroups.map((group) => (
 										<div key={group.label} className="rounded-lg border p-4">
@@ -226,7 +226,7 @@ export function RoleDialog({ open, onOpenChange, role, onSubmit, isSubmitting }:
 																	const next = checked
 																		? [...field.state.value, perm.value]
 																		: field.state.value.filter(
-																				(value) => value !== perm.value,
+																				(value: string) => value !== perm.value,
 																			);
 																	field.handleChange(next);
 																}}

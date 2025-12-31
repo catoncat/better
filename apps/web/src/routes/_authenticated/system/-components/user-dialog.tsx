@@ -1,5 +1,4 @@
 import { useForm } from "@tanstack/react-form";
-import { zodValidator } from "@tanstack/zod-form-adapter";
 import { useEffect, useMemo } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -27,13 +26,13 @@ type UserCreateInput = Parameters<typeof client.api.users.post>[0];
 export const formSchema = z.object({
 	name: z.string().min(1, "请输入姓名"),
 	email: z.string().email("请输入正确的邮箱格式"),
-	department: z.string().optional().default(""),
-	phone: z.string().optional().default(""),
-	isActive: z.boolean().default(true),
-	enableWecomNotification: z.boolean().optional().default(false),
+	department: z.string(),
+	phone: z.string(),
+	isActive: z.boolean(),
+	enableWecomNotification: z.boolean(),
 	roleIds: z.array(z.string()).min(1, "至少选择一个角色"),
-	lineIds: z.array(z.string()).optional().default([]),
-	stationIds: z.array(z.string()).optional().default([]),
+	lineIds: z.array(z.string()),
+	stationIds: z.array(z.string()),
 }) satisfies z.ZodType<UserCreateInput>;
 
 export type UserFormValues = z.infer<typeof formSchema>;
@@ -89,10 +88,11 @@ export function UserDialog({
 			roleIds: user ? user.roles.map((role) => role.id) : [],
 			lineIds: user?.lineIds ?? [],
 			stationIds: user?.stationIds ?? [],
-		} as UserFormValues,
-		// @ts-expect-error - Adapter type mismatch but runtime safe
-		validatorAdapter: zodValidator(),
-		onSubmit: async ({ value }: { value: any }) => {
+		} satisfies UserFormValues,
+		validators: {
+			onSubmit: formSchema,
+		},
+		onSubmit: async ({ value }) => {
 			await onSubmit(value);
 		},
 	});
@@ -150,7 +150,7 @@ export function UserDialog({
 								label="姓名"
 								validators={{ onChange: formSchema.shape.name }}
 							>
-								{(field: any) => (
+								{(field) => (
 									<Input
 										value={field.state.value}
 										onBlur={field.handleBlur}
@@ -166,7 +166,7 @@ export function UserDialog({
 								label="邮箱"
 								validators={{ onChange: formSchema.shape.email }}
 							>
-								{(field: any) => (
+								{(field) => (
 									<Input
 										value={field.state.value}
 										onBlur={field.handleBlur}
@@ -182,7 +182,7 @@ export function UserDialog({
 								label="角色"
 								validators={{ onChange: formSchema.shape.roleIds }}
 							>
-								{(field: any) => (
+								{(field) => (
 									<MultiSelect
 										options={roleOptions}
 										value={field.state.value}
@@ -199,7 +199,7 @@ export function UserDialog({
 								label="部门/车间"
 								validators={{ onChange: formSchema.shape.department }}
 							>
-								{(field: any) => (
+								{(field) => (
 									<Input
 										value={field.state.value}
 										onBlur={field.handleBlur}
@@ -215,7 +215,7 @@ export function UserDialog({
 								label="联系电话"
 								validators={{ onChange: formSchema.shape.phone }}
 							>
-								{(field: any) => (
+								{(field) => (
 									<Input
 										value={field.state.value}
 										onBlur={field.handleBlur}
@@ -231,10 +231,10 @@ export function UserDialog({
 								form={form}
 								name="lineIds"
 								label="产线绑定"
-								description="仅对产线组长/操作员的数据范围生效"
+								tooltip="仅对产线组长/操作员的数据范围生效"
 								validators={{ onChange: formSchema.shape.lineIds }}
 							>
-								{(field: any) => (
+								{(field) => (
 									<MultiSelect
 										options={lineOptions}
 										value={field.state.value}
@@ -249,10 +249,10 @@ export function UserDialog({
 								form={form}
 								name="stationIds"
 								label="工位绑定"
-								description="仅对操作员的数据范围生效"
+								tooltip="仅对操作员的数据范围生效"
 								validators={{ onChange: formSchema.shape.stationIds }}
 							>
-								{(field: any) => (
+								{(field) => (
 									<MultiSelect
 										options={stationOptions}
 										value={field.state.value}
@@ -270,18 +270,13 @@ export function UserDialog({
 								name="isActive"
 								validators={{ onChange: formSchema.shape.isActive }}
 							>
-								{(field: any) => (
+								{(field) => (
 									<div className="flex items-center justify-between rounded-lg border p-4">
 										<div className="space-y-1">
 											<Label className="text-base">账号状态</Label>
-											<p className="text-sm text-muted-foreground">
-												停用后用户将无法登录系统
-											</p>
+											<p className="text-sm text-muted-foreground">停用后用户将无法登录系统</p>
 										</div>
-										<Switch
-											checked={field.state.value}
-											onCheckedChange={field.handleChange}
-										/>
+										<Switch checked={field.state.value} onCheckedChange={field.handleChange} />
 									</div>
 								)}
 							</Field>
@@ -291,18 +286,13 @@ export function UserDialog({
 								name="enableWecomNotification"
 								validators={{ onChange: formSchema.shape.enableWecomNotification }}
 							>
-								{(field: any) => (
+								{(field) => (
 									<div className="flex items-center justify-between rounded-lg border p-4">
 										<div className="space-y-1">
 											<Label className="text-base">企业微信通知</Label>
-											<p className="text-sm text-muted-foreground">
-												开启后将接收企业微信消息通知
-											</p>
+											<p className="text-sm text-muted-foreground">开启后将接收企业微信消息通知</p>
 										</div>
-										<Switch
-											checked={field.state.value}
-											onCheckedChange={field.handleChange}
-										/>
+										<Switch checked={field.state.value} onCheckedChange={field.handleChange} />
 									</div>
 								)}
 							</Field>
