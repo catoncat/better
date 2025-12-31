@@ -111,7 +111,11 @@ Mapping:
 - `WorkOrder.woNo = woNo`
 - `WorkOrder.productCode = productCode`
 - `WorkOrder.plannedQty = plannedQty`
-- `WorkOrder.routingId` resolved by `routingCode`
+- `WorkOrder.routingId` resolved by `routingCode` when provided
+
+Notes:
+- `routingCode` is optional until the Kingdee field is confirmed. MES will attempt to resolve by `productCode` when missing.
+- `dueDate` may be omitted if the source does not provide a finish date.
 
 ---
 

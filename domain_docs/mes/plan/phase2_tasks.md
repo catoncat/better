@@ -5,13 +5,17 @@ Goal: Add readiness gates, FAI, defect/disposition handling, and OQC sampling.
 
 ## Task 2.1: Line Readiness Check & Exception Loop
 *   **Goal**: Enforce readiness gates before run authorization.
+*   **Design**: `domain_docs/mes/plan/phase2_line_readiness_design.md`
+*   **Requirements**: `conversation/line_readiness_check_discussion.md`
 *   **Input**: `domain_docs/mes/spec/process/01_end_to_end_flows.md`, `domain_docs/mes/spec/integration/01_system_integrations.md`
 *   **Actions**:
-    1.  Add readiness checks for equipment status (TPM), material availability (ERP), and process doc/qualification placeholders.
-    2.  Create readiness result + exception records with status (OPEN/RESOLVED).
-    3.  Add APIs to run readiness checks and resolve exceptions.
-    4.  Gate run authorization on readiness pass.
-*   **Definition of Done**: Runs cannot authorize when readiness fails; exceptions are recorded and resolvable.
+    1.  Add `ReadinessCheck` and `ReadinessCheckItem` tables with enums.
+    2.  Implement check logic for equipment (TPM), material (BOM), and route (ExecutableRouteVersion).
+    3.  Add APIs: precheck, formal check, get result, waive item.
+    4.  Gate run authorization on readiness pass or waived.
+    5.  Add `mes:readiness:*` permissions.
+    6.  Auto-trigger precheck on Run creation and TPM/route changes.
+*   **Definition of Done**: Runs cannot authorize when readiness fails; exceptions can be waived with audit trail.
 *   **Status**: [ ] Pending
 
 ## Task 2.2: FAI Tasks & Authorization Gate
