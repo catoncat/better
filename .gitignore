@@ -63,7 +63,12 @@ apps/server/public/uploads/
 apps/server/src/web/embedded-assets.generated.ts
 packages/db/src/libsql-standalone.generated.ts
 apps/server/better
+apps/server/better-tpm
 apps/server/server
+
+# Data files and CSVs (should not be committed)
+*.csv
+erp_workorders.csv
 
 old_project
 .spec-workflow
