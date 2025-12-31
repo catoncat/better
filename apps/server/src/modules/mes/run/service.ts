@@ -3,6 +3,7 @@ import { type Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
 import { parseSortOrderBy } from "../../../utils/sort";
+import { canAuthorize as checkReadiness } from "../readiness/service";
 import type { runAuthorizeSchema, runListQuerySchema } from "./schema";
 
 type RunAuthorizeInput = Static<typeof runAuthorizeSchema>;
@@ -209,6 +210,25 @@ export const authorizeRun = async (
 							status: 400,
 						};
 					}
+
+					const readinessResult = await checkReadiness(db, runNo);
+					if (!readinessResult.success) {
+						span.setStatus({ code: SpanStatusCode.ERROR });
+						span.setAttribute("mes.error_code", readinessResult.code);
+						return readinessResult as ServiceResult<RunRecord>;
+					}
+					if (!readinessResult.data.canAuthorize) {
+						span.setStatus({ code: SpanStatusCode.ERROR });
+						span.setAttribute("mes.error_code", "READINESS_CHECK_FAILED");
+						return {
+							success: false,
+							code: "READINESS_CHECK_FAILED",
+							message:
+								"Readiness check failed. All items must pass or be waived before authorization.",
+							status: 400,
+						};
+					}
+
 					const updated = await db.run.update({
 						where: { runNo },
 						data: {
