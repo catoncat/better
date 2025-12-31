@@ -90,14 +90,14 @@ export function PickStatusDialog({
 					<form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
 						<FormField
 							control={form.control}
-							name="pickStatus"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>物料状态</FormLabel>
-									<Select onValueChange={field.onChange} defaultValue={field.value}>
-										<FormControl>
-											<SelectTrigger>
-												<SelectValue placeholder="选择物料状态" />
+                                                        name="pickStatus"
+                                                        render={({ field }) => (
+                                                                <FormItem>
+                                                                        <FormLabel>物料状态</FormLabel>
+                                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                                                <FormControl>
+                                                                                        <SelectTrigger>
+                                                                                                <SelectValue placeholder="选择物料状态" />
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>

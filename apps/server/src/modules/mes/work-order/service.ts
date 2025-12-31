@@ -27,13 +27,14 @@ const setSpanAttributes = (span: Span, attributes: Record<string, unknown>) => {
 };
 
 export const listWorkOrders = async (
-	db: PrismaClient,
-	query: WorkOrderListQuery,
-	extraWhere?: Prisma.WorkOrderWhereInput,
+        db: PrismaClient,
+        query: WorkOrderListQuery,
+        extraWhere?: Prisma.WorkOrderWhereInput,
 ) => {
-	const page = query.page ?? 1;
-	const pageSize = Math.min(query.pageSize ?? 30, 100);
-	const where: Prisma.WorkOrderWhereInput = {};
+        const page = query.page ?? 1;
+        const pageSize = Math.min(query.pageSize ?? 30, 100);
+        const where: Prisma.WorkOrderWhereInput = {};
+        const andFilters: Prisma.WorkOrderWhereInput[] = [];
 
 	if (query.status) {
 		const statuses = query.status.split(",").filter(Boolean) as WorkOrderStatus[];
@@ -42,12 +43,22 @@ export const listWorkOrders = async (
 		}
 	}
 
-	if (query.erpPickStatus) {
-		const pickStatuses = query.erpPickStatus.split(",").filter(Boolean);
-		if (pickStatuses.length > 0) {
-			where.erpPickStatus = { in: pickStatuses };
-		}
-	}
+        if (query.erpPickStatus) {
+                const pickStatuses = query.erpPickStatus.split(",").filter(Boolean);
+                if (pickStatuses.length > 0) {
+                        andFilters.push({
+                                OR: [
+                                        { erpPickStatus: { in: pickStatuses } },
+                                        {
+                                                AND: [
+                                                        { OR: [{ erpStatus: null }, { erpStatus: "" }] },
+                                                        { pickStatus: { in: pickStatuses } },
+                                                ],
+                                        },
+                                ],
+                        });
+                }
+        }
 
 	if (query.routingId) {
 		const routingIds = query.routingId.split(",").filter(Boolean);
@@ -60,18 +71,19 @@ export const listWorkOrders = async (
 		where.OR = [{ woNo: { contains: query.search } }, { productCode: { contains: query.search } }];
 	}
 
-	if (extraWhere) {
-		const andFilters: Prisma.WorkOrderWhereInput[] = [];
-		if (where.AND) {
-			if (Array.isArray(where.AND)) {
-				andFilters.push(...where.AND);
-			} else {
-				andFilters.push(where.AND);
-			}
-		}
-		andFilters.push(extraWhere);
-		where.AND = andFilters;
-	}
+        if (extraWhere) {
+                andFilters.push(extraWhere);
+        }
+
+        if (andFilters.length > 0) {
+                if (where.AND) {
+                        where.AND = Array.isArray(where.AND)
+                                ? [...where.AND, ...andFilters]
+                                : [where.AND, ...andFilters];
+                } else {
+                        where.AND = andFilters;
+                }
+        }
 
 	const orderBy = parseSortOrderBy<Prisma.WorkOrderOrderByWithRelationInput>(query.sort, {
 		allowedFields: [
