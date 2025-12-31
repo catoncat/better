@@ -1,9 +1,29 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { format } from "date-fns";
-import { ArrowLeft, Package, RefreshCw } from "lucide-react";
+import {
+	AlertTriangle,
+	ArrowLeft,
+	CheckCircle2,
+	Loader2,
+	Package,
+	RefreshCw,
+	Shield,
+	XCircle,
+} from "lucide-react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
 	Table,
 	TableBody,
@@ -12,6 +32,13 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import {
+	type ReadinessCheckItem,
+	usePerformFormalCheck,
+	usePerformPrecheck,
+	useReadinessLatest,
+	useWaiveItem,
+} from "@/hooks/use-readiness";
 import { useRunDetail } from "@/hooks/use-runs";
 
 export const Route = createFileRoute("/_authenticated/mes/runs/$runNo")({
@@ -21,6 +48,19 @@ export const Route = createFileRoute("/_authenticated/mes/runs/$runNo")({
 function RunDetailPage() {
 	const { runNo } = Route.useParams();
 	const { data, isLoading, refetch, isFetching } = useRunDetail(runNo);
+	const {
+		data: readinessData,
+		isLoading: readinessLoading,
+		refetch: refetchReadiness,
+	} = useReadinessLatest(runNo);
+
+	const performPrecheck = usePerformPrecheck();
+	const performFormalCheck = usePerformFormalCheck();
+	const waiveItem = useWaiveItem();
+
+	const [waiveDialogOpen, setWaiveDialogOpen] = useState(false);
+	const [selectedItem, setSelectedItem] = useState<ReadinessCheckItem | null>(null);
+	const [waiveReason, setWaiveReason] = useState("");
 
 	const formatTime = (value?: string | null) => {
 		if (!value) return "-";
@@ -60,6 +100,71 @@ function RunDetailPage() {
 		return <Badge variant={config.variant}>{config.label}</Badge>;
 	};
 
+	const getReadinessStatusBadge = (status: string) => {
+		const map: Record<
+			string,
+			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+		> = {
+			PASSED: { label: "已通过", variant: "default" },
+			FAILED: { label: "未通过", variant: "destructive" },
+			PENDING: { label: "检查中", variant: "outline" },
+		};
+		const config = map[status] ?? { label: status, variant: "outline" as const };
+		return <Badge variant={config.variant}>{config.label}</Badge>;
+	};
+
+	const getItemStatusBadge = (status: string) => {
+		const map: Record<
+			string,
+			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+		> = {
+			PASSED: { label: "通过", variant: "default" },
+			FAILED: { label: "失败", variant: "destructive" },
+			WAIVED: { label: "已豁免", variant: "secondary" },
+		};
+		const config = map[status] ?? { label: status, variant: "outline" as const };
+		return <Badge variant={config.variant}>{config.label}</Badge>;
+	};
+
+	const getItemTypeLabel = (type: string) => {
+		const map: Record<string, string> = {
+			EQUIPMENT: "设备",
+			MATERIAL: "物料",
+			ROUTE: "路由",
+		};
+		return map[type] ?? type;
+	};
+
+	const handleWaive = (item: ReadinessCheckItem) => {
+		setSelectedItem(item);
+		setWaiveReason("");
+		setWaiveDialogOpen(true);
+	};
+
+	const confirmWaive = async () => {
+		if (!selectedItem || !waiveReason.trim()) return;
+
+		await waiveItem.mutateAsync({
+			runNo,
+			itemId: selectedItem.id,
+			reason: waiveReason.trim(),
+		});
+
+		setWaiveDialogOpen(false);
+		setSelectedItem(null);
+		setWaiveReason("");
+		refetchReadiness();
+	};
+
+	const handleRunCheck = async (type: "precheck" | "formal") => {
+		if (type === "precheck") {
+			await performPrecheck.mutateAsync(runNo);
+		} else {
+			await performFormalCheck.mutateAsync(runNo);
+		}
+		refetchReadiness();
+	};
+
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center py-12">
@@ -86,6 +191,9 @@ function RunDetailPage() {
 
 	const progressPercent =
 		data.unitStats.total > 0 ? Math.round((data.unitStats.done / data.unitStats.total) * 100) : 0;
+
+	const failedItems = readinessData?.items.filter((i) => i.status === "FAILED") ?? [];
+	const canShowReadinessActions = data.run.status === "PREP" || data.run.status === "FAI_PENDING";
 
 	return (
 		<div className="space-y-6">
@@ -224,6 +332,129 @@ function RunDetailPage() {
 						)}
 					</CardContent>
 				</Card>
+
+				<Card className="lg:col-span-2">
+					<CardHeader>
+						<div className="flex items-center justify-between">
+							<CardTitle className="flex items-center gap-2">
+								{readinessLoading ? (
+									<Loader2 className="h-5 w-5 animate-spin" />
+								) : !readinessData ? (
+									<AlertTriangle className="h-5 w-5 text-yellow-600" />
+								) : readinessData.status === "PASSED" ? (
+									<CheckCircle2 className="h-5 w-5 text-green-600" />
+								) : (
+									<XCircle className="h-5 w-5 text-red-600" />
+								)}
+								准备状态
+							</CardTitle>
+							{canShowReadinessActions && (
+								<div className="flex gap-2">
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => handleRunCheck("precheck")}
+										disabled={performPrecheck.isPending}
+									>
+										{performPrecheck.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+										执行预检
+									</Button>
+									<Button
+										variant="default"
+										size="sm"
+										onClick={() => handleRunCheck("formal")}
+										disabled={performFormalCheck.isPending}
+									>
+										{performFormalCheck.isPending && (
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										)}
+										正式检查
+									</Button>
+								</div>
+							)}
+						</div>
+					</CardHeader>
+					<CardContent>
+						{readinessLoading ? (
+							<p className="text-muted-foreground">加载中...</p>
+						) : !readinessData ? (
+							<div className="py-4 text-center text-muted-foreground">
+								<p>暂无检查记录</p>
+								{canShowReadinessActions && (
+									<p className="text-sm mt-1">点击上方按钮执行准备检查</p>
+								)}
+							</div>
+						) : (
+							<div className="space-y-4">
+								<div className="grid gap-4 md:grid-cols-4">
+									<div>
+										<p className="text-sm text-muted-foreground">检查类型</p>
+										<p className="font-medium">
+											{readinessData.type === "FORMAL" ? "正式检查" : "预检"}
+										</p>
+									</div>
+									<div>
+										<p className="text-sm text-muted-foreground">检查状态</p>
+										{getReadinessStatusBadge(readinessData.status)}
+									</div>
+									<div>
+										<p className="text-sm text-muted-foreground">检查时间</p>
+										<p className="font-medium">{formatTime(readinessData.checkedAt)}</p>
+									</div>
+									<div>
+										<p className="text-sm text-muted-foreground">结果汇总</p>
+										<p className="font-medium text-sm">
+											通过: {readinessData.summary.passed} · 失败: {readinessData.summary.failed} ·
+											豁免: {readinessData.summary.waived}
+										</p>
+									</div>
+								</div>
+
+								{readinessData.items.length > 0 && (
+									<div className="border rounded-lg">
+										<Table>
+											<TableHeader>
+												<TableRow>
+													<TableHead>类型</TableHead>
+													<TableHead>标识</TableHead>
+													<TableHead>状态</TableHead>
+													<TableHead>原因</TableHead>
+													<TableHead>操作</TableHead>
+												</TableRow>
+											</TableHeader>
+											<TableBody>
+												{readinessData.items.map((item) => (
+													<TableRow key={item.id}>
+														<TableCell>{getItemTypeLabel(item.itemType)}</TableCell>
+														<TableCell className="font-mono text-sm">{item.itemKey}</TableCell>
+														<TableCell>{getItemStatusBadge(item.status)}</TableCell>
+														<TableCell className="max-w-xs truncate text-sm text-muted-foreground">
+															{item.failReason ??
+																(item.waiveReason ? `豁免: ${item.waiveReason}` : "-")}
+														</TableCell>
+														<TableCell>
+															{item.status === "FAILED" && canShowReadinessActions && (
+																<Button variant="ghost" size="sm" onClick={() => handleWaive(item)}>
+																	<Shield className="mr-1 h-3 w-3" />
+																	豁免
+																</Button>
+															)}
+															{item.status === "WAIVED" && item.waivedAt && (
+																<span className="text-xs text-muted-foreground">
+																	{formatTime(item.waivedAt)}
+																</span>
+															)}
+														</TableCell>
+													</TableRow>
+												))}
+											</TableBody>
+										</Table>
+									</div>
+								)}
+							</div>
+						)}
+					</CardContent>
+				</Card>
 			</div>
 
 			<Card>
@@ -273,6 +504,44 @@ function RunDetailPage() {
 					)}
 				</CardContent>
 			</Card>
+
+			<Dialog open={waiveDialogOpen} onOpenChange={setWaiveDialogOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>豁免检查项</DialogTitle>
+						<DialogDescription>
+							豁免 {selectedItem && getItemTypeLabel(selectedItem.itemType)} 检查项:{" "}
+							{selectedItem?.itemKey}
+						</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4 py-4">
+						{selectedItem?.failReason && (
+							<div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+								<p className="font-medium">失败原因:</p>
+								<p>{selectedItem.failReason}</p>
+							</div>
+						)}
+						<div className="space-y-2">
+							<Label htmlFor="waiveReason">豁免原因 (必填)</Label>
+							<Input
+								id="waiveReason"
+								value={waiveReason}
+								onChange={(e) => setWaiveReason(e.target.value)}
+								placeholder="请输入豁免原因..."
+							/>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setWaiveDialogOpen(false)}>
+							取消
+						</Button>
+						<Button onClick={confirmWaive} disabled={!waiveReason.trim() || waiveItem.isPending}>
+							{waiveItem.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+							确认豁免
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }
