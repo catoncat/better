@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { PrismaClient } from "@better-app/db";
 import type { ServiceResult } from "../../../types/service-result";
+import { triggerPrecheckForAffectedRuns } from "../readiness/service";
 import type { IntegrationEnvelope } from "./erp-service";
 import { mockTpmEquipments, mockTpmMaintenanceTasks, mockTpmStatusLogs } from "./mock-data";
 
@@ -251,6 +252,11 @@ export const syncTpmEquipment = async (
 			dedupeKey: message.dedupeKey,
 		};
 	});
+
+	const equipmentCodes = pullResult.data.map((item) => item.equipmentCode);
+	if (equipmentCodes.length > 0) {
+		triggerPrecheckForAffectedRuns(db, { equipmentCodes }).catch(() => {});
+	}
 
 	return {
 		success: true,
