@@ -644,6 +644,7 @@ export const listRoutes = async (db: PrismaClient, query: RouteListQuery) => {
 		db.routing.findMany({
 			where,
 			select: {
+				id: true,
 				code: true,
 				name: true,
 				sourceSystem: true,
@@ -664,6 +665,7 @@ export const listRoutes = async (db: PrismaClient, query: RouteListQuery) => {
 
 	return {
 		items: items.map((item) => ({
+			id: item.id,
 			code: item.code,
 			name: item.name,
 			sourceSystem: item.sourceSystem,

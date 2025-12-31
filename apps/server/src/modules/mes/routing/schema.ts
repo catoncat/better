@@ -64,6 +64,7 @@ export const routeCompileResponseSchema = t.Object({
 });
 
 const routeSummarySchema = t.Object({
+	id: t.String(),
 	code: t.String(),
 	name: t.String(),
 	sourceSystem: t.String(),
