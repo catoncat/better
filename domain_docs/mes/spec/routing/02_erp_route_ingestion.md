@@ -22,7 +22,7 @@ Source:
 - Pagination: `StartRow` + `Limit`
 
 Header fields:
-- `FBillHead(ENG_Route)` (internal id)
+- `FID(ENG_Route)` (internal id)
 - `FNumber` (route code)
 - `FName` (route name)
 - `FMATERIALID` (product code)

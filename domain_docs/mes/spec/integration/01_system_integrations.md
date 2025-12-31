@@ -38,7 +38,7 @@ Incremental strategy:
 - If `FModifyDate` is not reliable, fallback to full pull + local diff
 
 Header fields (route identity):
-- `FBillHead(ENG_Route)` (internal id)
+- `FID(ENG_Route)` (internal id)
 - `FNumber` (route code)
 - `FName` (route name)
 - `FMATERIALID` (product code)
@@ -93,18 +93,21 @@ Configuration (env vars, prefix `MES_ERP_KINGDEE_`):
 - `APPID`
 - `APP_SECRET`
 - `LCID`
+- `WORK_ORDER_ROUTING_FIELD` (optional, Kingdee field key for routing code on PRD_MO)
 
-### 2.5 ERP Master Data Pull (Gateway)
-For work orders / materials / BOM / work centers, MES can pull via a generic ERP gateway endpoint.
-Configuration (env vars, prefix `MES_ERP_`):
-- `BASE_URL`
-- `API_KEY` (optional)
-- `WORK_ORDER_PATH` (default `/api/erp/work-orders`)
-- `MATERIAL_PATH` (default `/api/erp/materials`)
-- `BOM_PATH` (default `/api/erp/boms`)
-- `WORK_CENTER_PATH` (default `/api/erp/work-centers`)
+### 2.5 ERP Master Data Pull (Kingdee)
+Work orders / materials / BOM / work centers are pulled directly from Kingdee using the same SSO session.
+Forms used (default):
+- Work orders: `PRD_MO`
+- Materials: `BD_Material`
+- BOM: `ENG_BOM`
+- Work centers: `BD_WorkCenter` (fallback to `PRD_WorkCenter`)
 
-If `BASE_URL` is not set, MES falls back to mock ERP payloads.
+Routing code on work orders:
+- If the routing field is unknown, MES will ingest work orders without `routingCode` and attempt to resolve by `productCode`.
+- When the routing field is confirmed, set `MES_ERP_KINGDEE_WORK_ORDER_ROUTING_FIELD` to include it in the pull.
+
+If the Kingdee config is missing, master-data pulls fall back to mock payloads for local development.
 
 ---
 
