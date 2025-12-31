@@ -171,7 +171,9 @@ const loadErpRoutesFromCsv = async (): Promise<ParsedRouteData> => {
 	try {
 		const text = await Bun.file(csvUrl).text();
 		const lines = text.split(/\r?\n/);
-		const headerIndex = lines.findIndex((line) => line.includes("FBillHead(ENG_Route)"));
+		const headerIndex = lines.findIndex(
+			(line) => line.includes("FBillHead(ENG_Route)") || line.includes("FID(ENG_Route)"),
+		);
 		if (headerIndex < 0) {
 			routeCache = {
 				routes: fallbackErpRoutes,
@@ -196,7 +198,10 @@ const loadErpRoutesFromCsv = async (): Promise<ParsedRouteData> => {
 		let dataStart = headerRowIndex;
 		if (lines[dataStart]?.startsWith("*")) dataStart += 1;
 
-		const idxHeadId = indexOf("FBillHead(ENG_Route)");
+		const idxHeadId =
+			indexOf("FBillHead(ENG_Route)") >= 0
+				? indexOf("FBillHead(ENG_Route)")
+				: indexOf("FID(ENG_Route)");
 		const idxRouteNo = indexOf("FNumber");
 		const idxRouteName = indexOf("FName");
 		const idxProductCode = indexOf("FMATERIALID");
@@ -328,7 +333,8 @@ export const mockErpWorkOrders = [
 		productCode: "100-241-184R",
 		plannedQty: 100,
 		routingCode: "100-241-184R",
-		status: "RELEASED",
+		status: "2", // 下达
+		pickStatus: "3", // 全部领料
 		dueDate: "2025-04-10T00:00:00Z",
 		updatedAt: "2025-03-27T08:00:00Z",
 	},

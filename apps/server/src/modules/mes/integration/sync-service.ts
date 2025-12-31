@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { Prisma, type PrismaClient, StationType } from "@better-app/db";
 import type { ServiceResult } from "../../../types/service-result";
 import type { ErpRoute, IntegrationEnvelope } from "./erp-service";
-import { pullErpRoutes } from "./erp-service";
+import { pullErpRoutes, pullErpRoutesPaginated } from "./erp-service";
 
 type SyncOptions = {
 	since?: string;
@@ -62,7 +62,8 @@ const buildBusinessKey = (
 	since: string | null,
 	startRow: number,
 	limit: number,
-) => `${sourceSystem}:${entityType}:since:${since ?? "NONE"}:start:${startRow}:limit:${limit}`;
+	mode: "page" | "full",
+) => `${sourceSystem}:${entityType}:mode:${mode}:since:${since ?? "NONE"}:start:${startRow}:limit:${limit}`;
 
 const buildSourceStepKey = (routeNo: string, stepNo: number, processCode: string) =>
 	`ERP:${routeNo}:${stepNo}:${processCode}`;
@@ -305,10 +306,18 @@ export const syncErpRoutes = async (
 		where: { sourceSystem_entityType: { sourceSystem, entityType } },
 	});
 	const cursorMeta = parseCursorMeta(cursor?.meta ?? null);
-	const startRow = options.startRow ?? cursorMeta?.nextStartRow ?? 0;
+	const pageMode = options.startRow !== undefined;
+	const startRow = pageMode ? options.startRow ?? cursorMeta?.nextStartRow ?? 0 : 0;
 	const limit = options.limit ?? 200;
 	const since = options.since ?? cursorMeta?.since ?? cursor?.lastSyncAt?.toISOString() ?? null;
-	const businessKey = buildBusinessKey(sourceSystem, entityType, since, startRow, limit);
+	const businessKey = buildBusinessKey(
+		sourceSystem,
+		entityType,
+		since,
+		startRow,
+		limit,
+		pageMode ? "page" : "full",
+	);
 
 	const existing = await db.integrationMessage.findFirst({
 		where: {
@@ -337,11 +346,9 @@ export const syncErpRoutes = async (
 		}
 	}
 
-	const pullResult = await pullErpRoutes({
-		since: since ?? undefined,
-		startRow,
-		limit,
-	});
+	const pullResult = pageMode
+		? await pullErpRoutes({ since: since ?? undefined, startRow, limit })
+		: await pullErpRoutesPaginated({ since: since ?? undefined, limit });
 
 	if (!pullResult.success) {
 		await db.integrationMessage.create({

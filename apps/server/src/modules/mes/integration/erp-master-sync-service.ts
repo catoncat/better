@@ -3,6 +3,9 @@ import type { Prisma, PrismaClient } from "@better-app/db";
 import { WorkOrderStatus } from "@better-app/db";
 import type { ServiceResult } from "../../../types/service-result";
 import type { IntegrationEnvelope } from "./erp-service";
+import { getTimezoneOffsetMinutes } from "../../../utils/datetime";
+import type { KingdeeConfig } from "./kingdee";
+import { getKingdeeConfig, kingdeeExecuteBillQuery, kingdeeLogin } from "./kingdee";
 import {
 	getMockErpMaterials,
 	getMockErpWorkCenters,
@@ -25,9 +28,10 @@ type ErpWorkOrder = {
 	woNo: string;
 	productCode: string;
 	plannedQty: number;
-	routingCode: string;
+	routingCode?: string;
 	status: string;
-	dueDate: string;
+	pickStatus: string; // FPickMtrlStatus
+	dueDate?: string;
 	updatedAt: string;
 };
 
@@ -57,21 +61,11 @@ type ErpWorkCenter = {
 };
 
 type ErpMasterConfig = {
-	baseUrl?: string;
-	apiKey?: string;
-	workOrderPath: string;
-	materialPath: string;
-	bomPath: string;
-	workCenterPath: string;
+	workOrderRoutingField?: string | null;
 };
 
 const getErpMasterConfig = (): ErpMasterConfig => ({
-	baseUrl: process.env.MES_ERP_BASE_URL,
-	apiKey: process.env.MES_ERP_API_KEY,
-	workOrderPath: process.env.MES_ERP_WORK_ORDER_PATH ?? "/api/erp/work-orders",
-	materialPath: process.env.MES_ERP_MATERIAL_PATH ?? "/api/erp/materials",
-	bomPath: process.env.MES_ERP_BOM_PATH ?? "/api/erp/boms",
-	workCenterPath: process.env.MES_ERP_WORK_CENTER_PATH ?? "/api/erp/work-centers",
+	workOrderRoutingField: process.env.MES_ERP_KINGDEE_WORK_ORDER_ROUTING_FIELD?.trim() || null,
 });
 
 const safeJsonStringify = (value: unknown) =>
@@ -130,43 +124,76 @@ const getLatestTimestamp = (values: Array<string | null | undefined>) => {
 	return latest;
 };
 
-const fetchErpList = async <T>(
-	baseUrl: string,
-	path: string,
-	apiKey: string | undefined,
-	since?: string | null,
-): Promise<ServiceResult<T[]>> => {
-	const url = new URL(path, baseUrl);
-	if (since) url.searchParams.set("since", since);
+const formatKingdeeDate = (value: string) => {
+	const parsed = new Date(value);
+	if (Number.isNaN(parsed.valueOf())) return value;
+	const offsetMinutes = getTimezoneOffsetMinutes();
+	const local = new Date(parsed.getTime() + offsetMinutes * 60_000);
+	const pad = (num: number) => String(num).padStart(2, "0");
+	return `${local.getUTCFullYear()}-${pad(local.getUTCMonth() + 1)}-${pad(local.getUTCDate())} ${pad(
+		local.getUTCHours(),
+	)}:${pad(local.getUTCMinutes())}:${pad(local.getUTCSeconds())}`;
+};
 
-	try {
-		const response = await fetch(url.toString(), {
-			headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
+const buildSinceFilter = (field: string, since?: string | null) => {
+	if (!since) return "";
+	return `${field} >= '${formatKingdeeDate(since)}'`;
+};
+
+const getCell = (row: unknown[], index: number) => {
+	if (!Array.isArray(row)) return "";
+	const val = row[index];
+	if (val === null || val === undefined) return "";
+	return String(val);
+};
+
+const toIso = (value: string) => {
+	if (!value) return "";
+	const normalized = value.replace(" ", "T");
+	const parsed = new Date(normalized);
+	return Number.isNaN(parsed.valueOf()) ? value : parsed.toISOString();
+};
+
+const toNumber = (value: string) => {
+	const parsed = Number.parseFloat(value);
+	return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const getKingdeeSession = async (): Promise<
+	ServiceResult<{ config: KingdeeConfig; cookie: string }>
+> => {
+	const configResult = getKingdeeConfig();
+	if (!configResult.success) return configResult;
+	const loginResult = await kingdeeLogin(configResult.data);
+	if (!loginResult.success) return loginResult;
+	return { success: true, data: { config: configResult.data, cookie: loginResult.data.cookie } };
+};
+
+const fetchKingdeeRows = async (
+	session: { config: KingdeeConfig; cookie: string },
+	formId: string,
+	fieldKeys: string,
+	filterString: string,
+): Promise<ServiceResult<unknown[]>> => {
+	const pageSize = 200;
+	let startRow = 0;
+	const rows: unknown[] = [];
+
+	for (;;) {
+		const result = await kingdeeExecuteBillQuery(session.config, session.cookie, {
+			formId,
+			fieldKeys,
+			filterString,
+			startRow,
+			limit: pageSize,
 		});
-		if (!response.ok) {
-			return {
-				success: false,
-				code: "ERP_FETCH_FAILED",
-				message: `ERP request failed (${response.status})`,
-				status: 502,
-			};
-		}
-		const data = (await response.json()) as unknown;
-		if (Array.isArray(data)) {
-			return { success: true, data: data as T[] };
-		}
-		if (data && typeof data === "object" && Array.isArray((data as { items?: unknown }).items)) {
-			return { success: true, data: (data as { items: T[] }).items };
-		}
-		return { success: true, data: [] };
-	} catch (error) {
-		return {
-			success: false,
-			code: "ERP_FETCH_ERROR",
-			message: error instanceof Error ? error.message : "ERP request error",
-			status: 502,
-		};
+		if (!result.success) return result;
+		rows.push(...result.data);
+		if (result.data.length < pageSize) break;
+		startRow += pageSize;
 	}
+
+	return { success: true, data: rows };
 };
 
 const buildEnvelope = <T>(
@@ -180,23 +207,237 @@ const buildEnvelope = <T>(
 	items,
 });
 
-const mapWorkOrderStatus = (status: string | undefined) => {
-	if (!status) return WorkOrderStatus.RECEIVED;
-	const normalized = status.trim().toUpperCase();
+const mapWorkOrderStatus = (erpStatus: string | undefined) => {
+	if (!erpStatus) return WorkOrderStatus.RECEIVED;
+	const normalized = erpStatus.trim();
 	switch (normalized) {
-		case "RELEASED":
+		case "1": // 拟定
+			return WorkOrderStatus.RECEIVED;
+		case "2": // 下达
 			return WorkOrderStatus.RELEASED;
-		case "IN_PROGRESS":
+		case "3": // 开工
 			return WorkOrderStatus.IN_PROGRESS;
-		case "COMPLETED":
+		case "4": // 完工
 			return WorkOrderStatus.COMPLETED;
-		case "CLOSED":
+		case "5": // 结案
+		case "6": // 完工结案
 			return WorkOrderStatus.CLOSED;
-		case "CANCELLED":
+		case "7": // 作废
 			return WorkOrderStatus.CANCELLED;
 		default:
 			return WorkOrderStatus.RECEIVED;
 	}
+};
+
+type RoutingResolution = {
+	routing: { id: string; code: string } | null;
+	mode: "routing_code" | "product_code" | "ambiguous" | "not_found";
+	candidateCodes?: string[];
+};
+
+const resolveRoutingForWorkOrder = async (
+	tx: Prisma.TransactionClient,
+	item: ErpWorkOrder,
+): Promise<RoutingResolution> => {
+	if (item.routingCode) {
+		const routing = await tx.routing.findUnique({
+			where: { code: item.routingCode },
+			select: { id: true, code: true },
+		});
+		return { routing: routing ?? null, mode: routing ? "routing_code" : "not_found" };
+	}
+
+	const now = new Date();
+	const candidates = await tx.routing.findMany({
+		where: {
+			productCode: item.productCode,
+			isActive: true,
+			AND: [
+				{ OR: [{ effectiveFrom: null }, { effectiveFrom: { lte: now } }] },
+				{ OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }] },
+			],
+		},
+		orderBy: [{ effectiveFrom: "desc" }, { updatedAt: "desc" }, { id: "desc" }],
+		select: { id: true, code: true },
+		take: 2,
+	});
+
+	if (candidates.length === 1) {
+		return { routing: candidates[0], mode: "product_code" };
+	}
+	if (candidates.length > 1) {
+		return {
+			routing: null,
+			mode: "ambiguous",
+			candidateCodes: candidates.map((candidate) => candidate.code),
+		};
+	}
+
+	return { routing: null, mode: "not_found" };
+};
+
+const WORK_ORDER_FIELDS = [
+	"FBillNo",
+	"FMaterialId.FNumber",
+	"FQty",
+	"FPlanFinishDate",
+	"FStatus", // 业务状态
+	"FPickMtrlStatus", // 领料状态
+	"FModifyDate",
+];
+
+const WORK_ORDER_INDEX = {
+	woNo: 0,
+	productCode: 1,
+	plannedQty: 2,
+	dueDate: 3,
+	erpStatus: 4,
+	erpPickStatus: 5,
+	updatedAt: 6,
+} as const;
+
+const MATERIAL_FIELDS = [
+	"FNumber",
+	"FName",
+	"FCategoryID.FName",
+	"FBaseUnitId.FName",
+	"FModifyDate",
+];
+
+const MATERIAL_INDEX = {
+	code: 0,
+	name: 1,
+	category: 2,
+	unit: 3,
+	updatedAt: 4,
+} as const;
+
+const BOM_FIELDS = ["FMaterialID.FNumber", "FMaterialIDChild.FNumber", "FNumerator", "FModifyDate"];
+
+const BOM_INDEX = {
+	parentCode: 0,
+	childCode: 1,
+	qty: 2,
+	updatedAt: 3,
+} as const;
+
+const WORK_CENTER_FIELDS = ["FNumber", "FName", "FModifyDate"];
+const WORK_CENTER_FORM_IDS = ["BD_WorkCenter", "PRD_WorkCenter"] as const;
+
+const WORK_CENTER_INDEX = {
+	code: 0,
+	name: 1,
+	updatedAt: 2,
+} as const;
+
+const normalizeWorkOrders = (rows: unknown[], routingFieldIndex: number | null): ErpWorkOrder[] => {
+	const items: ErpWorkOrder[] = [];
+
+	for (const row of rows) {
+		if (!Array.isArray(row)) continue;
+		const woNo = getCell(row, WORK_ORDER_INDEX.woNo).trim();
+		const productCode = getCell(row, WORK_ORDER_INDEX.productCode).trim();
+		if (!woNo || !productCode) continue;
+
+		const plannedQty = toNumber(getCell(row, WORK_ORDER_INDEX.plannedQty));
+		const erpStatus = getCell(row, WORK_ORDER_INDEX.erpStatus).trim();
+		const erpPickStatus = getCell(row, WORK_ORDER_INDEX.erpPickStatus).trim();
+		const dueDateRaw = getCell(row, WORK_ORDER_INDEX.dueDate).trim();
+		const updatedAtRaw = getCell(row, WORK_ORDER_INDEX.updatedAt).trim();
+		const routingRaw = routingFieldIndex !== null ? getCell(row, routingFieldIndex).trim() : "";
+
+		const dueDate = dueDateRaw ? toIso(dueDateRaw) : "";
+		const updatedAt = toIso(updatedAtRaw) || dueDate || new Date().toISOString();
+
+		items.push({
+			woNo,
+			productCode,
+			plannedQty,
+			routingCode: routingRaw || undefined,
+			status: erpStatus,
+			pickStatus: erpPickStatus,
+			dueDate: dueDate || undefined,
+			updatedAt,
+		});
+	}
+
+	return items;
+};
+
+const normalizeMaterials = (rows: unknown[]): ErpMaterial[] => {
+	const items: ErpMaterial[] = [];
+
+	for (const row of rows) {
+		if (!Array.isArray(row)) continue;
+		const materialCode = getCell(row, MATERIAL_INDEX.code).trim();
+		if (!materialCode) continue;
+
+		const name = getCell(row, MATERIAL_INDEX.name).trim();
+		const category = getCell(row, MATERIAL_INDEX.category).trim();
+		const unit = getCell(row, MATERIAL_INDEX.unit).trim();
+		const updatedAtRaw = getCell(row, MATERIAL_INDEX.updatedAt).trim();
+		const updatedAt = toIso(updatedAtRaw) || new Date().toISOString();
+
+		items.push({
+			materialCode,
+			name: name || materialCode,
+			category,
+			unit,
+			model: "",
+			updatedAt,
+		});
+	}
+
+	return items;
+};
+
+const normalizeBoms = (rows: unknown[]): ErpBomItem[] => {
+	const items: ErpBomItem[] = [];
+
+	for (const row of rows) {
+		if (!Array.isArray(row)) continue;
+		const parentCode = getCell(row, BOM_INDEX.parentCode).trim();
+		const childCode = getCell(row, BOM_INDEX.childCode).trim();
+		if (!parentCode || !childCode) continue;
+
+		const qty = toNumber(getCell(row, BOM_INDEX.qty));
+		const updatedAtRaw = getCell(row, BOM_INDEX.updatedAt).trim();
+		const updatedAt = toIso(updatedAtRaw) || new Date().toISOString();
+
+		items.push({
+			parentCode,
+			childCode,
+			qty,
+			unit: "",
+			updatedAt,
+		});
+	}
+
+	return items;
+};
+
+const normalizeWorkCenters = (rows: unknown[]): ErpWorkCenter[] => {
+	const items: ErpWorkCenter[] = [];
+
+	for (const row of rows) {
+		if (!Array.isArray(row)) continue;
+		const workCenterCode = getCell(row, WORK_CENTER_INDEX.code).trim();
+		if (!workCenterCode) continue;
+
+		const name = getCell(row, WORK_CENTER_INDEX.name).trim();
+		const updatedAtRaw = getCell(row, WORK_CENTER_INDEX.updatedAt).trim();
+		const updatedAt = toIso(updatedAtRaw) || new Date().toISOString();
+
+		items.push({
+			workCenterCode,
+			name: name || workCenterCode,
+			departmentCode: "",
+			departmentName: "",
+			updatedAt,
+		});
+	}
+
+	return items;
 };
 
 const syncEnvelope = async <T>(
@@ -304,24 +545,39 @@ export const syncErpWorkOrders = async (
 	const config = getErpMasterConfig();
 
 	const payloadBuilder = async () => {
-		if (config.baseUrl) {
-			const result = await fetchErpList<ErpWorkOrder>(
-				config.baseUrl,
-				config.workOrderPath,
-				config.apiKey,
-				since,
-			);
-			if (!result.success) throw result;
-			return result.data;
+		const sessionResult = await getKingdeeSession();
+		if (!sessionResult.success) {
+			if (sessionResult.code === "KINGDEE_CONFIG_MISSING") return mockErpWorkOrders;
+			throw sessionResult;
 		}
-		return mockErpWorkOrders;
+
+		const fields = config.workOrderRoutingField
+			? [...WORK_ORDER_FIELDS, config.workOrderRoutingField]
+			: WORK_ORDER_FIELDS;
+		const routingFieldIndex = config.workOrderRoutingField ? WORK_ORDER_FIELDS.length : null;
+		const filterString = buildSinceFilter("FModifyDate", since);
+		const rowsResult = await fetchKingdeeRows(
+			sessionResult.data,
+			"PRD_MO",
+			fields.join(","),
+			filterString,
+		);
+		if (!rowsResult.success) throw rowsResult;
+		return normalizeWorkOrders(rowsResult.data, routingFieldIndex);
 	};
 
 	const applyItems = async (tx: Prisma.TransactionClient, items: ErpWorkOrder[]) => {
 		for (const item of items) {
-			const routing = item.routingCode
-				? await tx.routing.findUnique({ where: { code: item.routingCode } })
-				: null;
+			const routingResolution = await resolveRoutingForWorkOrder(tx, item);
+			const routing = routingResolution.routing;
+			const routingMeta: Record<string, unknown> = {
+				mode: routingResolution.mode,
+				routingCode: item.routingCode ?? null,
+				resolvedCode: routing?.code ?? null,
+			};
+			if (routingResolution.candidateCodes?.length) {
+				routingMeta.candidateCodes = routingResolution.candidateCodes;
+			}
 			await tx.workOrder.upsert({
 				where: { woNo: item.woNo },
 				update: {
@@ -330,7 +586,13 @@ export const syncErpWorkOrders = async (
 					routingId: routing?.id,
 					dueDate: parseDate(item.dueDate),
 					status: mapWorkOrderStatus(item.status),
-					meta: { erpStatus: item.status },
+					erpStatus: item.status,
+					erpPickStatus: item.pickStatus,
+					meta: {
+						erpStatus: item.status,
+						erpPickStatus: item.pickStatus,
+						erpRouting: routingMeta,
+					},
 				},
 				create: {
 					woNo: item.woNo,
@@ -339,7 +601,13 @@ export const syncErpWorkOrders = async (
 					routingId: routing?.id,
 					dueDate: parseDate(item.dueDate),
 					status: mapWorkOrderStatus(item.status),
-					meta: { erpStatus: item.status },
+					erpStatus: item.status,
+					erpPickStatus: item.pickStatus,
+					meta: {
+						erpStatus: item.status,
+						erpPickStatus: item.pickStatus,
+						erpRouting: routingMeta,
+					},
 				},
 			});
 		}
@@ -375,20 +643,23 @@ export const syncErpMaterials = async (
 		where: { sourceSystem_entityType: { sourceSystem, entityType } },
 	});
 	const since = options.since ?? cursor?.lastSyncAt?.toISOString() ?? null;
-	const config = getErpMasterConfig();
 
 	const payloadBuilder = async () => {
-		if (config.baseUrl) {
-			const result = await fetchErpList<ErpMaterial>(
-				config.baseUrl,
-				config.materialPath,
-				config.apiKey,
-				since,
-			);
-			if (!result.success) throw result;
-			return result.data;
+		const sessionResult = await getKingdeeSession();
+		if (!sessionResult.success) {
+			if (sessionResult.code === "KINGDEE_CONFIG_MISSING") return await getMockErpMaterials();
+			throw sessionResult;
 		}
-		return await getMockErpMaterials();
+
+		const filterString = buildSinceFilter("FModifyDate", since);
+		const rowsResult = await fetchKingdeeRows(
+			sessionResult.data,
+			"BD_Material",
+			MATERIAL_FIELDS.join(","),
+			filterString,
+		);
+		if (!rowsResult.success) throw rowsResult;
+		return normalizeMaterials(rowsResult.data);
 	};
 
 	const applyItems = async (tx: Prisma.TransactionClient, items: ErpMaterial[]) => {
@@ -444,20 +715,23 @@ export const syncErpBoms = async (
 		where: { sourceSystem_entityType: { sourceSystem, entityType } },
 	});
 	const since = options.since ?? cursor?.lastSyncAt?.toISOString() ?? null;
-	const config = getErpMasterConfig();
 
 	const payloadBuilder = async () => {
-		if (config.baseUrl) {
-			const result = await fetchErpList<ErpBomItem>(
-				config.baseUrl,
-				config.bomPath,
-				config.apiKey,
-				since,
-			);
-			if (!result.success) throw result;
-			return result.data;
+		const sessionResult = await getKingdeeSession();
+		if (!sessionResult.success) {
+			if (sessionResult.code === "KINGDEE_CONFIG_MISSING") return mockErpBoms;
+			throw sessionResult;
 		}
-		return mockErpBoms;
+
+		const filterString = buildSinceFilter("FModifyDate", since);
+		const rowsResult = await fetchKingdeeRows(
+			sessionResult.data,
+			"ENG_BOM",
+			BOM_FIELDS.join(","),
+			filterString,
+		);
+		if (!rowsResult.success) throw rowsResult;
+		return normalizeBoms(rowsResult.data);
 	};
 
 	const applyItems = async (tx: Prisma.TransactionClient, items: ErpBomItem[]) => {
@@ -510,20 +784,29 @@ export const syncErpWorkCenters = async (
 		where: { sourceSystem_entityType: { sourceSystem, entityType } },
 	});
 	const since = options.since ?? cursor?.lastSyncAt?.toISOString() ?? null;
-	const config = getErpMasterConfig();
 
 	const payloadBuilder = async () => {
-		if (config.baseUrl) {
-			const result = await fetchErpList<ErpWorkCenter>(
-				config.baseUrl,
-				config.workCenterPath,
-				config.apiKey,
-				since,
-			);
-			if (!result.success) throw result;
-			return result.data;
+		const sessionResult = await getKingdeeSession();
+		if (!sessionResult.success) {
+			if (sessionResult.code === "KINGDEE_CONFIG_MISSING") return await getMockErpWorkCenters();
+			throw sessionResult;
 		}
-		return await getMockErpWorkCenters();
+
+		const filterString = buildSinceFilter("FModifyDate", since);
+		for (const formId of WORK_CENTER_FORM_IDS) {
+			const rowsResult = await fetchKingdeeRows(
+				sessionResult.data,
+				formId,
+				WORK_CENTER_FIELDS.join(","),
+				filterString,
+			);
+			if (!rowsResult.success) throw rowsResult;
+			if (rowsResult.data.length > 0) {
+				return normalizeWorkCenters(rowsResult.data);
+			}
+		}
+
+		return [];
 	};
 
 	const applyItems = async (tx: Prisma.TransactionClient, items: ErpWorkCenter[]) => {
