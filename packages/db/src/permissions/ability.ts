@@ -1,4 +1,10 @@
-import { AbilityBuilder, createMongoAbility, type MongoAbility } from "@casl/ability";
+import {
+	AbilityBuilder,
+	createMongoAbility,
+	type ForcedSubject,
+	type InferSubjects,
+	type MongoAbility,
+} from "@casl/ability";
 import type { PermissionValue } from "./permissions";
 
 /**
@@ -29,7 +35,7 @@ export type Actions =
 /**
  * CASL Subjects - business entities
  */
-export type Subjects =
+export type SubjectName =
 	| "WorkOrder"
 	| "Run"
 	| "Execution"
@@ -37,8 +43,24 @@ export type Subjects =
 	| "Trace"
 	| "User"
 	| "Role"
-	| "System"
-	| "all";
+	| "System";
+
+type RowScoped = {
+	lineId?: string;
+	stationId?: string;
+};
+
+type SubjectEntity =
+	| (RowScoped & ForcedSubject<"WorkOrder">)
+	| (RowScoped & ForcedSubject<"Run">)
+	| (RowScoped & ForcedSubject<"Execution">)
+	| (RowScoped & ForcedSubject<"Route">)
+	| (RowScoped & ForcedSubject<"Trace">)
+	| (RowScoped & ForcedSubject<"User">)
+	| (RowScoped & ForcedSubject<"Role">)
+	| (RowScoped & ForcedSubject<"System">);
+
+export type Subjects = InferSubjects<SubjectEntity> | "all";
 
 export type AppAbility = MongoAbility<[Actions, Subjects]>;
 
@@ -71,10 +93,10 @@ export interface UserWithPermissions {
  * Parse permission string into subject and action
  * e.g., "wo:read" -> { subject: "WorkOrder", action: "read" }
  */
-function parsePermission(perm: string): { subject: Subjects; action: Actions } {
+function parsePermission(perm: string): { subject: SubjectName; action: Actions } {
 	const [domain, action] = perm.split(":") as [string, string];
 
-	const subjectMap: Record<string, Subjects> = {
+	const subjectMap: Record<string, SubjectName> = {
 		wo: "WorkOrder",
 		run: "Run",
 		exec: "Execution",
@@ -140,10 +162,8 @@ export function defineAbilityFor(user: UserWithPermissions): AppAbility {
 			if (role.dataScope === "ALL") {
 				can(action, subject);
 			} else if (role.dataScope === "ASSIGNED_LINES") {
-				// @ts-expect-error - CASL condition types are complex
 				can(action, subject, { lineId: { $in: user.lineIds } });
 			} else if (role.dataScope === "ASSIGNED_STATIONS") {
-				// @ts-expect-error - CASL condition types are complex
 				can(action, subject, { stationId: { $in: user.stationIds } });
 			}
 		}
