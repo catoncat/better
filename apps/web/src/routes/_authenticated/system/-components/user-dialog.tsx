@@ -46,14 +46,7 @@ interface UserDialogProps {
 	isSubmitting?: boolean;
 }
 
-export function UserDialog({
-	open,
-	onOpenChange,
-	user,
-	roles,
-	onSubmit,
-	isSubmitting,
-}: UserDialogProps) {
+export function UserDialog({ open, onOpenChange, user, roles, onSubmit }: UserDialogProps) {
 	const { data: lines } = useLines();
 	const { data: stations } = useStations();
 	const roleOptions = useMemo(
@@ -310,14 +303,13 @@ export function UserDialog({
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
 							取消
 						</Button>
-						<form.Subscribe
-							selector={(state) => [state.canSubmit, state.isSubmitting]}
-							children={([canSubmit, isSubmitting]) => (
+						<form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+							{([canSubmit, isSubmitting]) => (
 								<Button type="submit" disabled={!canSubmit}>
 									{isSubmitting ? "保存中..." : "保存更改"}
 								</Button>
 							)}
-						/>
+						</form.Subscribe>
 					</DialogFooter>
 				</form>
 			</DialogContent>

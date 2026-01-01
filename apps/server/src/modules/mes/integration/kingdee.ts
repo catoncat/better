@@ -142,12 +142,14 @@ type ExecuteBillQueryInput = {
 const extractResponseStatusError = (value: unknown) => {
 	if (!value || typeof value !== "object") return null;
 	if (!("ResponseStatus" in value)) return null;
-	const status = (value as { ResponseStatus?: { IsSuccess?: boolean; Errors?: { Message?: string }[] } })
-		.ResponseStatus;
+	const status = (
+		value as { ResponseStatus?: { IsSuccess?: boolean; Errors?: { Message?: string }[] } }
+	).ResponseStatus;
 	if (!status || status.IsSuccess !== false) return null;
 	const message =
-		status.Errors?.map((error) => error.Message).filter(Boolean).join("; ") ||
-		"Kingdee query rejected.";
+		status.Errors?.map((error) => error.Message)
+			.filter(Boolean)
+			.join("; ") || "Kingdee query rejected.";
 	return message;
 };
 
@@ -226,6 +228,86 @@ export const kingdeeExecuteBillQuery = async (
 			success: false,
 			code: "KINGDEE_QUERY_ERROR",
 			message: error instanceof Error ? error.message : "Kingdee query error.",
+			status: 502,
+		};
+	}
+};
+
+type ViewInput = {
+	CreateOrgId?: number;
+	Number?: string;
+	Id?: string;
+};
+
+export const kingdeeView = async (
+	config: KingdeeConfig,
+	cookie: string,
+	formId: string,
+	input: ViewInput,
+): Promise<ServiceResult<Record<string, unknown>>> => {
+	const url = `${config.baseUrl}/Kingdee.BOS.WebApi.ServicesStub.DynamicFormService.View.common.kdsvc`;
+	const payload = {
+		format: 1,
+		useragent: "ApiClient",
+		rid: "1",
+		parameters: JSON.stringify([
+			formId,
+			JSON.stringify({
+				CreateOrgId: input.CreateOrgId ?? 0,
+				Number: input.Number ?? "",
+				Id: input.Id ?? "",
+			}),
+		]),
+		timestamp: "0",
+		v: "1.0",
+	};
+
+	try {
+		const response = await fetch(url, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Cookie: cookie,
+			},
+			body: JSON.stringify(payload),
+		});
+		if (!response.ok) {
+			return {
+				success: false,
+				code: "KINGDEE_VIEW_FAILED",
+				message: `Kingdee view failed: ${response.status}`,
+				status: 502,
+			};
+		}
+		const result = (await response.json()) as unknown;
+		if (result && typeof result === "object" && "Result" in result) {
+			const resultValue = (result as { Result?: unknown }).Result;
+			const errorMessage = extractResponseStatusError(resultValue ?? result);
+			if (errorMessage) {
+				return {
+					success: false,
+					code: "KINGDEE_VIEW_REJECTED",
+					message: errorMessage,
+					status: 502,
+				};
+			}
+			if (resultValue && typeof resultValue === "object" && "Result" in resultValue) {
+				const model = (resultValue as { Result?: unknown }).Result;
+				return { success: true, data: model as Record<string, unknown> };
+			}
+			return { success: true, data: resultValue as Record<string, unknown> };
+		}
+		return {
+			success: false,
+			code: "KINGDEE_VIEW_INVALID",
+			message: "Kingdee view returned invalid response.",
+			status: 502,
+		};
+	} catch (error) {
+		return {
+			success: false,
+			code: "KINGDEE_VIEW_ERROR",
+			message: error instanceof Error ? error.message : "Kingdee view error.",
 			status: 502,
 		};
 	}

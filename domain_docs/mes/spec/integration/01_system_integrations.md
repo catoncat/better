@@ -95,19 +95,60 @@ Configuration (env vars, prefix `MES_ERP_KINGDEE_`):
 - `LCID`
 - `WORK_ORDER_ROUTING_FIELD` (optional, Kingdee field key for routing code on PRD_MO)
 
+Implementation entrypoint:
+- `apps/server/src/modules/mes/integration/erp-master-sync-service.ts` handles Kingdee routes + master data.
+- `apps/server/src/modules/mes/integration/erp-service.ts` re-exports the same functions/types.
+
 ### 2.5 ERP Master Data Pull (Kingdee)
 Work orders / materials / BOM / work centers are pulled directly from Kingdee using the same SSO session.
 Forms used (default):
 - Work orders: `PRD_MO`
 - Materials: `BD_Material`
 - BOM: `ENG_BOM`
-- Work centers: `BD_WorkCenter` (fallback to `PRD_WorkCenter`)
+- Work centers: `ENG_WorkCenter`
+ - Routing: `ENG_Route`
 
 Routing code on work orders:
-- If the routing field is unknown, MES will ingest work orders without `routingCode` and attempt to resolve by `productCode`.
-- When the routing field is confirmed, set `MES_ERP_KINGDEE_WORK_ORDER_ROUTING_FIELD` to include it in the pull.
+- Default routing field is `FRoutingId.FNumber` (Kingdee). Override via `MES_ERP_KINGDEE_WORK_ORDER_ROUTING_FIELD` if needed.
+- If the routing field is unavailable, MES will ingest work orders without `routingCode` and attempt to resolve by `productCode`.
 
 If the Kingdee config is missing, master-data pulls fall back to mock payloads for local development.
+
+#### Verified FieldKeys (current Kingdee environment)
+These FieldKeys are confirmed queryable via ExecuteBillQuery:
+
+- PRD_MO (work order)
+  - `FRoutingId.FNumber`, `FRoutingId.FName`
+  - `FWorkShopID.FNumber`, `FWorkShopID.FName`
+  - `FPlanStartDate`, `FPlanFinishDate`
+  - `FMaterialId.FNumber`, `FMaterialId.FName`, `FMaterialId.FSpecification`
+  - `FQty`, `FUnitId.FNumber`, `FUnitId.FName`
+  - `FStatus`, `FPickMtrlStatus`
+  - `FPriority`, `FSrcBillNo`
+  - `FRptFinishQty`, `FScrapQty`, `FDescription`
+  - Not available: `FProdLineId.*`, `FActualStartDate`, `FActualFinishDate`
+
+- BD_Material (material)
+  - `FSpecification`, `FBarCode`, `FDescription`
+  - `FDocumentStatus`, `FForbidStatus`, `FIsBatchManage`, `FIsKFPeriod`
+  - `FCategoryID.FNumber`, `FCategoryID.FName`
+  - `FBaseUnitId.*`, `FProduceUnitId.*`
+
+- ENG_BOM (BOM)
+  - `FNumber`, `FMATERIALID.*`, `FMATERIALIDCHILD.*`
+  - `FNumerator`, `FDENOMINATOR`, `FSCRAPRATE`, `FFIXSCRAPQTY`
+  - `FISKEYCOMPONENT`, `FISSUETYPE`, `FBACKFLUSHTYPE`
+  - `FDocumentStatus`, `FForbidStatus`
+
+- ENG_WorkCenter (work center)
+  - `FNumber`, `FName`, `FDescription`
+  - `FDeptID.FNumber`, `FDeptID.FName`
+  - `FDocumentStatus`, `FWorkCenterType`
+
+- ENG_Route (routing)
+  - Header: `FNumber`, `FName`, `FMATERIALID.*`, `FBomId.*`, `FDocumentStatus`, `FEFFECTDATE`, `FExpireDate`
+  - Steps: `FOperNumber`, `FProcessId.*`, `FWorkCenterId.*`, `FDepartmentId.*`,
+    `FOperDescription`, `FKeyOper`, `FIsFirstPieceInspect`, `FIsProcessRecordStation`, `FIsQualityInspectStation`
 
 ---
 
