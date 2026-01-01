@@ -2,9 +2,9 @@ import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router"
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { useQueryPresets } from "@/hooks/use-query-presets";
-import { useAuthorizeRun, useRunList } from "@/hooks/use-runs";
-import { runColumns } from "../-components/run-columns";
+import { type Run, useAuthorizeRun, useRunList } from "@/hooks/use-runs";
 import { RunCard } from "../-components/run-card";
+import { runColumns } from "../-components/run-columns";
 
 interface RunFilters {
 	search: string;
@@ -267,7 +267,9 @@ function RunsPage() {
 			}}
 			dataListViewProps={{
 				viewPreferencesKey,
-				renderCard: (item) => <RunCard run={item as any} onAuthorize={handleAuthorize} onRevoke={handleRevoke} />,
+				renderCard: (item: Run) => (
+					<RunCard run={item} onAuthorize={handleAuthorize} onRevoke={handleRevoke} />
+				),
 			}}
 		/>
 	);

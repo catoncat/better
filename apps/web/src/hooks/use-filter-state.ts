@@ -99,10 +99,7 @@ export function useFilterState<T extends Record<string, unknown>>(
 	const searchParams = useSearch({ strict: false }) || {};
 
 	// Memoize searchParams to avoid object reference issues
-	const memoizedSearchParams = useMemo(
-		() => JSON.stringify(searchParams),
-		[searchParams],
-	);
+	const memoizedSearchParams = useMemo(() => JSON.stringify(searchParams), [searchParams]);
 
 	// Parse current filters from URL or use defaults
 	const filters = useMemo(() => {

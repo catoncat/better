@@ -8,6 +8,31 @@ import { useAbility } from "@/hooks/use-ability";
 import type { WorkOrder } from "@/hooks/use-work-orders";
 import { WORK_ORDER_STATUS_MAP } from "@/lib/constants";
 
+type WorkOrderErpMeta = {
+	workshopCode?: string;
+	workshopName?: string;
+	routingName?: string;
+	productName?: string;
+	productSpec?: string;
+};
+
+const getErpMeta = (wo: WorkOrder): WorkOrderErpMeta => {
+	const meta = (wo as { meta?: unknown }).meta;
+	if (!meta || typeof meta !== "object") return {};
+	const erp = (meta as { erp?: unknown }).erp;
+	if (!erp || typeof erp !== "object") return {};
+	return erp as WorkOrderErpMeta;
+};
+
+const getProductDetail = (meta: WorkOrderErpMeta) => {
+	const parts = [meta.productName, meta.productSpec].filter(Boolean);
+	return parts.length > 0 ? parts.join(" · ") : "";
+};
+
+const getWorkshopLabel = (meta: WorkOrderErpMeta) => meta.workshopName || meta.workshopCode || "-";
+
+const getRoutingLabel = (meta: WorkOrderErpMeta) => meta.routingName || "-";
+
 export type WorkOrderTableMeta = {
 	onRelease?: (woNo: string) => void;
 	onCreateRun?: (wo: WorkOrder) => void;
@@ -23,6 +48,30 @@ export const workOrderColumns: ColumnDef<WorkOrder>[] = [
 	{
 		accessorKey: "productCode",
 		header: "产品编码",
+		cell: ({ row }) => {
+			const code = row.getValue("productCode") as string;
+			const detail = getProductDetail(getErpMeta(row.original));
+			return (
+				<div className="flex flex-col">
+					<span>{code}</span>
+					{detail ? <span className="text-xs text-muted-foreground">{detail}</span> : null}
+				</div>
+			);
+		},
+	},
+	{
+		id: "workshop",
+		header: "车间",
+		accessorFn: (row) => getWorkshopLabel(getErpMeta(row)),
+		cell: ({ row }) => getWorkshopLabel(getErpMeta(row.original)),
+		enableSorting: false,
+	},
+	{
+		id: "routingName",
+		header: "工艺路线",
+		accessorFn: (row) => getRoutingLabel(getErpMeta(row)),
+		cell: ({ row }) => getRoutingLabel(getErpMeta(row.original)),
+		enableSorting: false,
 	},
 	{
 		id: "routing",

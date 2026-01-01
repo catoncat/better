@@ -13,10 +13,10 @@ import {
 	Sun,
 	User,
 } from "lucide-react";
-import { useTheme } from "@/components/theme-provider";
 import type * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useTheme } from "@/components/theme-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
