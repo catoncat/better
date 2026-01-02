@@ -110,7 +110,11 @@ export function DataListLayout<TData, TValue>({
 	const sortParam = sortingConfig?.sortParam ?? "sort";
 	const syncSortingWithUrl = sortingConfig?.syncWithUrl ?? true;
 
-	if (!viewPreferencesKey && (filterToolbarProps || dataListViewProps) && typeof window !== "undefined") {
+	if (
+		!viewPreferencesKey &&
+		(filterToolbarProps || dataListViewProps) &&
+		typeof window !== "undefined"
+	) {
 		console.warn(
 			"DataListLayout: viewPreferencesKey is required to avoid cross-page preference leakage.",
 		);
