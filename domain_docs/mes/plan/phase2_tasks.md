@@ -18,8 +18,11 @@
 - **UI**：Run 详情页已有准备检查卡片、执行/豁免操作；异常看板页面已完成；配置页未实现。
 - **权限**：`readiness:view/check/override/config` 已加入权限字典。
 
-### 1.2 Phase 2 其它模块（未开始/待规划）
-- FAI、缺陷处置、OQC、Closeout 暂未落地。
+### 1.2 Phase 2 其它模块进度
+- ✅ FAI 首件检验：已完成（2025-01-02）
+- ✅ 缺陷处置（Defect & Disposition）：已完成（2025-01-02）
+- ⬜ OQC 抽检：未开始
+- ⬜ Closeout 收尾：未开始
 
 ---
 
