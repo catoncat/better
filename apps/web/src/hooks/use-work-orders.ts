@@ -14,6 +14,9 @@ type WorkOrderReceiveInput = Parameters<(typeof client.api.integration)["work-or
 type WorkOrderReleaseInput = Parameters<
 	ReturnType<(typeof client.api)["work-orders"]>["release"]["post"]
 >[0];
+type WorkOrderCancelInput = Parameters<
+	ReturnType<(typeof client.api)["work-orders"]>["cancel"]["post"]
+>[0];
 
 interface UseWorkOrderListParams {
 	page?: number;
@@ -135,6 +138,26 @@ export function useUpdatePickStatus() {
 		},
 		onSuccess: () => {
 			toast.success("领料状态已更新");
+			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
+		},
+	});
+}
+
+export function useCancelWorkOrder() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({ woNo, ...body }: WorkOrderCancelInput & { woNo: string }) => {
+			const { data, error } = await client.api["work-orders"]({ woNo }).cancel.post(body);
+
+			if (error) {
+				throw new Error(error.value ? JSON.stringify(error.value) : "取消工单失败");
+			}
+
+			return data;
+		},
+		onSuccess: () => {
+			toast.success("工单已取消");
 			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
 		},
 	});

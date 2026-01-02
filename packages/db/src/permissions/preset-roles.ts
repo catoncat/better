@@ -52,6 +52,7 @@ export const PRESET_ROLES: PresetRole[] = [
 		name: "工艺工程师",
 		description: "路由配置、执行语义设置、版本编译",
 		permissions: [
+			Permission.SYSTEM_INTEGRATION,
 			Permission.ROUTE_READ,
 			Permission.ROUTE_CONFIGURE,
 			Permission.ROUTE_COMPILE,
