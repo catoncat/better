@@ -246,12 +246,23 @@ export function DataListLayout<TData, TValue>({
 
 	// Build table internally for both modes unless a custom table is explicitly provided.
 	const manualSorting = mode === "server" && !!onSortingChange;
+	const useClientPagination = mode !== "server";
+	const resolvedPageCount = useClientPagination
+		? Math.max(1, Math.ceil((data?.length ?? 0) / paginationState.pageSize))
+		: Math.max(1, pageCount ?? 1);
+
+	if (mode === "server" && !pageCount && typeof window !== "undefined") {
+		console.warn(
+			"DataListLayout: pageCount is required in server mode; falling back to 1 may break pagination.",
+		);
+	}
+
 	const internalTable = useReactTable<TData>({
 		data: data ?? [],
 		columns,
 		getCoreRowModel: getCoreRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
-		getSortedRowModel: getSortedRowModel(),
+		getPaginationRowModel: useClientPagination ? getPaginationRowModel() : undefined,
+		getSortedRowModel: manualSorting ? undefined : getSortedRowModel(),
 		state: { pagination: paginationState, sorting: sortingState },
 		onPaginationChange: (updater) => {
 			setPaginationState((prev) => {
@@ -280,13 +291,10 @@ export function DataListLayout<TData, TValue>({
 				return next;
 			});
 		},
-		manualPagination: mode === "server",
+		manualPagination: !useClientPagination,
 		manualSorting,
-		pageCount:
-			mode === "server"
-				? (pageCount ?? Math.max(1, Math.ceil((data?.length ?? 0) / paginationState.pageSize)))
-				: Math.max(1, Math.ceil((data?.length ?? 0) / paginationState.pageSize)),
-		autoResetPageIndex: mode !== "server",
+		pageCount: resolvedPageCount,
+		autoResetPageIndex: useClientPagination,
 		meta: tableMeta,
 	});
 
