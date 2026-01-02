@@ -21,6 +21,7 @@ interface UseRunListParams {
 	search?: string;
 	sort?: string;
 	woNo?: string;
+	lineCode?: string;
 }
 
 export function useRunList(params: UseRunListParams) {
@@ -30,9 +31,10 @@ export function useRunList(params: UseRunListParams) {
 	const search = params.search ?? "";
 	const sort = params.sort ?? "";
 	const woNo = params.woNo ?? "";
+	const lineCode = params.lineCode ?? "";
 
 	return useQuery<RunList>({
-		queryKey: ["mes", "runs", page, pageSize, search, status, sort, woNo],
+		queryKey: ["mes", "runs", page, pageSize, search, status, sort, woNo, lineCode],
 		queryFn: async () => {
 			const { data, error } = await client.api.runs.get({
 				query: {
@@ -42,6 +44,7 @@ export function useRunList(params: UseRunListParams) {
 					status: status || undefined,
 					sort: sort || undefined,
 					woNo: woNo || undefined,
+					lineCode: lineCode || undefined,
 				},
 			});
 

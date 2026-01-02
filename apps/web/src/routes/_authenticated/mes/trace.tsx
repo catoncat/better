@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { Search } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,19 +25,33 @@ import {
 import { useUnitTrace } from "@/hooks/use-trace";
 
 export const Route = createFileRoute("/_authenticated/mes/trace")({
+	validateSearch: (search: Record<string, unknown>) => ({
+		sn: (search.sn as string) || undefined,
+	}),
 	component: TracePage,
 });
 
 function TracePage() {
+	const searchParams = useSearch({ from: "/_authenticated/mes/trace" });
+	const navigate = useNavigate({ from: "/mes/trace" });
 	const [sn, setSn] = useState("");
 	const [searchSn, setSearchSn] = useState("");
 	const [mode, setMode] = useState<"run" | "latest">("run");
 
 	const { data, isLoading, error } = useUnitTrace(searchSn, mode);
 
+	useEffect(() => {
+		if (searchParams.sn && searchParams.sn !== searchSn) {
+			setSn(searchParams.sn);
+			setSearchSn(searchParams.sn);
+		}
+	}, [searchParams.sn, searchSn]);
+
 	const handleSearch = () => {
 		if (sn.trim()) {
-			setSearchSn(sn.trim());
+			const trimmedSn = sn.trim();
+			setSearchSn(trimmedSn);
+			navigate({ search: { sn: trimmedSn } });
 		}
 	};
 
