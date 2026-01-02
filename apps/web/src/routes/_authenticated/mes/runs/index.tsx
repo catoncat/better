@@ -144,7 +144,10 @@ function RunsPage() {
 		deletePreset,
 		renamePreset,
 		matchPreset,
-	} = useQueryPresets<RunFilters>({ storageKey: "runs" });
+	} = useQueryPresets<RunFilters>({
+		storageKey: "runs",
+		sortableArrayKeys: ["status"],
+	});
 
 	// System presets
 	const systemPresets = useMemo((): SystemPreset<RunFilters>[] => {

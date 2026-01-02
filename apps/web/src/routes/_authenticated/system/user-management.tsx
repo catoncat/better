@@ -140,7 +140,10 @@ function SystemUserManagementPage() {
 		deletePreset,
 		renamePreset,
 		matchPreset,
-	} = useQueryPresets<UserFilters>({ storageKey: "user-management" });
+	} = useQueryPresets<UserFilters>({
+		storageKey: "user-management",
+		sortableArrayKeys: ["roleId"],
+	});
 
 	// System presets (removed "all" per global rule)
 	const systemPresets = useMemo((): SystemPreset<UserFilters>[] => {

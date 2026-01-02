@@ -71,7 +71,7 @@ Use `DataListView` with `viewPreferencesKey` - toggle lives in `FilterToolbar`.
 ### Preset Constraints
 - **NO "All/全部" preset** - default state IS all items.
 - System presets = meaningful filters only (e.g., "待审核", "已过期").
-- Preset matching normalizes filters (drop empty values; sort multi-select arrays) to avoid order-sensitive duplicates.
+- Preset matching normalizes filters (drop empty values; sort multi-select arrays via `sortableArrayKeys`).
 
 ### Layout
 - **Compact mode**: Single row, fields inline, collapse to dropdown on overflow.

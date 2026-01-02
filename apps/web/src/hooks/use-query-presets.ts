@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 export interface QueryPreset<T> {
@@ -16,6 +16,7 @@ interface StoredPresets<T> {
 interface UseQueryPresetsOptions {
 	storageKey: string;
 	sanitizeFilters?: (filters: Partial<unknown>) => Partial<unknown>;
+	sortableArrayKeys?: string[];
 }
 
 interface QueryPresetsState<T> {
@@ -88,7 +89,10 @@ function deepEqual(a: unknown, b: unknown): boolean {
 	return aKeys.every((key) => deepEqual(aObj[key], bObj[key]));
 }
 
-function normalizeFilters<T>(filters: Partial<T>): Partial<T> {
+function normalizeFilters<T>(
+	filters: Partial<T>,
+	sortableArrayKeys?: Set<string>,
+): Partial<T> {
 	const result: Partial<T> = {};
 	for (const [key, value] of Object.entries(filters as Record<string, unknown>)) {
 		// Skip empty values
@@ -101,7 +105,9 @@ function normalizeFilters<T>(filters: Partial<T>): Partial<T> {
 			const isPrimitiveArray = filtered.every((item) =>
 				["string", "number", "boolean"].includes(typeof item),
 			);
-			const normalizedArray = isPrimitiveArray ? [...filtered].sort() : filtered;
+			const shouldSort = Boolean(sortableArrayKeys?.has(key));
+			const normalizedArray =
+				isPrimitiveArray && shouldSort ? [...filtered].sort() : filtered;
 			(result as Record<string, unknown>)[key] = normalizedArray;
 			continue;
 		}
@@ -116,7 +122,11 @@ export function useQueryPresets<T>(
 		sanitizeFilters?: (filters: Partial<T>) => Partial<T>;
 	},
 ): QueryPresetsState<T> {
-	const { storageKey, sanitizeFilters } = options;
+	const { storageKey, sanitizeFilters, sortableArrayKeys } = options;
+	const sortableArrayKeySet = useMemo(
+		() => new Set(sortableArrayKeys ?? []),
+		[sortableArrayKeys],
+	);
 
 	const [presets, setPresets] = useState<QueryPreset<T>[]>([]);
 	const [activePresetId, setActivePresetId] = useState<string | null>(null);
@@ -146,12 +156,15 @@ export function useQueryPresets<T>(
 	// Find preset by filters
 	const findPresetByFilters = useCallback(
 		(filters: Partial<T>): QueryPreset<T> | undefined => {
-			const normalizedFilters = normalizeFilters(sanitize(filters));
+			const normalizedFilters = normalizeFilters(sanitize(filters), sortableArrayKeySet);
 			return presets.find((p) =>
-				deepEqual(normalizeFilters(sanitize(p.filters)), normalizedFilters),
+				deepEqual(
+					normalizeFilters(sanitize(p.filters), sortableArrayKeySet),
+					normalizedFilters,
+				),
 			);
 		},
-		[presets, sanitize],
+		[presets, sanitize, sortableArrayKeySet],
 	);
 
 	const savePreset = useCallback(
@@ -162,11 +175,14 @@ export function useQueryPresets<T>(
 				return;
 			}
 
-			const normalizedFilters = normalizeFilters(sanitize(filters));
+			const normalizedFilters = normalizeFilters(sanitize(filters), sortableArrayKeySet);
 
 			// Check if the same filters already exist
 			const existingWithSameFilters = presets.find((p) =>
-				deepEqual(normalizeFilters(sanitize(p.filters)), normalizedFilters),
+				deepEqual(
+					normalizeFilters(sanitize(p.filters), sortableArrayKeySet),
+					normalizedFilters,
+				),
 			);
 
 			if (existingWithSameFilters) {
@@ -210,7 +226,7 @@ export function useQueryPresets<T>(
 			setPresets((prev) => [...prev, newPreset]);
 			toast.success("查询已保存");
 		},
-		[presets, sanitize],
+		[presets, sanitize, sortableArrayKeySet],
 	);
 
 	const applyPreset = useCallback((presetId: string) => {
@@ -259,7 +275,7 @@ export function useQueryPresets<T>(
 
 	const updatePresetFilters = useCallback(
 		(presetId: string, filters: Partial<T>) => {
-			const normalizedFilters = normalizeFilters(sanitize(filters));
+			const normalizedFilters = normalizeFilters(sanitize(filters), sortableArrayKeySet);
 
 			setPresets((prev) => {
 				const preset = prev.find((p) => p.id === presetId);
@@ -277,7 +293,7 @@ export function useQueryPresets<T>(
 				toast.success(`已更新查询「${preset.name}」`);
 			}
 		},
-		[presets, sanitize],
+		[presets, sanitize, sortableArrayKeySet],
 	);
 
 	const matchPreset = useCallback(
@@ -285,10 +301,10 @@ export function useQueryPresets<T>(
 			filters: Partial<T>,
 			allPresets: Array<{ id: string; filters: Partial<T> }>,
 		): string | null => {
-			const normalizedFilters = normalizeFilters(sanitize(filters));
+			const normalizedFilters = normalizeFilters(sanitize(filters), sortableArrayKeySet);
 
 			for (const preset of allPresets) {
-				const normalizedPreset = normalizeFilters(sanitize(preset.filters));
+				const normalizedPreset = normalizeFilters(sanitize(preset.filters), sortableArrayKeySet);
 				if (deepEqual(normalizedFilters, normalizedPreset)) {
 					return preset.id;
 				}
@@ -296,7 +312,7 @@ export function useQueryPresets<T>(
 
 			return null;
 		},
-		[sanitize],
+		[sanitize, sortableArrayKeySet],
 	);
 
 	return {
