@@ -2,6 +2,7 @@ import type { PrismaClient } from "@better-app/db";
 import { RunStatus, TrackResult, TrackSource, UnitStatus } from "@better-app/db";
 import { type Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
+import { createDefectFromTrackOut } from "../defect/service";
 import type { trackInSchema, trackOutSchema } from "./schema";
 
 type TrackInInput = Static<typeof trackInSchema>;
@@ -523,6 +524,14 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 					data: { status: UnitStatus.OUT_FAILED },
 				});
 			});
+
+			// Auto-create defect record when TrackOut result is FAIL
+			if (result === TrackResult.FAIL) {
+				const defectCode = data.defectCode ?? "STATION_FAIL";
+				createDefectFromTrackOut(db, track.id, defectCode, data.defectLocation).catch((err) => {
+					console.error(`[TrackOut FAIL] Auto defect creation failed for track ${track.id}:`, err);
+				});
+			}
 
 			return { success: true, data: { status: updatedUnit.status } };
 		} catch (error) {

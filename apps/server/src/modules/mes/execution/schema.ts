@@ -11,6 +11,8 @@ export const trackOutSchema = t.Object({
 	runNo: t.String(),
 	result: t.String(), // PASS or FAIL
 	operatorId: t.Optional(t.String()),
+	defectCode: t.Optional(t.String({ description: "Defect code when result is FAIL" })),
+	defectLocation: t.Optional(t.String({ description: "Defect location when result is FAIL" })),
 	data: t.Optional(
 		t.Array(
 			t.Object({
