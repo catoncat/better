@@ -1,0 +1,115 @@
+import { Link } from "@tanstack/react-router";
+import { format } from "date-fns";
+import type { DataListFieldMeta } from "@/components/data-list/field-meta";
+import { Badge } from "@/components/ui/badge";
+import type { Run } from "@/hooks/use-runs";
+import { RUN_STATUS_MAP } from "@/lib/constants";
+
+type RunWithReadiness = Run & { readinessStatus?: string | null };
+
+const getRunStatusBadge = (status: string) => {
+	const label = RUN_STATUS_MAP[status] || status;
+	let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+
+	if (status === "AUTHORIZED") variant = "secondary";
+	if (status === "RUNNING") variant = "default";
+	if (status === "CANCELLED") variant = "destructive";
+
+	return <Badge variant={variant}>{label}</Badge>;
+};
+
+const getReadinessBadge = (readinessStatus?: string | null) => {
+	if (!readinessStatus) return <span className="text-muted-foreground">-</span>;
+
+	const map: Record<
+		string,
+		{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+	> = {
+		PENDING: { label: "检查中", variant: "outline" },
+		PASSED: { label: "通过", variant: "secondary" },
+		FAILED: { label: "失败", variant: "destructive" },
+	};
+
+	const config = map[readinessStatus] ?? {
+		label: readinessStatus,
+		variant: "outline" as const,
+	};
+	return <Badge variant={config.variant}>{config.label}</Badge>;
+};
+
+export const runFieldMeta: DataListFieldMeta<Run>[] = [
+	{
+		key: "runNo",
+		label: "批次号",
+		sortable: true,
+		cardPrimary: true,
+		tableCell: (run) => (
+			<Link
+				to="/mes/runs/$runNo"
+				params={{ runNo: run.runNo }}
+				className="font-medium text-primary hover:underline"
+			>
+				{run.runNo}
+			</Link>
+		),
+		cardValue: (run) => (
+			<Link
+				to="/mes/runs/$runNo"
+				params={{ runNo: run.runNo }}
+				className="text-sm font-medium text-primary hover:underline"
+			>
+				{run.runNo}
+			</Link>
+		),
+	},
+	{
+		key: "workOrder.woNo",
+		label: "工单号",
+		sortable: true,
+		accessorFn: (run) => run.workOrder?.woNo,
+		cardSecondary: true,
+		cardValue: (run) => run.workOrder?.woNo || "-",
+		tableCell: (run) => run.workOrder?.woNo || "-",
+	},
+	{
+		key: "lineCode",
+		label: "线体",
+		sortable: true,
+		accessorFn: (run) => run.line?.code,
+		cardDetail: true,
+		cardValue: (run) => run.line?.code || "-",
+		tableCell: (run) => run.line?.code || "-",
+	},
+	{
+		key: "status",
+		label: "状态",
+		sortable: true,
+		cardBadge: true,
+		tableCell: (run) => getRunStatusBadge(run.status),
+		cardValue: (run) => getRunStatusBadge(run.status),
+	},
+	{
+		key: "readinessStatus",
+		label: "准备检查",
+		accessorFn: (run) => (run as RunWithReadiness).readinessStatus,
+		cardDetail: true,
+		tableCell: (run) => getReadinessBadge((run as RunWithReadiness).readinessStatus),
+		cardValue: (run) => getReadinessBadge((run as RunWithReadiness).readinessStatus),
+	},
+	{
+		key: "shiftCode",
+		label: "班次",
+		sortable: true,
+		cardDetail: true,
+		cardValue: (run) => run.shiftCode || "-",
+		tableCell: (run) => run.shiftCode || "-",
+	},
+	{
+		key: "createdAt",
+		label: "创建时间",
+		sortable: true,
+		cardDetail: true,
+		cardValue: (run) => format(new Date(run.createdAt), "yyyy-MM-dd HH:mm"),
+		tableCell: (run) => format(new Date(run.createdAt), "yyyy-MM-dd HH:mm"),
+	},
+];

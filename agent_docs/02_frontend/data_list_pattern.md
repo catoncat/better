@@ -16,7 +16,7 @@ Component locations:
 - `apps/web/src/hooks/use-query-presets.ts`
 
 ## Canonical Reference
-- `apps/web/src/routes/_authenticated/instruments/index.tsx`
+- `apps/web/src/routes/_authenticated/mes/runs/index.tsx`
 
 ## Rules
 - Use `DataListLayout` with `mode="server"`.

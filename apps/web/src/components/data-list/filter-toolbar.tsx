@@ -331,7 +331,7 @@ export function FilterToolbar({
 
 					{isFiltered && (
 						<Button variant="ghost" onClick={onReset} className="h-8 px-2 lg:px-3">
-							重置
+							清空筛选
 							<X className="ml-2 h-4 w-4" />
 						</Button>
 					)}
@@ -369,7 +369,7 @@ export function FilterToolbar({
 								setSheetOpen(false);
 							}}
 						>
-							重置
+							清空筛选
 						</Button>
 						<Button className="flex-1" onClick={() => setSheetOpen(false)}>
 							确定
