@@ -1,6 +1,7 @@
 import type { ServiceResult } from "../../../../types/service-result";
 import type { KingdeeConfig } from "../kingdee";
 import { getKingdeeConfig, kingdeeExecuteBillQuery, kingdeeLogin } from "../kingdee";
+import { getMockErpRoutes } from "../mock-data";
 import type { PullResult, SyncCursor } from "../sync-pipeline";
 import { buildSinceFilter, getCell, toBool, toIso } from "../utils";
 import { getErpMasterConfig } from "./config";
@@ -78,6 +79,17 @@ const parseRouteRows = (rows: unknown[]): { routes: ErpRoute[]; latestModifiedAt
 		rowsByHeadId.set(headId, existing);
 	}
 
+	const isNewerModifiedAt = (candidate: string, current: string) => {
+		if (!current) return Boolean(candidate);
+		if (!candidate) return false;
+		const candidateTime = Date.parse(candidate);
+		const currentTime = Date.parse(current);
+		if (!Number.isNaN(candidateTime) && !Number.isNaN(currentTime)) {
+			return candidateTime > currentTime;
+		}
+		return candidate > current;
+	};
+
 	// Second pass - process each group
 	const routeMap = new Map<string, ErpRoute>();
 	let latestModifiedAt = "";
@@ -110,20 +122,9 @@ const parseRouteRows = (rows: unknown[]): { routes: ErpRoute[]; latestModifiedAt
 			latestModifiedAt = header.modifiedAt;
 		}
 
-		// Get or create route
-		let route = routeMap.get(routeNo);
-		if (!route) {
-			route = { header, steps: [], updatedAt: header.modifiedAt };
-			routeMap.set(routeNo, route);
-		} else {
-			// Update header if this one is newer
-			if (header.modifiedAt > route.header.modifiedAt) {
-				route.header = header;
-				route.updatedAt = header.modifiedAt;
-			}
-		}
-
 		// Extract steps from all rows in this group
+		const steps: ErpRouteStep[] = [];
+		const stepNos = new Set<number>();
 		for (const rawRow of groupRows) {
 			if (!Array.isArray(rawRow)) continue;
 
@@ -146,10 +147,16 @@ const parseRouteRows = (rows: unknown[]): { routes: ErpRoute[]; latestModifiedAt
 			};
 
 			// Avoid duplicate steps
-			const existingStep = route.steps.find((s) => s.stepNo === step.stepNo);
-			if (!existingStep) {
-				route.steps.push(step);
+			if (!stepNos.has(step.stepNo)) {
+				stepNos.add(step.stepNo);
+				steps.push(step);
 			}
+		}
+
+		const routeCandidate: ErpRoute = { header, steps, updatedAt: header.modifiedAt };
+		const existing = routeMap.get(routeNo);
+		if (!existing || isNewerModifiedAt(header.modifiedAt, existing.header.modifiedAt)) {
+			routeMap.set(routeNo, routeCandidate);
 		}
 	}
 
@@ -174,11 +181,21 @@ export const pullRoutes = async (
 	const sessionResult = await getKingdeeSession();
 	if (!sessionResult.success) {
 		if (sessionResult.code === "KINGDEE_CONFIG_MISSING") {
+			const mockRoutes = await getMockErpRoutes();
+			const items = mockRoutes.map((route) => ({
+				...route,
+				updatedAt: route.header.modifiedAt,
+			}));
+			const latestModifiedAt = items.reduce((latest, route) => {
+				const updatedAt = route.updatedAt ?? route.header.modifiedAt;
+				if (updatedAt && (!latest || updatedAt > latest)) return updatedAt;
+				return latest;
+			}, "");
 			return {
 				success: true,
 				data: {
-					items: [],
-					cursor: { hasMore: false },
+					items,
+					cursor: { hasMore: false, nextSyncAt: latestModifiedAt || since || undefined },
 				},
 			};
 		}
@@ -227,11 +244,21 @@ export const pullRoutesPaginated = async (
 	const sessionResult = await getKingdeeSession();
 	if (!sessionResult.success) {
 		if (sessionResult.code === "KINGDEE_CONFIG_MISSING") {
+			const mockRoutes = await getMockErpRoutes();
+			const items = mockRoutes.map((route) => ({
+				...route,
+				updatedAt: route.header.modifiedAt,
+			}));
+			const latestModifiedAt = items.reduce((latest, route) => {
+				const updatedAt = route.updatedAt ?? route.header.modifiedAt;
+				if (updatedAt && (!latest || updatedAt > latest)) return updatedAt;
+				return latest;
+			}, "");
 			return {
 				success: true,
 				data: {
-					items: [],
-					cursor: { hasMore: false },
+					items,
+					cursor: { hasMore: false, nextSyncAt: latestModifiedAt || since || undefined },
 				},
 			};
 		}

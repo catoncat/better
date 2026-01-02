@@ -17,7 +17,7 @@ ERP routing export often contains:
 - Header fields: route number/key, material/product, org, effective dates, batch ranges
 - Line fields: operNumber (stepNo), processKey/name, workCenter/department, control code, activity/resource/work time
 
-Note: ERP exports sometimes use “header-only-on-first-row”; ingestion must forward-fill header context.
+Note: ERP exports can interleave rows; ingestion groups by `FID` (`headId`) and does not rely on row order.
 
 ### 1.1 Kingdee ENG_Route (Reference)
 Source:
@@ -50,7 +50,9 @@ Verified in current Kingdee environment:
 - View API may show `RouteOperSeq` structures; treat them as structural hints only.
 
 Parsing rule:
-- When `FNumber` is empty, reuse the last seen header fields for that row.
+- Group rows by `FID` (`headId`) before parsing; do not rely on row ordering.
+- Header fields are repeated per row; do not forward-fill from a "last seen" header.
+- If multiple `FID` groups exist for the same `FNumber`, keep the group with the latest `FModifyDate`.
 
 ---
 
@@ -79,11 +81,8 @@ Create/update:
 ## 3. Idempotency and Diff
 
 ### 3.1 Idempotency key
-Suggested dedupe key:
-- `sourceKey` (ERP route number)
-- `FModifyDate` (if present)
-- ERP headId (if present)
-- fallback to payload hash when no reliable modify timestamp exists
+Current dedupe key:
+- `dedupeKey = ERP:ROUTING:{payloadHash}` computed from the normalized envelope
 
 ### 3.2 Diff rules (when to create a new executable version)
 A new compile/version should be triggered when canonical step content changes, e.g.:

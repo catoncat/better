@@ -8,7 +8,7 @@ import { applyWorkCenters } from "./apply-work-centers";
 import { applyWorkOrders } from "./apply-work-orders";
 import { pullBoms } from "./pull-boms";
 import { pullMaterials } from "./pull-materials";
-import { pullRoutesPaginated } from "./pull-routes";
+import { pullRoutes, pullRoutesPaginated } from "./pull-routes";
 import { pullWorkCenters } from "./pull-work-centers";
 import { pullWorkOrders } from "./pull-work-orders";
 import type { ErpBomItem, ErpMaterial, ErpRoute, ErpWorkCenter, ErpWorkOrder } from "./types";
@@ -97,7 +97,16 @@ export const syncErpWorkCenters = async (
 // Routes Sync
 // ==========================================
 
-const routesSyncPipeline = createSyncPipeline<unknown, ErpRoute>({
+const routesPageSyncPipeline = createSyncPipeline<unknown, ErpRoute>({
+	sourceSystem: "ERP",
+	entityType: "ROUTING",
+	pull: pullRoutes,
+	normalize: (raw) => raw as ErpRoute[],
+	apply: applyRoutes,
+	dedupeStrategy: "skip", // Complex data, skip duplicates
+});
+
+const routesFullSyncPipeline = createSyncPipeline<unknown, ErpRoute>({
 	sourceSystem: "ERP",
 	entityType: "ROUTING",
 	pull: pullRoutesPaginated,
@@ -110,7 +119,10 @@ export const syncErpRoutes = async (
 	db: PrismaClient,
 	options: { since?: string; startRow?: number; limit?: number },
 ): Promise<ServiceResult<SyncResult<ErpRoute>>> => {
-	return routesSyncPipeline(db, options);
+	if (options.startRow !== undefined) {
+		return routesPageSyncPipeline(db, options);
+	}
+	return routesFullSyncPipeline(db, options);
 };
 
 // Re-export pull functions for direct use if needed

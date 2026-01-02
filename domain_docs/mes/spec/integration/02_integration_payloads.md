@@ -104,7 +104,7 @@ Mapping:
   "productCode": "100-241-184R",
   "productName": "Cable Driver Board",
   "productSpec": "ASSY Cable Driver Board",
-  "plannedQty": 100,
+  "plannedQty": 100.5,
   "planStartDate": "2025-04-01T00:00:00Z",
   "planFinishDate": "2025-04-10T00:00:00Z",
   "unitCode": "EA",
@@ -127,7 +127,7 @@ Mapping:
 Mapping:
 - `WorkOrder.woNo = woNo`
 - `WorkOrder.productCode = productCode`
-- `WorkOrder.plannedQty = plannedQty`
+- `WorkOrder.plannedQty = plannedQty` (Float; decimals allowed)
 - `WorkOrder.routingId` resolved by `routingCode` when provided
 - `WorkOrder.erpStatus = status` (ERP FStatus)
 - `WorkOrder.erpPickStatus = pickStatus` (ERP FPickMtrlStatus)
@@ -150,6 +150,7 @@ Notes:
 - `workshopCode`/`workshopName` are optional; current Kingdee env provides `FWorkShopID.*`.
 - `dueDate` may be omitted if the source does not provide a finish date.
 - `lineCode` is not available from PRD_MO in the current Kingdee environment; line assignment is handled in MES at release/run creation (optional mapping via workshop/department).
+- `plannedQty` may be fractional; MES preserves decimal precision.
 
 ---
 
@@ -229,14 +230,15 @@ Mapping:
 Mapping:
 - `BomItem.parentCode = parentCode`
 - `BomItem.childCode = childCode`
-- `BomItem.qty = qty`
+- `BomItem.qty = qty / denominator` (when denominator > 1)
 - `BomItem.unit = unit`
 - `BomItem.meta.erp.bomCode = bomCode`
 - `BomItem.meta.erp.parentName = parentName`
 - `BomItem.meta.erp.parentSpec = parentSpec`
 - `BomItem.meta.erp.childName = childName`
 - `BomItem.meta.erp.childSpec = childSpec`
-- `BomItem.meta.erp.denominator = denominator`
+- `BomItem.meta.erp.qtyNumerator = qty`
+- `BomItem.meta.erp.qtyDenominator = denominator`
 - `BomItem.meta.erp.scrapRate = scrapRate`
 - `BomItem.meta.erp.fixScrapQty = fixScrapQty`
 - `BomItem.meta.erp.isKeyComponent = isKeyComponent`
