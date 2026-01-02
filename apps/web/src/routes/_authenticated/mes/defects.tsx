@@ -208,9 +208,7 @@ function DefectsPage() {
 							<Input
 								placeholder="输入缺陷代码"
 								value={query.code ?? ""}
-								onChange={(e) =>
-									setQuery({ ...query, code: e.target.value || undefined, page: 1 })
-								}
+								onChange={(e) => setQuery({ ...query, code: e.target.value || undefined, page: 1 })}
 							/>
 						</div>
 						<div className="w-40">
@@ -269,19 +267,16 @@ function DefectsPage() {
 							<TableBody>
 								{items.map((defect) => (
 									<TableRow key={defect.id}>
-										<TableCell className="font-mono text-sm">
-											{defect.unit?.sn ?? "-"}
-										</TableCell>
+										<TableCell className="font-mono text-sm">{defect.unit?.sn ?? "-"}</TableCell>
 										<TableCell>{defect.code}</TableCell>
 										<TableCell>{defect.location ?? "-"}</TableCell>
 										<TableCell>{defect.qty ?? 1}</TableCell>
 										<TableCell>{getStatusBadge(defect.status)}</TableCell>
 										<TableCell>
-											{(defect as { disposition?: { type?: string } | null }).disposition
-												?.type
+											{(defect as { disposition?: { type?: string } | null }).disposition?.type
 												? getDispositionBadge(
-														(defect as { disposition?: { type?: string } | null })
-															.disposition?.type,
+														(defect as { disposition?: { type?: string } | null }).disposition
+															?.type,
 													)
 												: "-"}
 										</TableCell>
@@ -505,9 +500,7 @@ function DefectsPage() {
 							<Label>原因</Label>
 							<Textarea
 								value={dispositionForm.reason}
-								onChange={(e) =>
-									setDispositionForm({ ...dispositionForm, reason: e.target.value })
-								}
+								onChange={(e) => setDispositionForm({ ...dispositionForm, reason: e.target.value })}
 								placeholder="处置原因说明"
 							/>
 						</div>
@@ -517,9 +510,7 @@ function DefectsPage() {
 							取消
 						</Button>
 						<Button onClick={handleAssignDisposition} disabled={assignDisposition.isPending}>
-							{assignDisposition.isPending && (
-								<Loader2 className="h-4 w-4 mr-2 animate-spin" />
-							)}
+							{assignDisposition.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
 							确认
 						</Button>
 					</DialogFooter>
@@ -547,10 +538,7 @@ function DefectsPage() {
 						<Button variant="outline" onClick={() => setReleaseDialogOpen(false)}>
 							取消
 						</Button>
-						<Button
-							onClick={handleReleaseHold}
-							disabled={!releaseReason || releaseHold.isPending}
-						>
+						<Button onClick={handleReleaseHold} disabled={!releaseReason || releaseHold.isPending}>
 							{releaseHold.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
 							确认释放
 						</Button>
