@@ -18,8 +18,11 @@
 - **UI**：Run 详情页已有准备检查卡片、执行/豁免操作；异常看板页面已完成；配置页未实现。
 - **权限**：`readiness:view/check/override/config` 已加入权限字典。
 
-### 1.2 Phase 2 其它模块（未开始/待规划）
-- FAI、缺陷处置、OQC、Closeout 暂未落地。
+### 1.2 Phase 2 其它模块进度
+- ✅ FAI 首件检验：已完成（2025-01-02）
+- ✅ 缺陷处置（Defect & Disposition）：已完成（2025-01-02）
+- ⬜ OQC 抽检：未开始
+- ⬜ Closeout 收尾：未开始
 
 ---
 
@@ -115,32 +118,32 @@ model ReadinessCheckItem {
 - [x] 2.1.6 API: 豁免接口 (waive)
 - [x] 2.1.7 Gate: Run 授权前置检查
 - [x] 2.1.8 权限: `mes:readiness:*` 权限常量
-- [ ] 2.1.9 事件: Run 创建时自动预检
+- [x] 2.1.9 事件: Run 创建时自动预检
 - [x] 2.1.10 事件: TPM/路由变更时重新预检
 - [x] 2.1.11 UI: Run 详情页准备状态卡片
 - [x] 2.1.12 UI: 准备检查执行页（已整合在 Run 详情页）
 - [x] 2.1.13 UI: 异常汇总看板
 
 ### 3.2 Task 2.2: FAI Tasks & Authorization Gate
-- [ ] 2.2.1 Schema: 验证/扩展 Inspection 模型 (FAI 特有字段)
-- [ ] 2.2.2 Service: FAI 任务创建逻辑 (限制试产数量)
-- [ ] 2.2.3 API: 创建 FAI 任务
-- [ ] 2.2.4 API: 记录检验结果
-- [ ] 2.2.5 API: 完成 FAI (PASS/FAIL)
-- [ ] 2.2.6 Gate: Run 授权需 FAI PASSED
-- [ ] 2.2.7 UI: FAI 任务创建/执行页
-- [ ] 2.2.8 UI: FAI 结果记录表单
+- [x] 2.2.1 Schema: 验证/扩展 Inspection 模型 (FAI 特有字段)
+- [x] 2.2.2 Service: FAI 任务创建逻辑 (限制试产数量)
+- [x] 2.2.3 API: 创建 FAI 任务
+- [x] 2.2.4 API: 记录检验结果
+- [x] 2.2.5 API: 完成 FAI (PASS/FAIL)
+- [x] 2.2.6 Gate: Run 授权需 FAI PASSED
+- [x] 2.2.7 UI: FAI 任务创建/执行页
+- [x] 2.2.8 UI: FAI 结果记录表单
 
 ### 3.3 Task 2.3: Defect & Disposition
-- [ ] 2.3.1 Schema: 验证/扩展 Defect + Disposition 模型
-- [ ] 2.3.2 Service: TrackOut FAIL 时自动创建 Defect
-- [ ] 2.3.3 Service: Disposition 处置流程 (REWORK/SCRAP/HOLD)
-- [ ] 2.3.4 API: 缺陷查询 + 创建
-- [ ] 2.3.5 API: 处置操作 (assign disposition)
-- [ ] 2.3.6 API: 返工任务管理
-- [ ] 2.3.7 API: Hold 释放
-- [ ] 2.3.8 UI: 缺陷列表 + 处置操作
-- [ ] 2.3.9 UI: 返工任务跟踪
+- [x] 2.3.1 Schema: 验证/扩展 Defect + Disposition 模型
+- [x] 2.3.2 Service: TrackOut FAIL 时自动创建 Defect
+- [x] 2.3.3 Service: Disposition 处置流程 (REWORK/SCRAP/HOLD)
+- [x] 2.3.4 API: 缺陷查询 + 创建
+- [x] 2.3.5 API: 处置操作 (assign disposition)
+- [x] 2.3.6 API: 返工任务管理
+- [x] 2.3.7 API: Hold 释放
+- [x] 2.3.8 UI: 缺陷列表 + 处置操作
+- [x] 2.3.9 UI: 返工任务跟踪
 
 ### 3.4 Task 2.4: OQC Sampling Flow
 - [ ] 2.4.1 Schema: OQC 抽检规则表 (比例/固定数量)

@@ -16,6 +16,8 @@ import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedSystemIndexRouteImport } from './routes/_authenticated/system/index'
 import { Route as AuthenticatedMesIndexRouteImport } from './routes/_authenticated/mes/index'
+import { Route as AuthenticatedInstrumentsIndexRouteImport } from './routes/_authenticated/instruments/index'
+import { Route as AuthenticatedCalibrationsIndexRouteImport } from './routes/_authenticated/calibrations/index'
 import { Route as AuthenticatedSystemUserManagementRouteImport } from './routes/_authenticated/system/user-management'
 import { Route as AuthenticatedSystemTestUploadRouteImport } from './routes/_authenticated/system/test-upload'
 import { Route as AuthenticatedSystemSettingsRouteImport } from './routes/_authenticated/system/settings'
@@ -25,8 +27,12 @@ import { Route as AuthenticatedMesWorkOrdersRouteImport } from './routes/_authen
 import { Route as AuthenticatedMesTraceRouteImport } from './routes/_authenticated/mes/trace'
 import { Route as AuthenticatedMesRoutesRouteImport } from './routes/_authenticated/mes/routes'
 import { Route as AuthenticatedMesRouteVersionsRouteImport } from './routes/_authenticated/mes/route-versions'
+import { Route as AuthenticatedMesReworkTasksRouteImport } from './routes/_authenticated/mes/rework-tasks'
 import { Route as AuthenticatedMesReadinessExceptionsRouteImport } from './routes/_authenticated/mes/readiness-exceptions'
+import { Route as AuthenticatedMesFaiRouteImport } from './routes/_authenticated/mes/fai'
 import { Route as AuthenticatedMesExecutionRouteImport } from './routes/_authenticated/mes/execution'
+import { Route as AuthenticatedMesDefectsRouteImport } from './routes/_authenticated/mes/defects'
+import { Route as AuthenticatedInstrumentsInstrumentIdRouteImport } from './routes/_authenticated/instruments/$instrumentId'
 import { Route as AuthenticatedMesRunsIndexRouteImport } from './routes/_authenticated/mes/runs/index'
 import { Route as AuthenticatedMesRoutesIndexRouteImport } from './routes/_authenticated/mes/routes/index'
 import { Route as AuthenticatedMesRunsRunNoRouteImport } from './routes/_authenticated/mes/runs/$runNo'
@@ -68,6 +74,18 @@ const AuthenticatedMesIndexRoute = AuthenticatedMesIndexRouteImport.update({
   path: '/mes/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedInstrumentsIndexRoute =
+  AuthenticatedInstrumentsIndexRouteImport.update({
+    id: '/instruments/',
+    path: '/instruments/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCalibrationsIndexRoute =
+  AuthenticatedCalibrationsIndexRouteImport.update({
+    id: '/calibrations/',
+    path: '/calibrations/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedSystemUserManagementRoute =
   AuthenticatedSystemUserManagementRouteImport.update({
     id: '/system/user-management',
@@ -120,16 +138,38 @@ const AuthenticatedMesRouteVersionsRoute =
     path: '/mes/route-versions',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedMesReworkTasksRoute =
+  AuthenticatedMesReworkTasksRouteImport.update({
+    id: '/mes/rework-tasks',
+    path: '/mes/rework-tasks',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMesReadinessExceptionsRoute =
   AuthenticatedMesReadinessExceptionsRouteImport.update({
     id: '/mes/readiness-exceptions',
     path: '/mes/readiness-exceptions',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedMesFaiRoute = AuthenticatedMesFaiRouteImport.update({
+  id: '/mes/fai',
+  path: '/mes/fai',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedMesExecutionRoute =
   AuthenticatedMesExecutionRouteImport.update({
     id: '/mes/execution',
     path: '/mes/execution',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMesDefectsRoute = AuthenticatedMesDefectsRouteImport.update({
+  id: '/mes/defects',
+  path: '/mes/defects',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedInstrumentsInstrumentIdRoute =
+  AuthenticatedInstrumentsInstrumentIdRouteImport.update({
+    id: '/instruments/$instrumentId',
+    path: '/instruments/$instrumentId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedMesRunsIndexRoute =
@@ -162,8 +202,12 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/': typeof AuthenticatedIndexRoute
+  '/instruments/$instrumentId': typeof AuthenticatedInstrumentsInstrumentIdRoute
+  '/mes/defects': typeof AuthenticatedMesDefectsRoute
   '/mes/execution': typeof AuthenticatedMesExecutionRoute
+  '/mes/fai': typeof AuthenticatedMesFaiRoute
   '/mes/readiness-exceptions': typeof AuthenticatedMesReadinessExceptionsRoute
+  '/mes/rework-tasks': typeof AuthenticatedMesReworkTasksRoute
   '/mes/route-versions': typeof AuthenticatedMesRouteVersionsRoute
   '/mes/routes': typeof AuthenticatedMesRoutesRouteWithChildren
   '/mes/trace': typeof AuthenticatedMesTraceRoute
@@ -173,6 +217,8 @@ export interface FileRoutesByFullPath {
   '/system/settings': typeof AuthenticatedSystemSettingsRoute
   '/system/test-upload': typeof AuthenticatedSystemTestUploadRoute
   '/system/user-management': typeof AuthenticatedSystemUserManagementRoute
+  '/calibrations': typeof AuthenticatedCalibrationsIndexRoute
+  '/instruments': typeof AuthenticatedInstrumentsIndexRoute
   '/mes': typeof AuthenticatedMesIndexRoute
   '/system': typeof AuthenticatedSystemIndexRoute
   '/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
@@ -185,8 +231,12 @@ export interface FileRoutesByTo {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/': typeof AuthenticatedIndexRoute
+  '/instruments/$instrumentId': typeof AuthenticatedInstrumentsInstrumentIdRoute
+  '/mes/defects': typeof AuthenticatedMesDefectsRoute
   '/mes/execution': typeof AuthenticatedMesExecutionRoute
+  '/mes/fai': typeof AuthenticatedMesFaiRoute
   '/mes/readiness-exceptions': typeof AuthenticatedMesReadinessExceptionsRoute
+  '/mes/rework-tasks': typeof AuthenticatedMesReworkTasksRoute
   '/mes/route-versions': typeof AuthenticatedMesRouteVersionsRoute
   '/mes/trace': typeof AuthenticatedMesTraceRoute
   '/mes/work-orders': typeof AuthenticatedMesWorkOrdersRoute
@@ -195,6 +245,8 @@ export interface FileRoutesByTo {
   '/system/settings': typeof AuthenticatedSystemSettingsRoute
   '/system/test-upload': typeof AuthenticatedSystemTestUploadRoute
   '/system/user-management': typeof AuthenticatedSystemUserManagementRoute
+  '/calibrations': typeof AuthenticatedCalibrationsIndexRoute
+  '/instruments': typeof AuthenticatedInstrumentsIndexRoute
   '/mes': typeof AuthenticatedMesIndexRoute
   '/system': typeof AuthenticatedSystemIndexRoute
   '/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
@@ -209,8 +261,12 @@ export interface FileRoutesById {
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/instruments/$instrumentId': typeof AuthenticatedInstrumentsInstrumentIdRoute
+  '/_authenticated/mes/defects': typeof AuthenticatedMesDefectsRoute
   '/_authenticated/mes/execution': typeof AuthenticatedMesExecutionRoute
+  '/_authenticated/mes/fai': typeof AuthenticatedMesFaiRoute
   '/_authenticated/mes/readiness-exceptions': typeof AuthenticatedMesReadinessExceptionsRoute
+  '/_authenticated/mes/rework-tasks': typeof AuthenticatedMesReworkTasksRoute
   '/_authenticated/mes/route-versions': typeof AuthenticatedMesRouteVersionsRoute
   '/_authenticated/mes/routes': typeof AuthenticatedMesRoutesRouteWithChildren
   '/_authenticated/mes/trace': typeof AuthenticatedMesTraceRoute
@@ -220,6 +276,8 @@ export interface FileRoutesById {
   '/_authenticated/system/settings': typeof AuthenticatedSystemSettingsRoute
   '/_authenticated/system/test-upload': typeof AuthenticatedSystemTestUploadRoute
   '/_authenticated/system/user-management': typeof AuthenticatedSystemUserManagementRoute
+  '/_authenticated/calibrations/': typeof AuthenticatedCalibrationsIndexRoute
+  '/_authenticated/instruments/': typeof AuthenticatedInstrumentsIndexRoute
   '/_authenticated/mes/': typeof AuthenticatedMesIndexRoute
   '/_authenticated/system/': typeof AuthenticatedSystemIndexRoute
   '/_authenticated/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
@@ -234,8 +292,12 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profile'
     | '/'
+    | '/instruments/$instrumentId'
+    | '/mes/defects'
     | '/mes/execution'
+    | '/mes/fai'
     | '/mes/readiness-exceptions'
+    | '/mes/rework-tasks'
     | '/mes/route-versions'
     | '/mes/routes'
     | '/mes/trace'
@@ -245,6 +307,8 @@ export interface FileRouteTypes {
     | '/system/settings'
     | '/system/test-upload'
     | '/system/user-management'
+    | '/calibrations'
+    | '/instruments'
     | '/mes'
     | '/system'
     | '/mes/routes/$routingCode'
@@ -257,8 +321,12 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profile'
     | '/'
+    | '/instruments/$instrumentId'
+    | '/mes/defects'
     | '/mes/execution'
+    | '/mes/fai'
     | '/mes/readiness-exceptions'
+    | '/mes/rework-tasks'
     | '/mes/route-versions'
     | '/mes/trace'
     | '/mes/work-orders'
@@ -267,6 +335,8 @@ export interface FileRouteTypes {
     | '/system/settings'
     | '/system/test-upload'
     | '/system/user-management'
+    | '/calibrations'
+    | '/instruments'
     | '/mes'
     | '/system'
     | '/mes/routes/$routingCode'
@@ -280,8 +350,12 @@ export interface FileRouteTypes {
     | '/_authenticated/notifications'
     | '/_authenticated/profile'
     | '/_authenticated/'
+    | '/_authenticated/instruments/$instrumentId'
+    | '/_authenticated/mes/defects'
     | '/_authenticated/mes/execution'
+    | '/_authenticated/mes/fai'
     | '/_authenticated/mes/readiness-exceptions'
+    | '/_authenticated/mes/rework-tasks'
     | '/_authenticated/mes/route-versions'
     | '/_authenticated/mes/routes'
     | '/_authenticated/mes/trace'
@@ -291,6 +365,8 @@ export interface FileRouteTypes {
     | '/_authenticated/system/settings'
     | '/_authenticated/system/test-upload'
     | '/_authenticated/system/user-management'
+    | '/_authenticated/calibrations/'
+    | '/_authenticated/instruments/'
     | '/_authenticated/mes/'
     | '/_authenticated/system/'
     | '/_authenticated/mes/routes/$routingCode'
@@ -353,6 +429,20 @@ declare module '@tanstack/react-router' {
       path: '/mes'
       fullPath: '/mes'
       preLoaderRoute: typeof AuthenticatedMesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/instruments/': {
+      id: '/_authenticated/instruments/'
+      path: '/instruments'
+      fullPath: '/instruments'
+      preLoaderRoute: typeof AuthenticatedInstrumentsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/calibrations/': {
+      id: '/_authenticated/calibrations/'
+      path: '/calibrations'
+      fullPath: '/calibrations'
+      preLoaderRoute: typeof AuthenticatedCalibrationsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/system/user-management': {
@@ -418,6 +508,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesRouteVersionsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/mes/rework-tasks': {
+      id: '/_authenticated/mes/rework-tasks'
+      path: '/mes/rework-tasks'
+      fullPath: '/mes/rework-tasks'
+      preLoaderRoute: typeof AuthenticatedMesReworkTasksRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/mes/readiness-exceptions': {
       id: '/_authenticated/mes/readiness-exceptions'
       path: '/mes/readiness-exceptions'
@@ -425,11 +522,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesReadinessExceptionsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/mes/fai': {
+      id: '/_authenticated/mes/fai'
+      path: '/mes/fai'
+      fullPath: '/mes/fai'
+      preLoaderRoute: typeof AuthenticatedMesFaiRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/mes/execution': {
       id: '/_authenticated/mes/execution'
       path: '/mes/execution'
       fullPath: '/mes/execution'
       preLoaderRoute: typeof AuthenticatedMesExecutionRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/mes/defects': {
+      id: '/_authenticated/mes/defects'
+      path: '/mes/defects'
+      fullPath: '/mes/defects'
+      preLoaderRoute: typeof AuthenticatedMesDefectsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/instruments/$instrumentId': {
+      id: '/_authenticated/instruments/$instrumentId'
+      path: '/instruments/$instrumentId'
+      fullPath: '/instruments/$instrumentId'
+      preLoaderRoute: typeof AuthenticatedInstrumentsInstrumentIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/runs/': {
@@ -484,8 +602,12 @@ interface AuthenticatedRouteChildren {
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedInstrumentsInstrumentIdRoute: typeof AuthenticatedInstrumentsInstrumentIdRoute
+  AuthenticatedMesDefectsRoute: typeof AuthenticatedMesDefectsRoute
   AuthenticatedMesExecutionRoute: typeof AuthenticatedMesExecutionRoute
+  AuthenticatedMesFaiRoute: typeof AuthenticatedMesFaiRoute
   AuthenticatedMesReadinessExceptionsRoute: typeof AuthenticatedMesReadinessExceptionsRoute
+  AuthenticatedMesReworkTasksRoute: typeof AuthenticatedMesReworkTasksRoute
   AuthenticatedMesRouteVersionsRoute: typeof AuthenticatedMesRouteVersionsRoute
   AuthenticatedMesRoutesRoute: typeof AuthenticatedMesRoutesRouteWithChildren
   AuthenticatedMesTraceRoute: typeof AuthenticatedMesTraceRoute
@@ -495,6 +617,8 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSystemSettingsRoute: typeof AuthenticatedSystemSettingsRoute
   AuthenticatedSystemTestUploadRoute: typeof AuthenticatedSystemTestUploadRoute
   AuthenticatedSystemUserManagementRoute: typeof AuthenticatedSystemUserManagementRoute
+  AuthenticatedCalibrationsIndexRoute: typeof AuthenticatedCalibrationsIndexRoute
+  AuthenticatedInstrumentsIndexRoute: typeof AuthenticatedInstrumentsIndexRoute
   AuthenticatedMesIndexRoute: typeof AuthenticatedMesIndexRoute
   AuthenticatedSystemIndexRoute: typeof AuthenticatedSystemIndexRoute
   AuthenticatedMesRunsRunNoRoute: typeof AuthenticatedMesRunsRunNoRoute
@@ -505,9 +629,14 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedInstrumentsInstrumentIdRoute:
+    AuthenticatedInstrumentsInstrumentIdRoute,
+  AuthenticatedMesDefectsRoute: AuthenticatedMesDefectsRoute,
   AuthenticatedMesExecutionRoute: AuthenticatedMesExecutionRoute,
+  AuthenticatedMesFaiRoute: AuthenticatedMesFaiRoute,
   AuthenticatedMesReadinessExceptionsRoute:
     AuthenticatedMesReadinessExceptionsRoute,
+  AuthenticatedMesReworkTasksRoute: AuthenticatedMesReworkTasksRoute,
   AuthenticatedMesRouteVersionsRoute: AuthenticatedMesRouteVersionsRoute,
   AuthenticatedMesRoutesRoute: AuthenticatedMesRoutesRouteWithChildren,
   AuthenticatedMesTraceRoute: AuthenticatedMesTraceRoute,
@@ -519,6 +648,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSystemTestUploadRoute: AuthenticatedSystemTestUploadRoute,
   AuthenticatedSystemUserManagementRoute:
     AuthenticatedSystemUserManagementRoute,
+  AuthenticatedCalibrationsIndexRoute: AuthenticatedCalibrationsIndexRoute,
+  AuthenticatedInstrumentsIndexRoute: AuthenticatedInstrumentsIndexRoute,
   AuthenticatedMesIndexRoute: AuthenticatedMesIndexRoute,
   AuthenticatedSystemIndexRoute: AuthenticatedSystemIndexRoute,
   AuthenticatedMesRunsRunNoRoute: AuthenticatedMesRunsRunNoRoute,

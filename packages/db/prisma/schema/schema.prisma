@@ -243,6 +243,12 @@ enum InspectionStatus {
   CANCELLED
 }
 
+enum InspectionItemResult {
+  PASS
+  FAIL
+  NA
+}
+
 enum DispositionType {
   REWORK
   SCRAP
@@ -753,20 +759,50 @@ model ReadinessCheckItem {
 }
 
 model Inspection {
-  id        String           @id @default(cuid())
-  runId     String
-  type      InspectionType
-  status    InspectionStatus @default(PENDING)
-  data      Json?
-  decidedBy String?
-  decidedAt DateTime?
-  remark    String?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  id          String           @id @default(cuid())
+  runId       String
+  type        InspectionType
+  status      InspectionStatus @default(PENDING)
 
-  run Run @relation(fields: [runId], references: [id])
+  // FAI specific fields
+  sampleQty   Int?             // Number of samples to inspect (FAI only)
+  passedQty   Int?             // Number of passed samples
+  failedQty   Int?             // Number of failed samples
+  inspectorId String?          // Inspector user ID
+  startedAt   DateTime?        // When inspection started
+
+  data        Json?            // Generic data storage for inspection results
+  decidedBy   String?
+  decidedAt   DateTime?
+  remark      String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  run   Run               @relation(fields: [runId], references: [id])
+  items InspectionItem[]  // Detailed inspection items
 
   @@index([runId, type])
+}
+
+model InspectionItem {
+  id           String   @id @default(cuid())
+  inspectionId String
+  unitSn       String?  // For FAI: the sample unit being inspected
+  itemName     String   // Inspection item name
+  itemSpec     String?  // Specification/standard
+  actualValue  String?  // Actual measured value
+  result       InspectionItemResult // PASS/FAIL/NA
+  defectCode   String?  // Defect code if failed
+  remark       String?
+  inspectedBy  String?
+  inspectedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  inspection Inspection @relation(fields: [inspectionId], references: [id])
+
+  @@index([inspectionId])
+  @@index([unitSn])
 }
 
 model Authorization {
