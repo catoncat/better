@@ -620,6 +620,54 @@ model ErpRouteLineRaw {
   @@index([dedupeKey])
 }
 
+model ErpWorkOrderRaw {
+  id           String   @id @default(cuid())
+  sourceSystem String
+  sourceKey    String   // woNo
+  payload      Json
+  dedupeKey    String?
+  pulledAt     DateTime @default(now())
+
+  @@index([sourceSystem, sourceKey])
+  @@index([dedupeKey])
+}
+
+model ErpMaterialRaw {
+  id           String   @id @default(cuid())
+  sourceSystem String
+  sourceKey    String   // materialCode
+  payload      Json
+  dedupeKey    String?
+  pulledAt     DateTime @default(now())
+
+  @@index([sourceSystem, sourceKey])
+  @@index([dedupeKey])
+}
+
+model ErpBomRaw {
+  id           String   @id @default(cuid())
+  sourceSystem String
+  sourceKey    String   // parentCode_childCode
+  payload      Json
+  dedupeKey    String?
+  pulledAt     DateTime @default(now())
+
+  @@index([sourceSystem, sourceKey])
+  @@index([dedupeKey])
+}
+
+model ErpWorkCenterRaw {
+  id           String   @id @default(cuid())
+  sourceSystem String
+  sourceKey    String   // workCenterCode
+  payload      Json
+  dedupeKey    String?
+  pulledAt     DateTime @default(now())
+
+  @@index([sourceSystem, sourceKey])
+  @@index([dedupeKey])
+}
+
 model Unit {
   id            String     @id @default(cuid())
   sn            String     @unique

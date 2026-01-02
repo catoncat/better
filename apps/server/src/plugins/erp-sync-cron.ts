@@ -4,10 +4,10 @@ import { Elysia } from "elysia";
 import {
 	syncErpBoms,
 	syncErpMaterials,
+	syncErpRoutes,
 	syncErpWorkCenters,
 	syncErpWorkOrders,
-} from "../modules/mes/integration/erp-master-sync-service";
-import { syncErpRoutes } from "../modules/mes/integration/sync-service";
+} from "../modules/mes/integration/erp";
 import {
 	syncTpmEquipment,
 	syncTpmMaintenanceTasks,

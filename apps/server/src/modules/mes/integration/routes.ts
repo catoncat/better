@@ -7,9 +7,10 @@ import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../
 import {
 	syncErpBoms,
 	syncErpMaterials,
+	syncErpRoutes,
 	syncErpWorkCenters,
 	syncErpWorkOrders,
-} from "./erp-master-sync-service";
+} from "./erp";
 import {
 	getMockErpMaterials,
 	getMockErpRoutes,
@@ -38,7 +39,6 @@ import {
 	tpmSyncQuerySchema,
 } from "./schema";
 import { receiveWorkOrder } from "./service";
-import { syncErpRoutes } from "./sync-service";
 import { syncTpmEquipment, syncTpmMaintenanceTasks, syncTpmStatusLogs } from "./tpm-sync-service";
 
 export const integrationModule = new Elysia({
