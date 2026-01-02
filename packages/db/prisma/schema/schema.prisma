@@ -310,6 +310,12 @@ enum InspectionStatus {
   CANCELLED
 }
 
+enum InspectionItemResult {
+  PASS
+  FAIL
+  NA
+}
+
 enum DispositionType {
   REWORK
   SCRAP
@@ -854,7 +860,7 @@ model InspectionItem {
   itemName     String   // Inspection item name
   itemSpec     String?  // Specification/standard
   actualValue  String?  // Actual measured value
-  result       String?  // PASS/FAIL/NA
+  result       InspectionItemResult // PASS/FAIL/NA
   defectCode   String?  // Defect code if failed
   remark       String?
   inspectedBy  String?

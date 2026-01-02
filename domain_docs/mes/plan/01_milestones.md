@@ -40,7 +40,7 @@ This document outlines the development milestones for the MES system, focusing o
 * **Acceptance Criteria**: Runs cannot authorize without readiness + FAI pass; defects/disposition and OQC gates are enforced; runs/WO close only after final confirmation.
 * **当前进度**:
   * ✅ Line Readiness Check (2025-12-31): 数据模型、检查逻辑、API、门禁、UI 已实现
-  * ⬜ FAI 首件检验: 未开始
+  * ⚠️ FAI 首件检验: 后端 API 已完成，UI 待完成
   * ⬜ Defect & Disposition: 未开始
   * ⬜ OQC Sampling: 未开始
   * ⬜ Final Confirmation: 未开始

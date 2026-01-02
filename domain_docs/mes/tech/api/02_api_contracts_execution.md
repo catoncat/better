@@ -132,34 +132,48 @@ Response example:
 
 ### 2.2 FAI lifecycle (M2+ if fully enforced)
 
-**POST** `/api/runs/{runNo}/inspections`
+FAI tasks are managed via `/api/fai`:
 
-* type = `FAI`
+**POST** `/api/fai/run/{runNo}` (create task)
+```json
+{
+  "sampleQty": 5,
+  "remark": "First article"
+}
+```
+
+**POST** `/api/fai/{faiId}/start`
+
+**POST** `/api/fai/{faiId}/items`
+```json
+{
+  "unitSn": "SN-001",
+  "itemName": "Hole diameter",
+  "itemSpec": "10.0 ± 0.1",
+  "actualValue": "10.02",
+  "result": "PASS",
+  "remark": "OK"
+}
+```
+
+**POST** `/api/fai/{faiId}/complete`
+```json
+{
+  "decision": "PASS",
+  "passedQty": 5,
+  "failedQty": 0,
+  "remark": "FAI passed"
+}
+```
+
+Query endpoints:
+* `GET /api/fai` (filter by `runNo`, `status`)
+* `GET /api/fai/{faiId}`
+* `GET /api/fai/run/{runNo}`
 
 Routing Engine guard:
-
-* If a step requires FAI, Track/ingest must reject until FAI PASS.
-
-Request example:
-```json
-{
-  "type": "FAI",
-  "result": "PASS",
-  "inspector": "QC001",
-  "remark": "First article ok"
-}
-```
-
-Response example:
-```json
-{
-  "ok": true,
-  "data": {
-    "inspectionId": "INSP001",
-    "status": "PASS"
-  }
-}
-```
+* If a step requires FAI, Track/ingest must reject until the **latest** FAI for the run is `PASS`.
+* Run authorization uses the same rule and returns `FAI_NOT_PASSED` when blocked.
 
 ### 2.3 Authorization (Batch go-ahead)
 
