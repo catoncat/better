@@ -1,5 +1,6 @@
 import Elysia from "elysia";
-import { appContext } from "../../../lib/context";
+import { authPlugin } from "../../../plugins/auth";
+import { prismaPlugin } from "../../../plugins/prisma";
 import {
 	completeFaiSchema,
 	createFaiSchema,
@@ -18,7 +19,8 @@ import {
 } from "./service";
 
 export const faiRoutes = new Elysia({ prefix: "/fai" })
-	.use(appContext)
+	.use(prismaPlugin)
+	.use(authPlugin)
 	// List FAI inspections
 	.get(
 		"/",
@@ -89,6 +91,7 @@ export const faiRoutes = new Elysia({ prefix: "/fai" })
 			return result.data;
 		},
 		{
+			isAuth: true,
 			body: createFaiSchema,
 			detail: { tags: ["MES - FAI"], summary: "Create FAI task for run" },
 		},
@@ -105,6 +108,7 @@ export const faiRoutes = new Elysia({ prefix: "/fai" })
 			return result.data;
 		},
 		{
+			isAuth: true,
 			detail: { tags: ["MES - FAI"], summary: "Start FAI inspection" },
 		},
 	)
@@ -121,6 +125,7 @@ export const faiRoutes = new Elysia({ prefix: "/fai" })
 			return result.data;
 		},
 		{
+			isAuth: true,
 			body: recordFaiItemSchema,
 			detail: { tags: ["MES - FAI"], summary: "Record FAI inspection item" },
 		},
@@ -137,6 +142,7 @@ export const faiRoutes = new Elysia({ prefix: "/fai" })
 			return result.data;
 		},
 		{
+			isAuth: true,
 			body: completeFaiSchema,
 			detail: { tags: ["MES - FAI"], summary: "Complete FAI with decision" },
 		},
