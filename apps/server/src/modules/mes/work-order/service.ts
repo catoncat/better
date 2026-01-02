@@ -27,6 +27,9 @@ const setSpanAttributes = (span: Span, attributes: Record<string, unknown>) => {
 	}
 };
 
+const isWorkOrderStatus = (value: string | undefined): value is WorkOrderStatus =>
+	Boolean(value) && Object.values(WorkOrderStatus).includes(value as WorkOrderStatus);
+
 export const listWorkOrders = async (
 	db: PrismaClient,
 	query: WorkOrderListQuery,
@@ -137,6 +140,7 @@ export const receiveWorkOrder = async (db: PrismaClient, data: WorkOrderReceiveI
 			const routing = data.routingCode
 				? await db.routing.findUnique({ where: { code: data.routingCode } })
 				: null;
+			const status = isWorkOrderStatus(data.status) ? data.status : WorkOrderStatus.RECEIVED;
 
 			const result = await db.$transaction(async (tx) => {
 				const wo = await tx.workOrder.upsert({
@@ -161,7 +165,7 @@ export const receiveWorkOrder = async (db: PrismaClient, data: WorkOrderReceiveI
 						erpStatus: data.erpStatus,
 						erpPickStatus: data.erpPickStatus,
 						meta: data.meta,
-						status: (data.status as any) || WorkOrderStatus.RECEIVED,
+						status,
 					},
 				});
 

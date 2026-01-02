@@ -490,7 +490,7 @@ function DefectsPage() {
 									onChange={(e) =>
 										setDispositionForm({
 											...dispositionForm,
-											toStepNo: Number.parseInt(e.target.value) || 1,
+											toStepNo: Number.parseInt(e.target.value, 10) || 1,
 										})
 									}
 								/>
