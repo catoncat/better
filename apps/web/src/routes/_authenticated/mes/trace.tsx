@@ -1,4 +1,4 @@
-import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -33,6 +33,7 @@ export const Route = createFileRoute("/_authenticated/mes/trace")({
 
 function TracePage() {
 	const searchParams = useSearch({ from: "/_authenticated/mes/trace" });
+	const navigate = useNavigate({ from: "/mes/trace" });
 	const [sn, setSn] = useState("");
 	const [searchSn, setSearchSn] = useState("");
 	const [mode, setMode] = useState<"run" | "latest">("run");
@@ -48,7 +49,9 @@ function TracePage() {
 
 	const handleSearch = () => {
 		if (sn.trim()) {
-			setSearchSn(sn.trim());
+			const trimmedSn = sn.trim();
+			setSearchSn(trimmedSn);
+			navigate({ search: { sn: trimmedSn } });
 		}
 	};
 
