@@ -1,5 +1,8 @@
 # ERP → MES Mapping Tables
 
+> **更新时间**: 2025-01-02
+> **实现状态**: ✅ M1.5 已完成，Operation + WorkCenter 映射可用
+
 This document defines how ERP routing fields map to MES dictionaries and execution constraints.
 
 ---

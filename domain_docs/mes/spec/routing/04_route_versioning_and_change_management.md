@@ -1,5 +1,8 @@
 # Route Versioning & Change Management (ERP Updates)
 
+> **更新时间**: 2025-01-02
+> **实现状态**: ✅ M1.5 已完成，版本编译与冻结机制可用
+
 This document defines how MES handles routing updates from ERP while ensuring:
 - in-flight production stability
 - traceability correctness

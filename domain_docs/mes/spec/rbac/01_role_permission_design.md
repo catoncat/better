@@ -1,8 +1,8 @@
 # MES 系统角色权限设计
 
-**版本**: 1.1  
-**日期**: 2025-12-27  
-**状态**: 已实现（前后端对齐）
+**版本**: 1.2
+**日期**: 2025-01-02
+**状态**: 已实现（前后端对齐，含 Readiness 权限）
 
 ---
 
@@ -111,6 +111,12 @@ export const Permission = {
   ROUTE_CONFIGURE: 'route:configure',
   ROUTE_COMPILE: 'route:compile',
   ROUTE_CREATE: 'route:create',
+
+  // 准备检查域 (M2 新增)
+  READINESS_VIEW: 'readiness:view',
+  READINESS_CHECK: 'readiness:check',
+  READINESS_OVERRIDE: 'readiness:override',
+  READINESS_CONFIG: 'readiness:config',
 
   // 质量域 (M2)
   QUALITY_FAI: 'quality:fai',
@@ -306,9 +312,30 @@ export const navMain = [
 3. [x] 用户多角色分配
 4. [x] 用户-产线/工位绑定
 
+### Phase 5: 准备检查权限（已完成 2025-12-31）
+1. [x] 新增 `readiness:*` 权限点
+2. [x] API 权限检查集成
+3. [x] 前端按钮/操作权限控制
+
 ---
 
-## 8. 待讨论问题
+## 8. 准备检查权限说明 (M2 新增)
+
+| 权限点 | 说明 | 典型角色 |
+|-------|------|---------|
+| `readiness:view` | 查看准备检查结果 | leader, quality, engineer |
+| `readiness:check` | 执行预检/正式检查 | leader, quality |
+| `readiness:override` | 豁免检查项 | quality, admin |
+| `readiness:config` | 管理检查配置（预留） | admin, engineer |
+
+**建议角色配置**：
+- `leader`: `readiness:view`, `readiness:check`
+- `quality`: `readiness:view`, `readiness:check`, `readiness:override`
+- `admin`: 全部 `readiness:*`
+
+---
+
+## 9. 待讨论问题
 
 1. **操作员是否需要看到批次列表？**
    - 当前方向：按权限点 + 数据范围控制，可给 operator 赋予 run:read 并限制到工位/产线

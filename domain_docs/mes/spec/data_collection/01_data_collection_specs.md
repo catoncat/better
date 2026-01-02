@@ -1,5 +1,8 @@
 # Data Collection Specs
 
+> **更新时间**: 2025-01-02
+> **实现状态**: ⬜ M3 待实现（数据模型已预留，采集逻辑未实现）
+
 ## 1. Data Collection Overview
 The Data Collection Specifications define how data will be captured during the production process.
 

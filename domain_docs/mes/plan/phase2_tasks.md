@@ -1,7 +1,7 @@
 # Phase 2 Plan (M2 - Execution Control & Quality) — Consolidated
 
 > 状态：**执行中**
-> 更新时间：2025-12-31
+> 更新时间：2025-01-02
 > 目标：准备检查门禁、FAI、缺陷处置、OQC 抽检、收尾关闭
 > 说明：本文件合并 `phase2_detailed_breakdown.md` 与 `phase2_line_readiness_design.md`。
 
