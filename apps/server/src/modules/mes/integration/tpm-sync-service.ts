@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import type { PrismaClient } from "@better-app/db";
 import type { ServiceResult } from "../../../types/service-result";
 import { triggerPrecheckForAffectedRuns } from "../readiness/service";
-import type { IntegrationEnvelope } from "./sync-pipeline";
 import { mockTpmEquipments, mockTpmMaintenanceTasks, mockTpmStatusLogs } from "./mock-data";
+import type { IntegrationEnvelope } from "./sync-pipeline";
 
 type SyncOptions = {
 	since?: string;

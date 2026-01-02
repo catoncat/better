@@ -190,9 +190,6 @@ function NotificationCard({ item }: { item: NotificationItem }) {
 	// Navigation link
 	const getLink = () => {
 		if (data?.link?.url) return data.link.url;
-		if (data?.entityType === "instrument" && data?.entityId) {
-			return `/instruments/${data.entityId}`;
-		}
 		return null;
 	};
 

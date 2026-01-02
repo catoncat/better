@@ -136,6 +136,10 @@ export const receiveWorkOrder = async (db: PrismaClient, data: WorkOrderReceiveI
 			const routing = data.routingCode
 				? await db.routing.findUnique({ where: { code: data.routingCode } })
 				: null;
+			const normalizedStatus =
+				data.status && Object.values(WorkOrderStatus).includes(data.status as WorkOrderStatus)
+					? (data.status as WorkOrderStatus)
+					: WorkOrderStatus.RECEIVED;
 
 			const result = await db.$transaction(async (tx) => {
 				const wo = await tx.workOrder.upsert({
@@ -160,7 +164,7 @@ export const receiveWorkOrder = async (db: PrismaClient, data: WorkOrderReceiveI
 						erpStatus: data.erpStatus,
 						erpPickStatus: data.erpPickStatus,
 						meta: data.meta,
-						status: (data.status as any) || WorkOrderStatus.RECEIVED,
+						status: normalizedStatus,
 					},
 				});
 
