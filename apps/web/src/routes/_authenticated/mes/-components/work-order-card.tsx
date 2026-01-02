@@ -5,8 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAbility } from "@/hooks/use-ability";
-import { WORK_ORDER_STATUS_MAP } from "@/lib/constants";
 import type { WorkOrder } from "@/hooks/use-work-orders";
+import { WORK_ORDER_STATUS_MAP } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 interface WorkOrderCardProps {
@@ -16,7 +16,12 @@ interface WorkOrderCardProps {
 	onEditPickStatus?: (wo: WorkOrder) => void;
 }
 
-export function WorkOrderCard({ workOrder, onCreateRun, onRelease, onEditPickStatus }: WorkOrderCardProps) {
+export function WorkOrderCard({
+	workOrder,
+	onCreateRun,
+	onRelease,
+	onEditPickStatus,
+}: WorkOrderCardProps) {
 	const { hasPermission } = useAbility();
 	const statusLabel = WORK_ORDER_STATUS_MAP[workOrder.status] || workOrder.status;
 	let statusVariant: "default" | "secondary" | "destructive" | "outline" = "outline";

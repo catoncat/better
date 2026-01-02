@@ -39,7 +39,17 @@ export function useWorkOrderList(params: UseWorkOrderListParams) {
 	const sort = params.sort ?? "";
 
 	return useQuery<WorkOrderList>({
-		queryKey: ["mes", "work-orders", page, pageSize, search, status, erpPickStatus, routingId, sort],
+		queryKey: [
+			"mes",
+			"work-orders",
+			page,
+			pageSize,
+			search,
+			status,
+			erpPickStatus,
+			routingId,
+			sort,
+		],
 		queryFn: async () => {
 			const { data, error } = await client.api["work-orders"].get({
 				query: {
