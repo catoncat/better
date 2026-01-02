@@ -15,7 +15,6 @@ export const {
 	RepairTaskStatus,
 	ProblemCategory,
 	RepairResultStatus,
-	CalibrationType,
 	NotificationStatus,
 	NotificationPriority,
 	TemplateScope,

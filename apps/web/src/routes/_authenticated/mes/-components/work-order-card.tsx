@@ -12,8 +12,9 @@ import { cn } from "@/lib/utils";
 interface WorkOrderCardProps {
 	workOrder: WorkOrder;
 	onCreateRun?: (wo: WorkOrder) => void;
-	onRelease?: (woNo: string) => void;
+	onRelease?: (wo: WorkOrder) => void;
 	onEditPickStatus?: (wo: WorkOrder) => void;
+	onCancel?: (wo: WorkOrder) => void;
 }
 
 export function WorkOrderCard({
@@ -21,6 +22,7 @@ export function WorkOrderCard({
 	onCreateRun,
 	onRelease,
 	onEditPickStatus,
+	onCancel,
 }: WorkOrderCardProps) {
 	const { hasPermission } = useAbility();
 	const statusLabel = WORK_ORDER_STATUS_MAP[workOrder.status] || workOrder.status;
@@ -129,7 +131,7 @@ export function WorkOrderCard({
 
 			<CardFooter className="flex justify-end space-x-2">
 				{workOrder.status === "RECEIVED" && hasPermission(Permission.WO_RELEASE) && (
-					<Button variant="ghost" size="sm" onClick={() => onRelease?.(workOrder.woNo)}>
+					<Button variant="ghost" size="sm" onClick={() => onRelease?.(workOrder)}>
 						<Send className="mr-2 h-4 w-4" />
 						发布
 					</Button>
@@ -142,6 +144,12 @@ export function WorkOrderCard({
 							创建批次
 						</Button>
 					)}
+				{workOrder.status === "IN_PROGRESS" && hasPermission(Permission.WO_CANCEL) && (
+					<Button variant="ghost" size="sm" onClick={() => onCancel?.(workOrder)}>
+						<AlertTriangle className="mr-2 h-4 w-4" />
+						取消工单
+					</Button>
+				)}
 			</CardFooter>
 		</Card>
 	);

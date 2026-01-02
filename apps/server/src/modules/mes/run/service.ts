@@ -131,6 +131,10 @@ export const listRuns = async (
 		where.workOrder = { woNo: query.woNo };
 	}
 
+	if (query.lineCode) {
+		where.line = { code: query.lineCode };
+	}
+
 	if (query.search) {
 		where.OR = [
 			{ runNo: { contains: query.search } },
@@ -162,12 +166,25 @@ export const listRuns = async (
 			orderBy,
 			skip: (page - 1) * pageSize,
 			take: pageSize,
-			include: { workOrder: true, line: true },
+			include: {
+				workOrder: true,
+				line: true,
+				readinessChecks: {
+					orderBy: { checkedAt: "desc" },
+					take: 1,
+					select: { status: true },
+				},
+			},
 		}),
 		db.run.count({ where }),
 	]);
 
-	return { items, total, page, pageSize };
+	const itemsWithReadiness = items.map(({ readinessChecks, ...run }) => ({
+		...run,
+		readinessStatus: readinessChecks[0]?.status ?? null,
+	}));
+
+	return { items: itemsWithReadiness, total, page, pageSize };
 };
 
 export const authorizeRun = async (

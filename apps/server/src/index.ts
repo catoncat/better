@@ -7,7 +7,6 @@ import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { Elysia } from "elysia";
 import * as z from "zod";
 import { auditModule } from "./modules/audit";
-import { instrumentModule } from "./modules/instruments";
 import { mesModule } from "./modules/mes";
 import { metaModule } from "./modules/meta";
 import { notificationModule } from "./modules/notifications";
@@ -18,7 +17,6 @@ import { usersModule } from "./modules/users";
 import { auditArchiveCronPlugin } from "./plugins/audit-archive-cron";
 import { authPlugin } from "./plugins/auth";
 import { erpSyncCronPlugin } from "./plugins/erp-sync-cron";
-import { instrumentCronPlugin } from "./plugins/instrument-cron";
 import { permissionPlugin } from "./plugins/permission";
 import { prismaPlugin } from "./plugins/prisma";
 import { serveWebRequest } from "./web/serve-web";
@@ -160,7 +158,6 @@ const api = new Elysia({ prefix: "/api", normalize: true })
 	.get("/health", () => ({ status: "ok" }), {
 		detail: { tags: ["System - Health"] },
 	})
-	.use(instrumentModule)
 	.use(auditModule)
 	.use(mesModule)
 	.use(notificationModule)
@@ -169,7 +166,6 @@ const api = new Elysia({ prefix: "/api", normalize: true })
 	.use(rolesModule)
 	.use(usersModule)
 	.use(systemModule)
-	.use(instrumentCronPlugin)
 	.use(erpSyncCronPlugin)
 	.use(auditArchiveCronPlugin);
 

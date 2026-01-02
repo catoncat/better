@@ -5,16 +5,62 @@ import { format } from "date-fns";
 import { CheckCircle, XCircle } from "lucide-react";
 import { TableActions } from "@/components/data-table/table-actions";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAbility } from "@/hooks/use-ability";
 import type { Run } from "@/hooks/use-runs";
 import { RUN_STATUS_MAP } from "@/lib/constants";
 
+type RunWithReadiness = Run & { readinessStatus?: string | null };
+
 export type RunTableMeta = {
 	onAuthorize?: (runNo: string) => void;
 	onRevoke?: (runNo: string) => void;
+	isRunSelected?: (runNo: string) => boolean;
+	onSelectRun?: (runNo: string, selected: boolean) => void;
+	onSelectAll?: (runNos: string[], selected: boolean) => void;
 };
 
 export const runColumns: ColumnDef<Run>[] = [
+	{
+		id: "select",
+		header: ({ table }) => {
+			const meta = table.options.meta as RunTableMeta | undefined;
+			const runNos = table.getRowModel().rows.map((row) => row.original.runNo);
+			const selectedCount = runNos.filter((runNo) => meta?.isRunSelected?.(runNo)).length;
+			const allCount = runNos.length;
+			const checked =
+				allCount > 0 && selectedCount === allCount
+					? true
+					: selectedCount > 0
+						? "indeterminate"
+						: false;
+
+			return (
+				<Checkbox
+					checked={checked}
+					onCheckedChange={(value) => {
+						meta?.onSelectAll?.(runNos, value === true);
+					}}
+					aria-label="选择全部"
+				/>
+			);
+		},
+		cell: ({ row, table }) => {
+			const meta = table.options.meta as RunTableMeta | undefined;
+			const runNo = row.original.runNo;
+			return (
+				<Checkbox
+					checked={meta?.isRunSelected?.(runNo) ?? false}
+					onCheckedChange={(value) => {
+						meta?.onSelectRun?.(runNo, value === true);
+					}}
+					aria-label={`选择批次 ${runNo}`}
+				/>
+			);
+		},
+		enableSorting: false,
+		size: 40,
+	},
 	{
 		accessorKey: "runNo",
 		header: "批次号",
@@ -52,6 +98,30 @@ export const runColumns: ColumnDef<Run>[] = [
 
 			return <Badge variant={variant}>{label}</Badge>;
 		},
+	},
+	{
+		id: "readinessStatus",
+		header: "准备检查",
+		cell: ({ row }) => {
+			const readinessStatus = (row.original as RunWithReadiness).readinessStatus;
+			if (!readinessStatus) return <span className="text-muted-foreground">-</span>;
+
+			const map: Record<
+				string,
+				{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+			> = {
+				PENDING: { label: "检查中", variant: "outline" },
+				PASSED: { label: "通过", variant: "secondary" },
+				FAILED: { label: "失败", variant: "destructive" },
+			};
+
+			const config = map[readinessStatus] ?? {
+				label: readinessStatus,
+				variant: "outline" as const,
+			};
+			return <Badge variant={config.variant}>{config.label}</Badge>;
+		},
+		enableSorting: false,
 	},
 	{
 		accessorKey: "shiftCode",
