@@ -34,6 +34,21 @@ export const navMain: NavItem[] = [
 				permissions: [Permission.READINESS_VIEW],
 			},
 			{
+				title: "首件检验",
+				url: "/mes/fai",
+				permissions: [Permission.QUALITY_FAI],
+			},
+			{
+				title: "缺陷处置",
+				url: "/mes/defects",
+				permissions: [Permission.QUALITY_DISPOSITION],
+			},
+			{
+				title: "返工任务",
+				url: "/mes/rework-tasks",
+				permissions: [Permission.QUALITY_DISPOSITION],
+			},
+			{
 				title: "工位执行",
 				url: "/mes/execution",
 				permissions: [Permission.EXEC_READ, Permission.EXEC_TRACK_IN, Permission.EXEC_TRACK_OUT],
