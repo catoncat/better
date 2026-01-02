@@ -78,6 +78,10 @@ Use `DataListView` with `viewPreferencesKey` - toggle lives in `FilterToolbar`.
 - **Collapsible**: Optional "更多筛选" expand for advanced filters.
 - **Clear action**: "清空筛选" button (not "全部"), resets to default empty state.
 
+### Date Range Contract
+- Use `type: "dateRange"` with `dateFromKey` and `dateToKey`.
+- Filters store ISO 8601 strings at those keys (no `__dateRange__` intermediary).
+
 ### Example
 ```tsx
 systemPresets={[
