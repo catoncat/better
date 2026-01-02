@@ -89,10 +89,7 @@ function deepEqual(a: unknown, b: unknown): boolean {
 	return aKeys.every((key) => deepEqual(aObj[key], bObj[key]));
 }
 
-function normalizeFilters<T>(
-	filters: Partial<T>,
-	sortableArrayKeys?: Set<string>,
-): Partial<T> {
+function normalizeFilters<T>(filters: Partial<T>, sortableArrayKeys?: Set<string>): Partial<T> {
 	const result: Partial<T> = {};
 	for (const [key, value] of Object.entries(filters as Record<string, unknown>)) {
 		// Skip empty values
@@ -106,8 +103,7 @@ function normalizeFilters<T>(
 				["string", "number", "boolean"].includes(typeof item),
 			);
 			const shouldSort = Boolean(sortableArrayKeys?.has(key));
-			const normalizedArray =
-				isPrimitiveArray && shouldSort ? [...filtered].sort() : filtered;
+			const normalizedArray = isPrimitiveArray && shouldSort ? [...filtered].sort() : filtered;
 			(result as Record<string, unknown>)[key] = normalizedArray;
 			continue;
 		}
@@ -123,10 +119,7 @@ export function useQueryPresets<T>(
 	},
 ): QueryPresetsState<T> {
 	const { storageKey, sanitizeFilters, sortableArrayKeys } = options;
-	const sortableArrayKeySet = useMemo(
-		() => new Set(sortableArrayKeys ?? []),
-		[sortableArrayKeys],
-	);
+	const sortableArrayKeySet = useMemo(() => new Set(sortableArrayKeys ?? []), [sortableArrayKeys]);
 
 	const [presets, setPresets] = useState<QueryPreset<T>[]>([]);
 	const [activePresetId, setActivePresetId] = useState<string | null>(null);
@@ -158,10 +151,7 @@ export function useQueryPresets<T>(
 		(filters: Partial<T>): QueryPreset<T> | undefined => {
 			const normalizedFilters = normalizeFilters(sanitize(filters), sortableArrayKeySet);
 			return presets.find((p) =>
-				deepEqual(
-					normalizeFilters(sanitize(p.filters), sortableArrayKeySet),
-					normalizedFilters,
-				),
+				deepEqual(normalizeFilters(sanitize(p.filters), sortableArrayKeySet), normalizedFilters),
 			);
 		},
 		[presets, sanitize, sortableArrayKeySet],
@@ -179,10 +169,7 @@ export function useQueryPresets<T>(
 
 			// Check if the same filters already exist
 			const existingWithSameFilters = presets.find((p) =>
-				deepEqual(
-					normalizeFilters(sanitize(p.filters), sortableArrayKeySet),
-					normalizedFilters,
-				),
+				deepEqual(normalizeFilters(sanitize(p.filters), sortableArrayKeySet), normalizedFilters),
 			);
 
 			if (existingWithSameFilters) {
