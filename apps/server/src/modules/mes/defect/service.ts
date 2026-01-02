@@ -61,6 +61,14 @@ export async function createDefect(
 				};
 			}
 
+			const meta: Prisma.JsonObject = {};
+			if (data.remark) {
+				meta.remark = data.remark;
+			}
+			if (createdBy) {
+				meta.createdBy = createdBy;
+			}
+
 			const defect = await db.defect.create({
 				data: {
 					unitId: unit.id,
@@ -69,7 +77,7 @@ export async function createDefect(
 					location: data.location,
 					qty: data.qty ?? 1,
 					status: DEFECT_STATUS.RECORDED,
-					meta: data.remark ? { remark: data.remark } : undefined,
+					meta: Object.keys(meta).length > 0 ? meta : undefined,
 				},
 				include: {
 					unit: true,
