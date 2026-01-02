@@ -3,6 +3,7 @@ import { type Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
 import { parseSortOrderBy } from "../../../utils/sort";
+import { performCheck } from "../readiness/service";
 import type {
 	runCreateSchema,
 	workOrderListQuerySchema,
@@ -395,6 +396,12 @@ export const createRun = async (
 				});
 
 				setSpanAttributes(span, { "mes.run.run_no": run.runNo });
+
+				// Trigger automatic precheck after run creation (async, non-blocking)
+				performCheck(db, run.runNo, "PRECHECK").catch((err) => {
+					console.error(`[Run ${run.runNo}] Auto precheck failed:`, err);
+				});
+
 				return { success: true, data: run };
 			} catch (error) {
 				span.recordException(error as Error);
