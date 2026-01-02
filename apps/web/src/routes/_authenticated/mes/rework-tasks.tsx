@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import {
 	CheckCircle2,
@@ -6,7 +6,6 @@ import {
 	ChevronRight,
 	Loader2,
 	RotateCcw,
-	XCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";

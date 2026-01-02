@@ -210,13 +210,22 @@ export function useCompleteFai() {
 		mutationFn: async ({
 			faiId,
 			decision,
+			failedQty,
+			passedQty,
 			remark,
 		}: {
 			faiId: string;
 			decision: "PASS" | "FAIL";
+			failedQty?: number;
+			passedQty?: number;
 			remark?: string;
 		}) => {
-			const response = await client.api.fai({ faiId }).complete.post({ decision, remark });
+			const response = await client.api.fai({ faiId }).complete.post({
+				decision,
+				failedQty,
+				passedQty,
+				remark,
+			});
 			if (response.error) {
 				throw new Error("Failed to complete FAI");
 			}

@@ -83,6 +83,7 @@ function FaiPage() {
 	// Complete form state
 	const [completeForm, setCompleteForm] = useState({
 		decision: "PASS" as "PASS" | "FAIL",
+		failedQty: 1,
 		remark: "",
 	});
 
@@ -91,10 +92,21 @@ function FaiPage() {
 		run?: { runNo: string } | null;
 	};
 	const items = (data?.items ?? []) as FaiItemWithRun[];
+	const selectedFai = items.find((fai) => fai.id === selectedFaiId);
+	const sampleQty = faiDetail?.sampleQty ?? selectedFai?.sampleQty ?? null;
 	const total = data?.total ?? 0;
 	const currentPage = data?.page ?? 1;
 	const pageSize = data?.pageSize ?? 20;
 	const totalPages = Math.ceil(total / pageSize);
+	const computedPassedQty =
+		typeof sampleQty === "number"
+			? Math.max(sampleQty - completeForm.failedQty, 0)
+			: null;
+	const isFailDecision = completeForm.decision === "FAIL";
+	const isFailedQtyInvalid =
+		isFailDecision &&
+		(completeForm.failedQty <= 0 ||
+			(typeof sampleQty === "number" && completeForm.failedQty > sampleQty));
 
 	const formatTime = (value?: string | Date | null) => {
 		if (!value) return "-";
@@ -157,17 +169,23 @@ function FaiPage() {
 
 	const handleCompleteFai = () => {
 		if (!selectedFaiId) return;
+		if (isFailedQtyInvalid) return;
 		completeFai.mutate(
-			{
-				faiId: selectedFaiId,
-				decision: completeForm.decision,
-				remark: completeForm.remark || undefined,
-			},
+				{
+					faiId: selectedFaiId,
+					decision: completeForm.decision,
+					failedQty: isFailDecision ? completeForm.failedQty : undefined,
+					passedQty:
+						isFailDecision && typeof sampleQty === "number"
+							? computedPassedQty ?? 0
+							: undefined,
+					remark: completeForm.remark || undefined,
+				},
 			{
 				onSuccess: () => {
 					setCompleteDialogOpen(false);
 					setSelectedFaiId(null);
-					setCompleteForm({ decision: "PASS", remark: "" });
+					setCompleteForm({ decision: "PASS", failedQty: 1, remark: "" });
 					refetch();
 				},
 			},
@@ -531,7 +549,11 @@ function FaiPage() {
 							<Select
 								value={completeForm.decision}
 								onValueChange={(v) =>
-									setCompleteForm({ ...completeForm, decision: v as "PASS" | "FAIL" })
+									setCompleteForm({
+										...completeForm,
+										decision: v as "PASS" | "FAIL",
+										failedQty: completeForm.failedQty > 0 ? completeForm.failedQty : 1,
+									})
 								}
 							>
 								<SelectTrigger>
@@ -543,6 +565,27 @@ function FaiPage() {
 								</SelectContent>
 							</Select>
 						</div>
+						{isFailDecision && (
+							<div>
+								<Label>失败数量 *</Label>
+								<Input
+									type="number"
+									min={1}
+									max={typeof sampleQty === "number" ? sampleQty : undefined}
+									value={completeForm.failedQty}
+									onChange={(e) => {
+										const value = Number.parseInt(e.target.value, 10);
+										setCompleteForm({
+											...completeForm,
+											failedQty: Number.isNaN(value) ? 0 : value,
+										});
+									}}
+								/>
+								<div className="text-xs text-muted-foreground mt-1">
+									通过数量：{computedPassedQty ?? "-"} / 抽样数 {sampleQty ?? "-"}
+								</div>
+							</div>
+						)}
 						<div>
 							<Label>备注</Label>
 							<Textarea
@@ -556,7 +599,10 @@ function FaiPage() {
 						<Button variant="outline" onClick={() => setCompleteDialogOpen(false)}>
 							取消
 						</Button>
-						<Button onClick={handleCompleteFai} disabled={completeFai.isPending}>
+						<Button
+							onClick={handleCompleteFai}
+							disabled={completeFai.isPending || isFailedQtyInvalid}
+						>
 							{completeFai.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
 							确认完成
 						</Button>
