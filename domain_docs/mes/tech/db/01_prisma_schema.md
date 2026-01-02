@@ -70,6 +70,13 @@ ERP master data storage:
 - `BomItem`
 - `WorkCenter`
 
+ERP master data enrichment (meta fields):
+- `WorkOrder.erpStatus` / `WorkOrder.erpPickStatus`: store ERP status codes
+- `WorkOrder.meta.erp`: workshop, routing name, product name/spec, unit, plan dates, priority, src bill, report/scrap qty
+- `Material.meta.erp`: specification, barcode, status flags, category/unit codes, produce unit
+- `BomItem.meta.erp`: denominator/scrap/key flags, issue/backflush types, parent/child names/specs, unit code, status flags
+- `WorkCenter.meta.erp`: work center type, description, document status
+
 ### 2.4 Mapping tables
 ERP process and work center should map into MES dictionaries:
 - `OperationMapping` (ERP processKey → MES operationId)

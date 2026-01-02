@@ -42,6 +42,10 @@ Step fields:
 - `FIsFirstPieceInspect`
 - `FIsProcessRecordStation` / `FIsQualityInspectStation`
 
+Verified in current Kingdee environment:
+- These step fields are directly queryable via ExecuteBillQuery (no `TreeEntity` prefix required).
+- View API may show `RouteOperSeq` structures; treat them as structural hints only.
+
 Parsing rule:
 - When `FNumber` is empty, reuse the last seen header fields for that row.
 

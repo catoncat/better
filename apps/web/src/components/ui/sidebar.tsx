@@ -13,17 +13,14 @@ import {
 	SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "./sidebar.context";
 
-const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
-const SIDEBAR_WIDTH_ICON = "3rem";
 
 // Re-export for backward compatibility
-export { useSidebar } from "./sidebar.context";
-export { SidebarProvider } from "./sidebar.context";
+export { SidebarProvider, useSidebar } from "./sidebar.context";
 
 function Sidebar({
 	side = "left",

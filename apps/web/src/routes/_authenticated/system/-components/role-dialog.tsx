@@ -53,7 +53,7 @@ interface RoleDialogProps {
 	isSubmitting?: boolean;
 }
 
-export function RoleDialog({ open, onOpenChange, role, onSubmit, isSubmitting }: RoleDialogProps) {
+export function RoleDialog({ open, onOpenChange, role, onSubmit }: RoleDialogProps) {
 	const permissionGroups = useMemo(() => Object.values(PERMISSION_GROUPS), []);
 	const form = useForm({
 		defaultValues: {
@@ -181,7 +181,9 @@ export function RoleDialog({ open, onOpenChange, role, onSubmit, isSubmitting }:
 								{(field) => (
 									<Select
 										value={field.state.value}
-										onValueChange={field.handleChange}
+										onValueChange={(value) =>
+											field.handleChange(value as RoleFormValues["dataScope"])
+										}
 										disabled={isSystemRole}
 									>
 										<SelectTrigger className="w-full">
@@ -222,12 +224,13 @@ export function RoleDialog({ open, onOpenChange, role, onSubmit, isSubmitting }:
 																id={checkboxId}
 																disabled={isSystemRole}
 																checked={field.state.value.includes(perm.value)}
-																onCheckedChange={(checked: any) => {
-																	const next = checked
-																		? [...field.state.value, perm.value]
-																		: field.state.value.filter(
-																				(value: string) => value !== perm.value,
-																			);
+																onCheckedChange={(checked: boolean | "indeterminate") => {
+																	const next =
+																		checked === true
+																			? [...field.state.value, perm.value]
+																			: field.state.value.filter(
+																					(value: string) => value !== perm.value,
+																				);
 																	field.handleChange(next);
 																}}
 															/>
@@ -248,14 +251,13 @@ export function RoleDialog({ open, onOpenChange, role, onSubmit, isSubmitting }:
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
 							取消
 						</Button>
-						<form.Subscribe
-							selector={(state) => [state.canSubmit, state.isSubmitting]}
-							children={([canSubmit, isSubmitting]) => (
+						<form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+							{([canSubmit, isSubmitting]) => (
 								<Button type="submit" disabled={!canSubmit}>
 									{isSubmitting ? "保存中..." : role ? "保存" : "创建"}
 								</Button>
 							)}
-						/>
+						</form.Subscribe>
 					</DialogFooter>
 				</form>
 			</DialogContent>

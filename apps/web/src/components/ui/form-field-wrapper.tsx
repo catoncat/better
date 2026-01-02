@@ -1,5 +1,3 @@
-import { HelpCircle } from "lucide-react";
-import type * as React from "react";
 import type {
 	DeepKeys,
 	DeepValue,
@@ -11,6 +9,8 @@ import type {
 	FormValidateOrFn,
 	ReactFormExtendedApi,
 } from "@tanstack/react-form";
+import { HelpCircle } from "lucide-react";
+import type * as React from "react";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -196,10 +196,8 @@ export function Field<
 	TSubmitMeta
 >) {
 	return (
-		<form.Field
-			name={name}
-			validators={validators}
-			children={(field) => {
+		<form.Field name={name} validators={validators}>
+			{(field) => {
 				// Field state
 				const { meta } = field.state;
 				const isInvalid = meta.isTouched && meta.errors.length > 0;
@@ -265,6 +263,6 @@ export function Field<
 					</div>
 				);
 			}}
-		/>
+		</form.Field>
 	);
 }
