@@ -62,8 +62,9 @@ Step fields (operation line):
 - `FIsProcessRecordStation` / `FIsQualityInspectStation`
 
 Parsing notes:
-- Export rows may include header data only on the first row for a route; subsequent rows carry step data with empty header columns.
-- The importer must carry forward the last seen header row when `FNumber` is empty.
+- Group rows by `FID` (`headId`) before parsing to avoid ordering dependencies.
+- Header fields are repeated on each row; do not rely on a "last seen header".
+- If multiple `FID` groups exist for the same `FNumber`, keep the group with the latest `FModifyDate`.
 
 Normalization:
 - `Routing` from header fields
@@ -72,8 +73,7 @@ Normalization:
 - Store unmapped fields in `RoutingStep.meta.erp`
 
 Dedupe:
-- `dedupeKey = ERP:ROUTE:{FNumber}:{FModifyDate}` if `FModifyDate` exists
-- Else `dedupeKey = ERP:ROUTE:{FNumber}:{payloadHash}`
+- `dedupeKey = ERP:ROUTING:{payloadHash}` where `payloadHash` is computed from the normalized envelope
 
 ### 2.4 Kingdee API Adapter (Pull)
 Authentication:
@@ -99,8 +99,9 @@ Configuration (env vars, prefix `MES_ERP_KINGDEE_`):
 - `WORK_ORDER_ROUTING_FIELD` (optional, Kingdee field key for routing code on PRD_MO)
 
 Implementation entrypoint:
-- `apps/server/src/modules/mes/integration/erp-master-sync-service.ts` handles Kingdee routes + master data.
-- `apps/server/src/modules/mes/integration/erp-service.ts` re-exports the same functions/types.
+- `apps/server/src/modules/mes/integration/erp/index.ts` exposes ERP sync entrypoints.
+- `apps/server/src/modules/mes/integration/sync-pipeline.ts` provides the shared sync pipeline.
+- ERP pull/apply modules live under `apps/server/src/modules/mes/integration/erp/`.
 
 ### 2.5 ERP Master Data Pull (Kingdee)
 Work orders / materials / BOM / work centers are pulled directly from Kingdee using the same SSO session.
@@ -115,7 +116,7 @@ Routing code on work orders:
 - Default routing field is `FRoutingId.FNumber` (Kingdee). Override via `MES_ERP_KINGDEE_WORK_ORDER_ROUTING_FIELD` if needed.
 - If the routing field is unavailable, MES will ingest work orders without `routingCode` and attempt to resolve by `productCode`.
 
-If the Kingdee config is missing, master-data pulls fall back to mock payloads for local development.
+If the Kingdee config is missing, ERP pulls fall back to mock payloads for local development.
 
 #### Verified FieldKeys (current Kingdee environment)
 These FieldKeys are confirmed queryable via ExecuteBillQuery:
@@ -202,7 +203,7 @@ Manual trigger:
 
 ### 4.2 Ingestion pipeline (recommended)
 1) **Pull & validate** (sourceKey + dedupeKey)
-2) **Raw persistence** (IntegrationMessage + raw tables)
+2) **Raw persistence** (IntegrationMessage + ERP raw tables for routing + master data)
 3) **Normalize** into canonical tables
 4) **Compile** executable route versions (for routing updates)
 5) **Publish** READY versions; in-flight Runs remain unchanged

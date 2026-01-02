@@ -7,7 +7,7 @@ This document describes the Prisma schema approach for the MES project, with emp
 - Compiled executable route versions (for Run freeze)
 
 Note: This is documentation. The source of truth is the actual `schema.prisma` in the codebase.
-Implementation status: schema updates have started in `schema.prisma`; migrations are pending execution.
+Implementation status: schema + migrations are updated in `schema.prisma`; apply via `bun run db:migrate`.
 
 ---
 
@@ -55,6 +55,10 @@ Store raw ingestion payloads for:
 Tables:
 - `ErpRouteHeaderRaw`
 - `ErpRouteLineRaw`
+- `ErpWorkOrderRaw`
+- `ErpMaterialRaw`
+- `ErpBomRaw`
+- `ErpWorkCenterRaw`
 
 Also store sync cursors and dedupe keys:
 - `IntegrationSyncCursor` (sourceSystem, entityType, lastSyncAt/lastSeq)
@@ -69,6 +73,7 @@ ERP master data storage:
 - `Material`
 - `BomItem`
 - `WorkCenter`
+- `WorkOrder.plannedQty` is stored as `Float` to preserve ERP decimals.
 
 ERP master data enrichment (meta fields):
 - `WorkOrder.erpStatus` / `WorkOrder.erpPickStatus`: store ERP status codes
