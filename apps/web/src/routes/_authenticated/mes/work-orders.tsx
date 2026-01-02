@@ -365,7 +365,7 @@ function WorkOrdersPage() {
 					/>
 				),
 			}}
-			viewPreferencesKey="mes-work-orders"
+			viewPreferencesKey={viewPreferencesKey}
 			header={
 				<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 					<div>
