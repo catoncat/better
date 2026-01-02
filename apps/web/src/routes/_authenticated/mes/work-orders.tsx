@@ -1,14 +1,10 @@
 import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
-import { format } from "date-fns";
-import { Play, Plus, Send } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
-import type { CardFieldDefinition } from "@/components/data-table/data-card";
-import type { TableAction } from "@/components/data-table/table-actions";
 import { Button } from "@/components/ui/button";
-import { useAbility } from "@/hooks/use-ability";
 import { useQueryPresets } from "@/hooks/use-query-presets";
 import { useRouteList } from "@/hooks/use-routes";
 import { useCreateRun } from "@/hooks/use-runs";
@@ -19,7 +15,6 @@ import {
 	useWorkOrderList,
 	type WorkOrder,
 } from "@/hooks/use-work-orders";
-import { WORK_ORDER_STATUS_MAP } from "@/lib/constants";
 import { PickStatusDialog, type PickStatusFormValues } from "./-components/pick-status-dialog";
 import { RunCreateDialog, type RunFormValues } from "./-components/run-create-dialog";
 import { WorkOrderCard } from "./-components/work-order-card";
@@ -43,34 +38,6 @@ interface WorkOrderSearchParams {
 	pageSize?: number;
 }
 
-type WorkOrderErpMeta = {
-	workshopCode?: string;
-	workshopName?: string;
-	routingName?: string;
-	productName?: string;
-	productSpec?: string;
-};
-
-const getErpMeta = (wo: WorkOrder): WorkOrderErpMeta => {
-	const meta = (wo as { meta?: unknown }).meta;
-	if (!meta || typeof meta !== "object") return {};
-	const erp = (meta as { erp?: unknown }).erp;
-	if (!erp || typeof erp !== "object") return {};
-	return erp as WorkOrderErpMeta;
-};
-
-const getProductDetail = (meta: WorkOrderErpMeta) => {
-	const parts = [meta.productName, meta.productSpec].filter(Boolean);
-	return parts.length > 0 ? parts.join(" · ") : "";
-};
-
-const formatDate = (value?: string) => {
-	if (!value) return "-";
-	const parsed = new Date(value);
-	if (Number.isNaN(parsed.valueOf())) return "-";
-	return format(parsed, "yyyy-MM-dd");
-};
-
 export const Route = createFileRoute("/_authenticated/mes/work-orders")({
 	validateSearch: (search: Record<string, unknown>): WorkOrderSearchParams => ({
 		search: (search.search as string) || undefined,
@@ -89,7 +56,6 @@ function WorkOrdersPage() {
 	const navigate = useNavigate();
 	const searchParams = useSearch({ from: "/_authenticated/mes/work-orders" });
 	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
-	const { hasPermission } = useAbility();
 
 	const [receiveDialogOpen, setReceiveDialogOpen] = useState(false);
 	const [runDialogOpen, setRunDialogOpen] = useState(false);
@@ -323,75 +289,6 @@ function WorkOrdersPage() {
 			await updatePickStatus({ woNo: selectedWO.woNo, pickStatus: values.pickStatus });
 		}
 	};
-
-	const workOrderCardFields: CardFieldDefinition<WorkOrder>[] = [
-		{ key: "woNo", primary: true },
-		{
-			key: "status",
-			label: "状态",
-			badge: true,
-			badgeVariant: "outline",
-			render: (value) => {
-				const status = String(value ?? "");
-				return WORK_ORDER_STATUS_MAP[status] || status || "-";
-			},
-		},
-		{
-			key: "productCode",
-			label: "产品",
-			render: (_value, item) => {
-				const detail = getProductDetail(getErpMeta(item));
-				return detail ? `${item.productCode} · ${detail}` : item.productCode;
-			},
-		},
-		{
-			key: "meta.erp.workshopName",
-			label: "车间",
-			render: (_value, item) => {
-				const meta = getErpMeta(item);
-				return meta.workshopName || meta.workshopCode || "-";
-			},
-		},
-		{
-			key: "meta.erp.routingName",
-			label: "工艺路线",
-			render: (_value, item) => {
-				const meta = getErpMeta(item);
-				return meta.routingName || "-";
-			},
-		},
-		{ key: "plannedQty", label: "计划数量" },
-		{
-			key: "dueDate",
-			label: "到期日期",
-			render: (value) => formatDate(typeof value === "string" ? value : undefined),
-		},
-	];
-
-	const getCardActions = useCallback(
-		(wo: WorkOrder): TableAction[] => {
-			const actions: TableAction[] = [];
-			if (wo.status === "RECEIVED" && hasPermission(Permission.WO_RELEASE)) {
-				actions.push({
-					icon: Send,
-					label: "发布工单",
-					onClick: () => void handleRelease(wo.woNo),
-				});
-			}
-			if (
-				(wo.status === "RELEASED" || wo.status === "IN_PROGRESS") &&
-				hasPermission(Permission.RUN_CREATE)
-			) {
-				actions.push({
-					icon: Play,
-					label: "创建批次",
-					onClick: () => handleCreateRunOpen(wo),
-				});
-			}
-			return actions;
-		},
-		[hasPermission, handleRelease, handleCreateRunOpen],
-	);
 
 	return (
 		<DataListLayout
