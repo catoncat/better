@@ -29,6 +29,11 @@ export const navMain: NavItem[] = [
 				permissions: [Permission.RUN_READ],
 			},
 			{
+				title: "准备异常",
+				url: "/mes/readiness-exceptions",
+				permissions: [Permission.READINESS_VIEW],
+			},
+			{
 				title: "工位执行",
 				url: "/mes/execution",
 				permissions: [Permission.EXEC_READ, Permission.EXEC_TRACK_IN, Permission.EXEC_TRACK_OUT],

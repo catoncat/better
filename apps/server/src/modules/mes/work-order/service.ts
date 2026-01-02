@@ -5,6 +5,7 @@ import type { ServiceResult } from "../../../types/service-result";
 import { parseSortOrderBy } from "../../../utils/sort";
 import type {
 	runCreateSchema,
+	workOrderCancelSchema,
 	workOrderListQuerySchema,
 	workOrderReceiveSchema,
 	workOrderReleaseSchema,
@@ -12,6 +13,7 @@ import type {
 
 type WorkOrderReceiveInput = Static<typeof workOrderReceiveSchema>;
 type WorkOrderReleaseInput = Static<typeof workOrderReleaseSchema>;
+type WorkOrderCancelInput = Static<typeof workOrderCancelSchema>;
 type RunCreateInput = Static<typeof runCreateSchema>;
 type WorkOrderListQuery = Static<typeof workOrderListQuerySchema>;
 
@@ -263,6 +265,68 @@ export const releaseWorkOrder = async (
 					where: { woNo },
 					data: {
 						status: WorkOrderStatus.RELEASED,
+					},
+				});
+
+				return { success: true, data: updated };
+			} catch (error) {
+				span.recordException(error as Error);
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				throw error;
+			} finally {
+				span.end();
+			}
+		},
+	);
+};
+
+export const cancelWorkOrder = async (
+	db: PrismaClient,
+	woNo: string,
+	data: WorkOrderCancelInput,
+): Promise<ServiceResult<Prisma.WorkOrderGetPayload<Prisma.WorkOrderDefaultArgs>>> => {
+	return await tracer.startActiveSpan(
+		"mes.work_orders.cancel",
+		async (
+			span,
+		): Promise<ServiceResult<Prisma.WorkOrderGetPayload<Prisma.WorkOrderDefaultArgs>>> => {
+			setSpanAttributes(span, {
+				"mes.work_order.wo_no": woNo,
+				"mes.work_order.cancel_reason": data.reason,
+			});
+
+			try {
+				const wo = await db.workOrder.findUnique({ where: { woNo } });
+				if (!wo) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "WORK_ORDER_NOT_FOUND");
+					return {
+						success: false,
+						code: "WORK_ORDER_NOT_FOUND",
+						message: "Work order not found",
+						status: 404,
+					};
+				}
+
+				if (wo.status === WorkOrderStatus.CANCELLED) {
+					return { success: true, data: wo };
+				}
+
+				if (wo.status !== WorkOrderStatus.IN_PROGRESS) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "WORK_ORDER_NOT_IN_PROGRESS");
+					return {
+						success: false,
+						code: "WORK_ORDER_NOT_IN_PROGRESS",
+						message: "Work order is not in progress",
+						status: 400,
+					};
+				}
+
+				const updated = await db.workOrder.update({
+					where: { woNo },
+					data: {
+						status: WorkOrderStatus.CANCELLED,
 					},
 				});
 

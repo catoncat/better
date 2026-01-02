@@ -3,12 +3,20 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import {
 	Form,
 	FormControl,
@@ -60,6 +68,9 @@ const trackOutSchema = z.object({
 
 function ExecutionPage() {
 	const [selectedStation, setSelectedStation] = useState<string>("");
+	const [ngDialogOpen, setNgDialogOpen] = useState(false);
+	const [ngItem, setNgItem] = useState<{ sn: string; runNo: string } | null>(null);
+	const stationStorageKey = "mes.execution.station";
 	const { data: stations } = useStations();
 	const {
 		data: queueData,
@@ -82,6 +93,23 @@ function ExecutionPage() {
 		defaultValues: { sn: "", runNo: "", result: "PASS" },
 	});
 
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		const saved = window.localStorage.getItem(stationStorageKey);
+		if (saved) {
+			setSelectedStation(saved);
+		}
+	}, []);
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		if (selectedStation) {
+			window.localStorage.setItem(stationStorageKey, selectedStation);
+		} else {
+			window.localStorage.removeItem(stationStorageKey);
+		}
+	}, [selectedStation]);
+
 	const onInSubmit = async (values: z.infer<typeof trackInSchema>) => {
 		if (!selectedStation || !canTrackIn) return;
 		await trackIn({ stationCode: selectedStation, ...values });
@@ -96,10 +124,62 @@ function ExecutionPage() {
 		refetchQueue();
 	};
 
-	const handleQueueItemClick = (item: { sn: string; woNo: string; runNo: string }) => {
-		if (!canTrackOut) return;
-		outForm.setValue("sn", item.sn);
-		outForm.setValue("runNo", item.runNo);
+	const handleQueueItemClick = async (item: { sn: string; woNo: string; runNo: string }) => {
+		if (!selectedStation || !canTrackOut || isOutPending) return;
+		await trackOut({
+			stationCode: selectedStation,
+			sn: item.sn,
+			runNo: item.runNo,
+			result: "PASS",
+		});
+		outForm.reset({ sn: "", runNo: "", result: "PASS" });
+		refetchQueue();
+	};
+
+	const handleOpenNgDialog = (item: { sn: string; runNo: string }) => {
+		setNgItem(item);
+		setNgDialogOpen(true);
+	};
+
+	const handleConfirmNg = async () => {
+		if (!selectedStation || !canTrackOut || isOutPending || !ngItem) return;
+		await trackOut({
+			stationCode: selectedStation,
+			sn: ngItem.sn,
+			runNo: ngItem.runNo,
+			result: "FAIL",
+		});
+		setNgDialogOpen(false);
+		setNgItem(null);
+		refetchQueue();
+	};
+
+	const parseScanValue = (raw: string) => {
+		const trimmed = raw.trim();
+		if (!trimmed) return null;
+
+		const keyedMatches = Array.from(
+			trimmed.matchAll(/\b(SN|WO|WONO|RUN|RUNNO)\s*[:=]\s*([^,;|\s]+)/gi),
+		);
+		if (keyedMatches.length > 0) {
+			const result: { sn?: string; woNo?: string; runNo?: string } = {};
+			for (const match of keyedMatches) {
+				const key = match[1].toUpperCase();
+				const value = match[2]?.trim();
+				if (!value) continue;
+				if (key === "SN") result.sn = value;
+				if (key === "WO" || key === "WONO") result.woNo = value;
+				if (key === "RUN" || key === "RUNNO") result.runNo = value;
+			}
+			return Object.keys(result).length > 0 ? result : null;
+		}
+
+		const parts = trimmed.split(/[|,;\s]+/).filter(Boolean);
+		if (parts.length >= 3) {
+			return { sn: parts[0], woNo: parts[1], runNo: parts[2] };
+		}
+
+		return null;
 	};
 
 	const formatTime = (value?: string | null) => {
@@ -176,14 +256,24 @@ function ExecutionPage() {
 													{formatTime(item.inAt)}
 												</TableCell>
 												<TableCell>
-													<Button
-														variant="secondary"
-														size="sm"
-														disabled={!canTrackOut}
-														onClick={() => handleQueueItemClick(item)}
-													>
-														出站
-													</Button>
+													<div className="flex flex-wrap gap-2">
+														<Button
+															variant="secondary"
+															size="sm"
+															disabled={!canTrackOut || isOutPending}
+															onClick={() => handleQueueItemClick(item)}
+														>
+															一键出站
+														</Button>
+														<Button
+															variant="outline"
+															size="sm"
+															disabled={!canTrackOut || isOutPending}
+															onClick={() => handleOpenNgDialog({ sn: item.sn, runNo: item.runNo })}
+														>
+															报不良
+														</Button>
+													</div>
 												</TableCell>
 											</TableRow>
 										))}
@@ -214,7 +304,32 @@ function ExecutionPage() {
 													<FormItem>
 														<FormLabel>产品序列号 (SN)</FormLabel>
 														<FormControl>
-															<Input placeholder="请扫描 SN..." autoFocus {...field} />
+															<Input
+																placeholder="请扫描 SN..."
+																autoFocus
+																{...field}
+																onChange={(e) => {
+																	const nextValue = e.target.value;
+																	const parsed = parseScanValue(nextValue);
+																	if (!parsed) {
+																		field.onChange(nextValue);
+																		return;
+																	}
+																	if (parsed.sn) {
+																		inForm.setValue("sn", parsed.sn, { shouldValidate: true });
+																	} else {
+																		field.onChange(nextValue);
+																	}
+																	if (parsed.woNo) {
+																		inForm.setValue("woNo", parsed.woNo, { shouldValidate: true });
+																	}
+																	if (parsed.runNo) {
+																		inForm.setValue("runNo", parsed.runNo, {
+																			shouldValidate: true,
+																		});
+																	}
+																}}
+															/>
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -264,7 +379,7 @@ function ExecutionPage() {
 							<Card>
 								<CardHeader>
 									<CardTitle>出站录入</CardTitle>
-									<CardDescription>从左侧队列点击"出站"可自动填充，或手动输入</CardDescription>
+									<CardDescription>从左侧队列点击"一键出站"直接提交，或手动输入</CardDescription>
 								</CardHeader>
 								<CardContent>
 									<Form {...outForm}>
@@ -331,6 +446,25 @@ function ExecutionPage() {
 					</Tabs>
 				</div>
 			)}
+
+			<Dialog open={ngDialogOpen} onOpenChange={setNgDialogOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>确认报不良</DialogTitle>
+						<DialogDescription>
+							SN: {ngItem?.sn ?? "-"} · 批次号: {ngItem?.runNo ?? "-"}
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setNgDialogOpen(false)}>
+							取消
+						</Button>
+						<Button onClick={handleConfirmNg} disabled={!canTrackOut || isOutPending}>
+							{isOutPending ? "处理中..." : "确认报不良"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

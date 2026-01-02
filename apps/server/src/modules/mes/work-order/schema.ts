@@ -33,6 +33,10 @@ export const workOrderReleaseSchema = t.Object({
 	stationGroupCode: t.Optional(t.String()),
 });
 
+export const workOrderCancelSchema = t.Object({
+	reason: t.Optional(t.String()),
+});
+
 export const runCreateSchema = t.Object({
 	lineCode: t.String(),
 	shiftCode: t.Optional(t.String()),
