@@ -16,7 +16,7 @@
 | Create production run | ✅ 已实现 | UI 可用 |
 | Line readiness check | ✅ 已实现 | 设备/物料/路由检查 |
 | Exception record/handle | ✅ 已实现 | 豁免 + 异常看板 |
-| FAI task | ⬜ 未实现 | M2 待完成 |
+| FAI task | ⚠️ 部分实现 | 后端 API 已完成，UI 待做 |
 | Batch authorization | ✅ 已实现 | 含 Readiness 门禁 |
 | TrackIn/TrackOut (MANUAL) | ✅ 已实现 | 工位执行页 |
 | AUTO/BATCH/TEST ingest | ⚠️ 部分实现 | 框架就绪，待扩展 |

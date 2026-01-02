@@ -1,7 +1,10 @@
+import { InspectionStatus } from "@better-app/db";
 import { t } from "elysia";
 
+const inspectionStatusPattern = `^(${Object.values(InspectionStatus).join("|")})(,(${Object.values(InspectionStatus).join("|")}))*$`;
+
 export const createFaiSchema = t.Object({
-	sampleQty: t.Number({ minimum: 1, description: "Number of samples to inspect" }),
+	sampleQty: t.Integer({ minimum: 1, description: "Number of samples to inspect" }),
 	remark: t.Optional(t.String()),
 });
 
@@ -21,14 +24,14 @@ export const completeFaiSchema = t.Object({
 	decision: t.Union([t.Literal("PASS"), t.Literal("FAIL")], {
 		description: "Final FAI decision",
 	}),
-	passedQty: t.Optional(t.Number({ minimum: 0, description: "Number of passed samples" })),
-	failedQty: t.Optional(t.Number({ minimum: 0, description: "Number of failed samples" })),
+	passedQty: t.Optional(t.Integer({ minimum: 0, description: "Number of passed samples" })),
+	failedQty: t.Optional(t.Integer({ minimum: 0, description: "Number of failed samples" })),
 	remark: t.Optional(t.String()),
 });
 
 export const faiQuerySchema = t.Object({
 	runNo: t.Optional(t.String()),
-	status: t.Optional(t.String()),
-	page: t.Optional(t.Number({ minimum: 1, default: 1 })),
-	pageSize: t.Optional(t.Number({ minimum: 1, maximum: 100, default: 20 })),
+	status: t.Optional(t.String({ pattern: inspectionStatusPattern })),
+	page: t.Optional(t.Integer({ minimum: 1, default: 1 })),
+	pageSize: t.Optional(t.Integer({ minimum: 1, maximum: 100, default: 20 })),
 });

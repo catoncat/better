@@ -28,7 +28,7 @@ export async function createFai(
 	db: PrismaClient,
 	runNo: string,
 	data: CreateFaiInput,
-	createdBy?: string,
+	_createdBy?: string,
 ): Promise<ServiceResult<InspectionRecord>> {
 	return tracer.startActiveSpan("fai.create", async (span) => {
 		span.setAttribute("fai.runNo", runNo);
@@ -200,6 +200,15 @@ export async function recordFaiItem(
 				};
 			}
 
+			if (fai.type !== InspectionType.FAI) {
+				return {
+					success: false as const,
+					code: "NOT_FAI_INSPECTION",
+					message: "This is not a FAI inspection",
+					status: 400,
+				};
+			}
+
 			if (fai.status !== InspectionStatus.INSPECTING) {
 				return {
 					success: false as const,
@@ -259,6 +268,15 @@ export async function completeFai(
 				};
 			}
 
+			if (fai.type !== InspectionType.FAI) {
+				return {
+					success: false as const,
+					code: "NOT_FAI_INSPECTION",
+					message: "This is not a FAI inspection",
+					status: 400,
+				};
+			}
+
 			if (fai.status !== InspectionStatus.INSPECTING) {
 				return {
 					success: false as const,
@@ -268,15 +286,64 @@ export async function completeFai(
 				};
 			}
 
-			const newStatus =
-				data.decision === "PASS" ? InspectionStatus.PASS : InspectionStatus.FAIL;
+			const sampleQty = fai.sampleQty;
+			let passedQty = data.passedQty;
+			let failedQty = data.failedQty;
+
+			if (data.decision === "PASS") {
+				if (failedQty !== undefined && failedQty !== 0) {
+					return {
+						success: false as const,
+						code: "INVALID_FAI_COUNTS",
+						message: "Failed quantity must be 0 when decision is PASS",
+						status: 400,
+					};
+				}
+
+				failedQty = failedQty ?? 0;
+
+				if (sampleQty !== null && sampleQty !== undefined) {
+					passedQty = passedQty ?? sampleQty;
+					if (passedQty !== sampleQty) {
+						return {
+							success: false as const,
+							code: "INVALID_FAI_COUNTS",
+							message: "Passed quantity must equal sample quantity when decision is PASS",
+							status: 400,
+						};
+					}
+				}
+			} else {
+				if (failedQty === undefined || failedQty <= 0) {
+					return {
+						success: false as const,
+						code: "INVALID_FAI_COUNTS",
+						message: "Failed quantity must be greater than 0 when decision is FAIL",
+						status: 400,
+					};
+				}
+
+				if (sampleQty !== null && sampleQty !== undefined) {
+					passedQty = passedQty ?? sampleQty - failedQty;
+					if (passedQty < 0 || passedQty + failedQty !== sampleQty) {
+						return {
+							success: false as const,
+							code: "INVALID_FAI_COUNTS",
+							message: "Passed + failed quantities must equal sample quantity",
+							status: 400,
+						};
+					}
+				}
+			}
+
+			const newStatus = data.decision === "PASS" ? InspectionStatus.PASS : InspectionStatus.FAIL;
 
 			const updated = await db.inspection.update({
 				where: { id: faiId },
 				data: {
 					status: newStatus,
-					passedQty: data.passedQty,
-					failedQty: data.failedQty,
+					passedQty,
+					failedQty,
 					decidedBy,
 					decidedAt: new Date(),
 					remark: data.remark ?? fai.remark,
@@ -369,7 +436,10 @@ export async function listFai(
 	};
 
 	if (query.status) {
-		const statuses = query.status.split(",").filter(Boolean) as InspectionStatus[];
+		const statuses = query.status
+			.split(",")
+			.map((status) => status.trim())
+			.filter(Boolean) as InspectionStatus[];
 		if (statuses.length > 0) {
 			where.status = { in: statuses };
 		}
@@ -439,12 +509,11 @@ export async function checkFaiGate(
 		};
 	}
 
-	// Check if there's a passed FAI
-	const passedFai = await db.inspection.findFirst({
+	// Check the latest FAI status
+	const latestFai = await db.inspection.findFirst({
 		where: {
 			runId: run.id,
 			type: InspectionType.FAI,
-			status: InspectionStatus.PASS,
 		},
 		orderBy: { createdAt: "desc" },
 	});
@@ -453,8 +522,8 @@ export async function checkFaiGate(
 		success: true as const,
 		data: {
 			requiresFai: true,
-			faiPassed: !!passedFai,
-			faiId: passedFai?.id,
+			faiPassed: latestFai?.status === InspectionStatus.PASS,
+			faiId: latestFai?.status === InspectionStatus.PASS ? latestFai.id : undefined,
 		},
 	};
 }

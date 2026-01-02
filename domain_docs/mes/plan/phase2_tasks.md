@@ -115,19 +115,19 @@ model ReadinessCheckItem {
 - [x] 2.1.6 API: 豁免接口 (waive)
 - [x] 2.1.7 Gate: Run 授权前置检查
 - [x] 2.1.8 权限: `mes:readiness:*` 权限常量
-- [ ] 2.1.9 事件: Run 创建时自动预检
+- [x] 2.1.9 事件: Run 创建时自动预检
 - [x] 2.1.10 事件: TPM/路由变更时重新预检
 - [x] 2.1.11 UI: Run 详情页准备状态卡片
 - [x] 2.1.12 UI: 准备检查执行页（已整合在 Run 详情页）
 - [x] 2.1.13 UI: 异常汇总看板
 
 ### 3.2 Task 2.2: FAI Tasks & Authorization Gate
-- [ ] 2.2.1 Schema: 验证/扩展 Inspection 模型 (FAI 特有字段)
-- [ ] 2.2.2 Service: FAI 任务创建逻辑 (限制试产数量)
-- [ ] 2.2.3 API: 创建 FAI 任务
-- [ ] 2.2.4 API: 记录检验结果
-- [ ] 2.2.5 API: 完成 FAI (PASS/FAIL)
-- [ ] 2.2.6 Gate: Run 授权需 FAI PASSED
+- [x] 2.2.1 Schema: 验证/扩展 Inspection 模型 (FAI 特有字段)
+- [x] 2.2.2 Service: FAI 任务创建逻辑 (限制试产数量)
+- [x] 2.2.3 API: 创建 FAI 任务
+- [x] 2.2.4 API: 记录检验结果
+- [x] 2.2.5 API: 完成 FAI (PASS/FAIL)
+- [x] 2.2.6 Gate: Run 授权需 FAI PASSED
 - [ ] 2.2.7 UI: FAI 任务创建/执行页
 - [ ] 2.2.8 UI: FAI 结果记录表单
 
