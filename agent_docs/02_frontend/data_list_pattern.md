@@ -20,6 +20,7 @@ Component locations:
 
 ## Rules
 - Use `DataListLayout` with `mode="server"`.
+- **Server mode requires `pageCount`** (data is already paged; do not apply client pagination row model).
 - Always sync pagination with URL search.
 - Use the same `viewPreferencesKey` in `FilterToolbar` and `DataListView`.
 - Route search params must be validated via `validateSearch`.
