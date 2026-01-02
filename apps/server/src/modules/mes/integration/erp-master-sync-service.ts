@@ -854,32 +854,16 @@ const syncEnvelope = async <T>(
 	db: PrismaClient,
 	sourceSystem: string,
 	entityType: string,
-	since: string | null,
-	payloadBuilder: () => Promise<T[]>,
-	applyItems: (tx: Prisma.TransactionClient, items: T[]) => Promise<void>,
+        since: string | null,
+        payloadBuilder: () => Promise<T[]>,
+        applyItems: (tx: Prisma.TransactionClient, items: T[]) => Promise<void>,
 ): Promise<ServiceResult<SyncResult<T>>> => {
-	const businessKey = `${sourceSystem}:${entityType}:since:${since ?? "NONE"}`;
-	const existing = await db.integrationMessage.findFirst({
-		where: { direction: "IN", system: sourceSystem, entityType, businessKey, status: "SUCCESS" },
-		orderBy: { createdAt: "desc" },
-	});
-	if (existing?.payload && typeof existing.payload === "object") {
-		return {
-			success: true,
-			data: {
-				payload: existing.payload as IntegrationEnvelope<T>,
-				messageId: existing.id,
-				businessKey,
-				dedupeKey: existing.dedupeKey,
-			},
-		};
-	}
-
-	const items = await payloadBuilder();
-	const nextSyncAt = getLatestTimestamp(
-		items.map((item) => (item as { updatedAt?: string }).updatedAt),
-	);
-	const payload = buildEnvelope(entityType, items, nextSyncAt ?? new Date());
+        const businessKey = `${sourceSystem}:${entityType}:since:${since ?? "NONE"}`;
+        const items = await payloadBuilder();
+        const nextSyncAt = getLatestTimestamp(
+                items.map((item) => (item as { updatedAt?: string }).updatedAt),
+        );
+        const payload = buildEnvelope(entityType, items, nextSyncAt ?? new Date());
 	const dedupeKey = `${sourceSystem}:${entityType}:${hashPayload(payload)}`;
 
 	const syncResult = await db.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -899,13 +883,17 @@ const syncEnvelope = async <T>(
 			},
 			orderBy: { createdAt: "desc" },
 		});
-		if (duplicate?.payload && typeof duplicate.payload === "object") {
-			return {
-				payload: duplicate.payload as IntegrationEnvelope<T>,
-				messageId: duplicate.id,
-				dedupeKey: duplicate.dedupeKey,
-			};
-		}
+                if (duplicate?.payload && typeof duplicate.payload === "object") {
+                        if (items.length > 0) {
+                                await applyItems(tx, items);
+                        }
+
+                        return {
+                                payload: duplicate.payload as IntegrationEnvelope<T>,
+                                messageId: duplicate.id,
+                                dedupeKey: duplicate.dedupeKey,
+                        };
+                }
 
 		if (items.length > 0) {
 			await applyItems(tx, items);
