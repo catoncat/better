@@ -94,6 +94,18 @@ function normalizeFilters<T>(filters: Partial<T>): Partial<T> {
 		// Skip empty values
 		if (value === undefined || value === null || value === "") continue;
 		if (Array.isArray(value) && value.length === 0) continue;
+
+		if (Array.isArray(value)) {
+			const filtered = value.filter((item) => item !== undefined && item !== null && item !== "");
+			if (filtered.length === 0) continue;
+			const isPrimitiveArray = filtered.every((item) =>
+				["string", "number", "boolean"].includes(typeof item),
+			);
+			const normalizedArray = isPrimitiveArray ? [...filtered].sort() : filtered;
+			(result as Record<string, unknown>)[key] = normalizedArray;
+			continue;
+		}
+
 		(result as Record<string, unknown>)[key] = value;
 	}
 	return result;
