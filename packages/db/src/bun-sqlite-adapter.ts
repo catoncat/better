@@ -118,8 +118,10 @@ const getColumnTypes = (declaredTypes: string[], rows: Array<Array<unknown>>): C
 
 	for (const columnIndex of empty) {
 		for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-			const candidate = rows[rowIndex][columnIndex];
-			if (candidate !== null) {
+			const row = rows[rowIndex];
+			if (!row) continue;
+			const candidate = row[columnIndex];
+			if (candidate !== null && candidate !== undefined) {
 				columnTypes[columnIndex] = inferColumnType(candidate);
 				break;
 			}

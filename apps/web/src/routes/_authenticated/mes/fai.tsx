@@ -99,9 +99,7 @@ function FaiPage() {
 	const pageSize = data?.pageSize ?? 20;
 	const totalPages = Math.ceil(total / pageSize);
 	const computedPassedQty =
-		typeof sampleQty === "number"
-			? Math.max(sampleQty - completeForm.failedQty, 0)
-			: null;
+		typeof sampleQty === "number" ? Math.max(sampleQty - completeForm.failedQty, 0) : null;
 	const isFailDecision = completeForm.decision === "FAIL";
 	const isFailedQtyInvalid =
 		isFailDecision &&
@@ -171,16 +169,14 @@ function FaiPage() {
 		if (!selectedFaiId) return;
 		if (isFailedQtyInvalid) return;
 		completeFai.mutate(
-				{
-					faiId: selectedFaiId,
-					decision: completeForm.decision,
-					failedQty: isFailDecision ? completeForm.failedQty : undefined,
-					passedQty:
-						isFailDecision && typeof sampleQty === "number"
-							? computedPassedQty ?? 0
-							: undefined,
-					remark: completeForm.remark || undefined,
-				},
+			{
+				faiId: selectedFaiId,
+				decision: completeForm.decision,
+				failedQty: isFailDecision ? completeForm.failedQty : undefined,
+				passedQty:
+					isFailDecision && typeof sampleQty === "number" ? (computedPassedQty ?? 0) : undefined,
+				remark: completeForm.remark || undefined,
+			},
 			{
 				onSuccess: () => {
 					setCompleteDialogOpen(false);

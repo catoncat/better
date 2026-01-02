@@ -140,13 +140,7 @@ export function useReleaseHold() {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async ({
-			defectId,
-			reason,
-		}: {
-			defectId: string;
-			reason: string;
-		}) => {
+		mutationFn: async ({ defectId, reason }: { defectId: string; reason: string }) => {
 			const response = await client.api.defects({ defectId }).release.post({ reason });
 			if (response.error) {
 				throw new Error("Failed to release hold");
@@ -165,7 +159,7 @@ export function useReleaseHold() {
 }
 
 // Rework task types
-type ReworkListResponse = Awaited<ReturnType<typeof client.api["rework-tasks"]["get"]>>["data"];
+type ReworkListResponse = Awaited<ReturnType<(typeof client.api)["rework-tasks"]["get"]>>["data"];
 export type ReworkListData = NonNullable<ReworkListResponse>["data"];
 export type ReworkTask = ReworkListData["items"][number];
 
@@ -206,13 +200,7 @@ export function useCompleteRework() {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async ({
-			taskId,
-			remark,
-		}: {
-			taskId: string;
-			remark?: string;
-		}) => {
+		mutationFn: async ({ taskId, remark }: { taskId: string; remark?: string }) => {
 			const response = await client.api["rework-tasks"]({ taskId }).complete.post({
 				remark,
 			});

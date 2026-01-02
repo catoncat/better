@@ -1,12 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
-import {
-	CheckCircle2,
-	ChevronLeft,
-	ChevronRight,
-	Loader2,
-	RotateCcw,
-} from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, Loader2, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -187,9 +181,7 @@ function ReworkTasksPage() {
 							<TableBody>
 								{items.map((task) => (
 									<TableRow key={task.id}>
-										<TableCell className="font-mono text-sm">
-											{task.unit?.sn ?? "-"}
-										</TableCell>
+										<TableCell className="font-mono text-sm">{task.unit?.sn ?? "-"}</TableCell>
 										<TableCell>{task.disposition?.defect?.code ?? "-"}</TableCell>
 										<TableCell>工步 {task.toStepNo}</TableCell>
 										<TableCell>{getStatusBadge(task.status)}</TableCell>
