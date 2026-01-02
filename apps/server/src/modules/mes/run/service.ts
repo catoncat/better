@@ -3,6 +3,7 @@ import { type Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
 import { parseSortOrderBy } from "../../../utils/sort";
+import { checkFaiGate } from "../fai/service";
 import { canAuthorize as checkReadiness } from "../readiness/service";
 import type { runAuthorizeSchema, runListQuerySchema } from "./schema";
 
@@ -242,6 +243,25 @@ export const authorizeRun = async (
 							code: "READINESS_CHECK_FAILED",
 							message:
 								"Readiness check failed. All items must pass or be waived before authorization.",
+							status: 400,
+						};
+					}
+
+					// Check FAI gate if required
+					const faiResult = await checkFaiGate(db, runNo);
+					if (!faiResult.success) {
+						span.setStatus({ code: SpanStatusCode.ERROR });
+						span.setAttribute("mes.error_code", faiResult.code);
+						return faiResult as ServiceResult<RunRecord>;
+					}
+					if (faiResult.data.requiresFai && !faiResult.data.faiPassed) {
+						span.setStatus({ code: SpanStatusCode.ERROR });
+						span.setAttribute("mes.error_code", "FAI_NOT_PASSED");
+						return {
+							success: false,
+							code: "FAI_NOT_PASSED",
+							message:
+								"FAI inspection is required but not passed. Complete FAI before authorization.",
 							status: 400,
 						};
 					}

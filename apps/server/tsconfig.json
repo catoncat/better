@@ -8,8 +8,5 @@
 		},
 		"jsx": "react-jsx"
 	},
-	"include": ["src"],
-	"references": [
-		{ "path": "../../packages/db" }
-	]
+	"include": ["src"]
 }

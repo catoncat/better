@@ -3,6 +3,7 @@ import { type Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
 import { parseSortOrderBy } from "../../../utils/sort";
+import { performCheck } from "../readiness/service";
 import type {
 	runCreateSchema,
 	workOrderCancelSchema,
@@ -27,6 +28,9 @@ const setSpanAttributes = (span: Span, attributes: Record<string, unknown>) => {
 		}
 	}
 };
+
+const isWorkOrderStatus = (value: string | undefined): value is WorkOrderStatus =>
+	Boolean(value) && Object.values(WorkOrderStatus).includes(value as WorkOrderStatus);
 
 export const listWorkOrders = async (
 	db: PrismaClient,
@@ -138,10 +142,7 @@ export const receiveWorkOrder = async (db: PrismaClient, data: WorkOrderReceiveI
 			const routing = data.routingCode
 				? await db.routing.findUnique({ where: { code: data.routingCode } })
 				: null;
-			const normalizedStatus =
-				data.status && Object.values(WorkOrderStatus).includes(data.status as WorkOrderStatus)
-					? (data.status as WorkOrderStatus)
-					: WorkOrderStatus.RECEIVED;
+			const status = isWorkOrderStatus(data.status) ? data.status : WorkOrderStatus.RECEIVED;
 
 			const result = await db.$transaction(async (tx) => {
 				const wo = await tx.workOrder.upsert({
@@ -166,7 +167,7 @@ export const receiveWorkOrder = async (db: PrismaClient, data: WorkOrderReceiveI
 						erpStatus: data.erpStatus,
 						erpPickStatus: data.erpPickStatus,
 						meta: data.meta,
-						status: normalizedStatus,
+						status,
 					},
 				});
 
@@ -463,6 +464,12 @@ export const createRun = async (
 				});
 
 				setSpanAttributes(span, { "mes.run.run_no": run.runNo });
+
+				// Trigger automatic precheck after run creation (async, non-blocking)
+				performCheck(db, run.runNo, "PRECHECK").catch((err) => {
+					console.error(`[Run ${run.runNo}] Auto precheck failed:`, err);
+				});
+
 				return { success: true, data: run };
 			} catch (error) {
 				span.recordException(error as Error);

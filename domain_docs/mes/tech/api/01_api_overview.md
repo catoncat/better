@@ -16,6 +16,7 @@ Standard errors (e.g. `BAD_REQUEST`, `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `
 *   `WO_NOT_RELEASED`: Work Order must be in RELEASED state to proceed.
 *   `RUN_NOT_AUTHORIZED`: Production Run requires authorization (and potentially FAI) before execution.
 *   `FAI_REQUIRED`: Step execution blocked because First Article Inspection is pending or failed.
+*   `FAI_NOT_PASSED`: Run authorization blocked because required FAI is missing or not passed.
 *   `STEP_MISMATCH`: The unit is not at the correct step for this operation.
 *   `STATION_NOT_ALLOWED`: The selected station is not valid for the current step.
 *   `TPM_EQUIPMENT_UNAVAILABLE`: Equipment status from TPM is not `normal`.

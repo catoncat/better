@@ -4,8 +4,10 @@ import {
 	AlertTriangle,
 	ArrowLeft,
 	CheckCircle2,
+	ClipboardCheck,
 	Loader2,
 	Package,
+	Plus,
 	RefreshCw,
 	Shield,
 	XCircle,
@@ -32,6 +34,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useCreateFai, useFaiByRun, useFaiGate } from "@/hooks/use-fai";
 import {
 	type ReadinessCheckItem,
 	usePerformFormalCheck,
@@ -54,6 +57,11 @@ function RunDetailPage() {
 		refetch: refetchReadiness,
 	} = useReadinessLatest(runNo);
 
+	// FAI hooks
+	const { data: faiGate, isLoading: faiGateLoading } = useFaiGate(runNo);
+	const { data: existingFai, isLoading: faiLoading, refetch: refetchFai } = useFaiByRun(runNo);
+	const createFai = useCreateFai();
+
 	const performPrecheck = usePerformPrecheck();
 	const performFormalCheck = usePerformFormalCheck();
 	const waiveItem = useWaiveItem();
@@ -62,9 +70,14 @@ function RunDetailPage() {
 	const [selectedItem, setSelectedItem] = useState<ReadinessCheckItem | null>(null);
 	const [waiveReason, setWaiveReason] = useState("");
 
-	const formatTime = (value?: string | null) => {
+	// FAI creation dialog state
+	const [faiDialogOpen, setFaiDialogOpen] = useState(false);
+	const [faiSampleQty, setFaiSampleQty] = useState(1);
+
+	const formatTime = (value?: string | Date | null) => {
 		if (!value) return "-";
-		return format(new Date(value), "yyyy-MM-dd HH:mm:ss");
+		const date = typeof value === "string" ? new Date(value) : value;
+		return format(date, "yyyy-MM-dd HH:mm:ss");
 	};
 
 	const getStatusBadge = (status: string) => {
@@ -135,6 +148,20 @@ function RunDetailPage() {
 		return map[type] ?? type;
 	};
 
+	const getFaiStatusBadge = (status: string) => {
+		const map: Record<
+			string,
+			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+		> = {
+			PENDING: { label: "待开始", variant: "outline" },
+			INSPECTING: { label: "检验中", variant: "default" },
+			PASS: { label: "已通过", variant: "secondary" },
+			FAIL: { label: "未通过", variant: "destructive" },
+		};
+		const config = map[status] ?? { label: status, variant: "outline" as const };
+		return <Badge variant={config.variant}>{config.label}</Badge>;
+	};
+
 	const handleWaive = (item: ReadinessCheckItem) => {
 		setSelectedItem(item);
 		setWaiveReason("");
@@ -163,6 +190,14 @@ function RunDetailPage() {
 			await performFormalCheck.mutateAsync(runNo);
 		}
 		refetchReadiness();
+	};
+
+	const handleCreateFai = async () => {
+		if (faiSampleQty < 1) return;
+		await createFai.mutateAsync({ runNo, sampleQty: faiSampleQty });
+		setFaiDialogOpen(false);
+		setFaiSampleQty(1);
+		refetchFai();
 	};
 
 	if (isLoading) {
@@ -456,6 +491,77 @@ function RunDetailPage() {
 				</Card>
 			</div>
 
+			{/* FAI Card - only show if FAI is required or exists */}
+			{(faiGate?.requiresFai || existingFai) && (
+				<Card>
+					<CardHeader>
+						<div className="flex items-center justify-between">
+							<CardTitle className="flex items-center gap-2">
+								{faiLoading || faiGateLoading ? (
+									<Loader2 className="h-5 w-5 animate-spin" />
+								) : existingFai?.status === "PASS" ? (
+									<CheckCircle2 className="h-5 w-5 text-green-600" />
+								) : existingFai?.status === "FAIL" ? (
+									<XCircle className="h-5 w-5 text-red-600" />
+								) : existingFai ? (
+									<ClipboardCheck className="h-5 w-5 text-blue-600" />
+								) : (
+									<AlertTriangle className="h-5 w-5 text-yellow-600" />
+								)}
+								首件检验 (FAI)
+							</CardTitle>
+							{canShowReadinessActions && !existingFai && (
+								<Button variant="default" size="sm" onClick={() => setFaiDialogOpen(true)}>
+									<Plus className="mr-2 h-4 w-4" />
+									创建 FAI
+								</Button>
+							)}
+							{existingFai && (
+								<Button variant="outline" size="sm" asChild>
+									<Link to="/mes/fai">
+										<ClipboardCheck className="mr-2 h-4 w-4" />
+										查看详情
+									</Link>
+								</Button>
+							)}
+						</div>
+					</CardHeader>
+					<CardContent>
+						{faiLoading || faiGateLoading ? (
+							<p className="text-muted-foreground">加载中...</p>
+						) : existingFai ? (
+							<div className="grid gap-4 md:grid-cols-4">
+								<div>
+									<p className="text-sm text-muted-foreground">状态</p>
+									{getFaiStatusBadge(existingFai.status)}
+								</div>
+								<div>
+									<p className="text-sm text-muted-foreground">抽样数量</p>
+									<p className="font-medium">{existingFai.sampleQty ?? "-"}</p>
+								</div>
+								<div>
+									<p className="text-sm text-muted-foreground">通过/失败</p>
+									<p className="font-medium">
+										{existingFai.passedQty ?? 0} / {existingFai.failedQty ?? 0}
+									</p>
+								</div>
+								<div>
+									<p className="text-sm text-muted-foreground">创建时间</p>
+									<p className="font-medium">{formatTime(existingFai.createdAt)}</p>
+								</div>
+							</div>
+						) : (
+							<div className="py-4 text-center text-muted-foreground">
+								<p>此批次需要首件检验</p>
+								{canShowReadinessActions && (
+									<p className="text-sm mt-1">点击上方按钮创建 FAI 任务</p>
+								)}
+							</div>
+						)}
+					</CardContent>
+				</Card>
+			)}
+
 			<Card>
 				<CardHeader className="flex flex-row items-center justify-between">
 					<div>
@@ -537,6 +643,39 @@ function RunDetailPage() {
 						<Button onClick={confirmWaive} disabled={!waiveReason.trim() || waiveItem.isPending}>
 							{waiveItem.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							确认豁免
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* FAI Creation Dialog */}
+			<Dialog open={faiDialogOpen} onOpenChange={setFaiDialogOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>创建首件检验 (FAI)</DialogTitle>
+						<DialogDescription>为批次 {runNo} 创建首件检验任务</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4 py-4">
+						<div className="space-y-2">
+							<Label htmlFor="faiSampleQty">抽样数量</Label>
+							<Input
+								id="faiSampleQty"
+								type="number"
+								min={1}
+								value={faiSampleQty}
+								onChange={(e) => setFaiSampleQty(Number.parseInt(e.target.value, 10) || 1)}
+								placeholder="输入抽样数量"
+							/>
+							<p className="text-xs text-muted-foreground">首件检验将抽取指定数量的样品进行检验</p>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setFaiDialogOpen(false)}>
+							取消
+						</Button>
+						<Button onClick={handleCreateFai} disabled={faiSampleQty < 1 || createFai.isPending}>
+							{createFai.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+							创建
 						</Button>
 					</DialogFooter>
 				</DialogContent>
