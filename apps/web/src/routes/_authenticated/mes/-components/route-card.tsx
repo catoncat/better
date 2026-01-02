@@ -21,9 +21,7 @@ export function RouteCard({ route }: RouteCardProps) {
 			</CardHeader>
 			<CardContent>
 				<div className="text-2xl font-bold">{route.name}</div>
-				<p className="text-xs text-muted-foreground">
-					产品编码: {route.productCode || "-"}
-				</p>
+				<p className="text-xs text-muted-foreground">产品编码: {route.productCode || "-"}</p>
 				<div className="mt-4 space-y-1 text-sm">
 					<div className="flex justify-between">
 						<span className="text-muted-foreground">步骤数:</span>

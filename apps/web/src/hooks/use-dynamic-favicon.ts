@@ -5,7 +5,6 @@ import { useEffect, useRef } from "react";
  */
 export function useDynamicFavicon() {
 	const frameRef = useRef<number>(0);
-	const startTimeRef = useRef<number>(0);
 
 	useEffect(() => {
 		// 1. 监听系统主题 (不依赖 App 内主题)
@@ -53,10 +52,8 @@ export function useDynamicFavicon() {
 
 			// 1. 绘制机器外壳
 			ctx.fillStyle = bgShell;
-			// @ts-expect-error - roundRect might not be in all TS types yet
 			if (ctx.roundRect) {
 				ctx.beginPath();
-				// @ts-expect-error - roundRect might not be in all TS types yet
 				ctx.roundRect(0, 0, 32, 32, 6);
 				ctx.fill();
 			} else {
@@ -77,10 +74,8 @@ export function useDynamicFavicon() {
 			}
 
 			ctx.fillStyle = barColor;
-			// @ts-expect-error - roundRect might not be in all TS types yet
 			if (ctx.roundRect) {
 				ctx.beginPath();
-				// @ts-expect-error - roundRect might not be in all TS types yet
 				ctx.roundRect(barX, barY, barW, barH, 2);
 				ctx.fill();
 			} else {
@@ -139,10 +134,8 @@ export function useDynamicFavicon() {
 				const r = ITEM_SIZE / 2;
 				if (shapeType === 0) {
 					// 圆角方块
-					// @ts-expect-error - roundRect might not be in all TS types yet
 					if (ctx.roundRect) {
 						ctx.beginPath();
-						// @ts-expect-error - roundRect might not be in all TS types yet
 						ctx.roundRect(-r, -r, ITEM_SIZE, ITEM_SIZE, 3);
 						ctx.fill();
 					} else {

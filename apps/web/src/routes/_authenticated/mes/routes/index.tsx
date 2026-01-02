@@ -2,9 +2,9 @@ import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router"
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { useQueryPresets } from "@/hooks/use-query-presets";
-import { useRouteList } from "@/hooks/use-routes";
-import { routeColumns } from "../-components/route-columns";
+import { type RouteSummary, useRouteList } from "@/hooks/use-routes";
 import { RouteCard } from "../-components/route-card";
+import { routeColumns } from "../-components/route-columns";
 
 interface RouteFilters {
 	search: string;
@@ -223,7 +223,7 @@ function RouteListPage() {
 			}}
 			dataListViewProps={{
 				viewPreferencesKey,
-				renderCard: (item) => <RouteCard route={item as any} />,
+				renderCard: (item: RouteSummary) => <RouteCard route={item} />,
 			}}
 		/>
 	);

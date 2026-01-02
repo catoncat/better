@@ -5,9 +5,9 @@ import { CheckCircle, XCircle } from "lucide-react";
 import { Can } from "@/components/ability/can";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { RUN_STATUS_MAP } from "@/lib/constants";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import type { Run } from "@/hooks/use-runs";
+import { RUN_STATUS_MAP } from "@/lib/constants";
 
 interface RunCardProps {
 	run: Run;

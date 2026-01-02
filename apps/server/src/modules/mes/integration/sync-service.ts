@@ -63,7 +63,8 @@ const buildBusinessKey = (
 	startRow: number,
 	limit: number,
 	mode: "page" | "full",
-) => `${sourceSystem}:${entityType}:mode:${mode}:since:${since ?? "NONE"}:start:${startRow}:limit:${limit}`;
+) =>
+	`${sourceSystem}:${entityType}:mode:${mode}:since:${since ?? "NONE"}:start:${startRow}:limit:${limit}`;
 
 const buildSourceStepKey = (routeNo: string, stepNo: number, processCode: string) =>
 	`ERP:${routeNo}:${stepNo}:${processCode}`;
@@ -307,7 +308,7 @@ export const syncErpRoutes = async (
 	});
 	const cursorMeta = parseCursorMeta(cursor?.meta ?? null);
 	const pageMode = options.startRow !== undefined;
-	const startRow = pageMode ? options.startRow ?? cursorMeta?.nextStartRow ?? 0 : 0;
+	const startRow = pageMode ? (options.startRow ?? cursorMeta?.nextStartRow ?? 0) : 0;
 	const limit = options.limit ?? 200;
 	const since = options.since ?? cursorMeta?.since ?? cursor?.lastSyncAt?.toISOString() ?? null;
 	const businessKey = buildBusinessKey(

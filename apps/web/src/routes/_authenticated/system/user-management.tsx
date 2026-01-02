@@ -341,14 +341,12 @@ function SystemUserManagementPage() {
 				onReset: resetFilters,
 				isFiltered,
 				viewPreferencesKey,
-				actions:
-					canManageUsers && (
-						<Button size="sm" className="h-8" onClick={handleCreate}>
-							<Plus className="mr-2 h-4 w-4" />
-							新增用户
-						</Button>
-					)
-				,
+				actions: canManageUsers && (
+					<Button size="sm" className="h-8" onClick={handleCreate}>
+						<Plus className="mr-2 h-4 w-4" />
+						新增用户
+					</Button>
+				),
 			}}
 			dataListViewProps={{
 				viewPreferencesKey,

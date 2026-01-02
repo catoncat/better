@@ -123,16 +123,32 @@ export function ImageUpload({
 					});
 
 					// 适配 better 项目的后端包装格式 { ok: true, data: { url: "..." } }
-					const result = response.data as any;
+					const result = response.data as
+						| { ok: true; data: { url: string } }
+						| { ok: false; error?: { message?: string } }
+						| null;
 
 					if (response.error || !result?.ok || !result?.data?.url) {
-						// @ts-expect-error - Eden types are complex
-						const errorMessage = response.error?.value?.error?.message || result?.error?.message || "上传失败";
+						const errorValue = response.error?.value;
+						const errorMessage = (() => {
+							if (errorValue && typeof errorValue === "object") {
+								if ("error" in errorValue) {
+									const nested = (errorValue as { error?: { message?: string } }).error;
+									if (nested?.message) return nested.message;
+								}
+								if ("message" in errorValue) {
+									const message = (errorValue as { message?: unknown }).message;
+									if (typeof message === "string") return message;
+								}
+							}
+							return result?.ok === false ? result.error?.message : undefined;
+						})();
 						throw new Error(errorMessage);
 					}
 
 					// Use server URL
-					const baseUrl = import.meta.env.VITE_SERVER_URL?.replace(/\/$/, "") || window.location.origin;
+					const baseUrl =
+						import.meta.env.VITE_SERVER_URL?.replace(/\/$/, "") || window.location.origin;
 					return baseUrl + result.data.url;
 				} catch (uploadError) {
 					console.error("服务器上传失败:", uploadError);
