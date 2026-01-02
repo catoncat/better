@@ -1,9 +1,8 @@
 import { Pencil } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import type { UserItem } from "@/hooks/use-users";
-import { USER_ROLE_MAP } from "@/lib/constants";
+import { userFieldMeta } from "./user-field-meta";
 
 interface UserCardProps {
 	user: UserItem;
@@ -11,40 +10,30 @@ interface UserCardProps {
 }
 
 export function UserCard({ user, onEdit }: UserCardProps) {
+	const primaryField = userFieldMeta.find((field) => field.cardPrimary);
+	const badgeField = userFieldMeta.find((field) => field.cardBadge);
+	const detailFields = userFieldMeta.filter((field) => field.cardDetail);
+
 	return (
 		<Card>
 			<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-				<CardTitle className="text-sm font-medium">{user.name}</CardTitle>
-				<div className="flex flex-wrap gap-2 justify-end">
-					{user.roles.length > 0 ? (
-						user.roles.map((role) => (
-							<Badge key={role.id} variant="outline">
-								{USER_ROLE_MAP[role.code] ?? role.name ?? role.code}
-							</Badge>
-						))
-					) : (
-						<Badge variant="outline">未分配角色</Badge>
-					)}
-				</div>
+				<CardTitle className="text-sm font-medium">
+					{primaryField?.cardValue?.(user) ?? user.name}
+				</CardTitle>
+				<div className="flex flex-wrap gap-2 justify-end">{badgeField?.cardValue?.(user)}</div>
 			</CardHeader>
 			<CardContent>
 				<div className="grid gap-1.5 text-sm">
-					<div className="flex justify-between">
-						<span className="text-muted-foreground">邮箱:</span>
-						<span>{user.email || "-"}</span>
-					</div>
-					{user.phone && (
-						<div className="flex justify-between">
-							<span className="text-muted-foreground">电话:</span>
-							<span>{user.phone}</span>
-						</div>
-					)}
-					{user.department && (
-						<div className="flex justify-between">
-							<span className="text-muted-foreground">部门:</span>
-							<span>{user.department}</span>
-						</div>
-					)}
+					{detailFields.map((field) => {
+						const value = field.cardValue?.(user);
+						if (value == null || value === "") return null;
+						return (
+							<div key={field.key} className="flex justify-between">
+								<span className="text-muted-foreground">{field.cardLabel ?? field.label}:</span>
+								<span>{value}</span>
+							</div>
+						);
+					})}
 				</div>
 			</CardContent>
 			{onEdit && (
