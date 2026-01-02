@@ -132,13 +132,13 @@ model ReadinessCheckItem {
 - [ ] 2.2.8 UI: FAI 结果记录表单
 
 ### 3.3 Task 2.3: Defect & Disposition
-- [ ] 2.3.1 Schema: 验证/扩展 Defect + Disposition 模型
-- [ ] 2.3.2 Service: TrackOut FAIL 时自动创建 Defect
-- [ ] 2.3.3 Service: Disposition 处置流程 (REWORK/SCRAP/HOLD)
-- [ ] 2.3.4 API: 缺陷查询 + 创建
-- [ ] 2.3.5 API: 处置操作 (assign disposition)
-- [ ] 2.3.6 API: 返工任务管理
-- [ ] 2.3.7 API: Hold 释放
+- [x] 2.3.1 Schema: 验证/扩展 Defect + Disposition 模型
+- [x] 2.3.2 Service: TrackOut FAIL 时自动创建 Defect
+- [x] 2.3.3 Service: Disposition 处置流程 (REWORK/SCRAP/HOLD)
+- [x] 2.3.4 API: 缺陷查询 + 创建
+- [x] 2.3.5 API: 处置操作 (assign disposition)
+- [x] 2.3.6 API: 返工任务管理
+- [x] 2.3.7 API: Hold 释放
 - [ ] 2.3.8 UI: 缺陷列表 + 处置操作
 - [ ] 2.3.9 UI: 返工任务跟踪
 
