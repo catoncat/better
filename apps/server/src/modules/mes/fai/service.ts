@@ -460,7 +460,7 @@ export async function listFai(
 			orderBy: { createdAt: "desc" },
 			skip: (page - 1) * pageSize,
 			take: pageSize,
-			include: { items: true },
+			include: { items: true, run: { select: { runNo: true } } },
 		}),
 		db.inspection.count({ where }),
 	]);
