@@ -412,6 +412,7 @@ function WorkOrdersPage() {
 				],
 				filters,
 				onFilterChange: setFilter,
+				onFiltersChange: setFilters,
 				onReset: resetFilters,
 				isFiltered,
 				viewPreferencesKey,

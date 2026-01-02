@@ -81,6 +81,7 @@ Use `DataListView` with `viewPreferencesKey` - toggle lives in `FilterToolbar`.
 ### Date Range Contract
 - Use `type: "dateRange"` with `dateFromKey` and `dateToKey`.
 - Filters store ISO 8601 strings at those keys (no `__dateRange__` intermediary).
+- Prefer `onFiltersChange` to update both keys in a single URL mutation.
 
 ### Example
 ```tsx

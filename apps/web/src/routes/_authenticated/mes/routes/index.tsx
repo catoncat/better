@@ -217,6 +217,7 @@ function RouteListPage() {
 				],
 				filters,
 				onFilterChange: setFilter,
+				onFiltersChange: setFilters,
 				onReset: resetFilters,
 				isFiltered,
 				viewPreferencesKey,

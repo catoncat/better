@@ -124,6 +124,7 @@ interface FilterToolbarProps {
 	// biome-ignore lint/suspicious/noExplicitAny: filters can be of various shapes depending on the page
 	filters: Record<string, any>;
 	onFilterChange: (key: string, value: unknown) => void;
+	onFiltersChange?: (updates: Record<string, unknown>) => void;
 	onReset: () => void;
 	isFiltered: boolean;
 	actions?: React.ReactNode;
@@ -140,6 +141,7 @@ export function FilterToolbar({
 	fields,
 	filters,
 	onFilterChange,
+	onFiltersChange,
 	onReset,
 	isFiltered,
 	actions,
@@ -261,8 +263,12 @@ export function FilterToolbar({
 							// Use ISO strings for proper timezone handling
 							const fromStr = range?.from ? range.from.toISOString() : "";
 							const toStr = range?.to ? range.to.toISOString() : "";
-							onFilterChange(fromKey, fromStr);
-							onFilterChange(toKey, toStr);
+							if (onFiltersChange) {
+								onFiltersChange({ [fromKey]: fromStr, [toKey]: toStr });
+							} else {
+								onFilterChange(fromKey, fromStr);
+								onFilterChange(toKey, toStr);
+							}
 						}}
 						className="h-8 border-dashed"
 					/>
