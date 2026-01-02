@@ -173,7 +173,10 @@ function WorkOrdersPage() {
 		deletePreset,
 		renamePreset,
 		matchPreset,
-	} = useQueryPresets<WorkOrderFilters>({ storageKey: "work-orders" });
+	} = useQueryPresets<WorkOrderFilters>({
+		storageKey: "work-orders",
+		sortableArrayKeys: ["status", "erpPickStatus", "routingId"],
+	});
 
 	// System presets
 	const systemPresets = useMemo((): SystemPreset<WorkOrderFilters>[] => {
