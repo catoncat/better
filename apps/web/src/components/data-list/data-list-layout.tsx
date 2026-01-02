@@ -41,6 +41,7 @@ interface DataListLayoutProps<TData, TValue> {
 	filterToolbarProps?: FilterToolbarPropsAny;
 	dataListViewProps?: Omit<DataListViewProps<TData, TValue>, "table" | "columns">;
 	isLoading?: boolean;
+	isFetching?: boolean;
 	loadingFallback?: ReactNode;
 	error?: ReactNode;
 	beforeList?: ReactNode;
@@ -81,6 +82,7 @@ export function DataListLayout<TData, TValue>({
 	filterToolbarProps,
 	dataListViewProps,
 	isLoading,
+	isFetching,
 	loadingFallback,
 	error,
 	beforeList,
@@ -324,6 +326,7 @@ export function DataListLayout<TData, TValue>({
 	};
 
 	const hasRows = effectiveTable?.getRowModel().rows.length > 0;
+	const showLoadingOverlay = hasRows && (isFetching || isLoading);
 
 	return (
 		<div className={cn("space-y-4", className)}>
@@ -341,7 +344,7 @@ export function DataListLayout<TData, TValue>({
 			) : effectiveTable ? (
 				<div className="relative">
 					<DataListView table={effectiveTable} columns={columns} {...mergedDataListViewProps} />
-					{isLoading && hasRows && (
+					{showLoadingOverlay && (
 						<div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] pointer-events-none">
 							<div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/40 via-primary/70 to-primary/40 animate-pulse" />
 						</div>
