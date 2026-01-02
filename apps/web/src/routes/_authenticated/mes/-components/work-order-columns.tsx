@@ -34,9 +34,10 @@ const getWorkshopLabel = (meta: WorkOrderErpMeta) => meta.workshopName || meta.w
 const getRoutingLabel = (meta: WorkOrderErpMeta) => meta.routingName || "-";
 
 export type WorkOrderTableMeta = {
-	onRelease?: (woNo: string) => void;
+	onRelease?: (wo: WorkOrder) => void;
 	onCreateRun?: (wo: WorkOrder) => void;
 	onEditPickStatus?: (wo: WorkOrder) => void;
+	onCancel?: (wo: WorkOrder) => void;
 };
 
 export const workOrderColumns: ColumnDef<WorkOrder>[] = [
@@ -177,7 +178,7 @@ export const workOrderColumns: ColumnDef<WorkOrder>[] = [
 				actions.push({
 					icon: Send,
 					label: "发布工单",
-					onClick: () => meta?.onRelease?.(wo.woNo),
+					onClick: () => meta?.onRelease?.(wo),
 				});
 			}
 
@@ -201,6 +202,14 @@ export const workOrderColumns: ColumnDef<WorkOrder>[] = [
 					icon: Play,
 					label: "创建批次",
 					onClick: () => meta?.onCreateRun?.(wo),
+				});
+			}
+
+			if (wo.status === "IN_PROGRESS" && hasPermission(Permission.WO_CANCEL)) {
+				actions.push({
+					icon: AlertTriangle,
+					label: "取消工单",
+					onClick: () => meta?.onCancel?.(wo),
 				});
 			}
 

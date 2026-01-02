@@ -26,6 +26,7 @@ export const runListQuerySchema = t.Object({
 	search: t.Optional(t.String()),
 	sort: t.Optional(t.String()),
 	woNo: t.Optional(t.String()),
+	lineCode: t.Optional(t.String()),
 });
 
 export const runDetailResponseSchema = t.Object({

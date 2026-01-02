@@ -1,14 +1,22 @@
+import { Permission } from "@better-app/db/permissions";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
+import { LineSelect } from "@/components/select/line-select";
+import { Button } from "@/components/ui/button";
+import { useAbility } from "@/hooks/use-ability";
 import { useQueryPresets } from "@/hooks/use-query-presets";
 import { type Run, useAuthorizeRun, useRunList } from "@/hooks/use-runs";
+import { client } from "@/lib/eden";
 import { RunCard } from "../-components/run-card";
 import { runColumns } from "../-components/run-columns";
 
 interface RunFilters {
 	search: string;
 	status: string[];
+	lineCode?: string;
 }
 
 interface RunSearchParams {
@@ -18,6 +26,7 @@ interface RunSearchParams {
 	page?: number;
 	pageSize?: number;
 	woNo?: string;
+	lineCode?: string;
 }
 
 export const Route = createFileRoute("/_authenticated/mes/runs/")({
@@ -28,6 +37,7 @@ export const Route = createFileRoute("/_authenticated/mes/runs/")({
 		page: Number(search.page) || 1,
 		pageSize: Number(search.pageSize) || 30,
 		woNo: (search.woNo as string) || undefined,
+		lineCode: (search.lineCode as string) || undefined,
 	}),
 	component: RunsPage,
 });
@@ -38,18 +48,23 @@ function RunsPage() {
 	const searchParams = useSearch({ from: "/_authenticated/mes/runs/" });
 	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
 	const { mutateAsync: authorizeRun } = useAuthorizeRun();
+	const queryClient = useQueryClient();
+	const { hasPermission } = useAbility();
+	const [isBatchAuthorizing, setIsBatchAuthorizing] = useState(false);
+	const canBatchAuthorize = hasPermission(Permission.RUN_AUTHORIZE);
 
 	// Parse filters from URL
 	const filters: RunFilters = useMemo(
 		() => ({
 			search: searchParams.search || "",
 			status: searchParams.status?.split(",").filter(Boolean) || [],
+			lineCode: searchParams.lineCode || undefined,
 		}),
 		[searchParams],
 	);
 
 	const isFiltered = useMemo(() => {
-		return filters.search !== "" || filters.status.length > 0;
+		return filters.search !== "" || filters.status.length > 0 || Boolean(filters.lineCode);
 	}, [filters]);
 
 	// Update URL with new filters
@@ -76,7 +91,12 @@ function RunsPage() {
 
 	const setFilters = useCallback(
 		(newFilters: Partial<RunFilters>) => {
-			const newSearch: RunSearchParams = { ...searchParams, page: 1, woNo: searchParams.woNo };
+			const newSearch: RunSearchParams = {
+				...searchParams,
+				page: 1,
+				woNo: searchParams.woNo,
+				lineCode: searchParams.lineCode,
+			};
 			for (const [key, value] of Object.entries(newFilters)) {
 				if (Array.isArray(value)) {
 					(newSearch as Record<string, unknown>)[key] =
@@ -97,7 +117,11 @@ function RunsPage() {
 	const resetFilters = useCallback(() => {
 		navigate({
 			to: ".",
-			search: { page: 1, pageSize: searchParams.pageSize, woNo: searchParams.woNo },
+			search: {
+				page: 1,
+				pageSize: searchParams.pageSize,
+				woNo: searchParams.woNo,
+			},
 			replace: true,
 		});
 	}, [navigate, searchParams.pageSize, searchParams.woNo]);
@@ -163,7 +187,26 @@ function RunsPage() {
 		status: filters.status.length > 0 ? filters.status.join(",") : undefined,
 		sort: searchParams.sort,
 		woNo: searchParams.woNo,
+		lineCode: filters.lineCode,
 	});
+
+	const [selectedRunNos, setSelectedRunNos] = useState<Set<string>>(new Set());
+	const visibleRunNos = useMemo(
+		() => (data?.items ?? []).map((item: Run) => item.runNo),
+		[data?.items],
+	);
+
+	useEffect(() => {
+		setSelectedRunNos((prev) => {
+			const next = new Set<string>();
+			for (const runNo of prev) {
+				if (visibleRunNos.includes(runNo)) {
+					next.add(runNo);
+				}
+			}
+			return next;
+		});
+	}, [visibleRunNos]);
 
 	const initialSorting = useMemo(() => [{ id: "createdAt", desc: true }], []);
 
@@ -203,6 +246,69 @@ function RunsPage() {
 		await authorizeRun({ runNo, action: "REVOKE" });
 	};
 
+	const isRunSelected = useCallback((runNo: string) => selectedRunNos.has(runNo), [selectedRunNos]);
+
+	const handleSelectRun = useCallback((runNo: string, selected: boolean) => {
+		setSelectedRunNos((prev) => {
+			const next = new Set(prev);
+			if (selected) {
+				next.add(runNo);
+			} else {
+				next.delete(runNo);
+			}
+			return next;
+		});
+	}, []);
+
+	const handleSelectAll = useCallback((runNos: string[], selected: boolean) => {
+		setSelectedRunNos((prev) => {
+			const next = new Set(prev);
+			for (const runNo of runNos) {
+				if (selected) {
+					next.add(runNo);
+				} else {
+					next.delete(runNo);
+				}
+			}
+			return next;
+		});
+	}, []);
+
+	const handleBatchAuthorize = useCallback(async () => {
+		if (selectedRunNos.size === 0 || isBatchAuthorizing) return;
+		setIsBatchAuthorizing(true);
+		const runNos = Array.from(selectedRunNos);
+		try {
+			const results = await Promise.allSettled(
+				runNos.map(async (runNo) => {
+					const { error } = await client.api.runs({ runNo }).authorize.post({
+						action: "AUTHORIZE",
+					});
+					if (error) {
+						throw new Error(error.value ? JSON.stringify(error.value) : "授权失败");
+					}
+					return runNo;
+				}),
+			);
+
+			const successCount = results.filter((result) => result.status === "fulfilled").length;
+			const failureCount = results.filter((result) => result.status === "rejected").length;
+
+			if (successCount > 0) {
+				toast.success(`已授权 ${successCount} 个批次`);
+			}
+			if (failureCount > 0) {
+				toast.error(`授权失败 ${failureCount} 个批次`);
+			}
+			if (successCount > 0) {
+				queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
+			}
+			setSelectedRunNos(new Set());
+		} finally {
+			setIsBatchAuthorizing(false);
+		}
+	}, [isBatchAuthorizing, queryClient, selectedRunNos]);
+
 	return (
 		<DataListLayout
 			mode="server"
@@ -219,6 +325,9 @@ function RunsPage() {
 			tableMeta={{
 				onAuthorize: handleAuthorize,
 				onRevoke: handleRevoke,
+				isRunSelected,
+				onSelectRun: handleSelectRun,
+				onSelectAll: handleSelectAll,
 			}}
 			header={
 				<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -258,12 +367,36 @@ function RunsPage() {
 							{ label: "已取消", value: "CANCELLED" },
 						],
 					},
+					{
+						key: "lineCode",
+						type: "custom",
+						label: "线体",
+						render: (value, onChange) => (
+							<LineSelect
+								value={(value as string) || ""}
+								onValueChange={(nextValue) => onChange(nextValue || undefined)}
+								placeholder="选择线体"
+								className="w-[200px]"
+							/>
+						),
+					},
 				],
 				filters,
 				onFilterChange: setFilter,
 				onReset: resetFilters,
 				isFiltered,
 				viewPreferencesKey,
+				actions: (
+					<Button
+						variant="secondary"
+						size="sm"
+						disabled={!canBatchAuthorize || selectedRunNos.size === 0 || isBatchAuthorizing}
+						onClick={handleBatchAuthorize}
+					>
+						批量授权
+						{selectedRunNos.size > 0 ? ` (${selectedRunNos.size})` : ""}
+					</Button>
+				),
 			}}
 			dataListViewProps={{
 				viewPreferencesKey,

@@ -7,13 +7,20 @@ import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../
 import { runResponseSchema } from "../run/schema";
 import {
 	runCreateSchema,
+	workOrderCancelSchema,
 	workOrderErrorResponseSchema,
 	workOrderListQuerySchema,
 	workOrderReleaseSchema,
 	workOrderResponseSchema,
 	workOrderUpdatePickStatusSchema,
 } from "./schema";
-import { createRun, listWorkOrders, releaseWorkOrder, updatePickStatus } from "./service";
+import {
+	cancelWorkOrder,
+	createRun,
+	listWorkOrders,
+	releaseWorkOrder,
+	updatePickStatus,
+} from "./service";
 
 const notFoundCodes = new Set(["WORK_ORDER_NOT_FOUND", "LINE_NOT_FOUND"]);
 
@@ -115,6 +122,61 @@ export const workOrderModule = new Elysia({
 			requirePermission: Permission.WO_RELEASE,
 			params: t.Object({ woNo: t.String() }),
 			body: workOrderReleaseSchema,
+			response: {
+				200: workOrderResponseSchema,
+				400: workOrderErrorResponseSchema,
+				404: workOrderErrorResponseSchema,
+			},
+			detail: { tags: ["MES - Work Orders"] },
+		},
+	)
+	.post(
+		"/:woNo/cancel",
+		async ({ db, params: { woNo }, body, set, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const before = await db.workOrder.findUnique({ where: { woNo } });
+			const result = await cancelWorkOrder(db, woNo, body);
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.WORK_ORDER,
+					entityId: String(before?.id ?? woNo),
+					entityDisplay: String(woNo),
+					action: "WORK_ORDER_CANCEL",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					before,
+					request: requestMeta,
+					payload: {
+						reason: body?.reason ?? null,
+					},
+				});
+				set.status = result.status ?? (notFoundCodes.has(result.code) ? 404 : 400);
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.WORK_ORDER,
+				entityId: String(result.data.id),
+				entityDisplay: String(result.data.woNo),
+				action: "WORK_ORDER_CANCEL",
+				actor,
+				status: "SUCCESS",
+				before,
+				after: result.data,
+				request: requestMeta,
+				payload: {
+					reason: body?.reason ?? null,
+				},
+			});
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.WO_CANCEL,
+			params: t.Object({ woNo: t.String() }),
+			body: workOrderCancelSchema,
 			response: {
 				200: workOrderResponseSchema,
 				400: workOrderErrorResponseSchema,
