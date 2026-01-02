@@ -23,7 +23,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { useLines } from "@/hooks/use-lines";
-import { useReadinessExceptions, type ExceptionsQuery } from "@/hooks/use-readiness";
+import { type ExceptionsQuery, useReadinessExceptions } from "@/hooks/use-readiness";
 
 export const Route = createFileRoute("/_authenticated/mes/readiness-exceptions")({
 	component: ReadinessExceptionsPage,

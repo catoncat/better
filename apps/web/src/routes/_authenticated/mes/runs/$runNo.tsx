@@ -192,7 +192,6 @@ function RunDetailPage() {
 	const progressPercent =
 		data.unitStats.total > 0 ? Math.round((data.unitStats.done / data.unitStats.total) * 100) : 0;
 
-	const failedItems = readinessData?.items.filter((i) => i.status === "FAILED") ?? [];
 	const canShowReadinessActions = data.run.status === "PREP" || data.run.status === "FAI_PENDING";
 
 	return (
