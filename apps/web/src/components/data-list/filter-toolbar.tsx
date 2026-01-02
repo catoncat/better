@@ -261,7 +261,8 @@ export function FilterToolbar({
 							// Use ISO strings for proper timezone handling
 							const fromStr = range?.from ? range.from.toISOString() : "";
 							const toStr = range?.to ? range.to.toISOString() : "";
-							onFilterChange("__dateRange__", { fromKey, toKey, from: fromStr, to: toStr });
+							onFilterChange(fromKey, fromStr);
+							onFilterChange(toKey, toStr);
 						}}
 						className="h-8 border-dashed"
 					/>
