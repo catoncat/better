@@ -1,5 +1,4 @@
 import { Permission } from "@better-app/db/permissions";
-import { format } from "date-fns";
 import { AlertTriangle, CheckCircle2, Clock, Pencil, Play, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { useAbility } from "@/hooks/use-ability";
 import type { WorkOrder } from "@/hooks/use-work-orders";
 import { WORK_ORDER_STATUS_MAP } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { getPickStatusLabel, workOrderFieldMeta } from "./work-order-field-meta";
 
 interface WorkOrderCardProps {
 	workOrder: WorkOrder;
@@ -40,25 +40,18 @@ export function WorkOrderCard({
 	if (workOrder.status === "COMPLETED" || workOrder.status === "CLOSED") statusVariant = "outline";
 	if (workOrder.status === "CANCELLED") statusVariant = "destructive";
 
-	const getPickStatusLabel = (status?: string | null) => {
-		switch (status) {
-			case "1":
-				return "未领料";
-			case "2":
-				return "部分领料";
-			case "3":
-				return "全部领料";
-			case "4":
-				return "超额领料";
-			default:
-				return "未同步";
-		}
-	};
+	const primaryField = workOrderFieldMeta.find((field) => field.cardPrimary);
+	const secondaryField = workOrderFieldMeta.find((field) => field.cardSecondary);
+	const badgeField = workOrderFieldMeta.find((field) => field.cardBadge);
+	const detailFields = workOrderFieldMeta.filter((field) => field.cardDetail);
+	const plannedQtyField = workOrderFieldMeta.find((field) => field.key === "plannedQty");
 
 	return (
 		<Card className={cn(isReleased && isMaterialReady && "border-l-4 border-l-emerald-500")}>
 			<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-				<CardTitle className="text-sm font-medium">{workOrder.woNo}</CardTitle>
+				<CardTitle className="text-sm font-medium">
+					{primaryField?.cardValue?.(workOrder) ?? workOrder.woNo}
+				</CardTitle>
 				<div className="flex items-center gap-2">
 					{isReleased && isMaterialReady && (
 						<span className="flex items-center text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
@@ -72,60 +65,56 @@ export function WorkOrderCard({
 							待齐料
 						</span>
 					)}
-					<Badge variant={statusVariant}>{statusLabel}</Badge>
+					{badgeField?.cardValue?.(workOrder) ?? (
+						<Badge variant={statusVariant}>{statusLabel}</Badge>
+					)}
 				</div>
 			</CardHeader>
 			<CardContent>
-				<div className="text-2xl font-bold">{workOrder.productCode}</div>
-				<p className="text-xs text-muted-foreground">计划数量: {workOrder.plannedQty}</p>
+				<div className="text-2xl font-bold">
+					{secondaryField?.cardValue?.(workOrder) ?? workOrder.productCode}
+				</div>
+				<p className="text-xs text-muted-foreground">
+					{plannedQtyField?.label ?? "计划数量"}:{" "}
+					{plannedQtyField?.cardValue?.(workOrder) ?? workOrder.plannedQty}
+				</p>
 				<div className="mt-4 space-y-1 text-sm">
-					<div className="flex justify-between">
-						<span className="text-muted-foreground">路由工艺:</span>
-						{workOrder.routing ? (
-							<span className="font-medium">
-								{workOrder.routing.code}{" "}
-								<span className="text-muted-foreground">{workOrder.routing.name}</span>
-							</span>
-						) : (
-							<span className="inline-flex items-center gap-1 text-amber-600">
-								<AlertTriangle className="h-3 w-3" />
-								未关联路由
-							</span>
-						)}
-					</div>
-					<div className="flex justify-between">
-						<span className="text-muted-foreground">物料状态:</span>
-						<span className="flex items-center gap-1">
-							<span
-								className={cn(
-									"font-medium",
-									effectivePickStatus === "1" ? "text-muted-foreground" : "text-foreground",
-								)}
-							>
-								{getPickStatusLabel(effectivePickStatus)}
-							</span>
-							{!isErpWorkOrder && hasPermission(Permission.WO_UPDATE) && (
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-5 w-5 hover:bg-muted"
-									onClick={() => onEditPickStatus?.(workOrder)}
-								>
-									<Pencil className="h-3 w-3" />
-								</Button>
-							)}
-						</span>
-					</div>
-					<div className="flex justify-between">
-						<span className="text-muted-foreground">到期日期:</span>
-						<span>
-							{workOrder.dueDate ? format(new Date(workOrder.dueDate), "yyyy-MM-dd") : "-"}
-						</span>
-					</div>
-					<div className="flex justify-between">
-						<span className="text-muted-foreground">创建时间:</span>
-						<span>{format(new Date(workOrder.createdAt), "yyyy-MM-dd HH:mm")}</span>
-					</div>
+					{detailFields.map((field) => {
+						if (field.key === "pickStatus") {
+							return (
+								<div key={field.key} className="flex justify-between">
+									<span className="text-muted-foreground">{field.cardLabel ?? field.label}:</span>
+									<span className="flex items-center gap-1">
+										<span
+											className={cn(
+												"font-medium",
+												effectivePickStatus === "1" ? "text-muted-foreground" : "text-foreground",
+											)}
+										>
+											{getPickStatusLabel(effectivePickStatus)}
+										</span>
+										{!isErpWorkOrder && hasPermission(Permission.WO_UPDATE) && (
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-5 w-5 hover:bg-muted"
+												onClick={() => onEditPickStatus?.(workOrder)}
+											>
+												<Pencil className="h-3 w-3" />
+											</Button>
+										)}
+									</span>
+								</div>
+							);
+						}
+
+						return (
+							<div key={field.key} className="flex justify-between">
+								<span className="text-muted-foreground">{field.cardLabel ?? field.label}:</span>
+								<span>{field.cardValue?.(workOrder) ?? "-"}</span>
+							</div>
+						);
+					})}
 				</div>
 			</CardContent>
 
