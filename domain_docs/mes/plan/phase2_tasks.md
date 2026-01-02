@@ -128,8 +128,8 @@ model ReadinessCheckItem {
 - [x] 2.2.4 API: 记录检验结果
 - [x] 2.2.5 API: 完成 FAI (PASS/FAIL)
 - [x] 2.2.6 Gate: Run 授权需 FAI PASSED
-- [ ] 2.2.7 UI: FAI 任务创建/执行页
-- [ ] 2.2.8 UI: FAI 结果记录表单
+- [x] 2.2.7 UI: FAI 任务创建/执行页
+- [x] 2.2.8 UI: FAI 结果记录表单
 
 ### 3.3 Task 2.3: Defect & Disposition
 - [x] 2.3.1 Schema: 验证/扩展 Defect + Disposition 模型
@@ -139,8 +139,8 @@ model ReadinessCheckItem {
 - [x] 2.3.5 API: 处置操作 (assign disposition)
 - [x] 2.3.6 API: 返工任务管理
 - [x] 2.3.7 API: Hold 释放
-- [ ] 2.3.8 UI: 缺陷列表 + 处置操作
-- [ ] 2.3.9 UI: 返工任务跟踪
+- [x] 2.3.8 UI: 缺陷列表 + 处置操作
+- [x] 2.3.9 UI: 返工任务跟踪
 
 ### 3.4 Task 2.4: OQC Sampling Flow
 - [ ] 2.4.1 Schema: OQC 抽检规则表 (比例/固定数量)
