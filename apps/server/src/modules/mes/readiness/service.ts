@@ -1,10 +1,10 @@
 import {
 	type Prisma,
+	type PrismaClient,
 	ReadinessCheckStatus,
 	ReadinessCheckType,
 	ReadinessItemStatus,
 	ReadinessItemType,
-	type PrismaClient,
 	type Run,
 } from "@better-app/db";
 import { SpanStatusCode, trace } from "@opentelemetry/api";
