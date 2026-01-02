@@ -110,8 +110,13 @@ export function DataListLayout<TData, TValue>({
 	const sortParam = sortingConfig?.sortParam ?? "sort";
 	const syncSortingWithUrl = sortingConfig?.syncWithUrl ?? true;
 
+	const effectiveViewPreferencesKey =
+		viewPreferencesKey ??
+		filterToolbarProps?.viewPreferencesKey ??
+		dataListViewProps?.viewPreferencesKey;
+
 	if (
-		!viewPreferencesKey &&
+		!effectiveViewPreferencesKey &&
 		(filterToolbarProps || dataListViewProps) &&
 		typeof window !== "undefined"
 	) {
