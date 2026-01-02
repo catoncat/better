@@ -1,5 +1,5 @@
 import { Permission, type PermissionValue } from "@better-app/db/permissions";
-import { Bell, Factory, Microscope, Settings2 } from "lucide-react";
+import { Bell, Factory, Settings2 } from "lucide-react";
 import type React from "react";
 
 export interface NavItem {
@@ -29,6 +29,11 @@ export const navMain: NavItem[] = [
 				permissions: [Permission.RUN_READ],
 			},
 			{
+				title: "准备异常",
+				url: "/mes/readiness-exceptions",
+				permissions: [Permission.READINESS_VIEW],
+			},
+			{
 				title: "工位执行",
 				url: "/mes/execution",
 				permissions: [Permission.EXEC_READ, Permission.EXEC_TRACK_IN, Permission.EXEC_TRACK_OUT],
@@ -48,21 +53,6 @@ export const navMain: NavItem[] = [
 				title: "追溯查询",
 				url: "/mes/trace",
 				permissions: [Permission.TRACE_READ],
-			},
-		],
-	},
-	{
-		title: "仪器计量",
-		url: "/instruments",
-		icon: Microscope,
-		items: [
-			{
-				title: "仪器列表",
-				url: "/instruments",
-			},
-			{
-				title: "校准记录",
-				url: "/calibrations",
 			},
 		],
 	},

@@ -18,7 +18,7 @@ datasource db {
 }
 
 // ==========================================
-// Existing Models (User, Auth, Instrument)
+// Existing Models (User, Auth)
 // ==========================================
 
 enum UserRole {
@@ -29,10 +29,6 @@ enum UserRole {
   operator
 }
 
-enum CalibrationType {
-  internal
-  external
-}
 
 enum NotificationStatus {
   unread
@@ -64,9 +60,6 @@ model User {
 
   sessions                   Session[]
   accounts                   Account[]
-  ownedInstruments           Instrument[]
-  calibrationRecordsOperated CalibrationRecord[] @relation("CalibrationOperator")
-  calibrationRecordsCreated  CalibrationRecord[] @relation("CalibrationCreatedBy")
   notifications              Notification[]
   systemLogs                 SystemLog[]
   
@@ -125,66 +118,6 @@ model Verification {
   @@map("verification")
 }
 
-model Instrument {
-  id           String  @id @default(cuid())
-  instrumentNo String  @unique
-  manufacturer String?
-  model        String?
-  description  String?
-  serialNo     String?
-  department   String?
-
-  ownerId String?
-  owner   User?   @relation(fields: [ownerId], references: [id])
-
-  lastCalibrationDate DateTime?
-  intervalDays        Int?
-  reminderDays        Int?
-  calibrationType     CalibrationType?
-  nextCalibrationDate DateTime?
-
-  remarks String?
-  status  String?
-
-  calibrationRecords CalibrationRecord[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([nextCalibrationDate])
-  @@map("instruments")
-}
-
-model CalibrationRecord {
-  id String @id @default(cuid())
-
-  instrumentId String
-  instrument   Instrument @relation(fields: [instrumentId], references: [id], onDelete: Cascade)
-
-  calibrationType     CalibrationType
-  performedAt         DateTime
-  nextCalibrationDate DateTime?
-
-  result         String?
-  certificateNo  String?
-  certificateUrl String?
-  attachments    Json
-  providerName   String?
-
-  operatorId String?
-  operator   User?   @relation("CalibrationOperator", fields: [operatorId], references: [id])
-
-  createdById String?
-  createdBy   User?   @relation("CalibrationCreatedBy", fields: [createdById], references: [id])
-
-  remarks   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([instrumentId, certificateNo])
-  @@index([instrumentId, performedAt(sort: Desc)])
-  @@map("calibration_records")
-}
 
 model Notification {
   id          String @id @default(cuid())
@@ -360,8 +293,6 @@ enum AuditEntityType {
   DATA_VALUE
   MATERIAL_USE
   INTEGRATION
-  INSTRUMENT
-  CALIBRATION
   USER
   SYSTEM_CONFIG
   NOTIFICATION
@@ -373,7 +304,7 @@ model WorkOrder {
   id            String          @id @default(cuid())
   woNo          String          @unique
   productCode   String
-  plannedQty    Int
+  plannedQty    Float
   routingId     String?
   status        WorkOrderStatus @default(RECEIVED)
   erpStatus     String?         // ERP 业务状态 (FStatus)

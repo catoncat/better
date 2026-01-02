@@ -1,10 +1,5 @@
 import "dotenv/config";
-import prisma, {
-	CalibrationType,
-	NotificationPriority,
-	NotificationStatus,
-	UserRole,
-} from "@better-app/db";
+import prisma, { UserRole } from "@better-app/db";
 import { auth } from "@better-app/auth";
 import { compileRouteExecution } from "../src/modules/mes/routing/service";
 import { seedMESMasterData } from "./seed-mes";
@@ -98,87 +93,6 @@ const seedSystemConfig = async (adminId: string) => {
 	});
 };
 
-const seedInstruments = async (adminId: string) => {
-	const existing = await prisma.instrument.count();
-	if (existing > 0) return;
-
-	const now = new Date();
-	const performedAt = new Date(now);
-	performedAt.setDate(performedAt.getDate() - 30);
-
-	const intervalDays = 180;
-	const nextCalibrationDate = new Date(performedAt);
-	nextCalibrationDate.setDate(nextCalibrationDate.getDate() + intervalDays);
-
-	const instrumentA = await prisma.instrument.create({
-		data: {
-			instrumentNo: "INS-001",
-			manufacturer: "Mitutoyo",
-			model: "500-196-30",
-			description: "Digital Caliper",
-			serialNo: "SN-DC-001",
-			department: "Quality",
-			owner: { connect: { id: adminId } },
-			lastCalibrationDate: performedAt,
-			intervalDays,
-			reminderDays: 15,
-			calibrationType: CalibrationType.internal,
-			nextCalibrationDate,
-			status: "normal",
-			remarks: "Seed data",
-		},
-	});
-
-	await prisma.instrument.create({
-		data: {
-			instrumentNo: "INS-002",
-			manufacturer: "Fluke",
-			model: "87V",
-			description: "Multimeter",
-			serialNo: "SN-MM-002",
-			department: "Maintenance",
-			owner: { connect: { id: adminId } },
-			intervalDays: 365,
-			reminderDays: 30,
-			calibrationType: CalibrationType.external,
-			status: "normal",
-			remarks: "Seed data",
-		},
-	});
-
-	await prisma.calibrationRecord.create({
-		data: {
-			instrumentId: instrumentA.id,
-			calibrationType: CalibrationType.internal,
-			performedAt,
-			nextCalibrationDate,
-			result: "pass",
-			certificateNo: "CERT-001",
-			certificateUrl: "",
-			attachments: [],
-			providerName: "Internal Lab",
-			operator: adminId,
-			createdBy: adminId,
-			remarks: "Initial calibration",
-		},
-	});
-
-	await prisma.notification.create({
-		data: {
-			recipientId: adminId,
-			type: "system",
-			title: "欢迎使用仪器计量模块",
-			message: "已为你准备示例仪器与校准记录。",
-			status: NotificationStatus.unread,
-			priority: NotificationPriority.normal,
-			data: {
-				entityType: "instrument",
-				entityId: instrumentA.id,
-				action: "view",
-			},
-		},
-	});
-};
 
 const ensureDefaultRouteVersion = async () => {
 	const routingCode = "PCBA-STD-V1";
@@ -339,7 +253,6 @@ const seedTestUsers = async () => {
 const run = async () => {
 	const adminId = await ensureAdminUser();
 	await seedSystemConfig(adminId);
-	await seedInstruments(adminId);
 	await seedMESMasterData();
 	await seedRoles();
 	await assignAdminRoleToUser(adminId);

@@ -28,8 +28,11 @@ export function DashboardLayout({
 
 	// Simple breadcrumb logic based on path
 	const breadcrumbNameMap: Record<string, string> = {
-		instruments: "仪器计量",
-		calibrations: "校准记录",
+		mes: "生产执行",
+		"work-orders": "工单管理",
+		runs: "批次管理",
+		trace: "追溯查询",
+		execution: "工位执行",
 		notifications: "通知管理",
 		system: "系统管理",
 		"user-management": "用户管理",
@@ -68,7 +71,7 @@ export function DashboardLayout({
 						<Breadcrumb>
 							<BreadcrumbList>
 								<BreadcrumbItem>
-									<BreadcrumbLink href="/instruments">首页</BreadcrumbLink>
+									<BreadcrumbLink href="/mes/work-orders">首页</BreadcrumbLink>
 								</BreadcrumbItem>
 								{breadcrumbs.length > 0 && <BreadcrumbSeparator />}
 								{breadcrumbs.map((crumb, _index) => (
