@@ -1,4 +1,5 @@
 import { Elysia } from "elysia";
+import { defectRoutes, reworkRoutes } from "./defect/routes";
 import { executionModule } from "./execution/routes";
 import { faiRoutes } from "./fai/routes";
 import { integrationModule } from "./integration/routes";
@@ -24,4 +25,6 @@ export const mesModule = new Elysia()
 	.use(executionModule)
 	.use(stationModule)
 	.use(traceModule)
-	.use(faiRoutes);
+	.use(faiRoutes)
+	.use(defectRoutes)
+	.use(reworkRoutes);
