@@ -1,5 +1,33 @@
 # End-to-End Business Flows (Mermaid)
 
+> **更新时间**: 2025-01-02
+> **实现状态**: M1 系列已完成，M2 Line Readiness 已完成，其余 M2 功能进行中
+
+## 实现进度说明
+
+| 流程节点 | 状态 | 备注 |
+|---------|------|------|
+| ERP Master Data Sync | ✅ 已实现 | Kingdee 适配器 + Mock 模式 |
+| Route import/normalize | ✅ 已实现 | ENG_Route 同步 |
+| Configure execution semantics | ✅ 已实现 | 路由详情页可编辑 |
+| Compile executable version | ✅ 已实现 | UI + API 可用 |
+| MES receive work order | ✅ 已实现 | 手动/ERP 同步 |
+| Dispatch to line | ✅ 已实现 | Release 操作 |
+| Create production run | ✅ 已实现 | UI 可用 |
+| Line readiness check | ✅ 已实现 | 设备/物料/路由检查 |
+| Exception record/handle | ✅ 已实现 | 豁免 + 异常看板 |
+| FAI task | ⬜ 未实现 | M2 待完成 |
+| Batch authorization | ✅ 已实现 | 含 Readiness 门禁 |
+| TrackIn/TrackOut (MANUAL) | ✅ 已实现 | 工位执行页 |
+| AUTO/BATCH/TEST ingest | ⚠️ 部分实现 | 框架就绪，待扩展 |
+| Data collection | ⬜ 未实现 | M3 待完成 |
+| Record defect | ⚠️ 部分实现 | 表存在，逻辑待完善 |
+| Disposition (REWORK/SCRAP/HOLD) | ⬜ 未实现 | M2 待完成 |
+| OQC sampling | ⬜ 未实现 | M2 待完成 |
+| Final confirmation/closeout | ⬜ 未实现 | M2 待完成 |
+
+---
+
 ```mermaid
 flowchart TB
   subgraph ERP_SYNC["ERP Master Data and Routing Sync"]

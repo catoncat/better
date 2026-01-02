@@ -1,5 +1,8 @@
 # Route Execution Config (MES-owned Execution Semantics)
 
+> **更新时间**: 2025-01-02
+> **实现状态**: ✅ M1.5 已完成，路由详情页可编辑执行配置
+
 This document defines how MES configures runtime execution semantics without changing the canonical step sequence from ERP (2B).
 Execution semantics are configured here for all routes, regardless of source system.
 

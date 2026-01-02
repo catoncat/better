@@ -1,5 +1,8 @@
 # Integration Payload Contracts (ERP / TPM)
 
+> **更新时间**: 2025-01-02
+> **实现状态**: ✅ M1.6 已完成，Mock + Kingdee 实际同步可用
+
 This document defines the pull payload structures from ERP and TPM and how they map into MES.
 All API responses use the standard envelope, with the integration payload in `data`:
 

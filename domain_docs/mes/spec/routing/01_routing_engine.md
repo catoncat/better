@@ -1,5 +1,8 @@
 # Routing Engine Design & Configuration
 
+> **更新时间**: 2025-01-02
+> **实现状态**: M1.5 已完成，核心功能可用
+
 This document defines the MES Routing Engine behavior and configuration model, aligned with:
 - `domain_docs/mes/spec/process/01_end_to_end_flows.md` (E2E flowchart)
 - `domain_docs/mes/spec/process/02_state_machines.md` (M1 simplified state machine)
