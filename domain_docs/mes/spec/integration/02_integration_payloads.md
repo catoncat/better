@@ -338,3 +338,93 @@ Mapping:
 Mapping:
 - Block execution if there is an in-progress maintenance task
 - Use maintenance history for prep checks and audit
+
+---
+
+## 3. SMT 专用集成载荷 (M2/M3 扩展)
+
+> 以下载荷用于 SMT 产线特有的集成场景，详见 `domain_docs/mes/spec/process/03_smp_flows_v2.md`
+
+### 3.1 钢网就绪状态 (TPM → MES) [M2]
+
+```json
+{
+  "eventId": "STN-20250327-001",
+  "eventTime": "2025-03-27T06:00:00Z",
+  "stencilId": "STN-001",
+  "version": "V1.0",
+  "status": "READY",
+  "tensionValue": 42.5,
+  "lastCleanedAt": "2025-03-27T05:30:00Z",
+  "source": "AUTO",
+  "operatorId": null
+}
+```
+
+Mapping:
+- `POST /api/integration/stencil-status`
+- MES 在就绪检查 (PrepCheck) 时验证 `status === 'READY'`
+- 支持手动降级：`source: 'MANUAL'` + `operatorId`
+
+### 3.2 锡膏合规状态 (WMS → MES) [M2]
+
+```json
+{
+  "eventId": "SP-20250327-001",
+  "eventTime": "2025-03-27T06:00:00Z",
+  "lotId": "SP-LOT-001",
+  "status": "COMPLIANT",
+  "expiresAt": "2025-03-28T06:00:00Z",
+  "thawedAt": "2025-03-27T04:00:00Z",
+  "stirredAt": "2025-03-27T05:30:00Z",
+  "source": "AUTO",
+  "operatorId": null
+}
+```
+
+Mapping:
+- `POST /api/integration/solder-paste-status`
+- MES 在就绪检查 (PrepCheck) 时验证 `status === 'COMPLIANT'`
+- 支持手动降级：`source: 'MANUAL'` + `operatorId`
+
+### 3.3 SPI/AOI 检测结果 (SCADA → MES) [M3]
+
+```json
+{
+  "eventId": "AOI-20250327-001",
+  "eventTime": "2025-03-27T08:30:00Z",
+  "runNo": "RUN20250327-01",
+  "stationCode": "AOI-01",
+  "unitSn": "SN0001",
+  "stepNo": 30,
+  "trackId": "TRK-001",
+  "inspectionType": "AOI",
+  "result": "FAIL",
+  "defects": [
+    {
+      "code": "SOLDER_BRIDGE",
+      "location": "U1-R5",
+      "description": "Solder bridge between pins 3-4"
+    }
+  ],
+  "rawData": {
+    "imageUrl": "https://...",
+    "confidence": 0.95
+  },
+  "source": "AUTO",
+  "equipmentId": "AOI-MACHINE-01",
+  "operatorId": null
+}
+```
+
+Mapping:
+- `POST /api/integration/inspection-result`
+- `runNo` + `stationCode` + `unitSn` 用于定位 Track
+- 如果 `trackId` 未提供，MES 查找当前 `IN_STATION` 的 Track
+- `result === 'FAIL'` 时自动创建 Defect 记录
+
+处理逻辑:
+1. 验证 `runNo` + `stationCode` + `unitSn` 存在
+2. 如果 `trackId` 未提供，查找 `Unit.status === 'IN_STATION'` 且 `stationCode` 匹配的 Track
+3. `PASS` → 记录检测数据到 `DataValue`
+4. `FAIL` → 创建 `Defect` 记录，关联 `trackId`，触发处置流程
