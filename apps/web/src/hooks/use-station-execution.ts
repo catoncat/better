@@ -8,6 +8,11 @@ type StationListResponse = Awaited<ReturnType<typeof client.api.stations.get>>["
 export type StationList = NonNullable<StationListResponse>;
 export type Station = StationList["items"][number];
 
+const resolveUnitApi = client.api.stations["resolve-unit"];
+type UnwrapEnvelope<T> = T extends { data: infer D } ? D : T;
+type ResolveUnitEnvelope = Awaited<ReturnType<ReturnType<typeof resolveUnitApi>["get"]>>["data"];
+export type ResolvedUnit = UnwrapEnvelope<NonNullable<ResolveUnitEnvelope>>;
+
 const stationQueueApi = (code: string) => client.api.stations({ stationCode: code }).queue;
 type StationQueueResponse = Awaited<ReturnType<ReturnType<typeof stationQueueApi>["get"]>>["data"];
 export type StationQueue = NonNullable<StationQueueResponse>;
@@ -71,6 +76,15 @@ export function useTrackOut() {
 		onSuccess: () => {
 			toast.success("出站成功");
 			queryClient.invalidateQueries({ queryKey: ["mes"] });
+		},
+	});
+}
+
+export function useResolveUnitBySn() {
+	return useMutation({
+		mutationFn: async ({ sn }: { sn: string }) => {
+			const response = await client.api.stations["resolve-unit"]({ sn }).get();
+			return unwrap(response);
 		},
 	});
 }

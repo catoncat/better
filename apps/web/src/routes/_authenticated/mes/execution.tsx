@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { RefreshCw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Badge } from "@/components/ui/badge";
@@ -44,11 +44,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAbility } from "@/hooks/use-ability";
 import {
+	useResolveUnitBySn,
 	useStationQueue,
 	useStations,
 	useTrackIn,
 	useTrackOut,
 } from "@/hooks/use-station-execution";
+import { useUserProfile } from "@/hooks/use-users";
 
 export const Route = createFileRoute("/_authenticated/mes/execution")({
 	component: ExecutionPage,
@@ -71,6 +73,7 @@ function ExecutionPage() {
 	const [ngDialogOpen, setNgDialogOpen] = useState(false);
 	const [ngItem, setNgItem] = useState<{ sn: string; runNo: string } | null>(null);
 	const stationStorageKey = "mes.execution.station";
+	const { data: userProfile } = useUserProfile();
 	const { data: stations } = useStations();
 	const {
 		data: queueData,
@@ -79,9 +82,12 @@ function ExecutionPage() {
 	} = useStationQueue(selectedStation);
 	const { mutateAsync: trackIn, isPending: isInPending } = useTrackIn();
 	const { mutateAsync: trackOut, isPending: isOutPending } = useTrackOut();
+	const { mutateAsync: resolveUnitBySn, isPending: isResolvingSn } = useResolveUnitBySn();
 	const { hasPermission } = useAbility();
 	const canTrackIn = hasPermission(Permission.EXEC_TRACK_IN);
 	const canTrackOut = hasPermission(Permission.EXEC_TRACK_OUT);
+	const resolveTimerRef = useRef<number | null>(null);
+	const lastResolvedSnRef = useRef<string>("");
 
 	const inForm = useForm<z.infer<typeof trackInSchema>>({
 		resolver: zodResolver(trackInSchema),
@@ -92,6 +98,14 @@ function ExecutionPage() {
 		resolver: zodResolver(trackOutSchema),
 		defaultValues: { sn: "", runNo: "", result: "PASS" },
 	});
+
+	useEffect(() => {
+		return () => {
+			if (resolveTimerRef.current) {
+				window.clearTimeout(resolveTimerRef.current);
+			}
+		};
+	}, []);
 
 	useEffect(() => {
 		if (typeof window === "undefined") return;
@@ -109,6 +123,21 @@ function ExecutionPage() {
 			window.localStorage.removeItem(stationStorageKey);
 		}
 	}, [selectedStation]);
+
+	const availableStations = useMemo(() => {
+		const items = stations?.items ?? [];
+		const boundStationIds = new Set(userProfile?.stationIds ?? []);
+		if (boundStationIds.size === 0) return items;
+		return items.filter((station) => boundStationIds.has(station.id));
+	}, [stations?.items, userProfile?.stationIds]);
+
+	useEffect(() => {
+		if (!selectedStation) return;
+		const isStillAvailable = availableStations.some((station) => station.code === selectedStation);
+		if (!isStillAvailable) {
+			setSelectedStation("");
+		}
+	}, [availableStations, selectedStation]);
 
 	const onInSubmit = async (values: z.infer<typeof trackInSchema>) => {
 		if (!selectedStation || !canTrackIn) return;
@@ -182,6 +211,38 @@ function ExecutionPage() {
 		return null;
 	};
 
+	const scheduleResolveFromSn = (sn: string, target: "in" | "out") => {
+		const trimmed = sn.trim();
+		if (!trimmed) return;
+		if (trimmed === lastResolvedSnRef.current) return;
+		if (resolveTimerRef.current) window.clearTimeout(resolveTimerRef.current);
+
+		resolveTimerRef.current = window.setTimeout(async () => {
+			try {
+				const resolved = await resolveUnitBySn({ sn: trimmed });
+				lastResolvedSnRef.current = trimmed;
+
+				if (target === "in") {
+					const currentWoNo = inForm.getValues("woNo");
+					const currentRunNo = inForm.getValues("runNo");
+					if (!currentWoNo && resolved.woNo) {
+						inForm.setValue("woNo", resolved.woNo, { shouldValidate: true });
+					}
+					if (!currentRunNo && resolved.runNo) {
+						inForm.setValue("runNo", resolved.runNo, { shouldValidate: true });
+					}
+				} else {
+					const currentRunNo = outForm.getValues("runNo");
+					if (!currentRunNo && resolved.runNo) {
+						outForm.setValue("runNo", resolved.runNo, { shouldValidate: true });
+					}
+				}
+			} catch {
+				// Ignore resolve errors; users can still manually input WO/Run.
+			}
+		}, 250);
+	};
+
 	const formatTime = (value?: string | null) => {
 		if (!value) return "-";
 		return format(new Date(value), "HH:mm:ss");
@@ -200,18 +261,24 @@ function ExecutionPage() {
 					<CardDescription>选择您当前操作的物理工位</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<Select value={selectedStation} onValueChange={setSelectedStation}>
-						<SelectTrigger className="w-[300px]">
-							<SelectValue placeholder="请选择工位..." />
-						</SelectTrigger>
-						<SelectContent>
-							{stations?.items.map((s) => (
-								<SelectItem key={s.code} value={s.code}>
-									{s.name} ({s.code}) - {s.line?.name}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+					{availableStations.length === 0 ? (
+						<div className="text-sm text-muted-foreground">
+							当前账号未绑定可用工位，请联系管理员完成工位绑定后再操作。
+						</div>
+					) : (
+						<Select value={selectedStation} onValueChange={setSelectedStation}>
+							<SelectTrigger className="w-[300px]">
+								<SelectValue placeholder="请选择工位..." />
+							</SelectTrigger>
+							<SelectContent>
+								{availableStations.map((s) => (
+									<SelectItem key={s.code} value={s.code}>
+										{s.name} ({s.code}) - {s.line?.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					)}
 				</CardContent>
 			</Card>
 
@@ -311,14 +378,13 @@ function ExecutionPage() {
 																onChange={(e) => {
 																	const nextValue = e.target.value;
 																	const parsed = parseScanValue(nextValue);
+																	field.onChange(nextValue);
 																	if (!parsed) {
-																		field.onChange(nextValue);
+																		scheduleResolveFromSn(nextValue, "in");
 																		return;
 																	}
 																	if (parsed.sn) {
 																		inForm.setValue("sn", parsed.sn, { shouldValidate: true });
-																	} else {
-																		field.onChange(nextValue);
 																	}
 																	if (parsed.woNo) {
 																		inForm.setValue("woNo", parsed.woNo, { shouldValidate: true });
@@ -327,6 +393,9 @@ function ExecutionPage() {
 																		inForm.setValue("runNo", parsed.runNo, {
 																			shouldValidate: true,
 																		});
+																	}
+																	if (parsed.sn && (!parsed.woNo || !parsed.runNo)) {
+																		scheduleResolveFromSn(parsed.sn, "in");
 																	}
 																}}
 															/>
@@ -391,7 +460,25 @@ function ExecutionPage() {
 													<FormItem>
 														<FormLabel>产品序列号 (SN)</FormLabel>
 														<FormControl>
-															<Input placeholder="请扫描 SN..." {...field} />
+															<Input
+																placeholder="请扫描 SN..."
+																{...field}
+																onChange={(e) => {
+																	const nextValue = e.target.value;
+																	field.onChange(nextValue);
+																	const parsed = parseScanValue(nextValue);
+																	if (parsed?.sn) {
+																		outForm.setValue("sn", parsed.sn, { shouldValidate: true });
+																	}
+																	if (parsed?.runNo) {
+																		outForm.setValue("runNo", parsed.runNo, {
+																			shouldValidate: true,
+																		});
+																	} else {
+																		scheduleResolveFromSn(parsed?.sn ?? nextValue, "out");
+																	}
+																}}
+															/>
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -438,6 +525,11 @@ function ExecutionPage() {
 											>
 												{!canTrackOut ? "无出站权限" : isOutPending ? "处理中..." : "确认出站"}
 											</Button>
+											{isResolvingSn && (
+												<div className="text-xs text-muted-foreground">
+													正在根据 SN 自动匹配批次…
+												</div>
+											)}
 										</form>
 									</Form>
 								</CardContent>
