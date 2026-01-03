@@ -135,6 +135,7 @@ model ReadinessCheckItem {
 - [x] 2.2.6 Gate: Run 授权需 FAI PASSED
 - [x] 2.2.7 UI: FAI 任务创建/执行页
 - [x] 2.2.8 UI: FAI 结果记录表单
+- [ ] 2.2.9 MRB FAI 豁免逻辑 (`authorizationType`, `mrbFaiWaiver`, `mrbWaiverReason`)
 
 ### 3.3 Task 2.3: Defect & Disposition
 - [x] 2.3.1 Schema: 验证/扩展 Defect + Disposition 模型
@@ -173,9 +174,13 @@ model ReadinessCheckItem {
 - [ ] 2.5.3 Service: OQC 抽样算法
 - [ ] 2.5.4 API: OQC 任务管理
 - [ ] 2.5.5 API: OQC 结果记录
-- [ ] 2.5.6 Gate: Run/WO 完成需 OQC 通过
+- [ ] 2.5.6 Gate: Run/WO 完成需 OQC 通过 (含 MRB 分支: COMPLETED/CLOSED_REWORK/SCRAPPED)
 - [ ] 2.5.7 UI: OQC 任务列表 + 执行
 - [ ] 2.5.8 UI: OQC 规则配置
+- [ ] 2.5.9 MRB 评审流程 (ON_HOLD → MRB decision → 终态)
+- [ ] 2.5.10 返修 Run 创建 API (`POST /api/runs/{runNo}/rework`)
+- [ ] 2.5.11 CLOSED_REWORK 状态变更逻辑
+- [ ] 2.5.12 UI: MRB 决策对话框
 
 ### 3.6 Task 2.6: Integration APIs (集成接口)
 
@@ -198,8 +203,8 @@ model ReadinessCheckItem {
 - [ ] 2.6.14 审计: 数据来源标识 (AUTO/MANUAL) 追溯
 
 ### 3.7 Task 2.7: Final Confirmation & Closeout
-- [ ] 2.7.1 Service: Run 完成条件检查 (所有门禁)
-- [ ] 2.7.2 Service: WO 完成条件检查
+- [ ] 2.7.1 Service: Run 终态判定 (COMPLETED / CLOSED_REWORK / SCRAPPED)
+- [ ] 2.7.2 Service: WO 完成条件检查 (所有 Run 处于终态)
 - [ ] 2.7.3 API: Run closeout
 - [ ] 2.7.4 API: WO closeout
 - [ ] 2.7.5 UI: 关闭确认对话框
