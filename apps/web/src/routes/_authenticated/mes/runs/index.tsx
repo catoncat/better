@@ -1,8 +1,10 @@
 import { Permission } from "@better-app/db/permissions";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { Can } from "@/components/ability/can";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { LineSelect } from "@/components/select/line-select";
 import { Button } from "@/components/ui/button";
@@ -338,6 +340,16 @@ function RunsPage() {
 						<h1 className="text-2xl font-bold tracking-tight">批次管理</h1>
 						<p className="text-muted-foreground">创建生产批次并进行授权</p>
 					</div>
+					<Can permissions={Permission.RUN_CREATE}>
+						<Button
+							onClick={() => {
+								navigate({ to: "/mes/work-orders" });
+							}}
+						>
+							<Plus className="mr-2 h-4 w-4" />
+							创建批次
+						</Button>
+					</Can>
 				</div>
 			}
 			queryPresetBarProps={{

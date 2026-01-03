@@ -1,9 +1,19 @@
-import { Permission } from "@better-app/db/permissions";
+import { PERMISSION_GROUPS, Permission } from "@better-app/db/permissions";
 import { createFileRoute } from "@tanstack/react-router";
 import { Plus, Shield, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Can } from "@/components/ability/can";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,12 +47,24 @@ function RoleManagementPage() {
 	const deleteRole = useDeleteRole();
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editingRole, setEditingRole] = useState<RoleItem | null>(null);
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+	const [deletingRole, setDeletingRole] = useState<RoleItem | null>(null);
 
 	const roles = data?.items ?? [];
 	const sortedRoles = useMemo(
 		() => [...roles].sort((a, b) => Number(b.isSystem) - Number(a.isSystem)),
 		[roles],
 	);
+
+	const permissionLabelMap = useMemo(() => {
+		const map = new Map<string, string>();
+		for (const group of Object.values(PERMISSION_GROUPS)) {
+			for (const permission of group.permissions) {
+				map.set(permission.value, permission.label);
+			}
+		}
+		return map;
+	}, []);
 
 	const handleCreate = () => {
 		setEditingRole(null);
@@ -59,15 +81,22 @@ function RoleManagementPage() {
 			toast.error("系统角色不可删除");
 			return;
 		}
-		const confirmed = window.confirm(`确认删除角色 ${role.name} 吗？`);
-		if (!confirmed) return;
+		setDeletingRole(role);
+		setDeleteDialogOpen(true);
+	};
+
+	const handleConfirmDelete = async () => {
+		if (!deletingRole || deletingRole.isSystem) return;
 		try {
-			await deleteRole.mutateAsync({ id: role.id });
+			await deleteRole.mutateAsync({ id: deletingRole.id });
 			toast.success("删除成功");
 		} catch (err) {
 			toast.error("删除失败", {
 				description: err instanceof Error ? err.message : "请稍后重试",
 			});
+		} finally {
+			setDeleteDialogOpen(false);
+			setDeletingRole(null);
 		}
 	};
 
@@ -151,8 +180,8 @@ function RoleManagementPage() {
 								)}
 								<div className="flex flex-wrap gap-2">
 									{role.permissions.slice(0, 4).map((permission) => (
-										<Badge key={permission} variant="secondary">
-											{permission}
+										<Badge key={permission} variant="secondary" title={permission}>
+											{permissionLabelMap.get(permission) ?? permission}
 										</Badge>
 									))}
 									{role.permissions.length > 4 && (
@@ -188,6 +217,29 @@ function RoleManagementPage() {
 				onSubmit={handleSubmit}
 				isSubmitting={createRole.isPending || updateRole.isPending}
 			/>
+
+			<AlertDialog
+				open={deleteDialogOpen}
+				onOpenChange={(open) => {
+					setDeleteDialogOpen(open);
+					if (!open) setDeletingRole(null);
+				}}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>确定删除此角色？</AlertDialogTitle>
+						<AlertDialogDescription>
+							角色：{deletingRole?.name ?? "-"}。此操作不可撤销。
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>取消</AlertDialogCancel>
+						<AlertDialogAction onClick={handleConfirmDelete} disabled={deleteRole.isPending}>
+							确认删除
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }

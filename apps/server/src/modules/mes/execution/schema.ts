@@ -32,3 +32,12 @@ export const trackResponseSchema = t.Object({
 		status: t.String(),
 	}),
 });
+
+export const resolveUnitResponseSchema = t.Object({
+	ok: t.Boolean(),
+	data: t.Object({
+		sn: t.String(),
+		woNo: t.String(),
+		runNo: t.Union([t.String(), t.Null()]),
+	}),
+});

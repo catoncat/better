@@ -1,3 +1,4 @@
+import { Permission } from "@better-app/db/permissions";
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import {
@@ -11,7 +12,7 @@ import {
 	Trash2,
 	XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +42,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { useAbility } from "@/hooks/use-ability";
 import {
 	type DefectQuery,
 	useAssignDisposition,
@@ -48,6 +50,7 @@ import {
 	useDefectList,
 	useReleaseHold,
 } from "@/hooks/use-defects";
+import { useUnitTrace } from "@/hooks/use-trace";
 
 export const Route = createFileRoute("/_authenticated/mes/defects")({
 	component: DefectsPage,
@@ -70,6 +73,8 @@ function DefectsPage() {
 
 	const assignDisposition = useAssignDisposition();
 	const releaseHold = useReleaseHold();
+	const { hasPermission } = useAbility();
+	const canTraceRead = hasPermission(Permission.TRACE_READ);
 
 	// Disposition form state
 	const [dispositionForm, setDispositionForm] = useState({
@@ -176,6 +181,29 @@ function DefectsPage() {
 	const defectDetailTyped = defectDetail as
 		| (NonNullable<typeof defectDetail> & { disposition?: DispositionDetail | null })
 		| null;
+
+	const selectedUnitSn = useMemo(() => {
+		const fromDetail = (defectDetailTyped as { unit?: { sn?: string } | null } | null)?.unit?.sn;
+		if (fromDetail) return fromDetail;
+		const fromList = items.find((item) => item.id === selectedDefectId)?.unit?.sn;
+		return fromList ?? "";
+	}, [defectDetailTyped, items, selectedDefectId]);
+
+	const traceSn =
+		canTraceRead && dispositionDialogOpen && dispositionForm.type === "REWORK"
+			? selectedUnitSn
+			: "";
+	const { data: traceData, isLoading: isTraceLoading } = useUnitTrace(traceSn, "latest");
+
+	const reworkStepOptions = useMemo(() => {
+		const steps = traceData?.steps ?? [];
+		return [...steps]
+			.sort((a, b) => a.stepNo - b.stepNo)
+			.map((step) => ({
+				value: String(step.stepNo),
+				label: `Step ${step.stepNo} · ${step.stationType}`,
+			}));
+	}, [traceData?.steps]);
 
 	return (
 		<div className="container mx-auto py-6 space-y-6">
@@ -482,18 +510,48 @@ function DefectsPage() {
 						</div>
 						{dispositionForm.type === "REWORK" && (
 							<div>
-								<Label>返工至工步编号</Label>
-								<Input
-									type="number"
-									min={1}
-									value={dispositionForm.toStepNo}
-									onChange={(e) =>
-										setDispositionForm({
-											...dispositionForm,
-											toStepNo: Number.parseInt(e.target.value, 10) || 1,
-										})
-									}
-								/>
+								<Label>返工至工步</Label>
+								{reworkStepOptions.length > 0 ? (
+									<Select
+										value={String(dispositionForm.toStepNo)}
+										onValueChange={(value) =>
+											setDispositionForm({
+												...dispositionForm,
+												toStepNo: Number.parseInt(value, 10) || 1,
+											})
+										}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="选择工步" />
+										</SelectTrigger>
+										<SelectContent>
+											{reworkStepOptions.map((option) => (
+												<SelectItem key={option.value} value={option.value}>
+													{option.label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								) : (
+									<Input
+										type="number"
+										min={1}
+										value={dispositionForm.toStepNo}
+										onChange={(e) =>
+											setDispositionForm({
+												...dispositionForm,
+												toStepNo: Number.parseInt(e.target.value, 10) || 1,
+											})
+										}
+									/>
+								)}
+								<div className="mt-1 text-xs text-muted-foreground">
+									{isTraceLoading
+										? "正在加载路由工步..."
+										: reworkStepOptions.length > 0
+											? "基于当前路由选择返工目标工步"
+											: "未获取到路由工步，可手动输入工步编号"}
+								</div>
 							</div>
 						)}
 						<div>
