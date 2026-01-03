@@ -1,5 +1,5 @@
 import { Permission } from "@better-app/db/permissions";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { format } from "date-fns";
 import {
 	AlertTriangle,
@@ -53,14 +53,27 @@ import {
 import { useUnitTrace } from "@/hooks/use-trace";
 
 export const Route = createFileRoute("/_authenticated/mes/defects")({
+	validateSearch: (search: Record<string, unknown>): DefectQuery => ({
+		unitSn: (search.unitSn as string) || undefined,
+		code: (search.code as string) || undefined,
+		status: (search.status as string) || undefined,
+		page: Number(search.page) || 1,
+		pageSize: Number(search.pageSize) || 20,
+	}),
 	component: DefectsPage,
 });
 
 function DefectsPage() {
-	const [query, setQuery] = useState<DefectQuery>({
-		page: 1,
-		pageSize: 20,
-	});
+	const navigate = useNavigate();
+	const searchParams = useSearch({ from: "/_authenticated/mes/defects" });
+
+	const query: DefectQuery = {
+		unitSn: searchParams.unitSn,
+		code: searchParams.code,
+		status: searchParams.status,
+		page: searchParams.page || 1,
+		pageSize: searchParams.pageSize || 20,
+	};
 
 	const [selectedDefectId, setSelectedDefectId] = useState<string | null>(null);
 	const [dispositionDialogOpen, setDispositionDialogOpen] = useState(false);
@@ -75,6 +88,25 @@ function DefectsPage() {
 	const releaseHold = useReleaseHold();
 	const { hasPermission } = useAbility();
 	const canTraceRead = hasPermission(Permission.TRACE_READ);
+
+	const updateSearch = (patch: Partial<DefectQuery>) => {
+		const nextPage = patch.page ?? query.page ?? 1;
+		const nextPageSize = patch.pageSize ?? query.pageSize ?? 20;
+		const nextSearch: DefectQuery = {
+			...searchParams,
+			...patch,
+			page: nextPage,
+			pageSize: nextPageSize,
+		};
+
+		if (!nextSearch.unitSn) delete nextSearch.unitSn;
+		if (!nextSearch.code) delete nextSearch.code;
+		if (!nextSearch.status) delete nextSearch.status;
+		if (!nextSearch.page || nextSearch.page < 1) nextSearch.page = 1;
+		if (!nextSearch.pageSize || nextSearch.pageSize <= 0) nextSearch.pageSize = 20;
+
+		navigate({ to: ".", search: nextSearch, replace: true });
+	};
 
 	// Disposition form state
 	const [dispositionForm, setDispositionForm] = useState({
@@ -92,8 +124,8 @@ function DefectsPage() {
 	};
 	const items = (data?.items ?? []) as DefectWithUnit[];
 	const total = data?.total ?? 0;
-	const currentPage = data?.page ?? 1;
-	const pageSize = data?.pageSize ?? 20;
+	const currentPage = query.page ?? 1;
+	const pageSize = query.pageSize ?? 20;
 	const totalPages = Math.ceil(total / pageSize);
 
 	const formatTime = (value?: string | Date | null) => {
@@ -227,7 +259,10 @@ function DefectsPage() {
 								placeholder="输入单位 SN"
 								value={query.unitSn ?? ""}
 								onChange={(e) =>
-									setQuery({ ...query, unitSn: e.target.value || undefined, page: 1 })
+									updateSearch({
+										unitSn: e.target.value || undefined,
+										page: 1,
+									})
 								}
 							/>
 						</div>
@@ -236,7 +271,7 @@ function DefectsPage() {
 							<Input
 								placeholder="输入缺陷代码"
 								value={query.code ?? ""}
-								onChange={(e) => setQuery({ ...query, code: e.target.value || undefined, page: 1 })}
+								onChange={(e) => updateSearch({ code: e.target.value || undefined, page: 1 })}
 							/>
 						</div>
 						<div className="w-40">
@@ -244,7 +279,7 @@ function DefectsPage() {
 							<Select
 								value={query.status ?? "ALL"}
 								onValueChange={(v) =>
-									setQuery({ ...query, status: v === "ALL" ? undefined : v, page: 1 })
+									updateSearch({ status: v === "ALL" ? undefined : v, page: 1 })
 								}
 							>
 								<SelectTrigger>
@@ -365,7 +400,7 @@ function DefectsPage() {
 									size="sm"
 									variant="outline"
 									disabled={currentPage <= 1}
-									onClick={() => setQuery({ ...query, page: currentPage - 1 })}
+									onClick={() => updateSearch({ page: currentPage - 1 })}
 								>
 									<ChevronLeft className="h-4 w-4" />
 								</Button>
@@ -373,7 +408,7 @@ function DefectsPage() {
 									size="sm"
 									variant="outline"
 									disabled={currentPage >= totalPages}
-									onClick={() => setQuery({ ...query, page: currentPage + 1 })}
+									onClick={() => updateSearch({ page: currentPage + 1 })}
 								>
 									<ChevronRight className="h-4 w-4" />
 								</Button>
