@@ -226,6 +226,8 @@ Request example:
 | `faiWaiver` | boolean | No | Whether to waive FAI for this rework Run (only valid for `REUSE_PREP`) |
 | `waiverReason` | string | Conditional | Required if `faiWaiver` is true |
 
+> **Field Mapping**: Request uses short names (`faiWaiver`, `waiverReason`), model uses prefixed names (`mrbFaiWaiver`, `mrbWaiverReason`) to clarify MRB context in database.
+
 Response example:
 ```json
 {

@@ -15,8 +15,11 @@ Standard errors (e.g. `BAD_REQUEST`, `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `
 ### 1.1 Execution Errors
 *   `WO_NOT_RELEASED`: Work Order must be in RELEASED state to proceed.
 *   `RUN_NOT_AUTHORIZED`: Production Run requires authorization (and potentially FAI) before execution.
+*   `RUN_NOT_ON_HOLD`: Rework operation requires Run to be in ON_HOLD status.
 *   `FAI_REQUIRED`: Step execution blocked because First Article Inspection is pending or failed.
 *   `FAI_NOT_PASSED`: Run authorization blocked because required FAI is missing or not passed.
+*   `FAI_WAIVER_REASON_REQUIRED`: MRB FAI waiver requested but waiver reason not provided.
+*   `MRB_DECISION_REQUIRED`: Rework operation requires MRB decision reference.
 *   `STEP_MISMATCH`: The unit is not at the correct step for this operation.
 *   `STATION_NOT_ALLOWED`: The selected station is not valid for the current step.
 *   `TPM_EQUIPMENT_UNAVAILABLE`: Equipment status from TPM is not `normal`.
@@ -86,6 +89,7 @@ The MES API is divided into the following functional areas:
 *   `GET /api/runs` (list runs with pagination and filtering)
 *   `GET /api/runs/{runNo}` (run detail with unit statistics)
 *   `POST /api/runs/{runNo}/authorize` (authorize or revoke run)
+*   `POST /api/runs/{runNo}/rework` (create rework run from ON_HOLD run, M2)
 
 ---
 
