@@ -50,15 +50,17 @@ IN_PROGRESS → ON_HOLD (OQC失败) → MRB决策 → CLOSED_REWORK (返修)
 enum RunStatus {
   PREP
   AUTHORIZED
-  RUNNING           // 现有
-  FINISHING         // 现有
+  IN_PROGRESS       // 规范名称 (当前 schema: RUNNING)
   ON_HOLD           // 新增 M2
-  COMPLETED         // 语义：生产成功完成
+  COMPLETED         // 规范名称 (当前 schema: FINISHING)
   CLOSED_REWORK     // 新增 M2：生产完成但有返修
   SCRAPPED          // 新增 M2
   CANCELLED
 }
 ```
+
+> **注意**：当前 Prisma schema 使用 RUNNING/FINISHING，M2 实现时统一迁移为 IN_PROGRESS/COMPLETED。
+> 详见 `domain_docs/mes/spec/process/02_state_machines.md` 第 5 节映射表。
 
 **理由：**
 - 状态语义清晰：COMPLETED = 成功，CLOSED_REWORK = 有返修
