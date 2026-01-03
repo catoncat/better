@@ -1,12 +1,12 @@
 import { Permission } from "@better-app/db/permissions";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
+import { RouteSelect } from "@/components/select/route-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
 	Table,
@@ -63,21 +63,23 @@ function RouteVersionsPage() {
 			<Card>
 				<CardHeader>
 					<CardTitle>路由查询</CardTitle>
-					<CardDescription>输入路由编码后查询版本，或直接编译生成最新版本。</CardDescription>
+					<CardDescription>选择路由后查询版本，或直接编译生成最新版本。</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<div className="flex flex-col gap-3 md:flex-row md:items-end">
 						<div className="w-full md:flex-1">
 							<Label htmlFor="routing-code">路由编码</Label>
-							<Input
-								id="routing-code"
-								className="w-full mt-2"
+							<RouteSelect
 								value={routingCode}
-								onChange={(event) => setRoutingCode(event.target.value.trim())}
-								placeholder="例如 PCBA-STD-V1"
+								onValueChange={(value) => setRoutingCode(value)}
+								className="mt-2"
+								placeholder="选择路由..."
 							/>
 						</div>
 						<div className="flex flex-wrap gap-2">
+							<Button asChild variant="outline">
+								<Link to="/mes/routes">路由管理</Link>
+							</Button>
 							<Button
 								variant="secondary"
 								onClick={() => refetch()}

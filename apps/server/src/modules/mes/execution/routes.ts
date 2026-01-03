@@ -4,7 +4,12 @@ import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
-import { trackInSchema, trackOutSchema, trackResponseSchema } from "./schema";
+import {
+	resolveUnitResponseSchema,
+	trackInSchema,
+	trackOutSchema,
+	trackResponseSchema,
+} from "./schema";
 import { trackIn, trackOut } from "./service";
 
 export const executionModule = new Elysia({
@@ -13,6 +18,41 @@ export const executionModule = new Elysia({
 	.use(prismaPlugin)
 	.use(authPlugin)
 	.use(permissionPlugin)
+	.get(
+		"/resolve-unit/:sn",
+		async ({ db, params, set }) => {
+			const unit = await db.unit.findUnique({
+				where: { sn: params.sn },
+				include: {
+					workOrder: { select: { woNo: true } },
+					run: { select: { runNo: true } },
+				},
+			});
+
+			if (!unit) {
+				set.status = 404;
+				return { ok: false, error: { code: "UNIT_NOT_FOUND", message: "Unit not found" } };
+			}
+
+			return {
+				ok: true,
+				data: { sn: unit.sn, woNo: unit.workOrder.woNo, runNo: unit.run?.runNo ?? null },
+			};
+		},
+		{
+			isAuth: true,
+			requirePermission: [Permission.EXEC_TRACK_IN, Permission.EXEC_TRACK_OUT],
+			params: t.Object({ sn: t.String() }),
+			response: {
+				200: resolveUnitResponseSchema,
+				404: t.Object({
+					ok: t.Boolean(),
+					error: t.Object({ code: t.String(), message: t.String() }),
+				}),
+			},
+			detail: { tags: ["MES - Execution"] },
+		},
+	)
 	.post(
 		"/:stationCode/track-in",
 		async ({ db, params, body, set, user, request }) => {

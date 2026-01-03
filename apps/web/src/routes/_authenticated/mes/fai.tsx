@@ -1,3 +1,4 @@
+import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { format } from "date-fns";
 import {
@@ -11,6 +12,7 @@ import {
 	XCircle,
 } from "lucide-react";
 import { useState } from "react";
+import { Can } from "@/components/ability/can";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -274,7 +276,7 @@ function FaiPage() {
 											<Link
 												to="/mes/runs/$runNo"
 												params={{ runNo: fai.run?.runNo ?? "" }}
-												className="text-blue-600 hover:underline"
+												className="text-primary underline-offset-4 hover:underline"
 											>
 												{fai.run?.runNo ?? "-"}
 											</Link>
@@ -289,39 +291,45 @@ function FaiPage() {
 										<TableCell className="text-right">
 											<div className="flex gap-2 justify-end">
 												{fai.status === "PENDING" && (
-													<Button
-														size="sm"
-														variant="outline"
-														onClick={() => handleStartFai(fai.id)}
-														disabled={startFai.isPending}
-													>
-														<Play className="h-4 w-4 mr-1" />
-														开始
-													</Button>
-												)}
-												{fai.status === "INSPECTING" && (
-													<>
+													<Can permissions={Permission.QUALITY_FAI}>
 														<Button
 															size="sm"
 															variant="outline"
-															onClick={() => {
-																setSelectedFaiId(fai.id);
-																setRecordDialogOpen(true);
-															}}
+															onClick={() => handleStartFai(fai.id)}
+															disabled={startFai.isPending}
 														>
-															<Plus className="h-4 w-4 mr-1" />
-															记录
+															<Play className="h-4 w-4 mr-1" />
+															开始
 														</Button>
-														<Button
-															size="sm"
-															onClick={() => {
-																setSelectedFaiId(fai.id);
-																setCompleteDialogOpen(true);
-															}}
-														>
-															<CheckCircle2 className="h-4 w-4 mr-1" />
-															完成
-														</Button>
+													</Can>
+												)}
+												{fai.status === "INSPECTING" && (
+													<>
+														<Can permissions={Permission.QUALITY_FAI}>
+															<Button
+																size="sm"
+																variant="outline"
+																onClick={() => {
+																	setSelectedFaiId(fai.id);
+																	setRecordDialogOpen(true);
+																}}
+															>
+																<Plus className="h-4 w-4 mr-1" />
+																记录
+															</Button>
+														</Can>
+														<Can permissions={Permission.QUALITY_FAI}>
+															<Button
+																size="sm"
+																onClick={() => {
+																	setSelectedFaiId(fai.id);
+																	setCompleteDialogOpen(true);
+																}}
+															>
+																<CheckCircle2 className="h-4 w-4 mr-1" />
+																完成
+															</Button>
+														</Can>
 													</>
 												)}
 												{(fai.status === "PASS" || fai.status === "FAIL") && (
