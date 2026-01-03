@@ -107,9 +107,22 @@ import { error } from "elysia";
 -   Business data audit (what changed) must be handled in the controller to capture intent and data context.
 
 ### 3.2 Idempotency
-**Mandatory for**: Integration APIs (ERP) & Station Actions (Track In/Out).
+
+MES uses two idempotency mechanisms depending on the API type:
+
+| API Type | Mechanism | Examples |
+|----------|-----------|----------|
+| MES Core Operations | `Idempotency-Key` header | TrackIn/Out, WO receive |
+| External System Push | `eventId` field in body | TPM/WMS/SCADA integration |
+
+**MES Core Operations** (TrackIn/Out, Work Order actions):
 *   **Client**: Sends `Idempotency-Key` header.
 *   **Service**: Checks key existence in `db.$transaction`.
+
+**External System Push** (TPM stencil status, WMS solder paste, SCADA inspection):
+*   **Client**: Includes `eventId` field in request body as business idempotency key.
+*   **Service**: Uses `eventId` for deduplication (no HTTP header required).
+*   **Rationale**: External systems (PLCs, SCADA) often cannot set custom HTTP headers.
 
 ---
 

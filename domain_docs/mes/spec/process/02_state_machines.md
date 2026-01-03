@@ -163,6 +163,39 @@ stateDiagram-v2
 
 ---
 
+## 5. 规范与当前实现映射
+
+> **注意**：当前 Prisma schema 使用的枚举值与本规范定义存在差异。M2 实现时需统一迁移。
+
+### RunStatus 映射
+
+| 规范状态 | 当前 Schema | 说明 |
+|---------|------------|------|
+| PREP | PREP | ✅ 一致 |
+| AUTHORIZED | AUTHORIZED | ✅ 一致 |
+| IN_PROGRESS | RUNNING | ⚠️ 需迁移 |
+| ON_HOLD | (新增) | M2 新增 |
+| COMPLETED | FINISHING | ⚠️ 需迁移 |
+| CLOSED_REWORK | (新增) | M2 新增 |
+| SCRAPPED | (新增) | M2 新增 |
+| - | FAI_PENDING | 🗑️ 移除 (已用 FAI 任务状态替代) |
+| - | ARCHIVED | 🗑️ 移除 (合并到 COMPLETED) |
+
+### UnitStatus 映射
+
+| 规范状态 | 当前 Schema | 说明 |
+|---------|------------|------|
+| QUEUED | QUEUED | ✅ 一致 |
+| IN_STATION | IN_STATION | ✅ 一致 |
+| DONE | DONE | ✅ 一致 |
+| OUT_FAILED | OUT_FAILED | ✅ 一致 |
+| ON_HOLD | HOLD | ⚠️ 命名差异 |
+| SCRAPPED | SCRAPPED | ✅ 一致 |
+| - | OUT_PASSED | 🗑️ 移除 (合并到 QUEUED) |
+| - | REWORK | 🗑️ 移除 (改用 Disposition 记录) |
+
+---
+
 ## 参考文档
 
 - SMP 流程图: `03_smp_flows_v2.md`
