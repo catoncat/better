@@ -344,6 +344,7 @@ Mapping:
 ## 3. SMT 专用集成载荷 (M2/M3 扩展)
 
 > 以下载荷用于 SMT 产线特有的集成场景，详见 `domain_docs/mes/spec/process/03_smp_flows_v2.md`
+> **幂等性**：所有接口使用 `eventId` 字段作为业务幂等键（不再依赖 HTTP Idempotency-Key header）
 
 ### 3.1 钢网就绪状态 (TPM → MES) [M2]
 
