@@ -59,14 +59,20 @@ flowchart TB
   DONEU --> OQC{Trigger OQC sampling?}
   OQC -- No --> FINCHK{Run/WO complete?}
   OQC -- Yes --> OQCT[OQC sampling task] --> OQCP{OQC passed?}
-  OQCP -- No --> OQCH[Batch hold isolation] --> OQCMRB[MRB review]
-  OQCMRB -- Release --> FINCHK
-  OQCMRB -- Rework --> LOOP
-  OQCMRB -- Scrap --> OQCSC[Batch scrap]
   OQCP -- Yes --> FINCHK
+  OQCP -- No --> OQCH[Hold isolation<br/>RUN=ON_HOLD]
+
+  OQCH --> MRB{MRB Decision?}
+  MRB -- Release --> COMPLETED[RUN=COMPLETED]
+  MRB -- Rework --> CLOSED_REWORK[RUN=CLOSED_REWORK<br/>创建返修Run]
+  MRB -- Scrap --> SCRAPPED[RUN=SCRAPPED]
+
+  COMPLETED --> FINCHK
+  CLOSED_REWORK --> END
+  SCRAPPED --> END
 
   FINCHK -- No --> LOOP
-  FINCHK -- Yes --> LASTCONF[Final confirmation/closeout<br/>RUN=COMPLETED]
+  FINCHK -- Yes --> LASTCONF[Final confirmation/closeout]
   LASTCONF --> ARCH[Archive/feedback placeholder]
   ARCH --> END((Closure))
 ```
@@ -82,10 +88,26 @@ flowchart TB
 | Entity | States |
 |--------|--------|
 | WorkOrder | RECEIVED → RELEASED → IN_PROGRESS → COMPLETED |
-| Run | PREP → AUTHORIZED → IN_PROGRESS → COMPLETED |
+| Run | PREP → AUTHORIZED → IN_PROGRESS → ON_HOLD → COMPLETED / CLOSED_REWORK / SCRAPPED |
 | Unit | IN_STATION → QUEUED / OUT_FAILED / DONE / ON_HOLD / SCRAPPED |
 
 ## References
-- SMT 产线流程: `domain_docs/mes/spec/process/03_smp_flows.md`
+- SMT 产线流程: `domain_docs/mes/spec/process/03_smp_flows_v2.md`
 - 状态机定义: `domain_docs/mes/spec/process/02_state_machines.md`
 - 集成规范: `domain_docs/mes/spec/integration/01_system_integrations.md`
+ 
+## MRB Decision & Terminal States
+
+OQC 不合格时触发 MRB 评审，Run 进入 `ON_HOLD` 状态后根据 MRB 决策进入终态：
+
+| MRB 决策 | 原 Run 终态 | 行为 |
+|---------|-----------|------|
+| Release (放行) | `COMPLETED` | 质量问题已解决或可接受 |
+| Rework (返修) | `CLOSED_REWORK` | 创建返修 Run，原 Run 闭环 |
+| Scrap (报废) | `SCRAPPED` | 整批报废，无后续 Run |
+
+**返修 Run 类型**:
+- `REUSE_PREP`: 复用就绪，返修 Run 直接进入 `AUTHORIZED` (可豁免 FAI)
+- `FULL_PREP`: 重新检查，返修 Run 从 `PREP` 开始
+
+详见 `conversation/smp_flow_design_decisions.md` 决策记录。

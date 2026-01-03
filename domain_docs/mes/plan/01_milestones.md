@@ -36,8 +36,24 @@ This document outlines the development milestones for the MES system, focusing o
 
 ### M2: Quality Control and Authorization 🚧 进行中
 * **Goal**: Implement quality control checks, including FAI and batch authorization.
-* **Features**: Line readiness checks + exception loop, FAI tasks (trial run + inspection), defect/NG registration, disposition (rework/scrap/hold/release), OQC sampling tasks, batch authorization, final confirmation/closeout.
-* **Acceptance Criteria**: Runs cannot authorize without readiness + FAI pass; defects/disposition and OQC gates are enforced; runs/WO close only after final confirmation.
+* **Features**:
+  - Line readiness checks + exception loop
+  - FAI tasks (trial run + inspection)
+  - Defect/NG registration
+  - Disposition (rework/scrap/hold/release)
+  - OQC sampling tasks
+  - Batch authorization
+  - **Run 终态扩展**: COMPLETED / CLOSED_REWORK / SCRAPPED
+  - **MRB 评审与返修 Run 创建**（含 FAI 豁免机制）
+  - **返修 Run API**: `POST /api/runs/{runNo}/rework`
+  - Final confirmation/closeout
+* **Acceptance Criteria**:
+  - Runs cannot authorize without readiness + FAI pass
+  - Defects/disposition and OQC gates are enforced
+  - **OQC 不合格 → Run ON_HOLD → MRB 决策后进入终态**
+  - **返修 Run 支持 REUSE_PREP / FULL_PREP 两种类型**
+  - **MRB 可豁免 FAI（需记录原因 `mrbFaiWaiver` + `mrbWaiverReason`）**
+  - Runs/WO close only after final confirmation
 * **当前进度**:
   * ✅ Line Readiness Check (2025-12-31): 数据模型、检查逻辑、API、门禁、UI 已实现
   * ✅ FAI 首件检验 (2025-01-02): API + UI 已完成，Run 详情页可创建 FAI
