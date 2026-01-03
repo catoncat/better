@@ -202,6 +202,62 @@ Response example:
 }
 ```
 
+### 2.4 Rework Run (MRB Decision) [M2]
+
+**POST** `/api/runs/{runNo}/rework`
+
+Creates a rework Run from an original Run that was placed ON_HOLD due to OQC failure.
+Only available when the original Run is in `ON_HOLD` status.
+
+Request example:
+```json
+{
+  "reworkType": "REUSE_PREP",
+  "mrbDecisionId": "MRB-20250103-001",
+  "faiWaiver": true,
+  "waiverReason": "工艺参数微调，物料设备无变更"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `reworkType` | enum | Yes | `REUSE_PREP` (skip to AUTHORIZED) or `FULL_PREP` (start from PREP) |
+| `mrbDecisionId` | string | Yes | Reference to MRB decision record |
+| `faiWaiver` | boolean | No | Whether to waive FAI for this rework Run (only valid for `REUSE_PREP`) |
+| `waiverReason` | string | Conditional | Required if `faiWaiver` is true |
+
+Response example:
+```json
+{
+  "ok": true,
+  "data": {
+    "reworkRunNo": "RUN20250101-01-RW1",
+    "status": "AUTHORIZED",
+    "authorizationType": "MRB_OVERRIDE",
+    "mrbFaiWaiver": true,
+    "parentRunNo": "RUN20250101-01",
+    "parentRunStatus": "CLOSED_REWORK"
+  }
+}
+```
+
+Behavior:
+1. Original Run status: `ON_HOLD` → `CLOSED_REWORK`
+2. New rework Run created with `parentRunId` pointing to original
+3. If `reworkType === 'REUSE_PREP'`:
+   - New Run status = `AUTHORIZED`
+   - `authorizationType` = `MRB_OVERRIDE`
+   - FAI gate bypassed if `faiWaiver === true`
+4. If `reworkType === 'FULL_PREP'`:
+   - New Run status = `PREP`
+   - Must complete full FAI/authorization flow
+
+Error codes:
+* `RUN_NOT_ON_HOLD` - Original Run is not in ON_HOLD status
+* `MRB_DECISION_REQUIRED` - Missing mrbDecisionId
+* `FAI_WAIVER_REASON_REQUIRED` - faiWaiver is true but waiverReason missing
+* `INSUFFICIENT_PERMISSION` - Caller does not have MRB role
+
 ---
 
 ## 3. Station Execution (Manual)
