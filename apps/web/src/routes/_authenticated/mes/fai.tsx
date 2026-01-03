@@ -1,5 +1,5 @@
 import { Permission } from "@better-app/db/permissions";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { format } from "date-fns";
 import {
 	CheckCircle2,
@@ -51,15 +51,33 @@ import {
 	useStartFai,
 } from "@/hooks/use-fai";
 
+interface FaiSearchParams {
+	runNo?: string;
+	status?: string;
+	page?: number;
+	pageSize?: number;
+}
+
 export const Route = createFileRoute("/_authenticated/mes/fai")({
+	validateSearch: (search: Record<string, unknown>): FaiSearchParams => ({
+		runNo: (search.runNo as string) || undefined,
+		status: (search.status as string) || undefined,
+		page: Number(search.page) || 1,
+		pageSize: Number(search.pageSize) || 20,
+	}),
 	component: FaiPage,
 });
 
 function FaiPage() {
-	const [query, setQuery] = useState<FaiQuery>({
-		page: 1,
-		pageSize: 20,
-	});
+	const navigate = useNavigate();
+	const searchParams = useSearch({ from: "/_authenticated/mes/fai" });
+
+	const query: FaiQuery = {
+		runNo: searchParams.runNo,
+		status: searchParams.status,
+		page: searchParams.page || 1,
+		pageSize: searchParams.pageSize || 20,
+	};
 
 	const [selectedFaiId, setSelectedFaiId] = useState<string | null>(null);
 	const [recordDialogOpen, setRecordDialogOpen] = useState(false);
@@ -71,6 +89,23 @@ function FaiPage() {
 	const startFai = useStartFai();
 	const recordItem = useRecordFaiItem();
 	const completeFai = useCompleteFai();
+
+	const updateSearch = (patch: Partial<FaiQuery>) => {
+		const nextPage = patch.page ?? query.page ?? 1;
+		const nextPageSize = patch.pageSize ?? query.pageSize ?? 20;
+		const nextSearch: FaiSearchParams = {
+			...searchParams,
+			...patch,
+			page: nextPage,
+			pageSize: nextPageSize,
+		};
+		if (!nextSearch.runNo) delete nextSearch.runNo;
+		if (!nextSearch.status) delete nextSearch.status;
+		if (!nextSearch.page || nextSearch.page < 1) nextSearch.page = 1;
+		if (!nextSearch.pageSize || nextSearch.pageSize <= 0) nextSearch.pageSize = 20;
+
+		navigate({ to: ".", search: nextSearch, replace: true });
+	};
 
 	// Record item form state
 	const [itemForm, setItemForm] = useState({
@@ -97,8 +132,8 @@ function FaiPage() {
 	const selectedFai = items.find((fai) => fai.id === selectedFaiId);
 	const sampleQty = faiDetail?.sampleQty ?? selectedFai?.sampleQty ?? null;
 	const total = data?.total ?? 0;
-	const currentPage = data?.page ?? 1;
-	const pageSize = data?.pageSize ?? 20;
+	const currentPage = query.page ?? 1;
+	const pageSize = query.pageSize ?? 20;
 	const totalPages = Math.ceil(total / pageSize);
 	const computedPassedQty =
 		typeof sampleQty === "number" ? Math.max(sampleQty - completeForm.failedQty, 0) : null;
@@ -212,7 +247,10 @@ function FaiPage() {
 								placeholder="输入 Run 编号"
 								value={query.runNo ?? ""}
 								onChange={(e) =>
-									setQuery({ ...query, runNo: e.target.value || undefined, page: 1 })
+									updateSearch({
+										runNo: e.target.value || undefined,
+										page: 1,
+									})
 								}
 							/>
 						</div>
@@ -221,7 +259,7 @@ function FaiPage() {
 							<Select
 								value={query.status ?? "ALL"}
 								onValueChange={(v) =>
-									setQuery({ ...query, status: v === "ALL" ? undefined : v, page: 1 })
+									updateSearch({ status: v === "ALL" ? undefined : v, page: 1 })
 								}
 							>
 								<SelectTrigger>
@@ -360,7 +398,7 @@ function FaiPage() {
 									size="sm"
 									variant="outline"
 									disabled={currentPage <= 1}
-									onClick={() => setQuery({ ...query, page: currentPage - 1 })}
+									onClick={() => updateSearch({ page: currentPage - 1 })}
 								>
 									<ChevronLeft className="h-4 w-4" />
 								</Button>
@@ -368,7 +406,7 @@ function FaiPage() {
 									size="sm"
 									variant="outline"
 									disabled={currentPage >= totalPages}
-									onClick={() => setQuery({ ...query, page: currentPage + 1 })}
+									onClick={() => updateSearch({ page: currentPage + 1 })}
 								>
 									<ChevronRight className="h-4 w-4" />
 								</Button>
