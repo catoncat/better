@@ -1,9 +1,10 @@
 # SMT 产线执行流程 (SMP Flow v2)
 
-> **版本**: v2.3 - MES 执行层 + 集成接口版
+> **版本**: v2.4 - 状态语义对齐版
 > **基于**: 03_smp_flows_userfeeback_draft.md
 > **设计原则**: MES 专注执行层，外部系统通过集成接口对接，支持手动降级模式
 > **里程碑**: M1 基础状态机，M2 扩展状态/OQC，M3 数据采集
+> **决策记录**: `conversation/smp_flow_design_decisions.md`
 
 ---
 
@@ -11,6 +12,7 @@
 
 | 版本 | 变更内容 |
 |------|----------|
+| v2.4 | 引入 CLOSED_REWORK 状态、MRB FAI 豁免机制、统一幂等规范、拆分就绪检查范围 |
 | v2.3 | 修复返修 Run gating、补齐 InspectionResult 字段、M3 标记、WO 触发点说明 |
 | v2.2 | 修复 RUN 状态时序、API 路径、UNIT 状态标注、M1/M2 标记 |
 | v2.1 | 增加集成接口规范、手动降级模式 |
@@ -160,9 +162,9 @@ flowchart TD
     OQCR -- 不合格 --> OQCH["批次隔离<br/>RUN=ON_HOLD [M2]"]
     OQCH --> OQCMRB["MRB评审"]
     OQCMRB -- 放行 --> J
-    OQCMRB -- "返修" --> RUN_RW["创建返修批次<br/>原RUN=COMPLETED"]
+    OQCMRB -- "返修" --> RUN_RW["创建返修批次<br/>原RUN=CLOSED_REWORK"]
     RUN_RW --> RW_GATE{返修类型?}
-    RW_GATE -- "复用就绪" --> RW_AUTH["返修Run=AUTHORIZED<br/>(MRB授权)"]
+    RW_GATE -- "复用就绪<br/>(MRB可豁免FAI)" --> RW_AUTH["返修Run=AUTHORIZED<br/>(MRB授权)"]
     RW_GATE -- "重新检查" --> RW_PREP["返修Run=PREP"]
     RW_PREP --> A
     RW_AUTH --> G
@@ -185,44 +187,65 @@ flowchart TD
 **解决方案**：
 - OQC 在 RUN=COMPLETED 之前执行
 - OQC 不合格 → RUN=ON_HOLD（隔离），而非直接返回执行
-- MRB 评审后如需返修，创建 **新的返修 Run**，原 Run 标记为 COMPLETED
-- 这保证了 Run 状态的不可逆性
+- MRB 评审后如需返修，创建 **新的返修 Run**，原 Run 标记为 **CLOSED_REWORK**
+- 这保证了 Run 状态的不可逆性，且状态语义清晰
+
+**状态语义**：
+| 终态 | 语义 | 触发条件 |
+|------|------|---------|
+| `COMPLETED` | 生产成功完成 | OQC 通过 或 MRB 放行 |
+| `CLOSED_REWORK` | 生产完成但有返修 | MRB 决策返修 |
+| `SCRAPPED` | 报废 | MRB 决策报废 |
 
 ```
 批次完成? → OQC触发? → OQC结果?
                 ↓ 合格      ↓ 不合格
             RUN=COMPLETED   RUN=ON_HOLD → MRB评审
-                                            ↓ 返修
-                                        创建新Run，原Run=COMPLETED
+                                           ↓ 放行 → COMPLETED
+                                           ↓ 返修 → CLOSED_REWORK + 创建新Run
+                                           ↓ 报废 → SCRAPPED
 ```
 
-### 2. 返修 Run 的 Gating 规则
+### 2. 返修 Run 的 Gating 规则与 MRB FAI 豁免
 
 **问题**：v2.2 中返修 Run 直接跳到批量执行 G，绕过了 PREP/FAI/AUTHORIZED 的 Run 生命周期。
 
-**解决方案**：MRB 评审时选择返修类型：
+**解决方案**：MRB 评审时选择返修类型，并可豁免 FAI：
 
-| 返修类型 | Run 状态 | 适用场景 |
-|---------|---------|---------|
-| **复用就绪** | 直接 AUTHORIZED | 物料/设备无变更，仅工艺参数调整 |
-| **重新检查** | 从 PREP 开始 | 需要重新验证物料/设备/首件 |
+| 返修类型 | Run 状态 | FAI 要求 | 适用场景 |
+|---------|---------|---------|---------|
+| **复用就绪** | 直接 AUTHORIZED | MRB 可豁免 | 物料/设备无变更，仅工艺参数调整 |
+| **重新检查** | 从 PREP 开始 | 必须执行 | 需要重新验证物料/设备/首件 |
+
+**MRB FAI 豁免机制**：
+- 常规授权：必须 FAI PASS 才能授权
+- MRB 授权（返修 Run）：可豁免 FAI，但必须记录豁免原因
+- 豁免权限仅限 MRB 角色
 
 **数据模型**：
 ```typescript
 interface ReworkRun {
   runNo: string
-  parentRunId: string          // 指向原 Run
+  parentRunId: string             // 指向原 Run
   reworkType: 'REUSE_PREP' | 'FULL_PREP'
-  mrbDecisionId: string        // MRB 决策记录
-  mrbAuthorizedBy: string      // MRB 授权人
-  mrbAuthorizedAt: string      // MRB 授权时间
+
+  // MRB 授权信息
+  authorizationType: 'NORMAL' | 'MRB_OVERRIDE'
+  mrbDecisionId: string           // MRB 决策记录
+  mrbAuthorizedBy: string         // MRB 授权人
+  mrbAuthorizedAt: string         // MRB 授权时间
+
+  // FAI 豁免 (仅 MRB_OVERRIDE 时)
+  mrbFaiWaiver?: boolean          // 是否豁免 FAI
+  mrbWaiverReason?: string        // 豁免原因
 }
 ```
 
 **规则**：
 - 所有返修 Run 必须有 `parentRunId` 指向原 Run
 - 复用就绪时，Run.status 直接设为 AUTHORIZED，但记录 MRB 授权信息
-- 重新检查时，Run.status 设为 PREP，需要重新走完整流程
+- 如果 MRB 豁免 FAI，必须记录 `mrbFaiWaiver = true` + `mrbWaiverReason`
+- 重新检查时，Run.status 设为 PREP，需要重新走完整流程（必须 FAI）
 
 ### 3. WO=IN_PROGRESS 触发点
 
@@ -286,7 +309,7 @@ Run 状态变化: AUTHORIZED → IN_PROGRESS (首个 TrackIn)
 1. **统一输入格式**：不管自动还是手动，MES 接收的数据结构一致
 2. **来源标识**：记录数据来源（AUTO/MANUAL）用于审计
 3. **手动降级**：外部系统不可用时，允许人工录入
-4. **幂等性**：所有接口支持 `Idempotency-Key` header 或 `eventId` 字段
+4. **幂等性**：所有接口使用 `eventId` 字段作为业务幂等键（不再依赖 HTTP header）
 
 ### 接口定义
 
@@ -294,7 +317,6 @@ Run 状态变化: AUTHORIZED → IN_PROGRESS (首个 TrackIn)
 
 ```typescript
 // POST /api/integration/stencil-status
-// Idempotency-Key: required
 interface StencilStatusInput {
   eventId: string               // 幂等键
   eventTime: string             // 事件时间 (ISO 8601)
@@ -314,7 +336,6 @@ interface StencilStatusInput {
 
 ```typescript
 // POST /api/integration/solder-paste-status
-// Idempotency-Key: required
 interface SolderPasteStatusInput {
   eventId: string               // 幂等键
   eventTime: string             // 事件时间 (ISO 8601)
@@ -334,7 +355,6 @@ interface SolderPasteStatusInput {
 
 ```typescript
 // POST /api/integration/inspection-result
-// Idempotency-Key: required
 interface InspectionResultInput {
   // 幂等与定位 (必需)
   eventId: string               // 幂等键 (设备事件ID)
@@ -423,14 +443,14 @@ interface OeeDataInput {
 | 模块 | 归属 | MES 实现内容 | 里程碑 |
 |------|------|-------------|--------|
 | **工单管理** | MES 核心 | 状态机、ERP 同步 | M1 ✅ |
-| **批次管理** | MES 核心 | Run 状态、授权 | M1 ✅ |
-| **就绪检查** | MES 核心 | 检查项配置、卡控逻辑、集成接口 | M1 ✅ |
+| **批次管理** | MES 核心 | Run 状态、授权、MRB 返修 | M1/M2 |
+| **就绪检查框架** | MES 核心 | 检查项配置、卡控逻辑 | M1 ✅ |
+| **就绪检查-手动录入** | MES 核心 | 手动确认界面 | M1 ✅ |
+| **就绪检查-TPM/WMS集成** | 🔌 集成 | 钢网/锡膏自动推送 | M2 ⬜ |
 | **上料防错** | MES 核心 | 站位表、BOM 比对、绑定记录 | M2 ⬜ |
 | **TrackIn/Out** | MES 核心 | 进出站、状态流转 | M1 ✅ |
 | **不良/处置** | MES 核心 | 缺陷记录、REWORK/SCRAP/HOLD | M1/M2 |
 | **OQC 抽检** | MES 核心 | 抽样规则、检验记录 | M2 ⬜ |
-| **钢网状态** | 🔌 集成 | 接收状态，不管理生命周期 | M2 ⬜ |
-| **锡膏状态** | 🔌 集成 | 接收状态，不管理生命周期 | M2 ⬜ |
 | **SPI/AOI 结果** | 🔌 集成 | 接收结果，不直连设备 | M3 ⬜ |
 | **过程数据采集** | 🔌 集成 | 接收数据，验证限值 | M3 ⬜ |
 | **OEE/抛料率** | ❌ 不实现 | 由 BI 系统负责 | - |
@@ -456,7 +476,8 @@ interface OeeDataInput {
 | 批量授权 | `AUTHORIZED` | FAI 通过 + 授权 | M1 ✅ |
 | 批量生产 | `IN_PROGRESS` | 首个 TrackIn | M1 ✅ |
 | OQC 隔离 | `ON_HOLD` | OQC 不合格 | M2 ⬜ |
-| 完工 | `COMPLETED` | 批次完成 + OQC 通过 | M1 ✅ |
+| 完工 | `COMPLETED` | OQC 通过 或 MRB 放行 | M1 ✅ |
+| 闭环返修 | `CLOSED_REWORK` | MRB 决策返修 | M2 ⬜ |
 | 报废 | `SCRAPPED` | MRB 决策报废 | M2 ⬜ |
 
 ### 单件状态 (UnitStatus)
