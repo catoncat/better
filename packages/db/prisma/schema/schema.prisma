@@ -251,6 +251,11 @@ enum DispositionType {
   HOLD
 }
 
+enum OqcSamplingType {
+  PERCENTAGE // Sample X% of units
+  FIXED      // Sample fixed N units
+}
+
 // ==========================================
 // Line Readiness Check Enums (M2)
 // ==========================================
@@ -331,14 +336,30 @@ model Run {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // Rework tracking (M2: OQC/MRB)
+  parentRunId       String?   // Points to original Run for rework runs
+  reworkType        String?   // 'REUSE_PREP' | 'FULL_PREP' (for rework runs only)
+
+  // MRB authorization (M2: OQC/MRB)
+  authorizationType String?   // 'NORMAL' | 'MRB_OVERRIDE'
+  mrbDecisionId     String?   // Reference to MRB decision inspection
+  mrbAuthorizedBy   String?   // MRB authorizer user ID
+  mrbAuthorizedAt   DateTime?
+  mrbFaiWaiver      Boolean?  // True if FAI was waived by MRB
+  mrbWaiverReason   String?   // Required when FAI waived
+
   workOrder        WorkOrder       @relation(fields: [woId], references: [id])
   line             Line?           @relation(fields: [lineId], references: [id])
   routeVersion     ExecutableRouteVersion? @relation(fields: [routeVersionId], references: [id])
+  parentRun        Run?            @relation("ReworkRuns", fields: [parentRunId], references: [id])
+  reworkRuns       Run[]           @relation("ReworkRuns")
   prepChecks       PrepCheck[]
   readinessChecks  ReadinessCheck[]  // M2: Line Readiness Check
   inspections      Inspection[] // 用 Inspection 统一承载 FAI/IPQC/FQC/OQC
   authorizations   Authorization[]
   units            Unit[]
+
+  @@index([parentRunId])
 }
 
 model Line {
@@ -349,9 +370,10 @@ model Line {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  stations     Station[]
-  runs         Run[]
-  userBindings UserLineBinding[]
+  stations         Station[]
+  runs             Run[]
+  userBindings     UserLineBinding[]
+  oqcSamplingRules OqcSamplingRule[]
 }
 
 model StationGroup {
@@ -453,6 +475,7 @@ model Routing {
   workOrders       WorkOrder[]
   executionConfigs RouteExecutionConfig[]
   routeVersions    ExecutableRouteVersion[]
+  oqcSamplingRules OqcSamplingRule[]
 
   @@index([sourceSystem, sourceKey])
 }
@@ -799,6 +822,32 @@ model InspectionItem {
 
   @@index([inspectionId])
   @@index([unitSn])
+}
+
+// ==========================================
+// OQC Sampling Rules (M2: OQC/MRB)
+// ==========================================
+
+model OqcSamplingRule {
+  id           String          @id @default(cuid())
+  productCode  String?         // Optional: match by product code
+  lineId       String?         // Optional: match by line
+  routingId    String?         // Optional: match by routing
+  samplingType OqcSamplingType
+  sampleValue  Float           // Percentage (0-100) or fixed count
+  isActive     Boolean         @default(true)
+  priority     Int             @default(0) // Higher priority wins
+  meta         Json?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  line    Line?    @relation(fields: [lineId], references: [id])
+  routing Routing? @relation(fields: [routingId], references: [id])
+
+  @@index([productCode])
+  @@index([lineId])
+  @@index([routingId])
+  @@index([isActive, priority])
 }
 
 model Authorization {
