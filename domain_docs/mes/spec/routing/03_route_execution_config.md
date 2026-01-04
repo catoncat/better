@@ -104,7 +104,7 @@ At TrackOut / ingest:
 
 If alarm policy requires HOLD:
 - M1: reject with an error and block advance
-- M2+: enter HOLD loop
+- M2+: enter ON_HOLD loop
 
 ---
 
