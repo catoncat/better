@@ -1,24 +1,13 @@
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
-import { zodValidator } from "@tanstack/zod-form-adapter";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
-import {
-	useChangePassword,
-	useUpdateProfile,
-	useUserProfile,
-} from "@/hooks/use-users";
+import { useChangePassword, useUpdateProfile, useUserProfile } from "@/hooks/use-users";
 
 export const Route = createFileRoute("/_authenticated/profile")({
 	component: ProfilePage,
@@ -58,8 +47,7 @@ function ProfilePage() {
 				toast.success("个人资料已更新");
 			} catch (error) {
 				toast.error("更新失败", {
-					description:
-						error instanceof Error ? error.message : "请稍后重试",
+					description: error instanceof Error ? error.message : "请稍后重试",
 				});
 			}
 		},
@@ -72,7 +60,7 @@ function ProfilePage() {
 			confirmPassword: "",
 		},
 		validators: {
-			onChange: zodValidator(passwordSchema),
+			onChange: passwordSchema,
 		},
 		onSubmit: async ({ value, formApi }) => {
 			try {
@@ -84,10 +72,7 @@ function ProfilePage() {
 				formApi.reset();
 			} catch (error) {
 				toast.error("修改失败", {
-					description:
-						error instanceof Error
-							? error.message
-							: "请确认当前密码是否正确",
+					description: error instanceof Error ? error.message : "请确认当前密码是否正确",
 				});
 			}
 		},
@@ -128,14 +113,7 @@ function ProfilePage() {
 							}}
 							className="space-y-4"
 						>
-							<Field
-								form={profileForm}
-								name="name"
-								label="姓名"
-								validators={{
-									onChange: zodValidator(profileSchema.shape.name),
-								}}
-							>
+							<Field form={profileForm} name="name" label="姓名">
 								{(field) => (
 									<Input
 										placeholder="您的姓名"
@@ -160,61 +138,35 @@ function ProfilePage() {
 							</div>
 
 							<div className="grid grid-cols-1 gap-4">
-								<Field
-									form={profileForm}
-									name="department"
-									label="部门"
-									validators={{
-										onChange: zodValidator(profileSchema.shape.department),
-									}}
-								>
+								<Field form={profileForm} name="department" label="部门">
 									{(field) => (
 										<Input
 											placeholder="所属部门"
 											name={field.name}
 											value={field.state.value}
 											onBlur={field.handleBlur}
-											onChange={(e) =>
-												field.handleChange(e.target.value)
-											}
+											onChange={(e) => field.handleChange(e.target.value)}
 										/>
 									)}
 								</Field>
-								<Field
-									form={profileForm}
-									name="phone"
-									label="手机号"
-									validators={{
-										onChange: zodValidator(profileSchema.shape.phone),
-									}}
-								>
+								<Field form={profileForm} name="phone" label="手机号">
 									{(field) => (
 										<Input
 											placeholder="联系电话"
 											name={field.name}
 											value={field.state.value}
 											onBlur={field.handleBlur}
-											onChange={(e) =>
-												field.handleChange(e.target.value)
-											}
+											onChange={(e) => field.handleChange(e.target.value)}
 										/>
 									)}
 								</Field>
 							</div>
 							<div className="flex justify-end">
 								<profileForm.Subscribe
-									selector={(state) => [
-										state.canSubmit,
-										state.isSubmitting,
-									]}
+									selector={(state) => [state.canSubmit, state.isSubmitting]}
 									children={([canSubmit, isSubmitting]) => (
-										<Button
-											type="submit"
-											disabled={!canSubmit || updateProfileMutation.isPending}
-										>
-											{updateProfileMutation.isPending || isSubmitting
-												? "保存中..."
-												: "保存更改"}
+										<Button type="submit" disabled={!canSubmit || updateProfileMutation.isPending}>
+											{updateProfileMutation.isPending || isSubmitting ? "保存中..." : "保存更改"}
 										</Button>
 									)}
 								/>
@@ -237,14 +189,7 @@ function ProfilePage() {
 							}}
 							className="space-y-4"
 						>
-							<Field
-								form={passwordForm}
-								name="currentPassword"
-								label="当前密码"
-								validators={{
-									onChange: zodValidator(passwordSchema.shape.currentPassword),
-								}}
-							>
+							<Field form={passwordForm} name="currentPassword" label="当前密码">
 								{(field) => (
 									<Input
 										type="password"
@@ -257,14 +202,7 @@ function ProfilePage() {
 								)}
 							</Field>
 							<div className="grid grid-cols-1 gap-4">
-								<Field
-									form={passwordForm}
-									name="newPassword"
-									label="新密码"
-									validators={{
-										onChange: zodValidator(passwordSchema.shape.newPassword),
-									}}
-								>
+								<Field form={passwordForm} name="newPassword" label="新密码">
 									{(field) => (
 										<Input
 											type="password"
@@ -272,20 +210,11 @@ function ProfilePage() {
 											name={field.name}
 											value={field.state.value}
 											onBlur={field.handleBlur}
-											onChange={(e) =>
-												field.handleChange(e.target.value)
-											}
+											onChange={(e) => field.handleChange(e.target.value)}
 										/>
 									)}
 								</Field>
-								<Field
-									form={passwordForm}
-									name="confirmPassword"
-									label="确认新密码"
-									validators={{
-										onChange: zodValidator(passwordSchema.shape.confirmPassword),
-									}}
-								>
+								<Field form={passwordForm} name="confirmPassword" label="确认新密码">
 									{(field) => (
 										<Input
 											type="password"
@@ -293,27 +222,17 @@ function ProfilePage() {
 											name={field.name}
 											value={field.state.value}
 											onBlur={field.handleBlur}
-											onChange={(e) =>
-												field.handleChange(e.target.value)
-											}
+											onChange={(e) => field.handleChange(e.target.value)}
 										/>
 									)}
 								</Field>
 							</div>
 							<div className="flex justify-end">
 								<passwordForm.Subscribe
-									selector={(state) => [
-										state.canSubmit,
-										state.isSubmitting,
-									]}
+									selector={(state) => [state.canSubmit, state.isSubmitting]}
 									children={([canSubmit, isSubmitting]) => (
-										<Button
-											type="submit"
-											disabled={!canSubmit || changePasswordMutation.isPending}
-										>
-											{changePasswordMutation.isPending || isSubmitting
-												? "修改中..."
-												: "修改密码"}
+										<Button type="submit" disabled={!canSubmit || changePasswordMutation.isPending}>
+											{changePasswordMutation.isPending || isSubmitting ? "修改中..." : "修改密码"}
 										</Button>
 									)}
 								/>
