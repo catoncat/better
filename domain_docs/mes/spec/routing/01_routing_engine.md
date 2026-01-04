@@ -158,7 +158,7 @@ Required guards (minimum set):
 - `UNIT_NOT_IN_STATION` (manual track-out without prior track-in)
 
 Note: M1 simplified unit state machine only includes `QUEUED / IN_STATION / OUT_FAILED / DONE`.
-HOLD/REWORK/SCRAP are M2+ extensions even though the flowchart describes them.
+M2 扩展引入 `ON_HOLD / SCRAPPED`；`REWORK` 为处置动作，不新增 UnitStatus。
 
 ---
 
@@ -184,7 +184,7 @@ See `03_route_execution_config.md`.
 If a step binds `DataCollectionSpec[]`:
 - TrackOut/ingest MUST validate required specs
 - Produce DataValue records linked to Track/CarrierTrack
-- If alarm policy indicates HOLD, then (M1) block with error; (M2+) enter HOLD state
+- If alarm policy indicates HOLD, then (M1) block with error; (M2+) enter ON_HOLD state
 
 ### 8.2 FAIL handling
 On TrackOut(FAIL) in M1:

@@ -179,7 +179,7 @@
 |---|-------|---------|
 | X1 | 计划员创建批次后组长能否立即看到 | 查看 runs 列表 hook 是否有刷新/轮询逻辑 |
 | X2 | 准备检查状态在批次列表是否可见 | 查看 runs columns 定义是否包含 readiness 字段 |
-| X3 | 状态流转连续性 | WO RECEIVED→RELEASED→Run PREP→AUTHORIZED→IN_PROGRESS→COMPLETED 每步是否有UI入口 |
+| X3 | 状态流转连续性 | WO RECEIVED→RELEASED→Run PREP→AUTHORIZED→IN_PROGRESS→(OQC fail)ON_HOLD→MRB→COMPLETED/CLOSED_REWORK/SCRAPPED 是否有UI入口 |
 | X4 | 状态变更后列表刷新 | 各 mutation 成功后是否调用 invalidateQueries |
 | X5 | 单件状态流转完整性 | Unit IN_STATION→QUEUED/OUT_FAILED/DONE/ON_HOLD/SCRAPPED 各状态是否有UI展示 |
 | X6 | 手动降级模式可用性 | 外部系统未就绪时，手动录入入口是否可见（就绪检查/检测结果） |

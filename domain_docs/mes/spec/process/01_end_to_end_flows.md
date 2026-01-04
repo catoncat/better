@@ -33,7 +33,7 @@ flowchart TB
 
   AUTH --> LOOP
 
-  subgraph LOOP["Batch Execution (Routing Engine)"]
+  subgraph LOOP["Batch Execution (Routing Engine, RUN=IN_PROGRESS)"]
     direction TB
     S0[Select/confirm next step] --> ST{Station Type?}
     ST -- MANUAL --> M1[Operator sign-in at station]
@@ -44,30 +44,31 @@ flowchart TB
 
     DC[Collect/validate by config<br/>🔌 auto/manual/spec/limits] --> OUT[TrackOut decision]
     OUT --> RES{PASS/FAIL?}
-    RES -- PASS --> ADV[Advance routing pointer]
-    RES -- FAIL --> NG[Record defect<br/>code/location/description]
+    RES -- PASS --> LAST{Last step?}
+    LAST -- No --> ADV[Advance routing pointer<br/>UNIT=QUEUED] --> S0
+    LAST -- Yes --> DONEU[Unit complete<br/>UNIT=DONE]
+
+    RES -- FAIL --> NG[Record defect<br/>UNIT=OUT_FAILED<br/>code/location/description]
     NG --> DISP{Disposition?}
     DISP -- REWORK --> RW[Rework task/action] --> S0
-    DISP -- SCRAP --> SC[Scrap confirmation<br/>UNIT=SCRAPPED] --> DONEU
-    DISP -- HOLD --> HOLD[Hold isolation<br/>UNIT=ON_HOLD] --> REL[MRB review/release] --> DISP
-
-    ADV --> LAST{Last step?}
-    LAST -- No --> S0
-    LAST -- Yes --> DONEU[Unit complete<br/>UNIT=DONE]
+    DISP -- SCRAP --> SC[Scrap confirmation<br/>UNIT=SCRAPPED]
+    DISP -- HOLD --> HOLD[Hold isolation<br/>UNIT=ON_HOLD] --> MRB[MRB review] --> DISP
   end
 
-  DONEU --> OQC{Trigger OQC sampling?}
-  OQC -- No --> FINCHK{Run/WO complete?}
+  DONEU --> RUNCHK{Run complete?}
+  RUNCHK -- No --> LOOP
+  RUNCHK -- Yes --> OQC{Trigger OQC sampling?}
+  OQC -- No --> COMPLETED[RUN=COMPLETED]
   OQC -- Yes --> OQCT[OQC sampling task] --> OQCP{OQC passed?}
-  OQCP -- Yes --> FINCHK
+  OQCP -- Yes --> COMPLETED
   OQCP -- No --> OQCH[Hold isolation<br/>RUN=ON_HOLD]
 
-  OQCH --> MRB{MRB Decision?}
-  MRB -- Release --> COMPLETED[RUN=COMPLETED]
-  MRB -- Rework --> CLOSED_REWORK[RUN=CLOSED_REWORK<br/>创建返修Run]
-  MRB -- Scrap --> SCRAPPED[RUN=SCRAPPED]
+  OQCH --> MRB_RUN{MRB Decision?}
+  MRB_RUN -- Release --> COMPLETED
+  MRB_RUN -- Rework --> CLOSED_REWORK[RUN=CLOSED_REWORK<br/>创建返修Run]
+  MRB_RUN -- Scrap --> SCRAPPED[RUN=SCRAPPED]
 
-  COMPLETED --> FINCHK
+  COMPLETED --> FINCHK{Run/WO complete?}
   CLOSED_REWORK --> END
   SCRAPPED --> END
 
@@ -92,10 +93,10 @@ flowchart TB
 | Unit | IN_STATION → QUEUED / OUT_FAILED / DONE / ON_HOLD / SCRAPPED |
 
 ## References
-- SMT 产线流程: `domain_docs/mes/spec/process/03_smp_flows_v2.md`
+- SMT 产线流程: `domain_docs/mes/spec/process/03_smp_flows.md`
 - 状态机定义: `domain_docs/mes/spec/process/02_state_machines.md`
 - 集成规范: `domain_docs/mes/spec/integration/01_system_integrations.md`
- 
+
 ## MRB Decision & Terminal States
 
 OQC 不合格时触发 MRB 评审，Run 进入 `ON_HOLD` 状态后根据 MRB 决策进入终态：
