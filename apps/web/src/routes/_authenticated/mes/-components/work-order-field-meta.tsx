@@ -74,8 +74,7 @@ const getStatusBadge = (status: string) => {
 
 	if (status === "RELEASED") variant = "secondary";
 	if (status === "IN_PROGRESS") variant = "default";
-	if (status === "COMPLETED" || status === "CLOSED") variant = "outline";
-	if (status === "CANCELLED") variant = "destructive";
+	if (status === "COMPLETED") variant = "outline";
 
 	return <Badge variant={variant}>{label}</Badge>;
 };

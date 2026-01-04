@@ -86,7 +86,7 @@ export const waiveResponseSchema = t.Object({
 
 export const exceptionsQuerySchema = t.Object({
 	lineId: t.Optional(t.String()),
-	status: t.Optional(t.Union([t.Literal("PREP"), t.Literal("FAI_PENDING"), t.Literal("ALL")])),
+	status: t.Optional(t.Union([t.Literal("PREP"), t.Literal("ALL")])),
 	from: t.Optional(t.String()),
 	to: t.Optional(t.String()),
 	page: t.Optional(t.Numeric({ default: 1 })),

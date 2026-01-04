@@ -47,7 +47,7 @@ export async function createFai(
 			}
 
 			// Check if run is in a valid state for FAI creation
-			if (run.status !== RunStatus.PREP && run.status !== RunStatus.FAI_PENDING) {
+			if (run.status !== RunStatus.PREP) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				return {
 					success: false as const,
@@ -90,14 +90,6 @@ export async function createFai(
 					},
 					include: { items: true },
 				});
-
-				// Update run status to FAI_PENDING if it was PREP
-				if (run.status === RunStatus.PREP) {
-					await tx.run.update({
-						where: { id: run.id },
-						data: { status: RunStatus.FAI_PENDING },
-					});
-				}
 
 				return inspection;
 			});

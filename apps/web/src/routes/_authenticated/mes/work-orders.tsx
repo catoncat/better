@@ -4,22 +4,11 @@ import { Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useQueryPresets } from "@/hooks/use-query-presets";
 import { useRouteList } from "@/hooks/use-routes";
 import { useCreateRun } from "@/hooks/use-runs";
 import {
-	useCancelWorkOrder,
 	useReceiveWorkOrder,
 	useReleaseWorkOrder,
 	useUpdatePickStatus,
@@ -76,7 +65,6 @@ function WorkOrdersPage() {
 	const [runDialogOpen, setRunDialogOpen] = useState(false);
 	const [pickStatusDialogOpen, setPickStatusDialogOpen] = useState(false);
 	const [releaseDialogOpen, setReleaseDialogOpen] = useState(false);
-	const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 	const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null);
 
 	// Parse filters from URL
@@ -161,7 +149,6 @@ function WorkOrdersPage() {
 
 	const { mutateAsync: receiveWO, isPending: isReceiving } = useReceiveWorkOrder();
 	const { mutateAsync: releaseWO, isPending: isReleasing } = useReleaseWorkOrder();
-	const { mutateAsync: cancelWO, isPending: isCancelling } = useCancelWorkOrder();
 	const { mutateAsync: updatePickStatus, isPending: isUpdatingPickStatus } = useUpdatePickStatus();
 	const { mutateAsync: createRun, isPending: isCreatingRun } = useCreateRun();
 
@@ -192,8 +179,7 @@ function WorkOrdersPage() {
 				filters: { status: ["RELEASED"], erpPickStatus: ["1"] },
 			},
 			{ id: "in-progress", name: "生产中", filters: { status: ["IN_PROGRESS"] } },
-			{ id: "completed", name: "已完成", filters: { status: ["COMPLETED", "CLOSED"] } },
-			{ id: "cancelled", name: "已取消", filters: { status: ["CANCELLED"] } },
+			{ id: "completed", name: "已完成", filters: { status: ["COMPLETED"] } },
 		];
 	}, []);
 
@@ -293,11 +279,6 @@ function WorkOrdersPage() {
 		setPickStatusDialogOpen(true);
 	};
 
-	const handleCancelOpen = (wo: WorkOrder) => {
-		setSelectedWO(wo);
-		setCancelDialogOpen(true);
-	};
-
 	const handleReceiveSubmit = async (values: Parameters<typeof receiveWO>[0]) => {
 		await receiveWO(values);
 	};
@@ -324,11 +305,6 @@ function WorkOrdersPage() {
 		}
 	};
 
-	const handleCancelConfirm = async () => {
-		if (!selectedWO) return;
-		await cancelWO({ woNo: selectedWO.woNo });
-		setCancelDialogOpen(false);
-	};
 
 	return (
 		<DataListLayout
@@ -354,7 +330,6 @@ function WorkOrdersPage() {
 				onRelease: handleReleaseOpen,
 				onCreateRun: handleCreateRunOpen,
 				onEditPickStatus: handleEditPickStatusOpen,
-				onCancel: handleCancelOpen,
 			}}
 			dataListViewProps={{
 				viewPreferencesKey,
@@ -364,7 +339,6 @@ function WorkOrdersPage() {
 						onCreateRun={handleCreateRunOpen}
 						onRelease={handleReleaseOpen}
 						onEditPickStatus={handleEditPickStatusOpen}
-						onCancel={handleCancelOpen}
 					/>
 				),
 			}}
@@ -402,8 +376,6 @@ function WorkOrdersPage() {
 							{ label: "已发布", value: "RELEASED" },
 							{ label: "进行中", value: "IN_PROGRESS" },
 							{ label: "已完成", value: "COMPLETED" },
-							{ label: "已关闭", value: "CLOSED" },
-							{ label: "已取消", value: "CANCELLED" },
 						],
 					},
 					{
@@ -456,22 +428,6 @@ function WorkOrdersPage() {
 				isSubmitting={isUpdatingPickStatus}
 				workOrder={selectedWO}
 			/>
-			<AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>取消工单</AlertDialogTitle>
-						<AlertDialogDescription>
-							确认取消工单 {selectedWO?.woNo}？取消后将无法继续生产。
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>返回</AlertDialogCancel>
-						<AlertDialogAction onClick={handleCancelConfirm} disabled={isCancelling}>
-							{isCancelling ? "正在取消..." : "确认取消"}
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
 		</DataListLayout>
 	);
 }

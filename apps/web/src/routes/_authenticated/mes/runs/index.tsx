@@ -154,9 +154,14 @@ function RunsPage() {
 	// System presets
 	const systemPresets = useMemo((): SystemPreset<RunFilters>[] => {
 		return [
-			{ id: "prep", name: "准备中批次", filters: { status: ["PREP", "FAI_PENDING"] } },
-			{ id: "running", name: "生产中批次", filters: { status: ["AUTHORIZED", "RUNNING"] } },
-			{ id: "archived", name: "已归档", filters: { status: ["ARCHIVED"] } },
+			{ id: "prep", name: "准备中批次", filters: { status: ["PREP"] } },
+			{ id: "running", name: "执行中批次", filters: { status: ["AUTHORIZED", "IN_PROGRESS"] } },
+			{ id: "on-hold", name: "隔离批次", filters: { status: ["ON_HOLD"] } },
+			{
+				id: "terminal",
+				name: "终态批次",
+				filters: { status: ["COMPLETED", "CLOSED_REWORK", "SCRAPPED"] },
+			},
 		];
 	}, []);
 
@@ -374,12 +379,12 @@ function RunsPage() {
 						label: "状态",
 						options: [
 							{ label: "准备中", value: "PREP" },
-							{ label: "待FAI", value: "FAI_PENDING" },
 							{ label: "已授权", value: "AUTHORIZED" },
-							{ label: "生产中", value: "RUNNING" },
-							{ label: "收尾中", value: "FINISHING" },
-							{ label: "已归档", value: "ARCHIVED" },
-							{ label: "已取消", value: "CANCELLED" },
+							{ label: "生产中", value: "IN_PROGRESS" },
+							{ label: "隔离", value: "ON_HOLD" },
+							{ label: "已完成", value: "COMPLETED" },
+							{ label: "闭环返修", value: "CLOSED_REWORK" },
+							{ label: "报废", value: "SCRAPPED" },
 						],
 					},
 					{

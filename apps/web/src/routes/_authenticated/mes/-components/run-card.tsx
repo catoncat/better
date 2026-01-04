@@ -47,7 +47,7 @@ export function RunCard({ run, onAuthorize, onRevoke }: RunCardProps) {
 				</div>
 			</CardContent>
 			<CardFooter className="flex justify-end space-x-2">
-				{(run.status === "PREP" || run.status === "FAI_PENDING") && (
+				{run.status === "PREP" && (
 					<Can permissions={Permission.RUN_AUTHORIZE}>
 						<Button variant="ghost" size="sm" onClick={() => onAuthorize?.(run.runNo)}>
 							<CheckCircle className="mr-2 h-4 w-4" />

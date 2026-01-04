@@ -38,7 +38,6 @@ export const PRESET_ROLES: PresetRole[] = [
 			Permission.WO_RECEIVE,
 			Permission.WO_RELEASE,
 			Permission.WO_UPDATE,
-			Permission.WO_CANCEL,
 			Permission.RUN_READ,
 			Permission.RUN_CREATE,
 			Permission.ROUTE_READ,
