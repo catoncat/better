@@ -22,7 +22,7 @@ Status: [x] done, [~] in progress, [ ] pending
 - [x] 2.5.5 OQC 结果记录 API (PASS/FAIL)
 - [x] 2.5.6 Gate: Run 完成需 OQC 通过；FAIL → RUN=ON_HOLD
 - [x] 2.5.9 MRB 决策流程 (ON_HOLD → COMPLETED/CLOSED_REWORK/SCRAPPED)
-- [ ] 2.5.10 返修 Run 创建 API (`POST /api/runs/{runNo}/rework`)
+- [x] 2.5.10 返修 Run 创建 API (`POST /api/runs/{runNo}/rework`)
 - [x] 2.5.11 终态变更与审计 (CLOSED_REWORK / SCRAPPED)
 - [ ] 2.5.12 UI: OQC 任务列表/执行 + MRB 决策对话框
 
