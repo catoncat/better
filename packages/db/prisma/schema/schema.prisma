@@ -270,12 +270,48 @@ enum ReadinessItemType {
   EQUIPMENT // 设备状态
   MATERIAL  // 物料主数据
   ROUTE     // 工艺路线
+  STENCIL   // 钢网状态
+  SOLDER_PASTE // 锡膏状态
+  LOADING   // 上料防错
 }
 
 enum ReadinessItemStatus {
   PASSED    // 通过
   FAILED    // 失败
   WAIVED    // 已豁免
+}
+
+// ==========================================
+// Loading Verification & Integration Enums (M2)
+// ==========================================
+
+enum LoadingRecordStatus {
+  LOADED
+  UNLOADED
+  REPLACED
+}
+
+enum LoadingVerifyResult {
+  PASS
+  FAIL
+  WARNING
+}
+
+enum StencilStatus {
+  READY
+  NOT_READY
+  MAINTENANCE
+}
+
+enum SolderPasteStatus {
+  COMPLIANT
+  NON_COMPLIANT
+  EXPIRED
+}
+
+enum IntegrationSource {
+  AUTO
+  MANUAL
 }
 
 enum AuditEntityType {
@@ -352,6 +388,187 @@ model Line {
   stations     Station[]
   runs         Run[]
   userBindings UserLineBinding[]
+}
+
+// ==========================================
+// Loading Verification Models (M2)
+// ==========================================
+
+model FeederSlot {
+  id                   String   @id @default(cuid())
+  lineId               String
+  slotCode             String
+  slotName             String?
+  position             Int
+
+  currentMaterialLotId String?
+  isLocked             Boolean  @default(false)
+  failedAttempts       Int      @default(0)
+  lockedAt             DateTime?
+  lockedReason         String?
+
+  meta                 Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  line            Line                 @relation(fields: [lineId], references: [id])
+  loadingRecords  LoadingRecord[]
+  slotMappings    SlotMaterialMapping[]
+  runExpectations RunSlotExpectation[]
+
+  @@unique([lineId, slotCode])
+  @@index([lineId])
+}
+
+model SlotMaterialMapping {
+  id           String   @id @default(cuid())
+  productCode  String?
+  routingId    String?
+  slotId       String
+  materialCode String
+  priority     Int      @default(1)
+  isAlternate  Boolean  @default(false)
+
+  meta         Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  slot    FeederSlot @relation(fields: [slotId], references: [id])
+  routing Routing?   @relation(fields: [routingId], references: [id])
+
+  @@unique([slotId, materialCode])
+  @@index([productCode])
+  @@index([routingId])
+  @@index([slotId])
+}
+
+model RunSlotExpectation {
+  id                   String   @id @default(cuid())
+  runId                String
+  slotId               String
+  expectedMaterialCode String
+  alternates           Json?
+  status               String   @default("PENDING")
+  loadedMaterialCode   String?
+  loadedAt             DateTime?
+  loadedBy             String?
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  run  Run        @relation(fields: [runId], references: [id])
+  slot FeederSlot @relation(fields: [slotId], references: [id])
+
+  @@unique([runId, slotId])
+  @@index([runId])
+  @@index([slotId])
+}
+
+model LoadingRecord {
+  id                   String              @id @default(cuid())
+  runId                String
+  slotId               String
+  runSlotExpectationId String?
+  materialLotId        String
+  materialCode         String
+  expectedCode         String?
+  status               LoadingRecordStatus @default(LOADED)
+  verifyResult         LoadingVerifyResult
+  failReason           String?
+  loadedAt             DateTime            @default(now())
+  loadedBy             String
+  unloadedAt           DateTime?
+  unloadedBy           String?
+
+  meta                 Json?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  run          Run                 @relation(fields: [runId], references: [id])
+  slot         FeederSlot          @relation(fields: [slotId], references: [id])
+  materialLot  MaterialLot         @relation(fields: [materialLotId], references: [id])
+  expectation  RunSlotExpectation? @relation(fields: [runSlotExpectationId], references: [id])
+
+  @@index([runId])
+  @@index([slotId])
+  @@index([materialLotId])
+  @@index([loadedAt])
+}
+
+model LineStencil {
+  id        String   @id @default(cuid())
+  lineId    String
+  stencilId String
+  isCurrent Boolean  @default(true)
+  boundAt   DateTime @default(now())
+  boundBy   String?
+  unboundAt DateTime?
+  unboundBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  line Line @relation(fields: [lineId], references: [id])
+
+  @@unique([lineId, stencilId, boundAt])
+  @@index([lineId, isCurrent])
+  @@index([stencilId])
+}
+
+model LineSolderPaste {
+  id        String   @id @default(cuid())
+  lineId    String
+  lotId     String
+  isCurrent Boolean  @default(true)
+  boundAt   DateTime @default(now())
+  boundBy   String?
+  unboundAt DateTime?
+  unboundBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  line Line @relation(fields: [lineId], references: [id])
+
+  @@unique([lineId, lotId, boundAt])
+  @@index([lineId, isCurrent])
+  @@index([lotId])
+}
+
+model StencilStatusRecord {
+  id            String            @id @default(cuid())
+  eventId       String            @unique
+  eventTime     DateTime
+  stencilId     String
+  version       String?
+  status        StencilStatus
+  tensionValue  Float?
+  lastCleanedAt DateTime?
+  source        IntegrationSource
+  operatorId    String?
+  receivedAt    DateTime          @default(now())
+  meta          Json?
+
+  @@index([stencilId])
+  @@index([eventTime])
+}
+
+model SolderPasteStatusRecord {
+  id         String             @id @default(cuid())
+  eventId    String             @unique
+  eventTime  DateTime
+  lotId      String
+  status     SolderPasteStatus
+  expiresAt  DateTime?
+  thawedAt   DateTime?
+  stirredAt  DateTime?
+  source     IntegrationSource
+  operatorId String?
+  receivedAt DateTime           @default(now())
+  meta       Json?
+
+  @@index([lotId])
+  @@index([eventTime])
 }
 
 model StationGroup {
