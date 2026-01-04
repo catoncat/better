@@ -1,3 +1,4 @@
+import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { format } from "date-fns";
 import {
@@ -13,6 +14,7 @@ import {
 	XCircle,
 } from "lucide-react";
 import { useState } from "react";
+import { Can } from "@/components/ability/can";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +36,12 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import {
+	MrbDecisionDialog,
+	type MrbDecisionFormValues,
+} from "@/routes/_authenticated/mes/-components/mrb-decision-dialog";
 import { useCreateFai, useFaiByRun, useFaiGate } from "@/hooks/use-fai";
+import { useMrbDecision, useOqcByRun } from "@/hooks/use-oqc";
 import {
 	type ReadinessCheckItem,
 	usePerformFormalCheck,
@@ -43,6 +50,7 @@ import {
 	useWaiveItem,
 } from "@/hooks/use-readiness";
 import { useRunDetail } from "@/hooks/use-runs";
+import { INSPECTION_STATUS_MAP } from "@/lib/constants";
 
 export const Route = createFileRoute("/_authenticated/mes/runs/$runNo")({
 	component: RunDetailPage,
@@ -62,6 +70,10 @@ function RunDetailPage() {
 	const { data: existingFai, isLoading: faiLoading, refetch: refetchFai } = useFaiByRun(runNo);
 	const createFai = useCreateFai();
 
+	// OQC & MRB hooks
+	const { data: oqcDetail, isLoading: oqcLoading } = useOqcByRun(runNo);
+	const mrbDecision = useMrbDecision();
+
 	const performPrecheck = usePerformPrecheck();
 	const performFormalCheck = usePerformFormalCheck();
 	const waiveItem = useWaiveItem();
@@ -73,6 +85,9 @@ function RunDetailPage() {
 	// FAI creation dialog state
 	const [faiDialogOpen, setFaiDialogOpen] = useState(false);
 	const [faiSampleQty, setFaiSampleQty] = useState(1);
+
+	// MRB dialog state
+	const [mrbDialogOpen, setMrbDialogOpen] = useState(false);
 
 	const formatTime = (value?: string | Date | null) => {
 		if (!value) return "-";
@@ -162,6 +177,17 @@ function RunDetailPage() {
 		return <Badge variant={config.variant}>{config.label}</Badge>;
 	};
 
+	const getOqcStatusBadge = (status: string) => {
+		const label = INSPECTION_STATUS_MAP[status] ?? status;
+		let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+
+		if (status === "INSPECTING") variant = "default";
+		if (status === "PASS") variant = "secondary";
+		if (status === "FAIL") variant = "destructive";
+
+		return <Badge variant={variant}>{label}</Badge>;
+	};
+
 	const handleWaive = (item: ReadinessCheckItem) => {
 		setSelectedItem(item);
 		setWaiveReason("");
@@ -198,6 +224,10 @@ function RunDetailPage() {
 		setFaiDialogOpen(false);
 		setFaiSampleQty(1);
 		refetchFai();
+	};
+
+	const handleMrbDecision = async (values: MrbDecisionFormValues) => {
+		await mrbDecision.mutateAsync({ runNo, data: values });
 	};
 
 	if (isLoading) {
@@ -562,6 +592,74 @@ function RunDetailPage() {
 				</Card>
 			)}
 
+			{(oqcDetail || oqcLoading) && (
+				<Card>
+					<CardHeader>
+						<div className="flex flex-wrap items-center justify-between gap-3">
+							<CardTitle className="flex items-center gap-2">
+								{oqcLoading ? (
+									<Loader2 className="h-5 w-5 animate-spin" />
+								) : oqcDetail?.status === "PASS" ? (
+									<CheckCircle2 className="h-5 w-5 text-green-600" />
+								) : oqcDetail?.status === "FAIL" ? (
+									<XCircle className="h-5 w-5 text-red-600" />
+								) : oqcDetail ? (
+									<ClipboardCheck className="h-5 w-5 text-blue-600" />
+								) : (
+									<AlertTriangle className="h-5 w-5 text-yellow-600" />
+								)}
+								出货检验 (OQC)
+							</CardTitle>
+							<div className="flex flex-wrap items-center gap-2">
+								{oqcDetail && getOqcStatusBadge(oqcDetail.status)}
+								<Button variant="outline" size="sm" asChild>
+									<Link to="/mes/oqc">查看列表</Link>
+								</Button>
+								{data.run.status === "ON_HOLD" && oqcDetail?.status === "FAIL" && (
+									<Can permissions={Permission.QUALITY_DISPOSITION}>
+										<Button
+											size="sm"
+											onClick={() => setMrbDialogOpen(true)}
+											disabled={mrbDecision.isPending}
+										>
+											MRB 决策
+										</Button>
+									</Can>
+								)}
+							</div>
+						</div>
+					</CardHeader>
+					<CardContent>
+						{oqcLoading ? (
+							<p className="text-muted-foreground">加载中...</p>
+						) : oqcDetail ? (
+							<div className="grid gap-4 md:grid-cols-4">
+								<div>
+									<p className="text-sm text-muted-foreground">状态</p>
+									{getOqcStatusBadge(oqcDetail.status)}
+								</div>
+								<div>
+									<p className="text-sm text-muted-foreground">抽样数量</p>
+									<p className="font-medium">{oqcDetail.sampleQty ?? "-"}</p>
+								</div>
+								<div>
+									<p className="text-sm text-muted-foreground">通过/失败</p>
+									<p className="font-medium">
+										{oqcDetail.passedQty ?? 0} / {oqcDetail.failedQty ?? 0}
+									</p>
+								</div>
+								<div>
+									<p className="text-sm text-muted-foreground">创建时间</p>
+									<p className="font-medium">{formatTime(oqcDetail.createdAt)}</p>
+								</div>
+							</div>
+						) : (
+							<div className="py-4 text-center text-muted-foreground">暂无 OQC 记录</div>
+						)}
+					</CardContent>
+				</Card>
+			)}
+
 			<Card>
 				<CardHeader className="flex flex-row items-center justify-between">
 					<div>
@@ -680,6 +778,14 @@ function RunDetailPage() {
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
+
+			<MrbDecisionDialog
+				open={mrbDialogOpen}
+				onOpenChange={setMrbDialogOpen}
+				runNo={runNo}
+				onSubmit={handleMrbDecision}
+				isSubmitting={mrbDecision.isPending}
+			/>
 		</div>
 	);
 }
