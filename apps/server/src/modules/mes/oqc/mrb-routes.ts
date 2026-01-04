@@ -18,7 +18,7 @@ export const mrbRoutes = new Elysia({ prefix: "/runs" })
 			const actor = buildAuditActor(user);
 			const meta = buildAuditRequestMeta(request);
 			const permissions = userPermissions ? new Set(getAllPermissions(userPermissions)) : new Set();
-			const canWaiveFai = permissions.has(Permission.QUALITY_OQC);
+			const canWaiveFai = permissions.has(Permission.QUALITY_DISPOSITION);
 
 			const beforeRun = await db.run.findUnique({
 				where: { runNo: params.runNo },
@@ -105,7 +105,7 @@ export const mrbRoutes = new Elysia({ prefix: "/runs" })
 		},
 		{
 			isAuth: true,
-			requirePermission: Permission.QUALITY_OQC,
+			requirePermission: Permission.QUALITY_DISPOSITION,
 			body: mrbDecisionSchema,
 			detail: { tags: ["MES - MRB"], summary: "Record MRB decision for a run in ON_HOLD status" },
 		},
@@ -123,7 +123,7 @@ export const mrbRoutes = new Elysia({ prefix: "/runs" })
 		},
 		{
 			isAuth: true,
-			requirePermission: Permission.QUALITY_OQC,
+			requirePermission: Permission.QUALITY_DISPOSITION,
 			detail: { tags: ["MES - MRB"], summary: "Get rework runs for a parent run" },
 		},
 	);
