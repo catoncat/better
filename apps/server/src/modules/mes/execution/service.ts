@@ -3,6 +3,7 @@ import { RunStatus, TrackResult, TrackSource, UnitStatus } from "@better-app/db"
 import { type Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
 import { createDefectFromTrackOut } from "../defect/service";
+import { checkAndTriggerOqc } from "../oqc/trigger-service";
 import type { trackInSchema, trackOutSchema } from "./schema";
 
 type TrackInInput = Static<typeof trackInSchema>;
@@ -124,10 +125,14 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 					message: "Run has no executable route version",
 				};
 			}
-			if (run.status !== RunStatus.AUTHORIZED) {
+			if (run.status !== RunStatus.AUTHORIZED && run.status !== RunStatus.IN_PROGRESS) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "RUN_NOT_AUTHORIZED");
-				return { success: false, code: "RUN_NOT_AUTHORIZED", message: "Run not authorized" };
+				return {
+					success: false,
+					code: "RUN_NOT_AUTHORIZED",
+					message: "Run is not authorized or in progress",
+				};
 			}
 			if (run.workOrder.woNo !== data.woNo) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
@@ -213,6 +218,16 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 
 			const now = new Date();
 			const updatedUnit = await db.$transaction(async (tx) => {
+				if (run.status === RunStatus.AUTHORIZED) {
+					await tx.run.updateMany({
+						where: { id: run.id, status: RunStatus.AUTHORIZED },
+						data: {
+							status: RunStatus.IN_PROGRESS,
+							startedAt: run.startedAt ?? now,
+						},
+					});
+				}
+
 				let resolvedUnit = unit;
 				if (!resolvedUnit) {
 					resolvedUnit = await tx.unit.create({
@@ -317,10 +332,14 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 					message: "Run has no executable route version",
 				};
 			}
-			if (run.status !== RunStatus.AUTHORIZED) {
+			if (run.status !== RunStatus.AUTHORIZED && run.status !== RunStatus.IN_PROGRESS) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "RUN_NOT_AUTHORIZED");
-				return { success: false, code: "RUN_NOT_AUTHORIZED", message: "Run not authorized" };
+				return {
+					success: false,
+					code: "RUN_NOT_AUTHORIZED",
+					message: "Run is not authorized or in progress",
+				};
 			}
 
 			const unit = await db.unit.findUnique({
@@ -531,6 +550,19 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 				createDefectFromTrackOut(db, track.id, defectCode, data.defectLocation).catch((err) => {
 					console.error(`[TrackOut FAIL] Auto defect creation failed for track ${track.id}:`, err);
 				});
+			}
+
+			if (updatedUnit.status === UnitStatus.DONE) {
+				try {
+					const oqcResult = await checkAndTriggerOqc(db, run.runNo, {
+						createdBy: data.operatorId,
+					});
+					if (!oqcResult.success) {
+						console.error(`[TrackOut] OQC trigger failed for run ${run.runNo}:`, oqcResult);
+					}
+				} catch (error) {
+					console.error(`[TrackOut] OQC trigger error for run ${run.runNo}:`, error);
+				}
 			}
 
 			return { success: true, data: { status: updatedUnit.status } };
