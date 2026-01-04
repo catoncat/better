@@ -1,8 +1,8 @@
 import {
 	InspectionStatus,
 	InspectionType,
+	Prisma,
 	RunStatus,
-	type Prisma,
 	type PrismaClient,
 } from "@better-app/db";
 import { SpanStatusCode, trace } from "@opentelemetry/api";
@@ -93,7 +93,7 @@ export async function createOqc(
 			const sampleQty = data.sampleQty ?? unitCount; // Default to all units if not specified
 
 			// Store OQC metadata in the data field
-			const oqcData: Record<string, unknown> = {};
+			const oqcData: Prisma.InputJsonObject = {};
 			if (options?.sampledUnitIds) oqcData.sampledUnitIds = options.sampledUnitIds;
 			if (options?.samplingRuleId) oqcData.samplingRuleId = options.samplingRuleId;
 			if (options?.samplingType) oqcData.samplingType = options.samplingType;
@@ -109,7 +109,7 @@ export async function createOqc(
 						passedQty: 0,
 						failedQty: 0,
 						remark: data.remark,
-						data: Object.keys(oqcData).length > 0 ? oqcData : null,
+						data: Object.keys(oqcData).length > 0 ? oqcData : Prisma.JsonNull,
 					},
 					include: { items: true, run: { select: { runNo: true, status: true } } },
 				});
@@ -340,9 +340,9 @@ export async function completeOqc(
 			const newInspectionStatus = data.decision === "PASS" ? InspectionStatus.PASS : InspectionStatus.FAIL;
 			const newRunStatus = data.decision === "PASS" ? RunStatus.COMPLETED : RunStatus.ON_HOLD;
 
-			const updated = await db.$transaction(async (tx) => {
+			await db.$transaction(async (tx) => {
 				// Update OQC inspection
-				const inspection = await tx.inspection.update({
+				await tx.inspection.update({
 					where: { id: oqcId },
 					data: {
 						status: newInspectionStatus,
@@ -352,7 +352,6 @@ export async function completeOqc(
 						decidedAt: new Date(),
 						remark: data.remark ?? oqc.remark,
 					},
-					include: { items: true, run: { select: { runNo: true, status: true } } },
 				});
 
 				// Update run status
@@ -363,8 +362,6 @@ export async function completeOqc(
 						...(newRunStatus === RunStatus.COMPLETED ? { endedAt: new Date() } : {}),
 					},
 				});
-
-				return inspection;
 			});
 
 			// Refresh to get updated run status

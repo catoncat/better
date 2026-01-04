@@ -11,16 +11,14 @@ import { createOqc } from "./service";
 const tracer = trace.getTracer("mes.oqc.trigger");
 
 /**
- * Terminal unit statuses that indicate a unit has completed its journey.
+ * Unit statuses that indicate a unit has completed OQC eligibility.
  */
 const TERMINAL_UNIT_STATUSES: UnitStatus[] = [
 	UnitStatus.DONE,
-	UnitStatus.SCRAPPED,
-	UnitStatus.ON_HOLD,
 ];
 
 /**
- * Check if all units in a run have reached terminal status.
+ * Check if all units in a run are DONE.
  */
 export async function areAllUnitsTerminal(
 	db: PrismaClient,
@@ -40,7 +38,6 @@ export async function areAllUnitsTerminal(
 
 /**
  * Select random sample units using Fisher-Yates shuffle.
- * Uses a deterministic seed for reproducibility if provided.
  */
 export function selectSampleUnits<T>(units: T[], sampleSize: number): T[] {
 	if (sampleSize >= units.length) {
@@ -51,7 +48,9 @@ export function selectSampleUnits<T>(units: T[], sampleSize: number): T[] {
 	const shuffled = [...units];
 	for (let i = shuffled.length - 1; i > 0; i--) {
 		const j = Math.floor(Math.random() * (i + 1));
-		[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+		const temp = shuffled[i]!;
+		shuffled[i] = shuffled[j]!;
+		shuffled[j] = temp;
 	}
 
 	return shuffled.slice(0, sampleSize);
@@ -105,18 +104,18 @@ export async function checkAndTriggerOqc(
 				span.setAttribute("reason", `run_status_${run.status}`);
 				return {
 					success: true as const,
-					data: { triggered: false, reason: `Run status ${run.status} does not allow OQC trigger` },
+					data: { triggered: false as const, reason: `Run status ${run.status} does not allow OQC trigger` },
 				};
 			}
 
-			// Check if all units are in terminal status
+			// Check if all units are DONE
 			const allTerminal = run.units.every((unit) => TERMINAL_UNIT_STATUSES.includes(unit.status));
 			if (!allTerminal) {
 				span.setAttribute("skipped", true);
 				span.setAttribute("reason", "units_not_terminal");
 				return {
 					success: true as const,
-					data: { triggered: false, reason: "Not all units have reached terminal status" },
+					data: { triggered: false as const, reason: "Not all units have reached terminal status" },
 				};
 			}
 
@@ -146,7 +145,7 @@ export async function checkAndTriggerOqc(
 
 				return {
 					success: true as const,
-					data: { triggered: false, reason: "No sampling rule applicable", completed: true },
+					data: { triggered: false as const, reason: "No sampling rule applicable", completed: true },
 				};
 			}
 

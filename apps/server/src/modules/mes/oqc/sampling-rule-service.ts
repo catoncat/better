@@ -351,10 +351,6 @@ export async function getApplicableRule(
 		span.setAttribute("routingId", params.routingId ?? "null");
 
 		try {
-			// Build OR conditions for matching rules
-			// A rule matches if its criteria is null (wildcard) or matches the parameter
-			const conditions: Prisma.OqcSamplingRuleWhereInput[] = [];
-
 			// Build conditions based on provided parameters
 			// More specific matches are handled by priority in the rules themselves
 			const baseCondition: Prisma.OqcSamplingRuleWhereInput = {
@@ -384,8 +380,7 @@ export async function getApplicableRule(
 				],
 			};
 
-			// Find the highest priority rule that matches
-			const rule = await db.oqcSamplingRule.findFirst({
+			const rules = await db.oqcSamplingRule.findMany({
 				where: baseCondition,
 				orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
 				include: {
@@ -394,12 +389,33 @@ export async function getApplicableRule(
 				},
 			});
 
-			if (rule) {
-				span.setAttribute("samplingRule.id", rule.id);
-				span.setAttribute("samplingRule.type", rule.samplingType);
+			if (rules.length === 0) {
+				return null;
 			}
 
-			return rule;
+			const sorted = rules
+				.map((rule) => ({
+					rule,
+					specificity:
+						(rule.productCode ? 1 : 0) + (rule.lineId ? 1 : 0) + (rule.routingId ? 1 : 0),
+				}))
+				.sort((a, b) => {
+					if (a.specificity !== b.specificity) {
+						return b.specificity - a.specificity;
+					}
+					if (a.rule.priority !== b.rule.priority) {
+						return b.rule.priority - a.rule.priority;
+					}
+					return b.rule.createdAt.getTime() - a.rule.createdAt.getTime();
+				});
+
+			const selected = sorted[0]?.rule ?? null;
+			if (selected) {
+				span.setAttribute("samplingRule.id", selected.id);
+				span.setAttribute("samplingRule.type", selected.samplingType);
+			}
+
+			return selected;
 		} finally {
 			span.end();
 		}
