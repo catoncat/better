@@ -544,6 +544,12 @@ Day 4: Phase 4 Readiness (merge point)
 - [x] Phase 6.1: FeederSlot CRUD APIs
 - [x] Phase 6.2: SlotMaterialMapping CRUD APIs
 
+### Group B - Integration Mainline
+- [x] Phase 3.1: `stencil-service.ts` - stencil status receive
+- [x] Phase 3.2: `solder-paste-service.ts` - solder paste status receive
+- [x] Phase 3.3: `loading-schema.ts` + routes update
+- [x] Phase 3.4: Line binding APIs (stencil/solder paste)
+
 ### Group C - Permissions & Scenarios
 - [x] Phase 5: Permissions config
 - [x] Phase 7: Acceptance scenarios
