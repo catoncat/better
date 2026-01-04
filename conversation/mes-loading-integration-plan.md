@@ -532,9 +532,14 @@ Day 4: Phase 4 Readiness (merge point)
 
 ---
 
-## Progress (Phase 1 - Schema)
+## Progress
 
+### Phase 1 - Schema
 - [x] Added enums and models to `packages/db/prisma/schema/schema.prisma`
+
+### Group C - Permissions & Scenarios
+- [x] Phase 5: Permissions config
+- [x] Phase 7: Acceptance scenarios
 
 ---
 
