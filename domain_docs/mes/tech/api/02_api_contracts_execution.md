@@ -258,6 +258,7 @@ Error codes:
 * `RUN_NOT_ON_HOLD` - Original Run is not in ON_HOLD status
 * `MRB_DECISION_REQUIRED` - Missing mrbDecisionId
 * `FAI_WAIVER_REASON_REQUIRED` - faiWaiver is true but waiverReason missing
+* `FAI_WAIVER_NOT_ALLOWED` - FAI waiver is not allowed for this request
 * `INSUFFICIENT_PERMISSION` - Caller lacks `QUALITY_DISPOSITION` permission
 
 ---
