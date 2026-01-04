@@ -33,6 +33,7 @@ Status: [x] done, [~] in progress, [ ] pending
 - 抽样规则优先级：specificity > priority > createdAt。
 - MRB 决策记录落在 OQC inspection `data`，`Run.mrbDecisionId` 指向该 inspection。
 - MRB FAI 豁免权限：`QUALITY_DISPOSITION`。
+- MRB 决策原因最少 4 个字。
 
 ## Task Breakdown
 1) Data/Schema
@@ -86,9 +87,6 @@ Status: [x] done, [~] in progress, [ ] pending
 - `apps/server/src/modules/mes/oqc/sampling-rule-service.ts`
 - `apps/server/src/modules/mes/oqc/mrb-service.ts`
 - `apps/server/src/modules/mes/oqc/mrb-routes.ts`
-
-## Open Questions
-- MRB reason validation: minimum length/format beyond `minLength: 1`?
 
 ## Out of Scope
 - 上料防错 (2.4)
