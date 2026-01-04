@@ -203,7 +203,7 @@ export const defectRoutes = new Elysia({ prefix: "/defects" })
 			isAuth: true,
 			requirePermission: Permission.QUALITY_DISPOSITION,
 			body: releaseHoldSchema,
-			detail: { tags: ["MES - Defect"], summary: "Release unit from HOLD" },
+			detail: { tags: ["MES - Defect"], summary: "Release unit from ON_HOLD" },
 		},
 	);
 

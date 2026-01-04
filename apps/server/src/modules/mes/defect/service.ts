@@ -175,7 +175,7 @@ export async function assignDisposition(
 					await tx.unit.update({
 						where: { id: defect.unit.id },
 						data: {
-							status: UnitStatus.REWORK,
+							status: UnitStatus.QUEUED,
 							currentStepNo: toStepNo,
 						},
 					});
@@ -195,7 +195,7 @@ export async function assignDisposition(
 					// Update unit status to hold
 					await tx.unit.update({
 						where: { id: defect.unit.id },
-						data: { status: UnitStatus.HOLD },
+						data: { status: UnitStatus.ON_HOLD },
 					});
 				}
 
@@ -226,7 +226,7 @@ export async function assignDisposition(
 }
 
 /**
- * Release a unit from HOLD status.
+ * Release a unit from ON_HOLD status.
  */
 export async function releaseHold(
 	db: PrismaClient,
@@ -261,11 +261,11 @@ export async function releaseHold(
 				};
 			}
 
-			if (defect.unit.status !== UnitStatus.HOLD) {
+			if (defect.unit.status !== UnitStatus.ON_HOLD) {
 				return {
 					success: false as const,
 					code: "UNIT_NOT_HELD",
-					message: "Unit is not in HOLD status",
+					message: "Unit is not in ON_HOLD status",
 					status: 400,
 				};
 			}

@@ -100,7 +100,7 @@ export const getRunDetail = async (db: PrismaClient, runNo: string) => {
 			failed:
 				(statsMap[UnitStatus.OUT_FAILED] ?? 0) +
 				(statsMap[UnitStatus.SCRAPPED] ?? 0) +
-				(statsMap[UnitStatus.HOLD] ?? 0),
+				(statsMap[UnitStatus.ON_HOLD] ?? 0),
 		},
 		recentUnits: recentUnits.map((u) => ({
 			sn: u.sn,
@@ -218,7 +218,7 @@ export const authorizeRun = async (
 					if (run.status === RunStatus.AUTHORIZED) {
 						return { success: true, data: run };
 					}
-					if (run.status !== RunStatus.PREP && run.status !== RunStatus.FAI_PENDING) {
+					if (run.status !== RunStatus.PREP) {
 						span.setStatus({ code: SpanStatusCode.ERROR });
 						span.setAttribute("mes.error_code", "RUN_NOT_READY");
 						return {

@@ -12,8 +12,9 @@ const getRunStatusBadge = (status: string) => {
 	let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
 
 	if (status === "AUTHORIZED") variant = "secondary";
-	if (status === "RUNNING") variant = "default";
-	if (status === "CANCELLED") variant = "destructive";
+	if (status === "IN_PROGRESS") variant = "default";
+	if (status === "CLOSED_REWORK") variant = "secondary";
+	if (status === "SCRAPPED") variant = "destructive";
 
 	return <Badge variant={variant}>{label}</Badge>;
 };

@@ -184,18 +184,16 @@ enum WorkOrderStatus {
   RELEASED
   IN_PROGRESS
   COMPLETED
-  CLOSED
-  CANCELLED
 }
 
 enum RunStatus {
   PREP
-  FAI_PENDING
   AUTHORIZED
-  RUNNING
-  FINISHING
-  ARCHIVED
-  CANCELLED
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CLOSED_REWORK
+  SCRAPPED
 }
 
 enum StationType {
@@ -208,12 +206,10 @@ enum StationType {
 enum UnitStatus {
   QUEUED
   IN_STATION
-  OUT_PASSED
   OUT_FAILED
-  REWORK
-  HOLD
-  SCRAPPED
   DONE
+  ON_HOLD
+  SCRAPPED
 }
 
 enum TrackResult {

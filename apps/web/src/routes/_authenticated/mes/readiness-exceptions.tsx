@@ -56,12 +56,12 @@ function ReadinessExceptionsPage() {
 			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
 		> = {
 			PREP: { label: "准备中", variant: "outline" },
-			FAI_PENDING: { label: "待FAI", variant: "outline" },
 			AUTHORIZED: { label: "已授权", variant: "default" },
-			RUNNING: { label: "生产中", variant: "default" },
-			FINISHING: { label: "收尾中", variant: "secondary" },
-			ARCHIVED: { label: "已归档", variant: "secondary" },
-			CANCELLED: { label: "已取消", variant: "destructive" },
+			IN_PROGRESS: { label: "生产中", variant: "default" },
+			ON_HOLD: { label: "隔离", variant: "outline" },
+			COMPLETED: { label: "已完成", variant: "secondary" },
+			CLOSED_REWORK: { label: "闭环返修", variant: "secondary" },
+			SCRAPPED: { label: "报废", variant: "destructive" },
 		};
 		const config = map[status] ?? { label: status, variant: "outline" as const };
 		return <Badge variant={config.variant}>{config.label}</Badge>;
@@ -158,7 +158,6 @@ function ReadinessExceptionsPage() {
 								<SelectContent>
 									<SelectItem value="ALL">全部状态</SelectItem>
 									<SelectItem value="PREP">准备中</SelectItem>
-									<SelectItem value="FAI_PENDING">待FAI</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
