@@ -1,21 +1,24 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
+import { zodValidator } from "@tanstack/zod-form-adapter";
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@/components/ui/form";
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
-import { useChangePassword, useUpdateProfile, useUserProfile } from "@/hooks/use-users";
+import {
+	useChangePassword,
+	useUpdateProfile,
+	useUserProfile,
+} from "@/hooks/use-users";
 
 export const Route = createFileRoute("/_authenticated/profile")({
 	component: ProfilePage,
@@ -43,21 +46,50 @@ function ProfilePage() {
 	const updateProfileMutation = useUpdateProfile();
 	const changePasswordMutation = useChangePassword();
 
-	const profileForm = useForm<z.infer<typeof profileSchema>>({
-		resolver: zodResolver(profileSchema),
+	const profileForm = useForm({
 		defaultValues: {
 			name: "",
 			department: "",
 			phone: "",
 		},
+		onSubmit: async ({ value }) => {
+			try {
+				await updateProfileMutation.mutateAsync(value);
+				toast.success("个人资料已更新");
+			} catch (error) {
+				toast.error("更新失败", {
+					description:
+						error instanceof Error ? error.message : "请稍后重试",
+				});
+			}
+		},
 	});
 
-	const passwordForm = useForm<z.infer<typeof passwordSchema>>({
-		resolver: zodResolver(passwordSchema),
+	const passwordForm = useForm({
 		defaultValues: {
 			currentPassword: "",
 			newPassword: "",
 			confirmPassword: "",
+		},
+		validators: {
+			onChange: zodValidator(passwordSchema),
+		},
+		onSubmit: async ({ value, formApi }) => {
+			try {
+				await changePasswordMutation.mutateAsync({
+					currentPassword: value.currentPassword,
+					newPassword: value.newPassword,
+				});
+				toast.success("密码修改成功");
+				formApi.reset();
+			} catch (error) {
+				toast.error("修改失败", {
+					description:
+						error instanceof Error
+							? error.message
+							: "请确认当前密码是否正确",
+				});
+			}
 		},
 	});
 
@@ -70,32 +102,6 @@ function ProfilePage() {
 			});
 		}
 	}, [user, profileForm]);
-
-	const onProfileSubmit = async (values: z.infer<typeof profileSchema>) => {
-		try {
-			await updateProfileMutation.mutateAsync(values);
-			toast.success("个人资料已更新");
-		} catch (error) {
-			toast.error("更新失败", {
-				description: error instanceof Error ? error.message : "请稍后重试",
-			});
-		}
-	};
-
-	const onPasswordSubmit = async (values: z.infer<typeof passwordSchema>) => {
-		try {
-			await changePasswordMutation.mutateAsync({
-				currentPassword: values.currentPassword,
-				newPassword: values.newPassword,
-			});
-			toast.success("密码修改成功");
-			passwordForm.reset();
-		} catch (error) {
-			toast.error("修改失败", {
-				description: error instanceof Error ? error.message : "请确认当前密码是否正确",
-			});
-		}
-	};
 
 	if (isLoading) {
 		return <div>加载中...</div>;
@@ -114,65 +120,106 @@ function ProfilePage() {
 						<CardDescription>更新您的姓名、联系方式</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<Form {...profileForm}>
-							<form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-								<FormField
-									control={profileForm.control}
-									name="name"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>姓名</FormLabel>
-											<FormControl>
-												<Input placeholder="您的姓名" {...field} />
-											</FormControl>
-											<FormMessage />
-										</FormItem>
+						<form
+							onSubmit={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
+								profileForm.handleSubmit();
+							}}
+							className="space-y-4"
+						>
+							<Field
+								form={profileForm}
+								name="name"
+								label="姓名"
+								validators={{
+									onChange: zodValidator(profileSchema.shape.name),
+								}}
+							>
+								{(field) => (
+									<Input
+										placeholder="您的姓名"
+										name={field.name}
+										value={field.state.value}
+										onBlur={field.handleBlur}
+										onChange={(e) => field.handleChange(e.target.value)}
+									/>
+								)}
+							</Field>
+
+							<div className="group grid gap-1.5">
+								<div className="flex items-center gap-1.5 min-h-[20px]">
+									<label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+										邮箱
+									</label>
+								</div>
+								<Input value={user?.email ?? ""} disabled />
+								<p className="text-muted-foreground text-xs min-h-[20px]">
+									邮箱修改请到「账号升级」完成验证流程
+								</p>
+							</div>
+
+							<div className="grid grid-cols-1 gap-4">
+								<Field
+									form={profileForm}
+									name="department"
+									label="部门"
+									validators={{
+										onChange: zodValidator(profileSchema.shape.department),
+									}}
+								>
+									{(field) => (
+										<Input
+											placeholder="所属部门"
+											name={field.name}
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(e) =>
+												field.handleChange(e.target.value)
+											}
+										/>
+									)}
+								</Field>
+								<Field
+									form={profileForm}
+									name="phone"
+									label="手机号"
+									validators={{
+										onChange: zodValidator(profileSchema.shape.phone),
+									}}
+								>
+									{(field) => (
+										<Input
+											placeholder="联系电话"
+											name={field.name}
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(e) =>
+												field.handleChange(e.target.value)
+											}
+										/>
+									)}
+								</Field>
+							</div>
+							<div className="flex justify-end">
+								<profileForm.Subscribe
+									selector={(state) => [
+										state.canSubmit,
+										state.isSubmitting,
+									]}
+									children={([canSubmit, isSubmitting]) => (
+										<Button
+											type="submit"
+											disabled={!canSubmit || updateProfileMutation.isPending}
+										>
+											{updateProfileMutation.isPending || isSubmitting
+												? "保存中..."
+												: "保存更改"}
+										</Button>
 									)}
 								/>
-								<FormItem>
-									<FormLabel>邮箱</FormLabel>
-									<FormControl>
-										<Input value={user?.email ?? ""} disabled />
-									</FormControl>
-									<p className="text-muted-foreground text-xs">
-										邮箱修改请到「账号升级」完成验证流程
-									</p>
-								</FormItem>
-								<div className="grid grid-cols-1 gap-4">
-									<FormField
-										control={profileForm.control}
-										name="department"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>部门</FormLabel>
-												<FormControl>
-													<Input placeholder="所属部门" {...field} />
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={profileForm.control}
-										name="phone"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>手机号</FormLabel>
-												<FormControl>
-													<Input placeholder="联系电话" {...field} />
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								</div>
-								<div className="flex justify-end">
-									<Button type="submit" disabled={updateProfileMutation.isPending}>
-										{updateProfileMutation.isPending ? "保存中..." : "保存更改"}
-									</Button>
-								</div>
-							</form>
-						</Form>
+							</div>
+						</form>
 					</CardContent>
 				</Card>
 
@@ -182,56 +229,96 @@ function ProfilePage() {
 						<CardDescription>修改您的登录密码</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<Form {...passwordForm}>
-							<form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-								<FormField
-									control={passwordForm.control}
-									name="currentPassword"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>当前密码</FormLabel>
-											<FormControl>
-												<Input type="password" placeholder="请输入当前密码" {...field} />
-											</FormControl>
-											<FormMessage />
-										</FormItem>
+						<form
+							onSubmit={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
+								passwordForm.handleSubmit();
+							}}
+							className="space-y-4"
+						>
+							<Field
+								form={passwordForm}
+								name="currentPassword"
+								label="当前密码"
+								validators={{
+									onChange: zodValidator(passwordSchema.shape.currentPassword),
+								}}
+							>
+								{(field) => (
+									<Input
+										type="password"
+										placeholder="请输入当前密码"
+										name={field.name}
+										value={field.state.value}
+										onBlur={field.handleBlur}
+										onChange={(e) => field.handleChange(e.target.value)}
+									/>
+								)}
+							</Field>
+							<div className="grid grid-cols-1 gap-4">
+								<Field
+									form={passwordForm}
+									name="newPassword"
+									label="新密码"
+									validators={{
+										onChange: zodValidator(passwordSchema.shape.newPassword),
+									}}
+								>
+									{(field) => (
+										<Input
+											type="password"
+											placeholder="至少8位字符"
+											name={field.name}
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(e) =>
+												field.handleChange(e.target.value)
+											}
+										/>
+									)}
+								</Field>
+								<Field
+									form={passwordForm}
+									name="confirmPassword"
+									label="确认新密码"
+									validators={{
+										onChange: zodValidator(passwordSchema.shape.confirmPassword),
+									}}
+								>
+									{(field) => (
+										<Input
+											type="password"
+											placeholder="再次输入新密码"
+											name={field.name}
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(e) =>
+												field.handleChange(e.target.value)
+											}
+										/>
+									)}
+								</Field>
+							</div>
+							<div className="flex justify-end">
+								<passwordForm.Subscribe
+									selector={(state) => [
+										state.canSubmit,
+										state.isSubmitting,
+									]}
+									children={([canSubmit, isSubmitting]) => (
+										<Button
+											type="submit"
+											disabled={!canSubmit || changePasswordMutation.isPending}
+										>
+											{changePasswordMutation.isPending || isSubmitting
+												? "修改中..."
+												: "修改密码"}
+										</Button>
 									)}
 								/>
-								<div className="grid grid-cols-1 gap-4">
-									<FormField
-										control={passwordForm.control}
-										name="newPassword"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>新密码</FormLabel>
-												<FormControl>
-													<Input type="password" placeholder="至少8位字符" {...field} />
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={passwordForm.control}
-										name="confirmPassword"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>确认新密码</FormLabel>
-												<FormControl>
-													<Input type="password" placeholder="再次输入新密码" {...field} />
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								</div>
-								<div className="flex justify-end">
-									<Button type="submit" disabled={changePasswordMutation.isPending}>
-										{changePasswordMutation.isPending ? "修改中..." : "修改密码"}
-									</Button>
-								</div>
-							</form>
-						</Form>
+							</div>
+						</form>
 					</CardContent>
 				</Card>
 			</div>
