@@ -34,3 +34,27 @@ export const RUN_STATUS_MAP: Record<string, string> = {
 	CLOSED_REWORK: "闭环返修",
 	SCRAPPED: "报废",
 };
+
+export const INSPECTION_STATUS_MAP: Record<string, string> = {
+	PENDING: "待开始",
+	INSPECTING: "检验中",
+	PASS: "通过",
+	FAIL: "失败",
+};
+
+export const INSPECTION_RESULT_MAP: Record<string, string> = {
+	PASS: "合格",
+	FAIL: "不合格",
+	NA: "不适用",
+};
+
+export const MRB_DECISION_MAP: Record<string, string> = {
+	RELEASE: "放行",
+	REWORK: "返修",
+	SCRAP: "报废",
+};
+
+export const REWORK_TYPE_MAP: Record<string, string> = {
+	REUSE_PREP: "复用就绪",
+	FULL_PREP: "完整流程",
+};

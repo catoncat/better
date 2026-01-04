@@ -39,6 +39,11 @@ export const navMain: NavItem[] = [
 				permissions: [Permission.QUALITY_FAI],
 			},
 			{
+				title: "出货检验",
+				url: "/mes/oqc",
+				permissions: [Permission.QUALITY_OQC],
+			},
+			{
 				title: "缺陷处置",
 				url: "/mes/defects",
 				permissions: [Permission.QUALITY_DISPOSITION],
