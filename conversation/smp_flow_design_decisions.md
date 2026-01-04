@@ -2,7 +2,7 @@
 
 > **日期**: 2025-01-03
 > **状态**: 已决策
-> **相关文档**: `domain_docs/mes/spec/process/03_smp_flows_v2.md`
+> **相关文档**: `domain_docs/mes/spec/process/03_smp_flows.md`
 
 ---
 
