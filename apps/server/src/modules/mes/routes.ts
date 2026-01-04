@@ -4,6 +4,9 @@ import { executionModule } from "./execution/routes";
 import { faiRoutes } from "./fai/routes";
 import { integrationModule } from "./integration/routes";
 import { lineModule } from "./line/routes";
+import { mrbRoutes } from "./oqc/mrb-routes";
+import { oqcRoutes } from "./oqc/routes";
+import { samplingRuleRoutes } from "./oqc/sampling-rule-routes";
 import { readinessExceptionsModule, readinessModule } from "./readiness/routes";
 import { routingModule } from "./routing/routes";
 import { runModule } from "./run/routes";
@@ -27,4 +30,8 @@ export const mesModule = new Elysia()
 	.use(traceModule)
 	.use(faiRoutes)
 	.use(defectRoutes)
-	.use(reworkRoutes);
+	.use(reworkRoutes)
+	// OQC & MRB (M2)
+	.use(oqcRoutes)
+	.use(samplingRuleRoutes)
+	.use(mrbRoutes);
