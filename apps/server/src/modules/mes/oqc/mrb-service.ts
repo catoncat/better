@@ -9,9 +9,10 @@ import {
 import { SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
-import type { mrbDecisionSchema } from "./schema";
+import type { createReworkRunSchema, mrbDecisionSchema } from "./schema";
 
 type MrbDecisionInput = Static<typeof mrbDecisionSchema>;
+type CreateReworkRunInput = Static<typeof createReworkRunSchema>;
 
 type RunWithRelations = Prisma.RunGetPayload<{
 	include: {
@@ -210,6 +211,138 @@ export async function recordMrbDecision(
 				success: true as const,
 				data: { run: result, reworkRunNo },
 			};
+		} catch (error) {
+			span.recordException(error as Error);
+			span.setStatus({ code: SpanStatusCode.ERROR });
+			throw error;
+		} finally {
+			span.end();
+		}
+	});
+}
+
+/**
+ * Create a rework run from an ON_HOLD run with an explicit MRB decision reference.
+ */
+export async function createReworkRunFromHold(
+	db: PrismaClient,
+	runNo: string,
+	data: CreateReworkRunInput,
+	options?: { decidedBy?: string; canWaiveFai?: boolean },
+): Promise<
+	ServiceResult<{
+		reworkRunNo: string;
+		status: RunStatus;
+		authorizationType: string | null;
+		mrbFaiWaiver: boolean | null;
+		parentRunNo: string;
+		parentRunStatus: RunStatus;
+	}>
+> {
+	return tracer.startActiveSpan("mrb.createReworkRun", async (span) => {
+		span.setAttribute("runNo", runNo);
+		span.setAttribute("reworkType", data.reworkType);
+
+		try {
+			const run = await db.run.findUnique({
+				where: { runNo },
+				include: { units: { select: { id: true, sn: true, status: true, currentStepNo: true } } },
+			});
+
+			if (!run) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				return {
+					success: false as const,
+					code: "RUN_NOT_FOUND",
+					message: "Run not found",
+					status: 404,
+				};
+			}
+
+			if (run.status !== RunStatus.ON_HOLD) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				return {
+					success: false as const,
+					code: "RUN_NOT_ON_HOLD",
+					message: "Run is not in ON_HOLD status",
+					status: 400,
+				};
+			}
+
+			if (!data.mrbDecisionId) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				return {
+					success: false as const,
+					code: "MRB_DECISION_REQUIRED",
+					message: "mrbDecisionId is required to create a rework run",
+					status: 400,
+				};
+			}
+
+			if (data.faiWaiver && !data.waiverReason) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				return {
+					success: false as const,
+					code: "FAI_WAIVER_REASON_REQUIRED",
+					message: "waiverReason is required when faiWaiver is true",
+					status: 400,
+				};
+			}
+
+			if (data.faiWaiver && !options?.canWaiveFai) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				return {
+					success: false as const,
+					code: "FAI_WAIVER_NOT_ALLOWED",
+					message: "User is not allowed to waive FAI",
+					status: 403,
+				};
+			}
+
+			if (data.faiWaiver && data.reworkType !== "REUSE_PREP") {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				return {
+					success: false as const,
+					code: "FAI_WAIVER_NOT_ALLOWED",
+					message: "FAI waiver is only allowed for REUSE_PREP rework",
+					status: 400,
+				};
+			}
+
+			const result = await db.$transaction(async (tx) => {
+				const reworkRunNo = await createReworkRun(tx, run, {
+					reworkType: data.reworkType,
+					faiWaiver: data.faiWaiver,
+					faiWaiverReason: data.waiverReason,
+					mrbAuthorizedBy: options?.decidedBy,
+				});
+
+				const updatedParent = await tx.run.update({
+					where: { id: run.id },
+					data: {
+						status: RunStatus.CLOSED_REWORK,
+						endedAt: new Date(),
+						mrbDecisionId: data.mrbDecisionId,
+						mrbAuthorizedBy: options?.decidedBy,
+						mrbAuthorizedAt: new Date(),
+					},
+				});
+
+				const reworkRun = await tx.run.findUnique({
+					where: { runNo: reworkRunNo },
+				});
+
+				return {
+					reworkRunNo,
+					status: reworkRun?.status ?? RunStatus.PREP,
+					authorizationType: reworkRun?.authorizationType ?? null,
+					mrbFaiWaiver: reworkRun?.mrbFaiWaiver ?? null,
+					parentRunNo: updatedParent.runNo,
+					parentRunStatus: updatedParent.status,
+				};
+			});
+
+			return { success: true as const, data: result };
 		} catch (error) {
 			span.recordException(error as Error);
 			span.setStatus({ code: SpanStatusCode.ERROR });
