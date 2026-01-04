@@ -1,4 +1,4 @@
-import { AuditEntityType } from "@better-app/db";
+import { AuditEntityType, getAllPermissions } from "@better-app/db";
 import Elysia from "elysia";
 import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
@@ -14,16 +14,21 @@ export const mrbRoutes = new Elysia({ prefix: "/runs" })
 	// Record MRB decision for a run
 	.post(
 		"/:runNo/mrb-decision",
-		async ({ db, params, body, set, user, request }) => {
+		async ({ db, params, body, set, user, request, userPermissions }) => {
 			const actor = buildAuditActor(user);
 			const meta = buildAuditRequestMeta(request);
+			const permissions = userPermissions ? new Set(getAllPermissions(userPermissions)) : new Set();
+			const canWaiveFai = permissions.has(Permission.QUALITY_OQC);
 
 			const beforeRun = await db.run.findUnique({
 				where: { runNo: params.runNo },
 				select: { id: true, status: true, runNo: true },
 			});
 
-			const result = await recordMrbDecision(db, params.runNo, body, { decidedBy: user?.id });
+			const result = await recordMrbDecision(db, params.runNo, body, {
+				decidedBy: user?.id,
+				canWaiveFai,
+			});
 
 			if (!result.success) {
 				await recordAuditEvent(db, {
