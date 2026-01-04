@@ -86,6 +86,7 @@ export const mrbDecisionSchema = t.Object({
 
 export const createReworkRunSchema = t.Object({
 	reworkType: t.Union([t.Literal("REUSE_PREP"), t.Literal("FULL_PREP")]),
+	mrbDecisionId: t.String({ minLength: 1 }),
 	faiWaiver: t.Optional(t.Boolean()),
-	faiWaiverReason: t.Optional(t.String()),
+	waiverReason: t.Optional(t.String()),
 });

@@ -4,8 +4,8 @@ import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
-import { getReworkRuns, recordMrbDecision } from "./mrb-service";
-import { mrbDecisionSchema } from "./schema";
+import { createReworkRunFromHold, getReworkRuns, recordMrbDecision } from "./mrb-service";
+import { createReworkRunSchema, mrbDecisionSchema } from "./schema";
 
 export const mrbRoutes = new Elysia({ prefix: "/runs" })
 	.use(prismaPlugin)
@@ -108,6 +108,82 @@ export const mrbRoutes = new Elysia({ prefix: "/runs" })
 			requirePermission: Permission.QUALITY_DISPOSITION,
 			body: mrbDecisionSchema,
 			detail: { tags: ["MES - MRB"], summary: "Record MRB decision for a run in ON_HOLD status" },
+		},
+	)
+	// Create rework run for ON_HOLD run
+	.post(
+		"/:runNo/rework",
+		async ({ db, params, body, set, user, request, userPermissions }) => {
+			const actor = buildAuditActor(user);
+			const meta = buildAuditRequestMeta(request);
+			const permissions = userPermissions ? new Set(getAllPermissions(userPermissions)) : new Set();
+			const canWaiveFai = permissions.has(Permission.QUALITY_DISPOSITION);
+
+			const beforeRun = await db.run.findUnique({
+				where: { runNo: params.runNo },
+				select: { id: true, status: true, runNo: true },
+			});
+
+			const result = await createReworkRunFromHold(db, params.runNo, body, {
+				decidedBy: user?.id,
+				canWaiveFai,
+			});
+
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.RUN,
+					entityId: beforeRun?.id ?? params.runNo,
+					entityDisplay: `Run ${params.runNo}`,
+					action: "RUN_REWORK_CREATE",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					before: beforeRun,
+					payload: body,
+					request: meta,
+				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.RUN,
+				entityId: beforeRun?.id ?? params.runNo,
+				entityDisplay: `Run ${params.runNo}`,
+				action: "RUN_REWORK_CREATE",
+				actor,
+				status: "SUCCESS",
+				before: beforeRun,
+				after: { status: result.data.parentRunStatus, reworkRunNo: result.data.reworkRunNo },
+				payload: body,
+				request: meta,
+			});
+
+			const reworkRun = await db.run.findUnique({
+				where: { runNo: result.data.reworkRunNo },
+			});
+			if (reworkRun) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.RUN,
+					entityId: reworkRun.id,
+					entityDisplay: `Rework Run ${result.data.reworkRunNo}`,
+					action: "RUN_REWORK_CREATE",
+					actor,
+					status: "SUCCESS",
+					after: reworkRun,
+					payload: body,
+					request: meta,
+				});
+			}
+
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.QUALITY_DISPOSITION,
+			body: createReworkRunSchema,
+			detail: { tags: ["MES - MRB"], summary: "Create rework run for ON_HOLD run" },
 		},
 	)
 	// Get rework runs for a parent run
