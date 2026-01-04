@@ -157,7 +157,7 @@ stateDiagram-v2
 **MRB FAI 豁免规则**：
 - 常规授权：必须 FAI PASS
 - MRB 授权（返修 Run）：可豁免 FAI，但必须记录 `mrbFaiWaiver` + `mrbWaiverReason`
-- 豁免权限仅限 MRB 角色
+- 豁免权限仅限具备 `QUALITY_DISPOSITION` 权限的角色
 
 ---
 

@@ -220,7 +220,7 @@ flowchart TD
 **MRB FAI 豁免机制**：
 - 常规授权：必须 FAI PASS 才能授权
 - MRB 授权（返修 Run）：可豁免 FAI，但必须记录豁免原因
-- 豁免权限仅限 MRB 角色
+- 豁免权限仅限具备 `QUALITY_DISPOSITION` 权限的角色
 
 **数据模型**：
 ```typescript
