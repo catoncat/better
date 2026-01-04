@@ -1,10 +1,9 @@
 import { Permission } from "@better-app/db/permissions";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm } from "@tanstack/react-form";
 import * as z from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,14 +16,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@/components/ui/form";
+import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
 import {
 	Select,
@@ -89,14 +81,30 @@ function ExecutionPage() {
 	const resolveTimerRef = useRef<number | null>(null);
 	const lastResolvedSnRef = useRef<string>("");
 
-	const inForm = useForm<z.infer<typeof trackInSchema>>({
-		resolver: zodResolver(trackInSchema),
+	const inForm = useForm({
 		defaultValues: { sn: "", woNo: "", runNo: "" },
+		validators: {
+			onChange: trackInSchema,
+		},
+		onSubmit: async ({ value: values }) => {
+			if (!selectedStation || !canTrackIn) return;
+			await trackIn({ stationCode: selectedStation, ...values });
+			inForm.reset({ sn: "", woNo: values.woNo, runNo: values.runNo }); // Keep context
+			refetchQueue();
+		},
 	});
 
-	const outForm = useForm<z.infer<typeof trackOutSchema>>({
-		resolver: zodResolver(trackOutSchema),
-		defaultValues: { sn: "", runNo: "", result: "PASS" },
+	const outForm = useForm({
+		defaultValues: { sn: "", runNo: "", result: "PASS" as const },
+		validators: {
+			onChange: trackOutSchema,
+		},
+		onSubmit: async ({ value: values }) => {
+			if (!selectedStation || !canTrackOut) return;
+			await trackOut({ stationCode: selectedStation, ...values });
+			outForm.reset({ sn: "", runNo: values.runNo, result: "PASS" });
+			refetchQueue();
+		},
 	});
 
 	useEffect(() => {
@@ -138,20 +146,6 @@ function ExecutionPage() {
 			setSelectedStation("");
 		}
 	}, [availableStations, selectedStation]);
-
-	const onInSubmit = async (values: z.infer<typeof trackInSchema>) => {
-		if (!selectedStation || !canTrackIn) return;
-		await trackIn({ stationCode: selectedStation, ...values });
-		inForm.reset({ ...values, sn: "" });
-		refetchQueue();
-	};
-
-	const onOutSubmit = async (values: z.infer<typeof trackOutSchema>) => {
-		if (!selectedStation || !canTrackOut) return;
-		await trackOut({ stationCode: selectedStation, ...values });
-		outForm.reset({ ...values, sn: "" });
-		refetchQueue();
-	};
 
 	const handleQueueItemClick = async (item: { sn: string; woNo: string; runNo: string }) => {
 		if (!selectedStation || !canTrackOut || isOutPending) return;
@@ -223,18 +217,18 @@ function ExecutionPage() {
 				lastResolvedSnRef.current = trimmed;
 
 				if (target === "in") {
-					const currentWoNo = inForm.getValues("woNo");
-					const currentRunNo = inForm.getValues("runNo");
+					const currentWoNo = inForm.getFieldValue("woNo");
+					const currentRunNo = inForm.getFieldValue("runNo");
 					if (!currentWoNo && resolved.woNo) {
-						inForm.setValue("woNo", resolved.woNo, { shouldValidate: true });
+						inForm.setFieldValue("woNo", resolved.woNo);
 					}
 					if (!currentRunNo && resolved.runNo) {
-						inForm.setValue("runNo", resolved.runNo, { shouldValidate: true });
+						inForm.setFieldValue("runNo", resolved.runNo);
 					}
 				} else {
-					const currentRunNo = outForm.getValues("runNo");
+					const currentRunNo = outForm.getFieldValue("runNo");
 					if (!currentRunNo && resolved.runNo) {
-						outForm.setValue("runNo", resolved.runNo, { shouldValidate: true });
+						outForm.setFieldValue("runNo", resolved.runNo);
 					}
 				}
 			} catch {
@@ -362,85 +356,73 @@ function ExecutionPage() {
 									<CardDescription>扫描产品序列号以开始加工</CardDescription>
 								</CardHeader>
 								<CardContent>
-									<Form {...inForm}>
-										<form onSubmit={inForm.handleSubmit(onInSubmit)} className="space-y-4">
-											<FormField
-												control={inForm.control}
-												name="sn"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>产品序列号 (SN)</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="请扫描 SN..."
-																autoFocus
-																{...field}
-																onChange={(e) => {
-																	const nextValue = e.target.value;
-																	const parsed = parseScanValue(nextValue);
-																	field.onChange(nextValue);
-																	if (!parsed) {
-																		scheduleResolveFromSn(nextValue, "in");
-																		return;
-																	}
-																	if (parsed.sn) {
-																		inForm.setValue("sn", parsed.sn, { shouldValidate: true });
-																	}
-																	if (parsed.woNo) {
-																		inForm.setValue("woNo", parsed.woNo, { shouldValidate: true });
-																	}
-																	if (parsed.runNo) {
-																		inForm.setValue("runNo", parsed.runNo, {
-																			shouldValidate: true,
-																		});
-																	}
-																	if (parsed.sn && (!parsed.woNo || !parsed.runNo)) {
-																		scheduleResolveFromSn(parsed.sn, "in");
-																	}
-																}}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
+									<form
+										onSubmit={(e) => {
+											e.preventDefault();
+											e.stopPropagation();
+											inForm.handleSubmit();
+										}}
+										className="space-y-4"
+									>
+										<Field form={inForm} name="sn" label="产品序列号 (SN)">
+											{(field) => (
+												<Input
+													placeholder="请扫描 SN..."
+													autoFocus
+													value={field.state.value}
+													onBlur={field.handleBlur}
+													onChange={(e) => {
+														const nextValue = e.target.value;
+														const parsed = parseScanValue(nextValue);
+														field.handleChange(nextValue);
+														if (!parsed) {
+															scheduleResolveFromSn(nextValue, "in");
+															return;
+														}
+														if (parsed.sn) {
+															inForm.setFieldValue("sn", parsed.sn);
+														}
+														if (parsed.woNo) {
+															inForm.setFieldValue("woNo", parsed.woNo);
+														}
+														if (parsed.runNo) {
+															inForm.setFieldValue("runNo", parsed.runNo);
+														}
+														if (parsed.sn && (!parsed.woNo || !parsed.runNo)) {
+															scheduleResolveFromSn(parsed.sn, "in");
+														}
+													}}
+												/>
+											)}
+										</Field>
+										<div className="grid grid-cols-2 gap-4">
+											<Field form={inForm} name="woNo" label="工单号">
+												{(field) => (
+													<Input
+														value={field.state.value}
+														onBlur={field.handleBlur}
+														onChange={(e) => field.handleChange(e.target.value)}
+													/>
 												)}
-											/>
-											<div className="grid grid-cols-2 gap-4">
-												<FormField
-													control={inForm.control}
-													name="woNo"
-													render={({ field }) => (
-														<FormItem>
-															<FormLabel>工单号</FormLabel>
-															<FormControl>
-																<Input {...field} />
-															</FormControl>
-															<FormMessage />
-														</FormItem>
-													)}
-												/>
-												<FormField
-													control={inForm.control}
-													name="runNo"
-													render={({ field }) => (
-														<FormItem>
-															<FormLabel>批次号 (Run)</FormLabel>
-															<FormControl>
-																<Input {...field} />
-															</FormControl>
-															<FormMessage />
-														</FormItem>
-													)}
-												/>
-											</div>
-											<Button
-												type="submit"
-												className="w-full"
-												disabled={isInPending || !canTrackIn}
-											>
-												{!canTrackIn ? "无进站权限" : isInPending ? "处理中..." : "确认进站"}
-											</Button>
-										</form>
-									</Form>
+											</Field>
+											<Field form={inForm} name="runNo" label="批次号 (Run)">
+												{(field) => (
+													<Input
+														value={field.state.value}
+														onBlur={field.handleBlur}
+														onChange={(e) => field.handleChange(e.target.value)}
+													/>
+												)}
+											</Field>
+										</div>
+										<Button
+											type="submit"
+											className="w-full"
+											disabled={isInPending || !canTrackIn}
+										>
+											{!canTrackIn ? "无进站权限" : isInPending ? "处理中..." : "确认进站"}
+										</Button>
+									</form>
 								</CardContent>
 							</Card>
 						</TabsContent>
@@ -451,87 +433,74 @@ function ExecutionPage() {
 									<CardDescription>从左侧队列点击"一键出站"直接提交，或手动输入</CardDescription>
 								</CardHeader>
 								<CardContent>
-									<Form {...outForm}>
-										<form onSubmit={outForm.handleSubmit(onOutSubmit)} className="space-y-4">
-											<FormField
-												control={outForm.control}
-												name="sn"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>产品序列号 (SN)</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="请扫描 SN..."
-																{...field}
-																onChange={(e) => {
-																	const nextValue = e.target.value;
-																	field.onChange(nextValue);
-																	const parsed = parseScanValue(nextValue);
-																	if (parsed?.sn) {
-																		outForm.setValue("sn", parsed.sn, { shouldValidate: true });
-																	}
-																	if (parsed?.runNo) {
-																		outForm.setValue("runNo", parsed.runNo, {
-																			shouldValidate: true,
-																		});
-																	} else {
-																		scheduleResolveFromSn(parsed?.sn ?? nextValue, "out");
-																	}
-																}}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-											<FormField
-												control={outForm.control}
-												name="runNo"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>批次号 (Run)</FormLabel>
-														<FormControl>
-															<Input {...field} />
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-											<FormField
-												control={outForm.control}
-												name="result"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>结果</FormLabel>
-														<Select onValueChange={field.onChange} value={field.value}>
-															<FormControl>
-																<SelectTrigger>
-																	<SelectValue placeholder="选择结果" />
-																</SelectTrigger>
-															</FormControl>
-															<SelectContent>
-																<SelectItem value="PASS">合格 (PASS)</SelectItem>
-																<SelectItem value="FAIL">不合格 (FAIL)</SelectItem>
-															</SelectContent>
-														</Select>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-											<Button
-												type="submit"
-												className="w-full"
-												disabled={isOutPending || !canTrackOut}
-											>
-												{!canTrackOut ? "无出站权限" : isOutPending ? "处理中..." : "确认出站"}
-											</Button>
-											{isResolvingSn && (
-												<div className="text-xs text-muted-foreground">
-													正在根据 SN 自动匹配批次…
-												</div>
+									<form
+										onSubmit={(e) => {
+											e.preventDefault();
+											e.stopPropagation();
+											outForm.handleSubmit();
+										}}
+										className="space-y-4"
+									>
+										<Field form={outForm} name="sn" label="产品序列号 (SN)">
+											{(field) => (
+												<Input
+													placeholder="请扫描 SN..."
+													value={field.state.value}
+													onBlur={field.handleBlur}
+													onChange={(e) => {
+														const nextValue = e.target.value;
+														field.handleChange(nextValue);
+														const parsed = parseScanValue(nextValue);
+														if (parsed?.sn) {
+															outForm.setFieldValue("sn", parsed.sn);
+														}
+														if (parsed?.runNo) {
+															outForm.setFieldValue("runNo", parsed.runNo);
+														} else {
+															scheduleResolveFromSn(parsed?.sn ?? nextValue, "out");
+														}
+													}}
+												/>
 											)}
-										</form>
-									</Form>
+										</Field>
+										<Field form={outForm} name="runNo" label="批次号 (Run)">
+											{(field) => (
+												<Input
+													value={field.state.value}
+													onBlur={field.handleBlur}
+													onChange={(e) => field.handleChange(e.target.value)}
+												/>
+											)}
+										</Field>
+										<Field form={outForm} name="result" label="结果">
+											{(field) => (
+												<Select
+													value={field.state.value}
+													onValueChange={field.handleChange}
+												>
+													<SelectTrigger>
+														<SelectValue placeholder="选择结果" />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="PASS">合格 (PASS)</SelectItem>
+														<SelectItem value="FAIL">不合格 (FAIL)</SelectItem>
+													</SelectContent>
+												</Select>
+											)}
+										</Field>
+										<Button
+											type="submit"
+											className="w-full"
+											disabled={isOutPending || !canTrackOut}
+										>
+											{!canTrackOut ? "无出站权限" : isOutPending ? "处理中..." : "确认出站"}
+										</Button>
+										{isResolvingSn && (
+											<div className="text-xs text-muted-foreground">
+												正在根据 SN 自动匹配批次…
+											</div>
+										)}
+									</form>
 								</CardContent>
 							</Card>
 						</TabsContent>
