@@ -375,6 +375,8 @@ model Run {
   inspections      Inspection[] // 用 Inspection 统一承载 FAI/IPQC/FQC/OQC
   authorizations   Authorization[]
   units            Unit[]
+  slotExpectations RunSlotExpectation[]
+  loadingRecords   LoadingRecord[]
 }
 
 model Line {
@@ -385,9 +387,12 @@ model Line {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  stations     Station[]
-  runs         Run[]
-  userBindings UserLineBinding[]
+  stations         Station[]
+  runs             Run[]
+  userBindings     UserLineBinding[]
+  feederSlots      FeederSlot[]
+  lineStencils     LineStencil[]
+  lineSolderPastes LineSolderPaste[]
 }
 
 // ==========================================
@@ -670,6 +675,7 @@ model Routing {
   workOrders       WorkOrder[]
   executionConfigs RouteExecutionConfig[]
   routeVersions    ExecutableRouteVersion[]
+  slotMappings     SlotMaterialMapping[]
 
   @@index([sourceSystem, sourceKey])
 }
@@ -1146,7 +1152,8 @@ model MaterialLot {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  materialUses MaterialUse[]
+  materialUses   MaterialUse[]
+  loadingRecords LoadingRecord[]
 
   @@unique([materialCode, lotNo])
   @@index([materialCode])
