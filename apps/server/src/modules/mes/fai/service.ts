@@ -501,6 +501,17 @@ export async function checkFaiGate(
 		};
 	}
 
+	if (
+		run.authorizationType === "MRB_OVERRIDE" &&
+		run.mrbFaiWaiver &&
+		run.mrbWaiverReason
+	) {
+		return {
+			success: true as const,
+			data: { requiresFai: true, faiPassed: true },
+		};
+	}
+
 	// Check the latest FAI status
 	const latestFai = await db.inspection.findFirst({
 		where: {
