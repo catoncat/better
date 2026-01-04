@@ -532,6 +532,12 @@ Day 4: Phase 4 Readiness (merge point)
 
 ---
 
+## Progress (Phase 1 - Schema)
+
+- [x] Added enums and models to `packages/db/prisma/schema/schema.prisma`
+
+---
+
 ## Critical Files
 
 | Category | Path | Action |
