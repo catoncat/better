@@ -1,5 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm } from "@tanstack/react-form";
 import * as z from "zod";
 import { LineSelect } from "@/components/select/line-select";
 import { Button } from "@/components/ui/button";
@@ -11,14 +10,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@/components/ui/form";
+import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
 import type { WorkOrder } from "@/hooks/use-work-orders";
 
@@ -45,20 +37,21 @@ export function RunCreateDialog({
 	isSubmitting,
 	workOrder,
 }: RunCreateDialogProps) {
-	const form = useForm<RunFormValues>({
-		resolver: zodResolver(runSchema),
+	const form = useForm({
 		defaultValues: {
 			lineCode: "",
 			shiftCode: "Day",
 			changeoverNo: "",
 		},
+		validators: {
+			onChange: runSchema,
+		},
+		onSubmit: async ({ value: values }) => {
+			await onSubmit(values);
+			form.reset();
+			onOpenChange(false);
+		},
 	});
-
-	const handleFormSubmit = async (values: RunFormValues) => {
-		await onSubmit(values);
-		form.reset();
-		onOpenChange(false);
-	};
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -67,58 +60,48 @@ export function RunCreateDialog({
 					<DialogTitle>创建生产批次 (Run)</DialogTitle>
 					<DialogDescription>为工单 {workOrder?.woNo} 创建一个新的生产运行批次。</DialogDescription>
 				</DialogHeader>
-				<Form {...form}>
-					<form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
-						<FormField
-							control={form.control}
-							name="lineCode"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>线体编码</FormLabel>
-									<FormControl>
-										<LineSelect
-											value={field.value}
-											onValueChange={field.onChange}
-											placeholder="选择线体"
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="shiftCode"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>班次编码</FormLabel>
-									<FormControl>
-										<Input placeholder="Day / Night" {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="changeoverNo"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>换线单号 (可选)</FormLabel>
-									<FormControl>
-										<Input {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<DialogFooter>
-							<Button type="submit" disabled={isSubmitting}>
-								{isSubmitting ? "正在创建..." : "创建批次"}
-							</Button>
-						</DialogFooter>
-					</form>
-				</Form>
+				<form
+					onSubmit={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						form.handleSubmit();
+					}}
+					className="space-y-4"
+				>
+					<Field form={form} name="lineCode" label="线体编码">
+						{(field) => (
+							<LineSelect
+								value={field.state.value}
+								onValueChange={field.handleChange}
+								placeholder="选择线体"
+							/>
+						)}
+					</Field>
+					<Field form={form} name="shiftCode" label="班次编码">
+						{(field) => (
+							<Input
+								placeholder="Day / Night"
+								value={field.state.value}
+								onBlur={field.handleBlur}
+								onChange={(e) => field.handleChange(e.target.value)}
+							/>
+						)}
+					</Field>
+					<Field form={form} name="changeoverNo" label="换线单号 (可选)">
+						{(field) => (
+							<Input
+								value={field.state.value}
+								onBlur={field.handleBlur}
+								onChange={(e) => field.handleChange(e.target.value)}
+							/>
+						)}
+					</Field>
+					<DialogFooter>
+						<Button type="submit" disabled={isSubmitting}>
+							{isSubmitting ? "正在创建..." : "创建批次"}
+						</Button>
+					</DialogFooter>
+				</form>
 			</DialogContent>
 		</Dialog>
 	);
