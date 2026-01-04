@@ -36,30 +36,30 @@ Status: [x] done, [~] in progress, [ ] pending
 
 ## Task Breakdown
 1) Data/Schema
-- 新增 OQC 抽检规则表 (按路由/产品/线体维度配置)
-- 复用 Inspection(OQC) 作为任务载体，补齐必要字段
+- [x] 新增 OQC 抽检规则表 (按路由/产品/线体维度配置)
+- [x] 复用 Inspection(OQC) 作为任务载体，补齐必要字段
 
 2) Service Logic
-- Unit 完成后触发 OQC 采样任务
-- 抽样算法实现与幂等保护
-- OQC FAIL 将 Run 置为 ON_HOLD，触发 MRB 流
-- MRB 决策：放行/返修/报废，并记录原因
-- Run 首次 TrackIn → IN_PROGRESS（允许后续 TrackIn/TrackOut）
-- 返修 Run 创建时重分配 Unit
+- [x] Unit 完成后触发 OQC 采样任务
+- [x] 抽样算法实现与幂等保护
+- [x] OQC FAIL 将 Run 置为 ON_HOLD，触发 MRB 流
+- [x] MRB 决策：放行/返修/报废，并记录原因
+- [x] Run 首次 TrackIn → IN_PROGRESS（允许后续 TrackIn/TrackOut）
+- [x] 返修 Run 创建时重分配 Unit
 
 3) API
-- OQC 任务列表/详情/结果录入
-- MRB 决策接口
-- 返修 Run 创建接口 (REUSE_PREP / FULL_PREP)
+- [x] OQC 任务列表/详情/结果录入
+- [x] MRB 决策接口
+- [x] 返修 Run 创建接口 (REUSE_PREP / FULL_PREP)
 
 4) UI
-- OQC 任务列表 + 结果录入
-- Run 详情 MRB 决策入口/对话框
-- 状态标签/筛选支持 ON_HOLD/CLOSED_REWORK/SCRAPPED
+- [x] OQC 任务列表 + 结果录入
+- [x] Run 详情 MRB 决策入口/对话框
+- [x] 状态标签/筛选支持 ON_HOLD/CLOSED_REWORK/SCRAPPED
 
 5) QA/Docs
-- 同步更新 `phase2_tasks.md` 勾选
-- 必要的服务层测试或最小验收脚本
+- [ ] 同步更新 `phase2_tasks.md` 勾选
+- [ ] 必要的服务层测试或最小验收脚本
 
 ## Milestones
 1) Schema + Rules CRUD
