@@ -614,7 +614,7 @@ function DefectsPage() {
 			<Dialog open={releaseDialogOpen} onOpenChange={setReleaseDialogOpen}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>释放 HOLD</DialogTitle>
+						<DialogTitle>解除隔离</DialogTitle>
 						<DialogDescription>释放暂扣的单位</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-4">

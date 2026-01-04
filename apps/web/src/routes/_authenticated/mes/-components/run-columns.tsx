@@ -66,10 +66,7 @@ const actionsColumn: ColumnDef<Run> = {
 
 		const actions = [];
 
-		if (
-			(run.status === "PREP" || run.status === "FAI_PENDING") &&
-			hasPermission(Permission.RUN_AUTHORIZE)
-		) {
+		if (run.status === "PREP" && hasPermission(Permission.RUN_AUTHORIZE)) {
 			actions.push({
 				icon: CheckCircle,
 				label: "授权生产",

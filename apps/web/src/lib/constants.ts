@@ -23,16 +23,14 @@ export const WORK_ORDER_STATUS_MAP: Record<string, string> = {
 	RELEASED: "已发布",
 	IN_PROGRESS: "进行中",
 	COMPLETED: "已完成",
-	CLOSED: "已关闭",
-	CANCELLED: "已取消",
 };
 
 export const RUN_STATUS_MAP: Record<string, string> = {
 	PREP: "准备中",
-	FAI_PENDING: "FAI待定",
 	AUTHORIZED: "已授权",
-	RUNNING: "生产中",
-	FINISHING: "收尾中",
-	ARCHIVED: "已归档",
-	CANCELLED: "已取消",
+	IN_PROGRESS: "生产中",
+	ON_HOLD: "隔离",
+	COMPLETED: "已完成",
+	CLOSED_REWORK: "闭环返修",
+	SCRAPPED: "报废",
 };

@@ -85,7 +85,7 @@ export type ExceptionsListResult = {
 
 export type ExceptionsQuery = {
 	lineId?: string;
-	status?: "PREP" | "FAI_PENDING" | "ALL";
+	status?: "PREP" | "ALL";
 	from?: string;
 	to?: string;
 	page?: number;

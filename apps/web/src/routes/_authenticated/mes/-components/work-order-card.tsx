@@ -1,5 +1,5 @@
 import { Permission } from "@better-app/db/permissions";
-import { AlertTriangle, CheckCircle2, Clock, Pencil, Play, Send } from "lucide-react";
+import { CheckCircle2, Clock, Pencil, Play, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,6 @@ interface WorkOrderCardProps {
 	onCreateRun?: (wo: WorkOrder) => void;
 	onRelease?: (wo: WorkOrder) => void;
 	onEditPickStatus?: (wo: WorkOrder) => void;
-	onCancel?: (wo: WorkOrder) => void;
 }
 
 export function WorkOrderCard({
@@ -22,7 +21,6 @@ export function WorkOrderCard({
 	onCreateRun,
 	onRelease,
 	onEditPickStatus,
-	onCancel,
 }: WorkOrderCardProps) {
 	const { hasPermission } = useAbility();
 	const statusLabel = WORK_ORDER_STATUS_MAP[workOrder.status] || workOrder.status;
@@ -37,8 +35,7 @@ export function WorkOrderCard({
 
 	if (workOrder.status === "RELEASED") statusVariant = "secondary";
 	if (workOrder.status === "IN_PROGRESS") statusVariant = "default";
-	if (workOrder.status === "COMPLETED" || workOrder.status === "CLOSED") statusVariant = "outline";
-	if (workOrder.status === "CANCELLED") statusVariant = "destructive";
+	if (workOrder.status === "COMPLETED") statusVariant = "outline";
 
 	const primaryField = workOrderFieldMeta.find((field) => field.cardPrimary);
 	const secondaryField = workOrderFieldMeta.find((field) => field.cardSecondary);
@@ -133,12 +130,6 @@ export function WorkOrderCard({
 							创建批次
 						</Button>
 					)}
-				{workOrder.status === "IN_PROGRESS" && hasPermission(Permission.WO_CANCEL) && (
-					<Button variant="ghost" size="sm" onClick={() => onCancel?.(workOrder)}>
-						<AlertTriangle className="mr-2 h-4 w-4" />
-						取消工单
-					</Button>
-				)}
 			</CardFooter>
 		</Card>
 	);

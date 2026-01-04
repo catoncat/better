@@ -571,7 +571,7 @@ export async function triggerPrecheckForAffectedRuns(
 ): Promise<void> {
 	const { equipmentCodes, routeVersionId } = filter;
 
-	const activeStatuses = ["PREP", "FAI_PENDING"];
+	const activeStatuses = ["PREP"];
 
 	let runs: { runNo: string }[] = [];
 
@@ -618,7 +618,7 @@ export async function listRunsWithExceptions(
 ): Promise<ServiceResult<ExceptionsListResult>> {
 	const { lineId, status, from, to, page = 1, limit = 20 } = query;
 
-	const runStatusFilter = status === "ALL" || !status ? ["PREP", "FAI_PENDING"] : [status];
+	const runStatusFilter = status === "ALL" || !status ? ["PREP"] : [status];
 
 	const dateFilter: { gte?: Date; lte?: Date } = {};
 	if (from) dateFilter.gte = new Date(from);

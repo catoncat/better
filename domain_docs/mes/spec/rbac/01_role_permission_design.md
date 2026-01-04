@@ -91,7 +91,6 @@ export const Permission = {
   WO_READ: 'wo:read',
   WO_RECEIVE: 'wo:receive',
   WO_RELEASE: 'wo:release',
-  WO_CANCEL: 'wo:cancel',
 
   // 批次域
   RUN_READ: 'run:read',

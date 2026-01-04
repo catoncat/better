@@ -72,11 +72,12 @@ function TracePage() {
 			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
 		> = {
 			IDLE: { label: "空闲", variant: "outline" },
+			QUEUED: { label: "排队", variant: "outline" },
 			IN_STATION: { label: "在站", variant: "default" },
 			DONE: { label: "完成", variant: "secondary" },
-			NG: { label: "不良", variant: "destructive" },
+			OUT_FAILED: { label: "不良", variant: "destructive" },
 			SCRAPPED: { label: "报废", variant: "destructive" },
-			HOLD: { label: "冻结", variant: "outline" },
+			ON_HOLD: { label: "隔离", variant: "outline" },
 		};
 		const config = map[status] ?? { label: status, variant: "outline" as const };
 		return <Badge variant={config.variant}>{config.label}</Badge>;

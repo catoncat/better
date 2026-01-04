@@ -21,9 +21,8 @@ const mapWorkOrderStatus = (erpStatus: string | undefined) => {
 			return WorkOrderStatus.COMPLETED;
 		case "5": // 结案
 		case "6": // 完工结案
-			return WorkOrderStatus.CLOSED;
 		case "7": // 作废
-			return WorkOrderStatus.CANCELLED;
+			return WorkOrderStatus.COMPLETED;
 		default:
 			return WorkOrderStatus.RECEIVED;
 	}
