@@ -34,7 +34,7 @@ export async function recordMrbDecision(
 	db: PrismaClient,
 	runNo: string,
 	data: MrbDecisionInput,
-	options?: { decidedBy?: string },
+	options?: { decidedBy?: string; canWaiveFai?: boolean },
 ): Promise<ServiceResult<{ run: RunWithRelations; reworkRunNo?: string }>> {
 	return tracer.startActiveSpan("mrb.recordDecision", async (span) => {
 		span.setAttribute("runNo", runNo);
@@ -64,14 +64,33 @@ export async function recordMrbDecision(
 				};
 			}
 
-			// Validate run is in ON_HOLD status
 			if (run.status !== RunStatus.ON_HOLD) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
+				if (
+					run.status !== RunStatus.COMPLETED &&
+					run.status !== RunStatus.CLOSED_REWORK &&
+					run.status !== RunStatus.SCRAPPED
+				) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					return {
+						success: false as const,
+						code: "INVALID_RUN_STATUS",
+						message: `Run status ${run.status} does not allow MRB decision. Expected ON_HOLD.`,
+						status: 400,
+					};
+				}
+
+				const reworkRun =
+					run.status === RunStatus.CLOSED_REWORK
+						? await db.run.findFirst({
+								where: { parentRunId: run.id },
+								orderBy: { createdAt: "desc" },
+								select: { runNo: true },
+							})
+						: null;
+				span.setAttribute("idempotent", true);
 				return {
-					success: false as const,
-					code: "INVALID_RUN_STATUS",
-					message: `Run status ${run.status} does not allow MRB decision. Expected ON_HOLD.`,
-					status: 400,
+					success: true as const,
+					data: { run, reworkRunNo: reworkRun?.runNo },
 				};
 			}
 
@@ -106,6 +125,15 @@ export async function recordMrbDecision(
 					code: "FAI_WAIVER_REASON_REQUIRED",
 					message: "faiWaiverReason is required when faiWaiver is true",
 					status: 400,
+				};
+			}
+			if (data.faiWaiver && !options?.canWaiveFai) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				return {
+					success: false as const,
+					code: "FAI_WAIVER_NOT_ALLOWED",
+					message: "User is not allowed to waive FAI",
+					status: 403,
 				};
 			}
 
@@ -239,21 +267,15 @@ async function createReworkRun(
 		},
 	});
 
-	// Copy units from parent run to rework run
-	// Reset them to QUEUED status and step 1
-	const unitData = parentRun.units
-		.filter((u) => u.status === UnitStatus.DONE || u.status === UnitStatus.ON_HOLD)
-		.map((unit) => ({
-			sn: `${unit.sn}-RW${reworkSeq}`, // Generate new SN for rework unit
-			woId: parentRun.woId,
+	// Reassign units from parent run to rework run
+	await tx.unit.updateMany({
+		where: { runId: parentRun.id },
+		data: {
 			runId: reworkRun.id,
 			status: UnitStatus.QUEUED,
 			currentStepNo: 1,
-		}));
-
-	if (unitData.length > 0) {
-		await tx.unit.createMany({ data: unitData });
-	}
+		},
+	});
 
 	return reworkRunNo;
 }
