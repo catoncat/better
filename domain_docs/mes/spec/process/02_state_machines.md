@@ -1,12 +1,12 @@
 # State Machines Design
 
 > **更新时间**: 2025-01-03
-> **实现状态**: 基础状态机已实现，扩展状态 (HOLD/REWORK/SCRAP) 待 M2 完成
+> **实现状态**: Run/Unit/WO 枚举已对齐 SMP v2.4，扩展流转 (RUN: ON_HOLD/CLOSED_REWORK/SCRAPPED, UNIT: ON_HOLD/SCRAPPED) 逻辑待 M2 完成
 > **决策记录**: `conversation/smp_flow_design_decisions.md`
 
 ## 实现说明
 
-- ✅ 工单状态机 (WorkOrderStatus): RECEIVED → RELEASED → IN_PROGRESS → COMPLETED → CLOSED / CANCELLED
+- ✅ 工单状态机 (WorkOrderStatus): RECEIVED → RELEASED → IN_PROGRESS → COMPLETED
 - ✅ 批次状态机 (RunStatus): PREP → AUTHORIZED → IN_PROGRESS → COMPLETED
 - ⬜ 批次扩展状态 (M2): ON_HOLD, CLOSED_REWORK, SCRAPPED
 - ✅ 单件状态机 (UnitStatus): QUEUED → IN_STATION → DONE / OUT_FAILED
@@ -22,8 +22,6 @@ stateDiagram-v2
   RECEIVED --> RELEASED: Release
   RELEASED --> IN_PROGRESS: 首个Run进入IN_PROGRESS
   IN_PROGRESS --> COMPLETED: 所有Run完成
-  IN_PROGRESS --> CANCELLED: Cancel
-  COMPLETED --> CLOSED: Close
 ```
 
 | 状态 | 触发条件 | API |
@@ -32,8 +30,8 @@ stateDiagram-v2
 | RELEASED | 手动释放 | `POST /api/work-orders/{woNo}/release` |
 | IN_PROGRESS | 首个 Run 进入 IN_PROGRESS | (自动触发) |
 | COMPLETED | 所有 Run 完成 | (自动触发) |
-| CLOSED | 归档 | `POST /api/work-orders/{woNo}/close` |
-| CANCELLED | 取消 | `POST /api/work-orders/{woNo}/cancel` |
+
+> **说明**：工单状态以 SMP 主流程为准，无额外状态分支。
 
 ---
 
@@ -163,27 +161,37 @@ stateDiagram-v2
 
 ---
 
-## 5. 规范与当前实现映射
+## 5. 规范与历史实现映射（数据迁移参考）
 
-> **注意**：当前 Prisma schema 使用的枚举值与本规范定义存在差异。M2 实现时需统一迁移。
+> **注意**：旧枚举值已随 v2.4 对齐迁移，本表仅用于历史数据/迁移参考。
+
+### WorkOrderStatus 映射
+
+| 规范状态 | 历史值 | 说明 |
+|---------|------------|------|
+| RECEIVED | RECEIVED | ✅ 一致 |
+| RELEASED | RELEASED | ✅ 一致 |
+| IN_PROGRESS | IN_PROGRESS | ✅ 一致 |
+| COMPLETED | COMPLETED | ✅ 一致 |
+| COMPLETED | CANCELLED / CLOSED | 🗑️ 合并到 COMPLETED |
 
 ### RunStatus 映射
 
-| 规范状态 | 当前 Schema | 说明 |
+| 规范状态 | 历史值 | 说明 |
 |---------|------------|------|
 | PREP | PREP | ✅ 一致 |
 | AUTHORIZED | AUTHORIZED | ✅ 一致 |
 | IN_PROGRESS | RUNNING | ⚠️ 需迁移 |
 | ON_HOLD | (新增) | M2 新增 |
-| COMPLETED | FINISHING | ⚠️ 需迁移 |
+| COMPLETED | FINISHING / ARCHIVED | ⚠️ 需迁移 |
 | CLOSED_REWORK | (新增) | M2 新增 |
 | SCRAPPED | (新增) | M2 新增 |
-| - | FAI_PENDING | 🗑️ 移除 (已用 FAI 任务状态替代) |
-| - | ARCHIVED | 🗑️ 移除 (合并到 COMPLETED) |
+| PREP | FAI_PENDING | 🗑️ 移除 (已用 FAI 任务状态替代) |
+| SCRAPPED | CANCELLED | 🗑️ 合并到 SCRAPPED |
 
 ### UnitStatus 映射
 
-| 规范状态 | 当前 Schema | 说明 |
+| 规范状态 | 历史值 | 说明 |
 |---------|------------|------|
 | QUEUED | QUEUED | ✅ 一致 |
 | IN_STATION | IN_STATION | ✅ 一致 |
@@ -191,13 +199,12 @@ stateDiagram-v2
 | OUT_FAILED | OUT_FAILED | ✅ 一致 |
 | ON_HOLD | HOLD | ⚠️ 命名差异 |
 | SCRAPPED | SCRAPPED | ✅ 一致 |
-| - | OUT_PASSED | 🗑️ 移除 (合并到 QUEUED) |
-| - | REWORK | 🗑️ 移除 (改用 Disposition 记录) |
+| QUEUED | OUT_PASSED / REWORK | 🗑️ 合并到 QUEUED |
 
 ---
 
 ## 参考文档
 
-- SMP 流程图: `03_smp_flows_v2.md`
+- SMP 流程图: `03_smp_flows.md`
 - 端到端流程: `01_end_to_end_flows.md`
 - 决策记录: `conversation/smp_flow_design_decisions.md`

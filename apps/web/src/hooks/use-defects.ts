@@ -148,12 +148,12 @@ export function useReleaseHold() {
 			return response.data;
 		},
 		onSuccess: (_data, variables) => {
-			toast.success("已释放 HOLD 状态");
+			toast.success("已解除隔离");
 			queryClient.invalidateQueries({ queryKey: ["mes", "defects", "detail", variables.defectId] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "defects", "list"] });
 		},
 		onError: () => {
-			toast.error("释放 HOLD 失败");
+			toast.error("解除隔离失败");
 		},
 	});
 }

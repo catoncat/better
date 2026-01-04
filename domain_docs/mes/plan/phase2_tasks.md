@@ -120,7 +120,7 @@ model ReadinessCheckItem {
 - [x] 2.1.6 API: 豁免接口 (waive)
 - [x] 2.1.7 Gate: Run 授权前置检查
 - [x] 2.1.8 权限: `mes:readiness:*` 权限常量
-- [x] 2.1.9 事件: Run 创建时自动预检
+- [ ] 2.1.9 事件: Run 创建时自动预检
 - [x] 2.1.10 事件: TPM/路由变更时重新预检
 - [x] 2.1.11 UI: Run 详情页准备状态卡片
 - [x] 2.1.12 UI: 准备检查执行页（已整合在 Run 详情页）
@@ -209,6 +209,11 @@ model ReadinessCheckItem {
 - [ ] 2.7.4 API: WO closeout
 - [ ] 2.7.5 UI: 关闭确认对话框
 - [ ] 2.7.6 归档占位符 (后续扩展)
+
+### 3.8 Task 2.8: Status Enum Alignment
+
+- [x] 2.8.1 Run/Unit/WO 状态枚举对齐 SMP v2.4
+- [x] 2.8.2 旧状态数据迁移 (FAI_PENDING/RUNNING/FINISHING/ARCHIVED/OUT_PASSED/REWORK/HOLD/CANCELLED)
 
 ---
 

@@ -86,12 +86,12 @@ function RunDetailPage() {
 			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
 		> = {
 			PREP: { label: "准备中", variant: "outline" },
-			FAI_PENDING: { label: "待FAI", variant: "outline" },
 			AUTHORIZED: { label: "已授权", variant: "default" },
-			RUNNING: { label: "生产中", variant: "default" },
-			FINISHING: { label: "收尾中", variant: "secondary" },
-			ARCHIVED: { label: "已归档", variant: "secondary" },
-			CANCELLED: { label: "已取消", variant: "destructive" },
+			IN_PROGRESS: { label: "生产中", variant: "default" },
+			ON_HOLD: { label: "隔离", variant: "outline" },
+			COMPLETED: { label: "已完成", variant: "secondary" },
+			CLOSED_REWORK: { label: "闭环返修", variant: "secondary" },
+			SCRAPPED: { label: "报废", variant: "destructive" },
 		};
 		const config = map[status] ?? { label: status, variant: "outline" as const };
 		return <Badge variant={config.variant}>{config.label}</Badge>;
@@ -105,9 +105,9 @@ function RunDetailPage() {
 			QUEUED: { label: "排队", variant: "outline" },
 			IN_STATION: { label: "在站", variant: "default" },
 			DONE: { label: "完成", variant: "secondary" },
-			NG: { label: "不良", variant: "destructive" },
+			OUT_FAILED: { label: "不良", variant: "destructive" },
 			SCRAPPED: { label: "报废", variant: "destructive" },
-			HOLD: { label: "冻结", variant: "outline" },
+			ON_HOLD: { label: "隔离", variant: "outline" },
 		};
 		const config = map[status] ?? { label: status, variant: "outline" as const };
 		return <Badge variant={config.variant}>{config.label}</Badge>;
@@ -227,7 +227,7 @@ function RunDetailPage() {
 	const progressPercent =
 		data.unitStats.total > 0 ? Math.round((data.unitStats.done / data.unitStats.total) * 100) : 0;
 
-	const canShowReadinessActions = data.run.status === "PREP" || data.run.status === "FAI_PENDING";
+	const canShowReadinessActions = data.run.status === "PREP";
 
 	return (
 		<div className="space-y-6">
