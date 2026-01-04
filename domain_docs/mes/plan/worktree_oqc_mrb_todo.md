@@ -32,6 +32,7 @@ Status: [x] done, [~] in progress, [ ] pending
 - 抽样结果持久化在 `inspection.data.sampledUnitIds`。
 - 抽样规则优先级：specificity > priority > createdAt。
 - MRB 决策记录落在 OQC inspection `data`，`Run.mrbDecisionId` 指向该 inspection。
+- MRB FAI 豁免权限：`QUALITY_DISPOSITION`。
 
 ## Task Breakdown
 1) Data/Schema
@@ -88,7 +89,6 @@ Status: [x] done, [~] in progress, [ ] pending
 
 ## Open Questions
 - MRB reason validation: minimum length/format beyond `minLength: 1`?
-- MRB FAI waiver permission mapping: `QUALITY_OQC` vs dedicated MRB permission?
 
 ## Out of Scope
 - 上料防错 (2.4)
