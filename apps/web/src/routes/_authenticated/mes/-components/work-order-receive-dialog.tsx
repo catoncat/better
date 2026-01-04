@@ -1,6 +1,5 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
-import { type Resolver, useForm } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
@@ -13,14 +12,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@/components/ui/form";
+import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
 import {
 	Select,
@@ -41,9 +33,9 @@ const PICK_STATUS_OPTIONS = [
 const workOrderSchema = z.object({
 	woNo: z.string().min(1, "工单号不能为空"),
 	productCode: z.string().min(1, "产品编码不能为空"),
-	plannedQty: z.coerce.number().min(1, "计划数量必须大于0"),
-	routingCode: z.string().optional(),
-	pickStatus: z.enum(["1", "2", "3", "4"]).optional(),
+	plannedQty: z.number().min(1, "计划数量必须大于0"),
+	routingCode: z.string(),
+	pickStatus: z.enum(["1", "2", "3", "4"]),
 	dueDate: z.date().optional(),
 });
 
@@ -70,40 +62,47 @@ export function WorkOrderReceiveDialog({
 	onSubmit,
 	isSubmitting,
 }: WorkOrderReceiveDialogProps) {
-	const form = useForm<WorkOrderFormValues, unknown, WorkOrderFormValues>({
-		resolver: zodResolver(workOrderSchema) as Resolver<WorkOrderFormValues>,
+	const form = useForm({
 		defaultValues: {
 			woNo: "",
 			productCode: "",
 			plannedQty: 0,
 			routingCode: "PCBA-STD-V1",
-			pickStatus: "3", // Default to "全部领料"
-			dueDate: undefined,
+			pickStatus: "3" as "1" | "2" | "3" | "4",
+		} as {
+			woNo: string;
+			productCode: string;
+			plannedQty: number;
+			routingCode: string;
+			pickStatus: "1" | "2" | "3" | "4";
+			dueDate?: Date;
+		},
+		validators: {
+			onSubmit: workOrderSchema,
+		},
+		onSubmit: async ({ value }) => {
+			const routingCode = value.routingCode?.trim() || undefined;
+			const payload: WorkOrderSubmitValues = {
+				woNo: value.woNo,
+				productCode: value.productCode,
+				plannedQty: value.plannedQty,
+				routingCode,
+				pickStatus: value.pickStatus,
+				dueDate: value.dueDate ? value.dueDate.toISOString() : undefined,
+			};
+			await onSubmit(payload);
+			form.reset();
+			onOpenChange(false);
 		},
 	});
 
-	const [routeSearch, setRouteSearch] = useState(form.getValues("routingCode") ?? "");
+	const [routeSearch, setRouteSearch] = useState(form.getFieldValue("routingCode") ?? "");
 	const { data: routeOptions } = useRouteSearch(routeSearch);
 	const routeComboboxOptions =
 		routeOptions?.items.map((route) => ({
 			value: route.code,
 			label: `${route.code} · ${route.name}`,
 		})) ?? [];
-
-	const handleFormSubmit = async (values: WorkOrderFormValues) => {
-		const routingCode = values.routingCode?.trim() || undefined;
-		const payload: WorkOrderSubmitValues = {
-			woNo: values.woNo,
-			productCode: values.productCode,
-			plannedQty: values.plannedQty,
-			routingCode,
-			pickStatus: values.pickStatus,
-			dueDate: values.dueDate ? values.dueDate.toISOString() : undefined,
-		};
-		await onSubmit(payload);
-		form.reset();
-		onOpenChange(false);
-	};
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -112,113 +111,86 @@ export function WorkOrderReceiveDialog({
 					<DialogTitle>接收外部工单</DialogTitle>
 					<DialogDescription>手动输入外部系统(ERP)的工单信息进行接收。</DialogDescription>
 				</DialogHeader>
-				<Form {...form}>
-					<form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
-						<FormField
-							control={form.control}
-							name="woNo"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>工单号</FormLabel>
-									<FormControl>
-										<Input placeholder="WO-..." {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="productCode"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>产品编码</FormLabel>
-									<FormControl>
-										<Input placeholder="P-..." {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="plannedQty"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>计划数量</FormLabel>
-									<FormControl>
-										<Input type="number" {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="routingCode"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>路由编码</FormLabel>
-									<FormControl>
-										<Combobox
-											options={routeComboboxOptions}
-											value={field.value || ""}
-											onValueChange={(value) => field.onChange(value || undefined)}
-											placeholder="搜索并选择路由"
-											searchPlaceholder="输入路由编码或名称"
-											emptyText="未找到路由"
-											searchValue={routeSearch}
-											onSearchValueChange={setRouteSearch}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="pickStatus"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>物料状态</FormLabel>
-									<Select onValueChange={field.onChange} value={field.value}>
-										<FormControl>
-											<SelectTrigger>
-												<SelectValue placeholder="选择物料状态" />
-											</SelectTrigger>
-										</FormControl>
-										<SelectContent>
-											{PICK_STATUS_OPTIONS.map((option) => (
-												<SelectItem key={option.value} value={option.value}>
-													{option.label}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="dueDate"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>到期日期</FormLabel>
-									<FormControl>
-										<DatePicker value={field.value} onChange={field.onChange} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<DialogFooter>
-							<Button type="submit" disabled={isSubmitting}>
-								{isSubmitting ? "正在接收..." : "接收工单"}
-							</Button>
-						</DialogFooter>
-					</form>
-				</Form>
+				<form
+					onSubmit={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						form.handleSubmit();
+					}}
+					className="space-y-4"
+				>
+					<Field form={form} name="woNo" label="工单号">
+						{(field) => (
+							<Input
+								placeholder="WO-..."
+								value={field.state.value}
+								onBlur={field.handleBlur}
+								onChange={(e) => field.handleChange(e.target.value)}
+							/>
+						)}
+					</Field>
+					<Field form={form} name="productCode" label="产品编码">
+						{(field) => (
+							<Input
+								placeholder="P-..."
+								value={field.state.value}
+								onBlur={field.handleBlur}
+								onChange={(e) => field.handleChange(e.target.value)}
+							/>
+						)}
+					</Field>
+					<Field form={form} name="plannedQty" label="计划数量">
+						{(field) => (
+							<Input
+								type="number"
+								value={field.state.value}
+								onBlur={field.handleBlur}
+								onChange={(e) => field.handleChange(Number(e.target.value))}
+							/>
+						)}
+					</Field>
+					<Field form={form} name="routingCode" label="路由编码">
+						{(field) => (
+							<Combobox
+								options={routeComboboxOptions}
+								value={field.state.value || ""}
+								onValueChange={(value) => field.handleChange(value || "")}
+								placeholder="搜索并选择路由"
+								searchPlaceholder="输入路由编码或名称"
+								emptyText="未找到路由"
+								searchValue={routeSearch}
+								onSearchValueChange={setRouteSearch}
+							/>
+						)}
+					</Field>
+					<Field form={form} name="pickStatus" label="物料状态">
+						{(field) => (
+							<Select
+								value={field.state.value}
+								onValueChange={(v) => field.handleChange(v as "1" | "2" | "3" | "4")}
+							>
+								<SelectTrigger>
+									<SelectValue placeholder="选择物料状态" />
+								</SelectTrigger>
+								<SelectContent>
+									{PICK_STATUS_OPTIONS.map((option) => (
+										<SelectItem key={option.value} value={option.value}>
+											{option.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						)}
+					</Field>
+					<Field form={form} name="dueDate" label="到期日期">
+						{(field) => <DatePicker value={field.state.value} onChange={field.handleChange} />}
+					</Field>
+					<DialogFooter>
+						<Button type="submit" disabled={isSubmitting}>
+							{isSubmitting ? "正在接收..." : "接收工单"}
+						</Button>
+					</DialogFooter>
+				</form>
 			</DialogContent>
 		</Dialog>
 	);
