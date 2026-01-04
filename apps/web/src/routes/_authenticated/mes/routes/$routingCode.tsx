@@ -1,10 +1,9 @@
 import { Permission } from "@better-app/db/permissions";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { Edit2, PlusCircle, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm } from "@tanstack/react-form";
 import * as z from "zod";
 import { Can } from "@/components/ability/can";
 import { Badge } from "@/components/ui/badge";
@@ -20,14 +19,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@/components/ui/form";
+import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
 import {
 	Select,
@@ -463,8 +455,7 @@ function ExecutionConfigDialog({
 	const stationGroupCode =
 		editingConfig?.stationGroup?.code ?? (editingConfig?.stationGroupId ? "" : "");
 
-	const form = useForm<ConfigFormValues>({
-		resolver: zodResolver(configSchema),
+	const form = useForm({
 		defaultValues: {
 			scopeType: resolvedScopeType,
 			stepNo: editingConfig?.routingStep?.stepNo ? String(editingConfig.routingStep.stepNo) : "",
@@ -480,6 +471,64 @@ function ExecutionConfigDialog({
 				? JSON.stringify(editingConfig.ingestMapping, null, 2)
 				: "",
 			metaText: editingConfig?.meta ? JSON.stringify(editingConfig.meta, null, 2) : "",
+		},
+		validators: {
+			onChange: configSchema,
+		},
+		onSubmit: async ({ value: values }) => {
+			const dataSpecIds = parseCommaList(values.dataSpecIdsText);
+			const ingestMapping = parseJson(values.ingestMappingText);
+			const meta = parseJson(values.metaText);
+
+			if (values.ingestMappingText && ingestMapping === null) {
+				form.pushError({
+					name: "ingestMappingText",
+					message: "JSON 格式不正确",
+				});
+				return;
+			}
+			if (values.metaText && meta === null) {
+				form.pushError({
+					name: "metaText",
+					message: "JSON 格式不正确",
+				});
+				return;
+			}
+
+			const stationGroupCode =
+				values.stationGroupCode === "__NONE__" ? null : values.stationGroupCode || undefined;
+			const stationType = values.stationType || undefined;
+
+			if (isEdit && editingConfig) {
+				await updateMutation.mutateAsync({
+					stationType,
+					stationGroupCode,
+					allowedStationIds: values.allowedStationIds?.length ? values.allowedStationIds : null,
+					requiresFAI: values.requiresFAI ?? undefined,
+					requiresAuthorization: values.requiresAuthorization ?? undefined,
+					dataSpecIds: dataSpecIds.length ? dataSpecIds : null,
+					ingestMapping: ingestMapping ?? null,
+					meta: meta ?? null,
+				});
+				onOpenChange(false);
+				return;
+			}
+
+			await createMutation.mutateAsync({
+				scopeType: values.scopeType,
+				stepNo: values.stepNo ? Number(values.stepNo) : undefined,
+				sourceStepKey: values.sourceStepKey || undefined,
+				operationCode: values.operationCode || undefined,
+				stationType,
+				stationGroupCode,
+				allowedStationIds: values.allowedStationIds?.length ? values.allowedStationIds : null,
+				requiresFAI: values.requiresFAI ?? undefined,
+				requiresAuthorization: values.requiresAuthorization ?? undefined,
+				dataSpecIds: dataSpecIds.length ? dataSpecIds : null,
+				ingestMapping: ingestMapping ?? null,
+				meta: meta ?? null,
+			});
+			onOpenChange(false);
 		},
 	});
 
@@ -521,57 +570,9 @@ function ExecutionConfigDialog({
 		}
 	}, [editingConfig, form, open]);
 
-	const onSubmit = async (values: ConfigFormValues) => {
-		const dataSpecIds = parseCommaList(values.dataSpecIdsText);
-		const ingestMapping = parseJson(values.ingestMappingText);
-		const meta = parseJson(values.metaText);
 
-		if (values.ingestMappingText && ingestMapping === null) {
-			form.setError("ingestMappingText", { message: "JSON 格式不正确" });
-			return;
-		}
-		if (values.metaText && meta === null) {
-			form.setError("metaText", { message: "JSON 格式不正确" });
-			return;
-		}
 
-		const stationGroupCode =
-			values.stationGroupCode === "__NONE__" ? null : values.stationGroupCode || undefined;
-		const stationType = values.stationType || undefined;
-
-		if (isEdit && editingConfig) {
-			await updateMutation.mutateAsync({
-				stationType,
-				stationGroupCode,
-				allowedStationIds: values.allowedStationIds?.length ? values.allowedStationIds : null,
-				requiresFAI: values.requiresFAI ?? undefined,
-				requiresAuthorization: values.requiresAuthorization ?? undefined,
-				dataSpecIds: dataSpecIds.length ? dataSpecIds : null,
-				ingestMapping: ingestMapping ?? null,
-				meta: meta ?? null,
-			});
-			onOpenChange(false);
-			return;
-		}
-
-		await createMutation.mutateAsync({
-			scopeType: values.scopeType,
-			stepNo: values.stepNo ? Number(values.stepNo) : undefined,
-			sourceStepKey: values.sourceStepKey || undefined,
-			operationCode: values.operationCode || undefined,
-			stationType,
-			stationGroupCode,
-			allowedStationIds: values.allowedStationIds?.length ? values.allowedStationIds : null,
-			requiresFAI: values.requiresFAI ?? undefined,
-			requiresAuthorization: values.requiresAuthorization ?? undefined,
-			dataSpecIds: dataSpecIds.length ? dataSpecIds : null,
-			ingestMapping: ingestMapping ?? null,
-			meta: meta ?? null,
-		});
-		onOpenChange(false);
-	};
-
-	const scopeType = form.watch("scopeType");
+	const scopeType = form.useStore((state) => state.values.scopeType);
 	const stepOptionsForSelect = stepOptions.map((option) => ({
 		value: option.value,
 		label: option.label,
@@ -584,303 +585,274 @@ function ExecutionConfigDialog({
 					<DialogTitle>{isEdit ? "编辑执行配置" : "新增执行配置"}</DialogTitle>
 					<DialogDescription>定义站点类型、站点组以及采集项等规则。</DialogDescription>
 				</DialogHeader>
-				<Form {...form}>
-					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+				<form
+					onSubmit={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						form.handleSubmit();
+					}}
+					className="space-y-4"
+				>
 						<div className="grid gap-4 md:grid-cols-2">
-							<FormField
-								control={form.control}
+							<Field
+								form={form}
 								name="scopeType"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>配置范围</FormLabel>
-										<FormControl>
-											<Select value={field.value} onValueChange={field.onChange} disabled={isEdit}>
-												<SelectTrigger>
-													<SelectValue placeholder="选择范围" />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectItem value="ROUTE">整条路由</SelectItem>
-													<SelectItem value="OPERATION">工序</SelectItem>
-													<SelectItem value="STEP">步骤</SelectItem>
-													<SelectItem value="SOURCE_STEP">来源步骤</SelectItem>
-												</SelectContent>
-											</Select>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
+								label="配置范围"
+							>
+								{(field) => (
+									<Select
+										value={field.state.value}
+										onValueChange={field.handleChange}
+										disabled={isEdit}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="选择范围" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="ROUTE">整条路由</SelectItem>
+											<SelectItem value="OPERATION">工序</SelectItem>
+											<SelectItem value="STEP">步骤</SelectItem>
+											<SelectItem value="SOURCE_STEP">来源步骤</SelectItem>
+										</SelectContent>
+									</Select>
 								)}
-							/>
+							</Field>
 
 							{scopeType === "STEP" && (
-								<FormField
-									control={form.control}
-									name="stepNo"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>步骤</FormLabel>
-											<FormControl>
-												<Select value={field.value || ""} onValueChange={field.onChange}>
-													<SelectTrigger>
-														<SelectValue placeholder="选择步骤" />
-													</SelectTrigger>
-													<SelectContent>
-														{stepOptionsForSelect.map((option) => (
-															<SelectItem key={option.value} value={option.value}>
-																{option.label}
-															</SelectItem>
-														))}
-													</SelectContent>
-												</Select>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
+								<Field form={form} name="stepNo" label="步骤">
+									{(field) => (
+										<Select value={field.state.value || ""} onValueChange={field.handleChange}>
+											<SelectTrigger>
+												<SelectValue placeholder="选择步骤" />
+											</SelectTrigger>
+											<SelectContent>
+												{stepOptionsForSelect.map((option) => (
+													<SelectItem key={option.value} value={option.value}>
+														{option.label}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
 									)}
-								/>
+								</Field>
 							)}
 
 							{scopeType === "SOURCE_STEP" && (
-								<FormField
-									control={form.control}
+								<Field
+									form={form}
 									name="sourceStepKey"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>来源步骤</FormLabel>
-											<FormControl>
-												<Select value={field.value || ""} onValueChange={field.onChange}>
-													<SelectTrigger>
-														<SelectValue placeholder="选择来源步骤" />
-													</SelectTrigger>
-													<SelectContent>
-														{sourceStepOptions.map((option) => (
-															<SelectItem key={option.value} value={option.value}>
-																{option.label}
-															</SelectItem>
-														))}
-													</SelectContent>
-												</Select>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
+									label="来源步骤"
+								>
+									{(field) => (
+										<Select value={field.state.value || ""} onValueChange={field.handleChange}>
+											<SelectTrigger>
+												<SelectValue placeholder="选择来源步骤" />
+											</SelectTrigger>
+											<SelectContent>
+												{sourceStepOptions.map((option) => (
+													<SelectItem key={option.value} value={option.value}>
+														{option.label}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
 									)}
-								/>
+								</Field>
 							)}
 
 							{scopeType === "OPERATION" && (
-								<FormField
-									control={form.control}
+								<Field
+									form={form}
 									name="operationCode"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>工序</FormLabel>
-											<FormControl>
-												<Select value={field.value || ""} onValueChange={field.onChange}>
-													<SelectTrigger>
-														<SelectValue placeholder="选择工序" />
-													</SelectTrigger>
-													<SelectContent>
-														{operationOptions.map((option) => (
-															<SelectItem key={option.value} value={option.value}>
-																{option.label}
-															</SelectItem>
-														))}
-													</SelectContent>
-												</Select>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
+									label="工序"
+								>
+									{(field) => (
+										<Select value={field.state.value || ""} onValueChange={field.handleChange}>
+											<SelectTrigger>
+												<SelectValue placeholder="选择工序" />
+											</SelectTrigger>
+											<SelectContent>
+												{operationOptions.map((option) => (
+													<SelectItem key={option.value} value={option.value}>
+														{option.label}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
 									)}
+								</Field>
+							)}
+
+							<Field
+								form={form}
+								name="stationType"
+								label="站点类型"
+							>
+								{(field) => (
+									<Select value={field.state.value || ""} onValueChange={field.handleChange}>
+										<SelectTrigger>
+											<SelectValue placeholder="选择站点类型" />
+										</SelectTrigger>
+										<SelectContent>
+											{stationTypeOptions.map((option) => (
+												<SelectItem key={option.value} value={option.value}>
+													{option.label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								)}
+							</Field>
+
+							<Field
+								form={form}
+								name="stationGroupCode"
+								label="站点组"
+							>
+								{(field) => (
+									<Combobox
+										options={[
+											{ value: "__NONE__", label: "不指定站点组" },
+											...stationGroupOptions,
+										]}
+										value={field.state.value || ""}
+										onValueChange={field.handleChange}
+										placeholder="选择站点组"
+										searchPlaceholder="搜索站点组"
+										emptyText="未找到站点组"
+									/>
+								)}
+							</Field>
+						</div>
+
+						<Field
+							form={form}
+							name="allowedStationIds"
+							label="允许站点"
+						>
+							{(field) => (
+								<div className="max-h-48 overflow-auto rounded-md border border-border p-3 space-y-2">
+									{stations.length === 0 ? (
+										<div className="text-sm text-muted-foreground">暂无工位数据</div>
+									) : (
+										stations.map((station) => {
+											const checked = (field.state.value ?? []).includes(station.id);
+											const checkboxId = `station-${station.id}`;
+											return (
+												<div key={station.id} className="flex items-center gap-2 text-sm">
+													<Checkbox
+														id={checkboxId}
+														checked={checked}
+														onCheckedChange={(value) => {
+															const next = new Set(field.state.value ?? []);
+															if (value) {
+																next.add(station.id);
+															} else {
+																next.delete(station.id);
+															}
+															field.handleChange(Array.from(next));
+														}}
+													/>
+													<label htmlFor={checkboxId} className="cursor-pointer">
+														{station.code} · {station.name}
+													</label>
+												</div>
+											);
+										})
+									)}
+								</div>
+							)}
+						</Field>
+
+						<div className="grid gap-4 md:grid-cols-2">
+							<Field
+								form={form}
+								name="requiresFAI"
+								label="需要首件"
+							>
+								{(field) => (
+									<Select
+										value={field.state.value ? "true" : "false"}
+										onValueChange={(value) => field.handleChange(value === "true")}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="选择" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="false">否</SelectItem>
+											<SelectItem value="true">是</SelectItem>
+										</SelectContent>
+									</Select>
+								)}
+							</Field>
+							<Field
+								form={form}
+								name="requiresAuthorization"
+								label="需要授权"
+							>
+								{(field) => (
+									<Select
+										value={field.state.value ? "true" : "false"}
+										onValueChange={(value) => field.handleChange(value === "true")}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="选择" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="false">否</SelectItem>
+											<SelectItem value="true">是</SelectItem>
+										</SelectContent>
+									</Select>
+								)}
+							</Field>
+						</div>
+
+						<Field
+							form={form}
+							name="dataSpecIdsText"
+							label="采集项标识"
+						>
+							{(field) => (
+								<Input
+									placeholder="多个用逗号分隔，例如 TEMP,POWER"
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
 								/>
 							)}
-
-							<FormField
-								control={form.control}
-								name="stationType"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>站点类型</FormLabel>
-										<FormControl>
-											<Select value={field.value || ""} onValueChange={field.onChange}>
-												<SelectTrigger>
-													<SelectValue placeholder="选择站点类型" />
-												</SelectTrigger>
-												<SelectContent>
-													{stationTypeOptions.map((option) => (
-														<SelectItem key={option.value} value={option.value}>
-															{option.label}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-
-							<FormField
-								control={form.control}
-								name="stationGroupCode"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>站点组</FormLabel>
-										<FormControl>
-											<Combobox
-												options={[
-													{ value: "__NONE__", label: "不指定站点组" },
-													...stationGroupOptions,
-												]}
-												value={field.value || ""}
-												onValueChange={field.onChange}
-												placeholder="选择站点组"
-												searchPlaceholder="搜索站点组"
-												emptyText="未找到站点组"
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
-
-						<FormField
-							control={form.control}
-							name="allowedStationIds"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>允许站点</FormLabel>
-									<FormControl>
-										<div className="max-h-48 overflow-auto rounded-md border border-border p-3 space-y-2">
-											{stations.length === 0 ? (
-												<div className="text-sm text-muted-foreground">暂无工位数据</div>
-											) : (
-												stations.map((station) => {
-													const checked = (field.value ?? []).includes(station.id);
-													const checkboxId = `station-${station.id}`;
-													return (
-														<div key={station.id} className="flex items-center gap-2 text-sm">
-															<Checkbox
-																id={checkboxId}
-																checked={checked}
-																onCheckedChange={(value) => {
-																	const next = new Set(field.value ?? []);
-																	if (value) {
-																		next.add(station.id);
-																	} else {
-																		next.delete(station.id);
-																	}
-																	field.onChange(Array.from(next));
-																}}
-															/>
-															<label htmlFor={checkboxId} className="cursor-pointer">
-																{station.code} · {station.name}
-															</label>
-														</div>
-													);
-												})
-											)}
-										</div>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						</Field>
 
 						<div className="grid gap-4 md:grid-cols-2">
-							<FormField
-								control={form.control}
-								name="requiresFAI"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>需要首件</FormLabel>
-										<FormControl>
-											<Select
-												value={field.value ? "true" : "false"}
-												onValueChange={(value) => field.onChange(value === "true")}
-											>
-												<SelectTrigger>
-													<SelectValue placeholder="选择" />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectItem value="false">否</SelectItem>
-													<SelectItem value="true">是</SelectItem>
-												</SelectContent>
-											</Select>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="requiresAuthorization"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>需要授权</FormLabel>
-										<FormControl>
-											<Select
-												value={field.value ? "true" : "false"}
-												onValueChange={(value) => field.onChange(value === "true")}
-											>
-												<SelectTrigger>
-													<SelectValue placeholder="选择" />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectItem value="false">否</SelectItem>
-													<SelectItem value="true">是</SelectItem>
-												</SelectContent>
-											</Select>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
-
-						<FormField
-							control={form.control}
-							name="dataSpecIdsText"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>采集项标识</FormLabel>
-									<FormControl>
-										<Input placeholder="多个用逗号分隔，例如 TEMP,POWER" {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						<div className="grid gap-4 md:grid-cols-2">
-							<FormField
-								control={form.control}
+							<Field
+								form={form}
 								name="ingestMappingText"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>采集映射 (JSON)</FormLabel>
-										<FormControl>
-											<Textarea
-												placeholder='例如 {"serial":"SN","result":"PASS"}'
-												rows={6}
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
+								label="采集映射 (JSON)"
+							>
+								{(field) => (
+									<Textarea
+										placeholder='例如 {"serial":"SN","result":"PASS"}'
+										rows={6}
+										value={field.state.value}
+										onBlur={field.handleBlur}
+										onChange={(e) => field.handleChange(e.target.value)}
+									/>
 								)}
-							/>
-							<FormField
-								control={form.control}
+							</Field>
+							<Field
+								form={form}
 								name="metaText"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>扩展信息 (JSON)</FormLabel>
-										<FormControl>
-											<Textarea placeholder='例如 {"note":"..."}' rows={6} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
+								label="扩展信息 (JSON)"
+							>
+								{(field) => (
+									<Textarea
+										placeholder='例如 {"note":"..."}'
+										rows={6}
+										value={field.state.value}
+										onBlur={field.handleBlur}
+										onChange={(e) => field.handleChange(e.target.value)}
+									/>
 								)}
-							/>
+							</Field>
 						</div>
 
 						<DialogFooter>
@@ -896,7 +868,6 @@ function ExecutionConfigDialog({
 							</Button>
 						</DialogFooter>
 					</form>
-				</Form>
 			</DialogContent>
 		</Dialog>
 	);
