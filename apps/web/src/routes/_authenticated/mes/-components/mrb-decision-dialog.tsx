@@ -34,7 +34,7 @@ const formSchema = z
 		reworkType: z.enum(["REUSE_PREP", "FULL_PREP"]).optional(),
 		faiWaiver: z.boolean().optional(),
 		faiWaiverReason: z.string().optional(),
-		reason: z.string().min(1, "请输入 MRB 处置原因"),
+		reason: z.string().min(4, "处置原因至少 4 个字"),
 	})
 	.superRefine((values, ctx) => {
 		if (values.decision === "REWORK" && !values.reworkType) {
