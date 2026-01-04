@@ -1,8 +1,8 @@
 # Phase 2 Plan (M2 - Execution Control & Quality) — Consolidated
 
 > 状态：**执行中**
-> 更新时间：2025-01-02
-> 目标：准备检查门禁、FAI、缺陷处置、OQC 抽检、收尾关闭
+> 更新时间：2025-01-04
+> 目标：准备检查门禁、上料防错、FAI、缺陷处置、OQC 抽检、集成接口、收尾关闭
 > 说明：本文件合并 `phase2_detailed_breakdown.md` 与 `phase2_line_readiness_design.md`。
 
 ---
@@ -21,7 +21,9 @@
 ### 1.2 Phase 2 其它模块进度
 - ✅ FAI 首件检验：已完成（2025-01-02）
 - ✅ 缺陷处置（Defect & Disposition）：已完成（2025-01-02）
+- ⬜ 上料防错（Loading Verify）：未开始
 - ⬜ OQC 抽检：未开始
+- ⬜ 集成接口（Integration APIs）：未开始
 - ⬜ Closeout 收尾：未开始
 
 ---
@@ -145,23 +147,63 @@ model ReadinessCheckItem {
 - [x] 2.3.8 UI: 缺陷列表 + 处置操作
 - [x] 2.3.9 UI: 返工任务跟踪
 
-### 3.4 Task 2.4: OQC Sampling Flow
-- [ ] 2.4.1 Schema: OQC 抽检规则表 (比例/固定数量)
-- [ ] 2.4.2 Service: OQC 任务创建逻辑 (Unit 完成后触发)
-- [ ] 2.4.3 Service: OQC 抽样算法
-- [ ] 2.4.4 API: OQC 任务管理
-- [ ] 2.4.5 API: OQC 结果记录
-- [ ] 2.4.6 Gate: Run/WO 完成需 OQC 通过
-- [ ] 2.4.7 UI: OQC 任务列表 + 执行
-- [ ] 2.4.8 UI: OQC 规则配置
+### 3.4 Task 2.4: Loading Verify (上料防错)
 
-### 3.5 Task 2.5: Final Confirmation & Closeout
-- [ ] 2.5.1 Service: Run 完成条件检查 (所有门禁)
-- [ ] 2.5.2 Service: WO 完成条件检查
-- [ ] 2.5.3 API: Run closeout
-- [ ] 2.5.4 API: WO closeout
-- [ ] 2.5.5 UI: 关闭确认对话框
-- [ ] 2.5.6 归档占位符 (后续扩展)
+> 参考: `domain_docs/mes/spec/process/03_smp_flows.md` - MES 核心模块
+
+- [ ] 2.4.1 Schema: `LoadingRecord` 模型 (站位、物料、绑定关系)
+- [ ] 2.4.2 Schema: `FeederSlot` 站位表模型 (产线站位配置)
+- [ ] 2.4.3 Service: 加载站位表逻辑 (基于路由/产线)
+- [ ] 2.4.4 Service: 扫码验证逻辑 (物料码 + 站位码)
+- [ ] 2.4.5 Service: BOM 比对逻辑 (BOM 物料 vs 实际上料)
+- [ ] 2.4.6 Service: 绑定记录逻辑 (记录物料-站位绑定关系)
+- [ ] 2.4.7 Service: 异常处理逻辑 (报警锁定、重试次数控制)
+- [ ] 2.4.8 API: `POST /mes/loading/verify` 上料验证
+- [ ] 2.4.9 API: `GET /mes/runs/{runNo}/loading` 获取上料记录
+- [ ] 2.4.10 API: `GET /mes/lines/{lineId}/feeder-slots` 获取站位表
+- [ ] 2.4.11 Gate: Run 授权前需完成上料验证 (可选门禁)
+- [ ] 2.4.12 权限: `loading:view/verify/config`
+- [ ] 2.4.13 UI: 上料防错执行页 (扫码界面)
+- [ ] 2.4.14 UI: 上料记录查看 (Run 详情页标签)
+- [ ] 2.4.15 UI: 站位表配置页 (可选)
+
+### 3.5 Task 2.5: OQC Sampling Flow
+- [ ] 2.5.1 Schema: OQC 抽检规则表 (比例/固定数量)
+- [ ] 2.5.2 Service: OQC 任务创建逻辑 (Unit 完成后触发)
+- [ ] 2.5.3 Service: OQC 抽样算法
+- [ ] 2.5.4 API: OQC 任务管理
+- [ ] 2.5.5 API: OQC 结果记录
+- [ ] 2.5.6 Gate: Run/WO 完成需 OQC 通过
+- [ ] 2.5.7 UI: OQC 任务列表 + 执行
+- [ ] 2.5.8 UI: OQC 规则配置
+
+### 3.6 Task 2.6: Integration APIs (集成接口)
+
+> 参考: `domain_docs/mes/spec/process/03_smp_flows.md` - 集成接口规范
+> 设计原则: MES 只接收结论状态，不管理外部系统生命周期；支持手动降级模式
+
+- [ ] 2.6.1 Schema: `IntegrationRecord` 模型 (来源、类型、状态、审计)
+- [ ] 2.6.2 Service: 钢网状态接收逻辑 (TPM → MES)
+- [ ] 2.6.3 Service: 锡膏状态接收逻辑 (WMS → MES)
+- [ ] 2.6.4 Service: 检测结果接收逻辑 (SPI/AOI → MES)
+- [ ] 2.6.5 Service: 手动降级录入逻辑 (source: MANUAL)
+- [ ] 2.6.6 API: `POST /mes/integration/stencil-status` 接收钢网状态
+- [ ] 2.6.7 API: `POST /mes/integration/solder-paste-status` 接收锡膏状态
+- [ ] 2.6.8 API: `POST /mes/integration/inspection-result` 接收检测结果
+- [ ] 2.6.9 集成: 就绪检查读取集成状态 (钢网/锡膏)
+- [ ] 2.6.10 集成: FAI/TrackOut 读取检测结果
+- [ ] 2.6.11 权限: `integration:receive/config`
+- [ ] 2.6.12 UI: 手动录入界面 (就绪检查页、执行页)
+- [ ] 2.6.13 UI: 集成状态监控页 (可选)
+- [ ] 2.6.14 审计: 数据来源标识 (AUTO/MANUAL) 追溯
+
+### 3.7 Task 2.7: Final Confirmation & Closeout
+- [ ] 2.7.1 Service: Run 完成条件检查 (所有门禁)
+- [ ] 2.7.2 Service: WO 完成条件检查
+- [ ] 2.7.3 API: Run closeout
+- [ ] 2.7.4 API: WO closeout
+- [ ] 2.7.5 UI: 关闭确认对话框
+- [ ] 2.7.6 归档占位符 (后续扩展)
 
 ---
 
@@ -170,12 +212,15 @@ model ReadinessCheckItem {
 - Run 创建后自动预检尚未实现（需求原始设计包含）。
 - Readiness 权限尚未纳入任何默认角色，需要为运行/质量角色补齐。
 - Readiness 配置页与配置 API 暂未实现。
+- 上料防错（Loading Verify）为 MES 核心模块，需实现站位表、BOM 比对、绑定记录。
+- 集成接口需支持手动降级模式，所有手动录入需标记 `source: MANUAL` 用于审计。
 
 ---
 
 ## 5. References
 
 - 端到端流程: `domain_docs/mes/spec/process/01_end_to_end_flows.md`
+- SMT 产线流程: `domain_docs/mes/spec/process/03_smp_flows.md`
 - 集成规范: `domain_docs/mes/spec/integration/01_system_integrations.md`
 - Traceability: `domain_docs/mes/spec/traceability/01_traceability_contract.md`
 - API 模式: `agent_docs/03_backend/api_patterns.md`

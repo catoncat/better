@@ -123,10 +123,12 @@
 | # | 场景 | 入口 | 核心检查点 |
 |---|-----|------|-----------|
 | L1 | 查看待授权批次 | `/mes/runs` → 筛选 PREP | 状态筛选可用、产线筛选（数据范围）、列表显示准备检查状态 |
-| L2 | 授权批次 | 批次行 → Authorize | 授权前可见准备检查结果、失败错误信息清晰、是否支持批量授权 |
-| L3 | 查看批次进度 | `/mes/runs/:runNo` | 单位统计显示、准备检查卡片、预检/正式检查操作入口 |
-| L4 | 撤销授权 | 批次行 → Revoke | Revoke 按钮存在、撤销后状态更新 |
-| L5 | 定位问题批次 | `/mes/readiness-exceptions` | 异常看板可作为日常入口、能跳转到对应批次 |
+| L2 | 查看就绪检查详情 | 批次详情 → 就绪检查卡片 | 四项检查结果可见（钢网就绪/锡膏合规/物料备料/设备就绪）、手动录入入口存在、AUTO/MANUAL来源标识 |
+| L3 | 授权批次 | 批次行 → Authorize | 授权前可见准备检查结果、失败错误信息清晰、是否支持批量授权 |
+| L4 | 查看批次进度 | `/mes/runs/:runNo` | 单位统计显示、准备检查卡片、预检/正式检查操作入口 |
+| L5 | 撤销授权 | 批次行 → Revoke | Revoke 按钮存在、撤销后状态更新 |
+| L6 | 定位问题批次 | `/mes/readiness-exceptions` | 异常看板可作为日常入口、能跳转到对应批次 |
+| L7 | 上料防错确认 | 批次详情 → 上料防错 | 站位表加载、物料扫码入口、BOM比对结果显示、绑定关系确认、异常报警提示 |
 
 ### 2.3 操作员 (operator)
 
@@ -138,7 +140,10 @@
 |---|-----|------|-----------|
 | O1 | 选择工位 | `/mes/execution` | 选择方式（下拉/输入/记忆上次）、选择后显示队列、队列自动刷新、是否按绑定工位过滤 |
 | O2 | 进站 (TrackIn) | 执行页 TrackIn 表单 | 必填字段（SN/WO/Run）、能否扫码自动填充、进站失败错误信息 |
-| O3 | 出站 (TrackOut) | 执行页 TrackOut / 队列快捷操作 | 队列一键出站、PASS/FAIL外是否需填其他数据、FAIL后界面引导 `[需真实环境验证]` |
+| O3 | 过程数据采集 | TrackIn 后 → 数据采集表单 | 采集点显示、必填/选填区分、规格上下限校验、超规提示 |
+| O4 | 出站 (TrackOut) | 执行页 TrackOut / 队列快捷操作 | 队列一键出站、PASS/FAIL选择、FAIL后界面引导 `[需真实环境验证]` |
+| O5 | 手动录入检测结果 | TrackOut 表单 → 检测结果区 | SPI/AOI手动录入入口（降级模式）、PASS/FAIL选择、不良代码选择 |
+| O6 | 报告产品不良 | TrackOut FAIL后 → 不良记录表单 | 不良代码选择（下拉/搜索）、位置标记（如R1,C5）、描述输入、提交确认 |
 
 ### 2.4 工艺工程师 (engineer)
 
@@ -152,6 +157,7 @@
 | E2 | 编译路由版本 | 路由详情页 Compile 按钮 | 编译按钮存在、编译失败错误可读、版本列表可查 |
 | E3 | 触发ERP同步 | `/system/integrations` | 手动触发路由同步、同步状态/结果可见、同步后新路由可见 |
 | E4 | 查看版本历史 | `/mes/route-versions` | 按路由编码查询、INVALID 错误可读可定位 |
+| E5 | 配置集成接口 | `/system/integrations` → 集成配置 | 钢网/锡膏/SPI/AOI接口配置入口、连接测试、启用/禁用开关、手动降级模式说明 |
 
 ### 2.5 质量工程师 (quality)
 
@@ -173,8 +179,11 @@
 |---|-------|---------|
 | X1 | 计划员创建批次后组长能否立即看到 | 查看 runs 列表 hook 是否有刷新/轮询逻辑 |
 | X2 | 准备检查状态在批次列表是否可见 | 查看 runs columns 定义是否包含 readiness 字段 |
-| X3 | 状态流转连续性 | WO RECEIVED→RELEASED→Run PREP→AUTHORIZED 每步是否有UI入口 |
+| X3 | 状态流转连续性 | WO RECEIVED→RELEASED→Run PREP→AUTHORIZED→IN_PROGRESS→COMPLETED 每步是否有UI入口 |
 | X4 | 状态变更后列表刷新 | 各 mutation 成功后是否调用 invalidateQueries |
+| X5 | 单件状态流转完整性 | Unit IN_STATION→QUEUED/OUT_FAILED/DONE/ON_HOLD/SCRAPPED 各状态是否有UI展示 |
+| X6 | 手动降级模式可用性 | 外部系统未就绪时，手动录入入口是否可见（就绪检查/检测结果） |
+| X7 | 数据来源审计标识 | AUTO/MANUAL 来源标识在追溯查询中是否可见 |
 
 ---
 
@@ -256,14 +265,15 @@ apps/web/src/routes/_authenticated/mes/
 ├── work-orders.tsx          # 工单管理
 ├── runs/
 │   ├── index.tsx            # 批次列表
-│   └── $runNo.tsx           # 批次详情
-├── execution.tsx            # 工位执行
+│   └── $runNo.tsx           # 批次详情（含就绪检查、上料防错）
+├── execution.tsx            # 工位执行（TrackIn/Out、数据采集、不良记录）
 ├── routes/
 │   ├── index.tsx            # 路由列表
 │   └── $routingCode.tsx     # 路由详情
 ├── route-versions.tsx       # 路由版本
-├── trace.tsx                # 追溯查询
+├── trace.tsx                # 追溯查询（含数据来源标识）
 ├── readiness-exceptions.tsx # 准备异常
+├── loading-verify.tsx       # 上料防错 (如独立页面)
 └── -components/             # 共享组件
 
 apps/web/src/hooks/
@@ -272,7 +282,8 @@ apps/web/src/hooks/
 ├── use-station-execution.ts
 ├── use-trace.ts
 ├── use-readiness.ts
-└── use-routes.ts
+├── use-routes.ts
+└── use-loading-verify.ts    # 上料防错
 
 apps/server/src/modules/mes/
 ├── work-order/
@@ -281,5 +292,7 @@ apps/server/src/modules/mes/
 ├── routing/
 ├── readiness/
 ├── trace/
-└── integration/
+├── loading/                 # 上料防错
+├── defect/                  # 不良记录
+└── integration/             # 集成接口（钢网/锡膏/SPI/AOI）
 ```
