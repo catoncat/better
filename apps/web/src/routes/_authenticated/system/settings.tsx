@@ -1,9 +1,8 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Bell, HelpCircle, Loader2, RefreshCw, Save, Send, Settings } from "lucide-react";
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
@@ -17,15 +16,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-	Form,
-	FormControl,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@/components/ui/form";
+import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -42,12 +33,11 @@ const brandingFormSchema = z.object({
 
 type BrandingFormValues = z.infer<typeof brandingFormSchema>;
 
-// Schema for WeCom configuration
 const wecomFormSchema = z
 	.object({
-		enabled: z.boolean().default(false),
-		webhookUrl: z.string().default(""),
-		mentionAll: z.boolean().default(false),
+		enabled: z.boolean(),
+		webhookUrl: z.string(),
+		mentionAll: z.boolean(),
 	})
 	.refine(
 		(data) => {
@@ -62,7 +52,7 @@ const wecomFormSchema = z
 		},
 	);
 
-type WecomFormValues = z.input<typeof wecomFormSchema>;
+type WecomFormValues = z.infer<typeof wecomFormSchema>;
 
 function SystemSettingsPage() {
 	return (
@@ -105,11 +95,16 @@ function AppBrandingSettingsCard() {
 		retry: false,
 	});
 
-	const form = useForm<BrandingFormValues>({
-		resolver: zodResolver(brandingFormSchema),
+	const form = useForm({
 		defaultValues: {
 			appName: "",
 			shortName: "",
+		},
+		validators: {
+			onSubmit: brandingFormSchema,
+		},
+		onSubmit: async ({ value }) => {
+			saveMutation.mutate(value);
 		},
 	});
 
@@ -135,10 +130,6 @@ function AppBrandingSettingsCard() {
 		},
 	});
 
-	const onSubmit = (values: BrandingFormValues) => {
-		saveMutation.mutate(values);
-	};
-
 	const resetToFetched = () => {
 		if (data) {
 			form.reset(data);
@@ -162,58 +153,65 @@ function AppBrandingSettingsCard() {
 				<CardDescription>应用名称配置，保存后即时生效。</CardDescription>
 			</CardHeader>
 			<CardContent>
-				<Form {...form}>
-					<form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
-						<div className="grid gap-4 md:grid-cols-2">
-							<FormField
-								control={form.control}
-								name="appName"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>应用名称</FormLabel>
-										<FormControl>
-											<Input placeholder="Better APP" {...field} />
-										</FormControl>
-										<FormDescription>用于登录页、标题等正式场景。</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="shortName"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>简称</FormLabel>
-										<FormControl>
-											<Input placeholder="APP" {...field} />
-										</FormControl>
-										<FormDescription>用于导航、移动端等短文案。</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
+				<form
+					onSubmit={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						form.handleSubmit();
+					}}
+					className="space-y-6"
+				>
+					<div className="grid gap-4 md:grid-cols-2">
+						<Field
+							form={form}
+							name="appName"
+							label="应用名称"
+							description="用于登录页、标题等正式场景。"
+						>
+							{(field) => (
+								<Input
+									placeholder="Better APP"
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+								/>
+							)}
+						</Field>
+						<Field
+							form={form}
+							name="shortName"
+							label="简称"
+							description="用于导航、移动端等短文案。"
+						>
+							{(field) => (
+								<Input
+									placeholder="APP"
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+								/>
+							)}
+						</Field>
+					</div>
 
-						<div className="flex flex-wrap items-center gap-3">
-							<Button type="submit" disabled={saveMutation.isPending}>
-								{saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-								<Save className="mr-2 h-4 w-4" />
-								保存配置
-							</Button>
-							<Button
-								type="button"
-								variant="outline"
-								onClick={resetToFetched}
-								disabled={isRefetching || saveMutation.isPending}
-							>
-								<RefreshCw className="mr-2 h-4 w-4" />
-								撤销修改
-							</Button>
-							{isRefetching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-						</div>
-					</form>
-				</Form>
+					<div className="flex flex-wrap items-center gap-3">
+						<Button type="submit" disabled={saveMutation.isPending}>
+							{saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+							<Save className="mr-2 h-4 w-4" />
+							保存配置
+						</Button>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={resetToFetched}
+							disabled={isRefetching || saveMutation.isPending}
+						>
+							<RefreshCw className="mr-2 h-4 w-4" />
+							撤销修改
+						</Button>
+						{isRefetching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+					</div>
+				</form>
 			</CardContent>
 		</Card>
 	);
@@ -222,19 +220,23 @@ function AppBrandingSettingsCard() {
 function WeComSettingsCard() {
 	const queryClient = useQueryClient();
 
-	// Fetch configuration
 	const { data: config, isLoading } = useQuery({
 		queryKey: ["system", "wecom-config"],
 		queryFn: () => fetchClient<WecomFormValues>("/system/wecom-config"),
 		retry: false,
 	});
 
-	const form = useForm<WecomFormValues>({
-		resolver: zodResolver(wecomFormSchema),
+	const form = useForm({
 		defaultValues: {
 			enabled: false,
 			webhookUrl: "",
 			mentionAll: false,
+		},
+		validators: {
+			onSubmit: wecomFormSchema,
+		},
+		onSubmit: async ({ value }) => {
+			saveMutation.mutate(value);
 		},
 	});
 
@@ -244,7 +246,6 @@ function WeComSettingsCard() {
 		}
 	}, [config, form]);
 
-	// Save mutation
 	const saveMutation = useMutation({
 		mutationFn: (values: WecomFormValues) =>
 			fetchClient("/system/wecom-config", {
@@ -260,12 +261,15 @@ function WeComSettingsCard() {
 		},
 	});
 
-	// Test mutation
 	const testMutation = useMutation({
 		mutationFn: () =>
 			fetchClient("/system/wecom-test", {
 				method: "POST",
-				body: JSON.stringify(form.getValues()),
+				body: JSON.stringify({
+					enabled: form.getFieldValue("enabled"),
+					webhookUrl: form.getFieldValue("webhookUrl"),
+					mentionAll: form.getFieldValue("mentionAll"),
+				}),
 			}),
 		onSuccess: () => {
 			toast.success("测试消息发送成功");
@@ -274,10 +278,6 @@ function WeComSettingsCard() {
 			toast.error(`测试消息发送失败: ${error.message}`);
 		},
 	});
-
-	function onSubmit(data: WecomFormValues) {
-		saveMutation.mutate(data);
-	}
 
 	if (isLoading) {
 		return (
@@ -301,89 +301,86 @@ function WeComSettingsCard() {
 				</div>
 			</CardHeader>
 			<CardContent>
-				<Form {...form}>
-					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-						<FormField
-							control={form.control}
-							name="enabled"
-							render={({ field }) => (
-								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-									<div className="space-y-0.5">
-										<FormLabel className="text-base">启用通知</FormLabel>
-										<FormDescription>开启后，系统消息将推送到企业微信群。</FormDescription>
-									</div>
-									<FormControl>
-										<Switch checked={field.value} onCheckedChange={field.onChange} />
-									</FormControl>
-								</FormItem>
-							)}
-						/>
+				<form
+					onSubmit={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						form.handleSubmit();
+					}}
+					className="space-y-6"
+				>
+					<Field
+						form={form}
+						name="enabled"
+						label="启用通知"
+						description="开启后，系统消息将推送到企业微信群。"
+					>
+						{(field) => <Switch checked={field.state.value} onCheckedChange={field.handleChange} />}
+					</Field>
 
-						<div className="space-y-4">
-							<FormField
-								control={form.control}
-								name="webhookUrl"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Webhook 地址</FormLabel>
-										<FormControl>
-											<div className="flex gap-2">
-												<Input
-													placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=..."
-													{...field}
-													disabled={!form.watch("enabled")}
-												/>
-											</div>
-										</FormControl>
-										<FormDescription>企业微信群机器人的 Webhook 地址。</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-
-							<FormField
-								control={form.control}
-								name="mentionAll"
-								render={({ field }) => (
-									<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-										<div className="space-y-0.5">
-											<FormLabel className="text-base">@所有人 (@all)</FormLabel>
-											<FormDescription>开启后，每条消息都会 @所有人。</FormDescription>
-										</div>
-										<FormControl>
-											<Switch
-												checked={field.value}
-												onCheckedChange={field.onChange}
-												disabled={!form.watch("enabled")}
+					<div className="space-y-4">
+						<form.Subscribe selector={(state) => state.values.enabled}>
+							{(enabled) => (
+								<>
+									<Field
+										form={form}
+										name="webhookUrl"
+										label="Webhook 地址"
+										description="企业微信群机器人的 Webhook 地址。"
+									>
+										{(field) => (
+											<Input
+												placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=..."
+												value={field.state.value}
+												onBlur={field.handleBlur}
+												onChange={(e) => field.handleChange(e.target.value)}
+												disabled={!enabled}
 											/>
-										</FormControl>
-									</FormItem>
-								)}
-							/>
-						</div>
+										)}
+									</Field>
 
-						<div className="flex items-center gap-4">
-							<Button type="submit" disabled={saveMutation.isPending}>
-								{saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-								<Save className="mr-2 h-4 w-4" />
-								保存配置
-							</Button>
+									<Field
+										form={form}
+										name="mentionAll"
+										label="@所有人 (@all)"
+										description="开启后，每条消息都会 @所有人。"
+									>
+										{(field) => (
+											<Switch
+												checked={field.state.value}
+												onCheckedChange={field.handleChange}
+												disabled={!enabled}
+											/>
+										)}
+									</Field>
+								</>
+							)}
+						</form.Subscribe>
+					</div>
 
-							<Button
-								type="button"
-								variant="outline"
-								disabled={
-									!form.watch("enabled") || !form.watch("webhookUrl") || testMutation.isPending
-								}
-								onClick={() => testMutation.mutate()}
-							>
-								{testMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-								<Send className="mr-2 h-4 w-4" />
-								发送测试消息
-							</Button>
-						</div>
-					</form>
-				</Form>
+					<div className="flex items-center gap-4">
+						<Button type="submit" disabled={saveMutation.isPending}>
+							{saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+							<Save className="mr-2 h-4 w-4" />
+							保存配置
+						</Button>
+
+						<form.Subscribe selector={(state) => [state.values.enabled, state.values.webhookUrl]}>
+							{([enabled, webhookUrl]) => (
+								<Button
+									type="button"
+									variant="outline"
+									disabled={!enabled || !webhookUrl || testMutation.isPending}
+									onClick={() => testMutation.mutate()}
+								>
+									{testMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+									<Send className="mr-2 h-4 w-4" />
+									发送测试消息
+								</Button>
+							)}
+						</form.Subscribe>
+					</div>
+				</form>
 			</CardContent>
 		</Card>
 	);
@@ -433,7 +430,7 @@ function WeComHelpDialog() {
 							<div className="space-y-1">
 								<h4 className="text-sm font-medium leading-none">配置机器人</h4>
 								<p className="text-sm text-muted-foreground">
-									给机器人起个名字（例如“系统通知”），并设置头像。
+									给机器人起个名字（例如"系统通知"），并设置头像。
 								</p>
 							</div>
 						</div>

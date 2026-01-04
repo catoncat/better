@@ -68,9 +68,7 @@ export function DataTable<TData, TValue>({
 				</TableHeader>
 				<TableBody>
 					{table.getRowModel().rows?.length ? (
-						table.getRowModel().rows.map((row) => (
-							<DataTableRow key={row.id} row={row} />
-						))
+						table.getRowModel().rows.map((row) => <DataTableRow key={row.id} row={row} />)
 					) : (
 						<TableRow>
 							<TableCell colSpan={columns.length} className="h-24 text-center">

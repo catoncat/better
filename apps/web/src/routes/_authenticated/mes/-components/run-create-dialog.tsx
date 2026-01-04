@@ -16,8 +16,8 @@ import type { WorkOrder } from "@/hooks/use-work-orders";
 
 const runSchema = z.object({
 	lineCode: z.string().min(1, "线体编码不能为空"),
-	shiftCode: z.string().optional(),
-	changeoverNo: z.string().optional(),
+	shiftCode: z.string(),
+	changeoverNo: z.string(),
 });
 
 export type RunFormValues = z.infer<typeof runSchema>;

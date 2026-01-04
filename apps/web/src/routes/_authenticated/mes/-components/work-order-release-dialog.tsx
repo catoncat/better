@@ -1,5 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm } from "@tanstack/react-form";
 import * as z from "zod";
 import { LineSelect } from "@/components/select/line-select";
 import { Button } from "@/components/ui/button";
@@ -11,14 +10,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@/components/ui/form";
+import { Field } from "@/components/ui/form-field-wrapper";
 import type { WorkOrder } from "@/hooks/use-work-orders";
 
 const releaseSchema = z.object({
@@ -42,18 +34,19 @@ export function WorkOrderReleaseDialog({
 	isSubmitting,
 	workOrder,
 }: WorkOrderReleaseDialogProps) {
-	const form = useForm<WorkOrderReleaseFormValues>({
-		resolver: zodResolver(releaseSchema),
+	const form = useForm({
 		defaultValues: {
 			lineCode: "",
 		},
+		validators: {
+			onSubmit: releaseSchema,
+		},
+		onSubmit: async ({ value }) => {
+			await onSubmit(value);
+			form.reset();
+			onOpenChange(false);
+		},
 	});
-
-	const handleFormSubmit = async (values: WorkOrderReleaseFormValues) => {
-		await onSubmit(values);
-		form.reset();
-		onOpenChange(false);
-	};
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -62,32 +55,29 @@ export function WorkOrderReleaseDialog({
 					<DialogTitle>发布工单</DialogTitle>
 					<DialogDescription>为工单 {workOrder?.woNo} 选择目标线体后发布。</DialogDescription>
 				</DialogHeader>
-				<Form {...form}>
-					<form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
-						<FormField
-							control={form.control}
-							name="lineCode"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>目标线体</FormLabel>
-									<FormControl>
-										<LineSelect
-											value={field.value}
-											onValueChange={field.onChange}
-											placeholder="选择线体"
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<DialogFooter>
-							<Button type="submit" disabled={isSubmitting}>
-								{isSubmitting ? "正在发布..." : "发布工单"}
-							</Button>
-						</DialogFooter>
-					</form>
-				</Form>
+				<form
+					onSubmit={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						form.handleSubmit();
+					}}
+					className="space-y-4"
+				>
+					<Field form={form} name="lineCode" label="目标线体">
+						{(field) => (
+							<LineSelect
+								value={field.state.value}
+								onValueChange={field.handleChange}
+								placeholder="选择线体"
+							/>
+						)}
+					</Field>
+					<DialogFooter>
+						<Button type="submit" disabled={isSubmitting}>
+							{isSubmitting ? "正在发布..." : "发布工单"}
+						</Button>
+					</DialogFooter>
+				</form>
 			</DialogContent>
 		</Dialog>
 	);

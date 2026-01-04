@@ -305,7 +305,6 @@ function WorkOrdersPage() {
 		}
 	};
 
-
 	return (
 		<DataListLayout
 			mode="server"
