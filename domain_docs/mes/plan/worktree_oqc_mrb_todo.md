@@ -59,8 +59,8 @@ Status: [x] done, [~] in progress, [ ] pending
 - [x] 状态标签/筛选支持 ON_HOLD/CLOSED_REWORK/SCRAPPED
 
 5) QA/Docs
-- [ ] 同步更新 `phase2_tasks.md` 勾选
-- [ ] 必要的服务层测试或最小验收脚本
+- [x] 同步更新 `phase2_tasks.md` 勾选
+- [x] 必要的服务层测试或最小验收脚本
 
 ## Milestones
 1) Schema + Rules CRUD

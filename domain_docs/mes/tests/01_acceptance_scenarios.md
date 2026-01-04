@@ -77,9 +77,34 @@
 - 数据采集配置和采集操作能够正常记录数据。
 - 追溯查询能够返回完整的单件生产和质量追溯信息。
 
+### 场景 5：OQC 抽检与 MRB 处置
+
+**描述**：验证 OQC 抽检失败后进入 MRB 处置闭环。
+
+**步骤**：
+1. **准备批次状态**：
+   - 确保批次所有 Unit 已完成（`DONE`），系统已触发或手动创建 OQC。
+2. **创建并开始 OQC**（如需手动触发）：
+   - 调用 `POST /api/oqc/run/{runNo}` 创建 OQC 任务。
+   - 调用 `POST /api/oqc/{oqcId}/start` 启动检验。
+3. **录入检验项**：
+   - 调用 `POST /api/oqc/{oqcId}/items` 录入至少 1 条检验项。
+4. **完成 OQC（FAIL）**：
+   - 调用 `POST /api/oqc/{oqcId}/complete`，提交 `decision=FAIL` 且 `failedQty > 0`。
+   - 验证 OQC 状态为 `FAIL`，Run 状态变为 `ON_HOLD`。
+5. **MRB 决策**：
+   - 调用 `POST /api/runs/{runNo}/mrb-decision`，提交 `decision=REWORK/RELEASE/SCRAP`。
+   - `reason` 最少 4 个字；返修需附带 `reworkType`，复用就绪可选 `faiWaiver` + `faiWaiverReason`。
+
+**预期结果**：
+- OQC FAIL 后 Run 进入 `ON_HOLD`。
+- MRB 放行：Run → `COMPLETED`。
+- MRB 返修：Run → `CLOSED_REWORK`，并创建返修 Run（`REUSE_PREP` 为 `AUTHORIZED`；`FULL_PREP` 为 `PREP`）。
+- MRB 报废：Run → `SCRAPPED`。
+
 ## 2. 并发与异常测试
 
-### 场景 5：并发测试
+### 场景 6：并发测试
 
 **描述**：验证多用户同时进行工单和生产操作时的并发处理能力。
 
@@ -90,7 +115,7 @@
 **预期结果**：
 - 系统能够正确处理并发请求，返回幂等的响应，避免重复操作。
 
-### 场景 6：异常处理
+### 场景 7：异常处理
 
 **描述**：验证系统在异常情况下（如数据不完整、无权限访问等）的错误处理能力。
 
@@ -103,7 +128,7 @@
 
 ## 3. 边界条件与性能测试
 
-### 场景 7：大批量数据处理
+### 场景 8：大批量数据处理
 
 **描述**：验证系统在处理大量数据时的性能表现。
 
