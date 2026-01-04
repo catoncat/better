@@ -537,6 +537,13 @@ Day 4: Phase 4 Readiness (merge point)
 ### Phase 1 - Schema
 - [x] Added enums and models to `packages/db/prisma/schema/schema.prisma`
 
+### Group A - Loading Mainline
+- [x] Phase 2.1: `loading/schema.ts`
+- [x] Phase 2.2: `loading/service.ts`
+- [x] Phase 2.3: `loading/routes.ts`
+- [x] Phase 6.1: FeederSlot CRUD APIs
+- [x] Phase 6.2: SlotMaterialMapping CRUD APIs
+
 ### Group C - Permissions & Scenarios
 - [x] Phase 5: Permissions config
 - [x] Phase 7: Acceptance scenarios

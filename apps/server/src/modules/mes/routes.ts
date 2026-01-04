@@ -3,6 +3,13 @@ import { defectRoutes, reworkRoutes } from "./defect/routes";
 import { executionModule } from "./execution/routes";
 import { faiRoutes } from "./fai/routes";
 import { integrationModule } from "./integration/routes";
+import {
+	feederSlotModule,
+	lineLoadingModule,
+	loadingModule,
+	runLoadingModule,
+	slotMappingModule,
+} from "./loading/routes";
 import { lineModule } from "./line/routes";
 import { readinessExceptionsModule, readinessModule } from "./readiness/routes";
 import { routingModule } from "./routing/routes";
@@ -16,6 +23,11 @@ export const mesModule = new Elysia()
 		detail: { tags: ["MES - Health"] },
 	})
 	.use(integrationModule)
+	.use(loadingModule)
+	.use(runLoadingModule)
+	.use(lineLoadingModule)
+	.use(feederSlotModule)
+	.use(slotMappingModule)
 	.use(lineModule)
 	.use(workOrderModule)
 	.use(runModule)
