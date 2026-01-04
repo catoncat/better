@@ -463,6 +463,7 @@ model RunSlotExpectation {
 
   run  Run        @relation(fields: [runId], references: [id])
   slot FeederSlot @relation(fields: [slotId], references: [id])
+  loadingRecords LoadingRecord[]
 
   @@unique([runId, slotId])
   @@index([runId])
