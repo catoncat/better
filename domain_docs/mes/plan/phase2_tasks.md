@@ -22,7 +22,7 @@
 - ✅ FAI 首件检验：已完成（2025-01-02）
 - ✅ 缺陷处置（Defect & Disposition）：已完成（2025-01-02）
 - ✅ 上料防错（Loading Verify）：核心模型/服务/API/门禁已完成（UI 未实现）
-- 🟡 OQC 抽检：核心链路已完成（剩余 2.5.8 规则配置 UI）
+- ✅ OQC 抽检：核心链路与 UI 已完成
 - 🚧 集成接口（Integration APIs）：钢网/锡膏状态接收 + 线体绑定 + 就绪检查集成已完成（SPI/AOI 未实现，UI 未实现）
 - ⬜ Closeout 收尾：未开始
 
@@ -176,7 +176,7 @@ model ReadinessCheckItem {
 - [x] 2.5.5 API: OQC 结果记录
 - [x] 2.5.6 Gate: Run/WO 完成需 OQC 通过 (含 MRB 分支: COMPLETED/CLOSED_REWORK/SCRAPPED)
 - [x] 2.5.7 UI: OQC 任务列表 + 执行
-- [ ] 2.5.8 UI: OQC 规则配置
+- [x] 2.5.8 UI: OQC 规则配置
 - [x] 2.5.9 MRB 评审流程 (ON_HOLD → MRB decision → 终态)
 - [x] 2.5.10 返修 Run 创建 API (`POST /api/runs/{runNo}/rework`)
 - [x] 2.5.11 CLOSED_REWORK 状态变更逻辑

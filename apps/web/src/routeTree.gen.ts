@@ -35,6 +35,7 @@ import { Route as AuthenticatedMesRunsIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedMesRoutesIndexRouteImport } from './routes/_authenticated/mes/routes/index'
 import { Route as AuthenticatedMesRunsRunNoRouteImport } from './routes/_authenticated/mes/runs/$runNo'
 import { Route as AuthenticatedMesRoutesRoutingCodeRouteImport } from './routes/_authenticated/mes/routes/$routingCode'
+import { Route as AuthenticatedMesOqcRulesRouteImport } from './routes/_authenticated/mes/oqc/rules'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -181,6 +182,12 @@ const AuthenticatedMesRoutesRoutingCodeRoute =
     path: '/$routingCode',
     getParentRoute: () => AuthenticatedMesRoutesRoute,
   } as any)
+const AuthenticatedMesOqcRulesRoute =
+  AuthenticatedMesOqcRulesRouteImport.update({
+    id: '/rules',
+    path: '/rules',
+    getParentRoute: () => AuthenticatedMesOqcRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
@@ -190,7 +197,7 @@ export interface FileRoutesByFullPath {
   '/mes/defects': typeof AuthenticatedMesDefectsRoute
   '/mes/execution': typeof AuthenticatedMesExecutionRoute
   '/mes/fai': typeof AuthenticatedMesFaiRoute
-  '/mes/oqc': typeof AuthenticatedMesOqcRoute
+  '/mes/oqc': typeof AuthenticatedMesOqcRouteWithChildren
   '/mes/readiness-exceptions': typeof AuthenticatedMesReadinessExceptionsRoute
   '/mes/rework-tasks': typeof AuthenticatedMesReworkTasksRoute
   '/mes/route-versions': typeof AuthenticatedMesRouteVersionsRoute
@@ -204,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/mes': typeof AuthenticatedMesIndexRoute
   '/system': typeof AuthenticatedSystemIndexRoute
+  '/mes/oqc/rules': typeof AuthenticatedMesOqcRulesRoute
   '/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
   '/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
   '/mes/routes/': typeof AuthenticatedMesRoutesIndexRoute
@@ -217,7 +225,7 @@ export interface FileRoutesByTo {
   '/mes/defects': typeof AuthenticatedMesDefectsRoute
   '/mes/execution': typeof AuthenticatedMesExecutionRoute
   '/mes/fai': typeof AuthenticatedMesFaiRoute
-  '/mes/oqc': typeof AuthenticatedMesOqcRoute
+  '/mes/oqc': typeof AuthenticatedMesOqcRouteWithChildren
   '/mes/readiness-exceptions': typeof AuthenticatedMesReadinessExceptionsRoute
   '/mes/rework-tasks': typeof AuthenticatedMesReworkTasksRoute
   '/mes/route-versions': typeof AuthenticatedMesRouteVersionsRoute
@@ -230,6 +238,7 @@ export interface FileRoutesByTo {
   '/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/mes': typeof AuthenticatedMesIndexRoute
   '/system': typeof AuthenticatedSystemIndexRoute
+  '/mes/oqc/rules': typeof AuthenticatedMesOqcRulesRoute
   '/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
   '/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
   '/mes/routes': typeof AuthenticatedMesRoutesIndexRoute
@@ -245,7 +254,7 @@ export interface FileRoutesById {
   '/_authenticated/mes/defects': typeof AuthenticatedMesDefectsRoute
   '/_authenticated/mes/execution': typeof AuthenticatedMesExecutionRoute
   '/_authenticated/mes/fai': typeof AuthenticatedMesFaiRoute
-  '/_authenticated/mes/oqc': typeof AuthenticatedMesOqcRoute
+  '/_authenticated/mes/oqc': typeof AuthenticatedMesOqcRouteWithChildren
   '/_authenticated/mes/readiness-exceptions': typeof AuthenticatedMesReadinessExceptionsRoute
   '/_authenticated/mes/rework-tasks': typeof AuthenticatedMesReworkTasksRoute
   '/_authenticated/mes/route-versions': typeof AuthenticatedMesRouteVersionsRoute
@@ -259,6 +268,7 @@ export interface FileRoutesById {
   '/_authenticated/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/_authenticated/mes/': typeof AuthenticatedMesIndexRoute
   '/_authenticated/system/': typeof AuthenticatedSystemIndexRoute
+  '/_authenticated/mes/oqc/rules': typeof AuthenticatedMesOqcRulesRoute
   '/_authenticated/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
   '/_authenticated/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
   '/_authenticated/mes/routes/': typeof AuthenticatedMesRoutesIndexRoute
@@ -288,6 +298,7 @@ export interface FileRouteTypes {
     | '/system/user-management'
     | '/mes'
     | '/system'
+    | '/mes/oqc/rules'
     | '/mes/routes/$routingCode'
     | '/mes/runs/$runNo'
     | '/mes/routes/'
@@ -314,6 +325,7 @@ export interface FileRouteTypes {
     | '/system/user-management'
     | '/mes'
     | '/system'
+    | '/mes/oqc/rules'
     | '/mes/routes/$routingCode'
     | '/mes/runs/$runNo'
     | '/mes/routes'
@@ -342,6 +354,7 @@ export interface FileRouteTypes {
     | '/_authenticated/system/user-management'
     | '/_authenticated/mes/'
     | '/_authenticated/system/'
+    | '/_authenticated/mes/oqc/rules'
     | '/_authenticated/mes/routes/$routingCode'
     | '/_authenticated/mes/runs/$runNo'
     | '/_authenticated/mes/routes/'
@@ -537,8 +550,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesRoutesRoutingCodeRouteImport
       parentRoute: typeof AuthenticatedMesRoutesRoute
     }
+    '/_authenticated/mes/oqc/rules': {
+      id: '/_authenticated/mes/oqc/rules'
+      path: '/rules'
+      fullPath: '/mes/oqc/rules'
+      preLoaderRoute: typeof AuthenticatedMesOqcRulesRouteImport
+      parentRoute: typeof AuthenticatedMesOqcRoute
+    }
   }
 }
+
+interface AuthenticatedMesOqcRouteChildren {
+  AuthenticatedMesOqcRulesRoute: typeof AuthenticatedMesOqcRulesRoute
+}
+
+const AuthenticatedMesOqcRouteChildren: AuthenticatedMesOqcRouteChildren = {
+  AuthenticatedMesOqcRulesRoute: AuthenticatedMesOqcRulesRoute,
+}
+
+const AuthenticatedMesOqcRouteWithChildren =
+  AuthenticatedMesOqcRoute._addFileChildren(AuthenticatedMesOqcRouteChildren)
 
 interface AuthenticatedMesRoutesRouteChildren {
   AuthenticatedMesRoutesRoutingCodeRoute: typeof AuthenticatedMesRoutesRoutingCodeRoute
@@ -564,7 +595,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesDefectsRoute: typeof AuthenticatedMesDefectsRoute
   AuthenticatedMesExecutionRoute: typeof AuthenticatedMesExecutionRoute
   AuthenticatedMesFaiRoute: typeof AuthenticatedMesFaiRoute
-  AuthenticatedMesOqcRoute: typeof AuthenticatedMesOqcRoute
+  AuthenticatedMesOqcRoute: typeof AuthenticatedMesOqcRouteWithChildren
   AuthenticatedMesReadinessExceptionsRoute: typeof AuthenticatedMesReadinessExceptionsRoute
   AuthenticatedMesReworkTasksRoute: typeof AuthenticatedMesReworkTasksRoute
   AuthenticatedMesRouteVersionsRoute: typeof AuthenticatedMesRouteVersionsRoute
@@ -589,7 +620,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMesDefectsRoute: AuthenticatedMesDefectsRoute,
   AuthenticatedMesExecutionRoute: AuthenticatedMesExecutionRoute,
   AuthenticatedMesFaiRoute: AuthenticatedMesFaiRoute,
-  AuthenticatedMesOqcRoute: AuthenticatedMesOqcRoute,
+  AuthenticatedMesOqcRoute: AuthenticatedMesOqcRouteWithChildren,
   AuthenticatedMesReadinessExceptionsRoute:
     AuthenticatedMesReadinessExceptionsRoute,
   AuthenticatedMesReworkTasksRoute: AuthenticatedMesReworkTasksRoute,

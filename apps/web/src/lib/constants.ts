@@ -67,3 +67,8 @@ export const READINESS_ITEM_TYPE_MAP: Record<string, string> = {
 	SOLDER_PASTE: "锡膏",
 	LOADING: "上料",
 };
+
+export const OQC_SAMPLING_TYPE_MAP: Record<string, string> = {
+	PERCENTAGE: "按比例 (%)",
+	FIXED: "固定数量",
+};
