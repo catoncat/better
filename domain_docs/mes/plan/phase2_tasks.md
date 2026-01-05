@@ -22,7 +22,7 @@
 - ✅ FAI 首件检验：已完成（2025-01-02）
 - ✅ 缺陷处置（Defect & Disposition）：已完成（2025-01-02）
 - ⬜ 上料防错（Loading Verify）：未开始
-- ⬜ OQC 抽检：未开始
+- 🟡 OQC 抽检：核心链路已完成（剩余 2.5.8 规则配置 UI）
 - ⬜ 集成接口（Integration APIs）：未开始
 - ⬜ Closeout 收尾：未开始
 

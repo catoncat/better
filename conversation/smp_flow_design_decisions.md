@@ -50,17 +50,13 @@ IN_PROGRESS → ON_HOLD (OQC失败) → MRB决策 → CLOSED_REWORK (返修)
 enum RunStatus {
   PREP
   AUTHORIZED
-  IN_PROGRESS       // 规范名称 (当前 schema: RUNNING)
-  ON_HOLD           // 新增 M2
-  COMPLETED         // 规范名称 (当前 schema: FINISHING)
-  CLOSED_REWORK     // 新增 M2：生产完成但有返修
-  SCRAPPED          // 新增 M2
-  CANCELLED
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CLOSED_REWORK
+  SCRAPPED
 }
 ```
-
-> **注意**：当前 Prisma schema 使用 RUNNING/FINISHING，M2 实现时统一迁移为 IN_PROGRESS/COMPLETED。
-> 详见 `domain_docs/mes/spec/process/02_state_machines.md` 第 5 节映射表。
 
 **理由：**
 - 状态语义清晰：COMPLETED = 成功，CLOSED_REWORK = 有返修
@@ -111,21 +107,11 @@ model Run {
 
   // 新增字段 (M2)
   parentRunId      String?       // 返修 Run 指向原 Run
-  reworkType       ReworkType?   // REUSE_PREP | FULL_PREP
-  authorizationType AuthorizationType? // NORMAL | MRB_OVERRIDE
+  reworkType       String?       // 'REUSE_PREP' | 'FULL_PREP'
+  authorizationType String?      // 'NORMAL' | 'MRB_OVERRIDE'
   mrbDecisionId    String?       // 关联 MRB 决策记录
   mrbFaiWaiver     Boolean?      // MRB 是否豁免 FAI
   mrbWaiverReason  String?       // 豁免原因
-}
-
-enum ReworkType {
-  REUSE_PREP    // 复用就绪
-  FULL_PREP     // 重新检查
-}
-
-enum AuthorizationType {
-  NORMAL        // 常规授权（需 FAI）
-  MRB_OVERRIDE  // MRB 授权（可豁免）
 }
 ```
 
