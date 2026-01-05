@@ -24,6 +24,22 @@ import type {
 } from "./types";
 
 const tracer = trace.getTracer("mes.readiness");
+const readinessItemTypes = new Set(Object.values(ReadinessItemType));
+
+const isJsonObject = (value: Prisma.JsonValue | null | undefined): value is Prisma.JsonObject =>
+	Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+const parseEnabledReadinessChecks = (meta: Prisma.JsonValue | null | undefined) => {
+	if (!isJsonObject(meta)) return null;
+	const readinessChecks = meta.readinessChecks;
+	if (!isJsonObject(readinessChecks)) return null;
+	const enabled = readinessChecks.enabled;
+	if (!Array.isArray(enabled)) return null;
+	return enabled.filter(
+		(item): item is ReadinessItemType =>
+			typeof item === "string" && readinessItemTypes.has(item as ReadinessItemType),
+	);
+};
 
 export async function checkEquipment(db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
 	return tracer.startActiveSpan("readiness.checkEquipment", async (span) => {
@@ -472,6 +488,15 @@ export async function performCheck(
 				};
 			}
 
+			const line = run.lineId
+				? await db.line.findUnique({ where: { id: run.lineId }, select: { meta: true } })
+				: null;
+			const enabledChecks = parseEnabledReadinessChecks(line?.meta);
+			const hasExplicitEnabled = enabledChecks !== null;
+			const enabledSet = new Set(enabledChecks ?? []);
+			const shouldRunCheck = (checkType: ReadinessItemType) =>
+				!hasExplicitEnabled || enabledSet.has(checkType);
+
 			const [
 				equipmentResults,
 				materialResults,
@@ -480,12 +505,14 @@ export async function performCheck(
 				solderPasteResults,
 				loadingResults,
 			] = await Promise.all([
-				checkEquipment(db, run),
-				checkMaterial(db, run),
-				checkRoute(db, run),
-				checkStencil(db, run),
-				checkSolderPaste(db, run),
-				checkLoading(db, run),
+				shouldRunCheck(ReadinessItemType.EQUIPMENT) ? checkEquipment(db, run) : Promise.resolve([]),
+				shouldRunCheck(ReadinessItemType.MATERIAL) ? checkMaterial(db, run) : Promise.resolve([]),
+				shouldRunCheck(ReadinessItemType.ROUTE) ? checkRoute(db, run) : Promise.resolve([]),
+				shouldRunCheck(ReadinessItemType.STENCIL) ? checkStencil(db, run) : Promise.resolve([]),
+				shouldRunCheck(ReadinessItemType.SOLDER_PASTE)
+					? checkSolderPaste(db, run)
+					: Promise.resolve([]),
+				shouldRunCheck(ReadinessItemType.LOADING) ? checkLoading(db, run) : Promise.resolve([]),
 			]);
 
 			const allResults = [
