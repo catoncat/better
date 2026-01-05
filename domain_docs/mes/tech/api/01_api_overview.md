@@ -19,13 +19,16 @@ Standard errors (e.g. `BAD_REQUEST`, `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `
 *   `FAI_REQUIRED`: Step execution blocked because First Article Inspection is pending or failed.
 *   `FAI_NOT_PASSED`: Run authorization blocked because required FAI is missing or not passed.
 *   `FAI_WAIVER_REASON_REQUIRED`: MRB FAI waiver requested but waiver reason not provided.
+*   `INVALID_MRB_DECISION`: MRB decision reference is missing or does not point to a failed OQC inspection for the run.
 *   `MRB_DECISION_REQUIRED`: Rework operation requires MRB decision reference.
+*   `OQC_NOT_READY`: OQC creation requires Run IN_PROGRESS with all units DONE.
 *   `STEP_MISMATCH`: The unit is not at the correct step for this operation.
 *   `STATION_NOT_ALLOWED`: The selected station is not valid for the current step.
 *   `TPM_EQUIPMENT_UNAVAILABLE`: Equipment status from TPM is not `normal`.
 *   `TPM_MAINTENANCE_IN_PROGRESS`: Equipment has an in-progress TPM maintenance task.
 *   `REQUIRED_DATA_MISSING`: Mandatory data collection fields were not provided.
 *   `UNIT_NOT_IN_STATION`: Attempted TrackOut but unit was not tracked in.
+*   `UNIT_NOT_IN_SAMPLE`: OQC record attempted for a unit not in the sampled list.
 
 ### 1.2 Routing Integration Errors
 *   `ROUTE_NOT_FOUND`: The requested routing definition does not exist.

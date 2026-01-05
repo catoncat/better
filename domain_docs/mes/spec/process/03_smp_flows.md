@@ -450,7 +450,7 @@ interface OeeDataInput {
 | **上料防错** | MES 核心 | 站位表、BOM 比对、绑定记录 | M2 ⬜ |
 | **TrackIn/Out** | MES 核心 | 进出站、状态流转 | M1 ✅ |
 | **不良/处置** | MES 核心 | 缺陷记录、REWORK/SCRAP/HOLD | M1/M2 |
-| **OQC 抽检** | MES 核心 | 抽样规则、检验记录 | M2 ⬜ |
+| **OQC 抽检** | MES 核心 | 抽样规则、检验记录 | M2 ✅ |
 | **SPI/AOI 结果** | 🔌 集成 | 接收结果，不直连设备 | M3 ⬜ |
 | **过程数据采集** | 🔌 集成 | 接收数据，验证限值 | M3 ⬜ |
 | **OEE/抛料率** | ❌ 不实现 | 由 BI 系统负责 | - |
@@ -475,10 +475,10 @@ interface OeeDataInput {
 | 创建批次 | `PREP` | 创建 Run | M1 ✅ |
 | 批量授权 | `AUTHORIZED` | FAI 通过 + 授权 | M1 ✅ |
 | 批量生产 | `IN_PROGRESS` | 首个 TrackIn | M1 ✅ |
-| OQC 隔离 | `ON_HOLD` | OQC 不合格 | M2 ⬜ |
+| OQC 隔离 | `ON_HOLD` | OQC 不合格 | M2 ✅ |
 | 完工 | `COMPLETED` | OQC 通过 或 MRB 放行 | M1 ✅ |
-| 闭环返修 | `CLOSED_REWORK` | MRB 决策返修 | M2 ⬜ |
-| 报废 | `SCRAPPED` | MRB 决策报废 | M2 ⬜ |
+| 闭环返修 | `CLOSED_REWORK` | MRB 决策返修 | M2 ✅ |
+| 报废 | `SCRAPPED` | MRB 决策报废 | M2 ✅ |
 
 ### 单件状态 (UnitStatus)
 
@@ -488,8 +488,8 @@ interface OeeDataInput {
 | TrackOut(PASS, 非末工序) | `QUEUED` | M1 ✅ |
 | TrackOut(PASS, 末工序) | `DONE` | M1 ✅ |
 | TrackOut(FAIL) | `OUT_FAILED` | M1 ✅ |
-| 隔离 | `ON_HOLD` | M2 ⬜ |
-| 报废 | `SCRAPPED` | M2 ⬜ |
+| 隔离 | `ON_HOLD` | M2 ✅ |
+| 报废 | `SCRAPPED` | M2 ✅ |
 
 ---
 
@@ -511,7 +511,7 @@ interface OeeDataInput {
 | `/api/defects` | POST | 不良登记 | ✅ M1 |
 | `/api/defects/{defectId}/disposition` | POST | 处置判定 | ✅ M1 |
 | `/api/rework/{reworkId}/complete` | POST | 返修完成 | ⬜ M2 |
-| `/api/oqc/...` | - | OQC 抽检 | ⬜ M2 |
+| `/api/oqc/...` | - | OQC 抽检 | ✅ M2 |
 
 ### 集成接口 API
 

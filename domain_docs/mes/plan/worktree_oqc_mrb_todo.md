@@ -10,7 +10,7 @@
 
 ## Tracking Policy
 - 本文件是 OQC/MRB 任务追踪的唯一来源。
-- 待所有事项完成后再更新 `domain_docs/mes/plan/phase2_tasks.md`。
+- 同步维护 `domain_docs/mes/plan/phase2_tasks.md` 中 2.5.* 的勾选状态（高层汇总）。
 
 ## Scope (从 phase2_tasks.md 拆分)
 Status: [x] done, [~] in progress, [ ] pending
@@ -21,6 +21,7 @@ Status: [x] done, [~] in progress, [ ] pending
 - [x] 2.5.4 OQC 任务管理 API (列表/详情)
 - [x] 2.5.5 OQC 结果记录 API (PASS/FAIL)
 - [x] 2.5.6 Gate: Run 完成需 OQC 通过；FAIL → RUN=ON_HOLD
+- [ ] 2.5.8 UI: OQC 规则配置（抽检规则 CRUD）
 - [x] 2.5.9 MRB 决策流程 (ON_HOLD → COMPLETED/CLOSED_REWORK/SCRAPPED)
 - [x] 2.5.10 返修 Run 创建 API (`POST /api/runs/{runNo}/rework`)
 - [x] 2.5.11 终态变更与审计 (CLOSED_REWORK / SCRAPPED)
@@ -57,10 +58,19 @@ Status: [x] done, [~] in progress, [ ] pending
 - [x] OQC 任务列表 + 结果录入
 - [x] Run 详情 MRB 决策入口/对话框
 - [x] 状态标签/筛选支持 ON_HOLD/CLOSED_REWORK/SCRAPPED
+- [ ] OQC 抽检规则配置页（支持新增/编辑/停用）
 
 5) QA/Docs
 - [x] 同步更新 `phase2_tasks.md` 勾选
 - [x] 必要的服务层测试或最小验收脚本
+
+6) Follow-up Fixes (post review)
+- [x] OQC 幂等竞态防护（active key + 并发保护）
+- [x] OQC 仅允许 IN_PROGRESS 创建（避免 ON_HOLD 绕过 MRB）
+- [x] OQC 结果数量边界校验（passed/failed 与 sampleQty 一致）
+- [x] 返修 Run 使用路由快照首工序 stepNo
+- [x] `/runs/{runNo}/rework` 校验 mrbDecisionId 对应失败 OQC
+- [x] OQC 记录校验 unitSn 属于 run 且在抽样范围
 
 ## Milestones
 1) Schema + Rules CRUD
@@ -68,6 +78,7 @@ Status: [x] done, [~] in progress, [ ] pending
 3) OQC Trigger + Gate (DONE-only + execution integration)
 4) MRB Decision (release/rework/scrap + rework run)
 5) UI + Polish (OQC list, MRB dialog, status badges)
+6) Rule Config UI (sampling rules CRUD)
 
 ## Key Test Scenarios
 1) OQC Pass: all units pass → Run COMPLETED
