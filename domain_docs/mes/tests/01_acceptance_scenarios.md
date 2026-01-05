@@ -138,3 +138,117 @@
 
 **预期结果**：
 - 系统能够在合理时间内处理大量请求，且无性能瓶颈。
+
+## 4. 上料防错与集成 (M2)
+
+### 场景 8：上料防错 - 正确物料验证
+
+**描述**：验证正确物料扫码时上料验证通过并记录绑定关系。
+
+**步骤**：
+1. 配置站位与槽位-物料映射（`POST /api/lines/{lineId}/feeder-slots` + `POST /api/slot-mappings`）。
+2. 为 Run 加载站位表期望（`POST /api/runs/{runNo}/loading/load-table`）。
+3. 扫码验证正确物料（`POST /api/loading/verify`）。
+4. 查询上料记录与期望（`GET /api/runs/{runNo}/loading`、`GET /api/runs/{runNo}/loading/expectations`）。
+
+**预期结果**：
+- 上料验证结果为 PASS。
+- RunSlotExpectation 状态更新为 LOADED。
+- LoadingRecord 记录 materialCode 与 expectedCode。
+
+### 场景 9：上料防错 - 物料不匹配
+
+**描述**：验证错误物料扫码时返回 FAIL 并记录失败原因。
+
+**步骤**：
+1. 完成场景 8 的站位表与期望加载。
+2. 扫码验证错误物料（`POST /api/loading/verify`）。
+
+**预期结果**：
+- 上料验证结果为 FAIL。
+- 返回 failReason，RunSlotExpectation 状态为 MISMATCH。
+
+### 场景 10：连续失败触发锁定
+
+**描述**：验证连续失败触发站位锁定，且需手动解锁。
+
+**步骤**：
+1. 对同一 slot 连续 3 次扫码错误物料（`POST /api/loading/verify`）。
+2. 再次扫码验证任意物料。
+3. 手动解锁（`POST /api/feeder-slots/{slotId}/unlock`），再扫码正确物料。
+
+**预期结果**：
+- 第 3 次失败后 slot 进入锁定状态。
+- 锁定期间返回 `SLOT_LOCKED` 错误。
+- 解锁后可正常 PASS。
+
+### 场景 11：上料门禁阻断 Run 授权
+
+**描述**：验证上料未完成时，授权被 readiness gate 阻断。
+
+**步骤**：
+1. Run 未完成上料验证时调用 `POST /api/runs/{runNo}/authorize`。
+2. 完成上料验证后再次授权。
+
+**预期结果**：
+- 第一次授权失败，返回 `READINESS_CHECK_FAILED`。
+- 上料完成后授权成功。
+
+### 场景 12：钢网状态接收 - 自动模式
+
+**描述**：验证 TPM 自动推送钢网状态并用于就绪检查。
+
+**步骤**：
+1. 绑定钢网到产线（`POST /api/integration/lines/{lineId}/stencil/bind`）。
+2. 推送钢网状态（`POST /api/integration/stencil-status`，status=READY）。
+3. 执行 readiness check（`POST /api/runs/{runNo}/readiness/check`）。
+
+**预期结果**：
+- 接口幂等（重复 eventId 返回相同结果）。
+- readiness item 为 PASSED（STENCIL）。
+
+### 场景 13：钢网状态不就绪阻断
+
+**描述**：验证钢网处于 MAINTENANCE 时就绪检查失败。
+
+**步骤**：
+1. 绑定钢网并推送 `status=MAINTENANCE`。
+2. 执行 readiness check。
+
+**预期结果**：
+- readiness item 为 FAILED（STENCIL），授权被阻断。
+
+### 场景 14：锡膏状态接收 - 合规
+
+**描述**：验证 WMS 推送锡膏合规状态并用于就绪检查。
+
+**步骤**：
+1. 绑定锡膏到产线（`POST /api/integration/lines/{lineId}/solder-paste/bind`）。
+2. 推送锡膏状态（`POST /api/integration/solder-paste-status`，status=COMPLIANT）。
+3. 执行 readiness check。
+
+**预期结果**：
+- readiness item 为 PASSED（SOLDER_PASTE）。
+
+### 场景 15：锡膏过期阻断
+
+**描述**：验证锡膏状态 EXPIRED 时就绪检查失败。
+
+**步骤**：
+1. 绑定锡膏并推送 `status=EXPIRED`。
+2. 执行 readiness check。
+
+**预期结果**：
+- readiness item 为 FAILED（SOLDER_PASTE），授权被阻断。
+
+### 场景 16：手动降级模式
+
+**描述**：验证手动录入模式允许外部系统不可用时继续推进。
+
+**步骤**：
+1. 手动推送钢网/锡膏状态（`source=MANUAL`，包含 `operatorId`）。
+2. 执行 readiness check。
+
+**预期结果**：
+- 手动模式请求成功（缺少 `operatorId` 应拒绝）。
+- readiness item 按状态结果计算（READY/COMPLIANT 时 PASSED）。

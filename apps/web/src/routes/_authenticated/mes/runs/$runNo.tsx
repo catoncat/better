@@ -46,7 +46,7 @@ import {
 	useWaiveItem,
 } from "@/hooks/use-readiness";
 import { useRunDetail } from "@/hooks/use-runs";
-import { INSPECTION_STATUS_MAP } from "@/lib/constants";
+import { INSPECTION_STATUS_MAP, READINESS_ITEM_TYPE_MAP } from "@/lib/constants";
 import {
 	MrbDecisionDialog,
 	type MrbDecisionFormValues,
@@ -155,12 +155,7 @@ function RunDetailPage() {
 	};
 
 	const getItemTypeLabel = (type: string) => {
-		const map: Record<string, string> = {
-			EQUIPMENT: "设备",
-			MATERIAL: "物料",
-			ROUTE: "路由",
-		};
-		return map[type] ?? type;
+		return READINESS_ITEM_TYPE_MAP[type] ?? type;
 	};
 
 	const getFaiStatusBadge = (status: string) => {

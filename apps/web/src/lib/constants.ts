@@ -58,3 +58,12 @@ export const REWORK_TYPE_MAP: Record<string, string> = {
 	REUSE_PREP: "复用就绪",
 	FULL_PREP: "完整流程",
 };
+
+export const READINESS_ITEM_TYPE_MAP: Record<string, string> = {
+	EQUIPMENT: "设备",
+	MATERIAL: "物料",
+	ROUTE: "路由",
+	STENCIL: "钢网",
+	SOLDER_PASTE: "锡膏",
+	LOADING: "上料",
+};
