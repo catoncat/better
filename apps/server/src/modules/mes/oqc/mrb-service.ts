@@ -180,6 +180,11 @@ export async function recordMrbDecision(
 						break;
 					case "SCRAP":
 						newRunStatus = RunStatus.SCRAPPED;
+						// Mark all units as SCRAPPED
+						await tx.unit.updateMany({
+							where: { runId: run.id },
+							data: { status: UnitStatus.SCRAPPED },
+						});
 						break;
 				}
 
