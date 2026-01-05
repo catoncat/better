@@ -6,6 +6,8 @@ import {
 	ReadinessItemStatus,
 	ReadinessItemType,
 	type Run,
+	SolderPasteStatus,
+	StencilStatus,
 } from "@better-app/db";
 import { SpanStatusCode, trace } from "@opentelemetry/api";
 import type { ServiceResult } from "../../../types/service-result";
@@ -200,6 +202,231 @@ export async function checkRoute(db: PrismaClient, run: Run): Promise<CheckItemR
 	});
 }
 
+/**
+ * Check stencil status for the run's line.
+ * Queries LineStencil → StencilStatusRecord, verifies status is READY.
+ */
+export async function checkStencil(db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
+	return tracer.startActiveSpan("readiness.checkStencil", async (span) => {
+		try {
+			if (!run.lineId) {
+				return [];
+			}
+
+			// Find current stencil binding for the line
+			const currentBinding = await db.lineStencil.findFirst({
+				where: { lineId: run.lineId, isCurrent: true },
+			});
+
+			if (!currentBinding) {
+				return [
+					{
+						itemType: ReadinessItemType.STENCIL,
+						itemKey: run.lineId,
+						status: ReadinessItemStatus.FAILED,
+						failReason: "产线未绑定钢网",
+					},
+				];
+			}
+
+			// Find the latest status record for this stencil
+			const latestStatus = await db.stencilStatusRecord.findFirst({
+				where: { stencilId: currentBinding.stencilId },
+				orderBy: { eventTime: "desc" },
+			});
+
+			if (!latestStatus) {
+				return [
+					{
+						itemType: ReadinessItemType.STENCIL,
+						itemKey: currentBinding.stencilId,
+						status: ReadinessItemStatus.FAILED,
+						failReason: `钢网 ${currentBinding.stencilId} 无状态记录`,
+					},
+				];
+			}
+
+			if (latestStatus.status !== StencilStatus.READY) {
+				return [
+					{
+						itemType: ReadinessItemType.STENCIL,
+						itemKey: currentBinding.stencilId,
+						status: ReadinessItemStatus.FAILED,
+						failReason: `钢网状态为 ${latestStatus.status}，需要 READY`,
+						evidenceJson: {
+							stencilId: currentBinding.stencilId,
+							status: latestStatus.status,
+							tensionValue: latestStatus.tensionValue,
+							lastCleanedAt: latestStatus.lastCleanedAt?.toISOString(),
+						},
+					},
+				];
+			}
+
+			return [
+				{
+					itemType: ReadinessItemType.STENCIL,
+					itemKey: currentBinding.stencilId,
+					status: ReadinessItemStatus.PASSED,
+					evidenceJson: {
+						stencilId: currentBinding.stencilId,
+						status: latestStatus.status,
+						tensionValue: latestStatus.tensionValue,
+					},
+				},
+			];
+		} finally {
+			span.end();
+		}
+	});
+}
+
+/**
+ * Check solder paste status for the run's line.
+ * Queries LineSolderPaste → SolderPasteStatusRecord, verifies status is COMPLIANT.
+ */
+export async function checkSolderPaste(db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
+	return tracer.startActiveSpan("readiness.checkSolderPaste", async (span) => {
+		try {
+			if (!run.lineId) {
+				return [];
+			}
+
+			// Find current solder paste binding for the line
+			const currentBinding = await db.lineSolderPaste.findFirst({
+				where: { lineId: run.lineId, isCurrent: true },
+			});
+
+			if (!currentBinding) {
+				return [
+					{
+						itemType: ReadinessItemType.SOLDER_PASTE,
+						itemKey: run.lineId,
+						status: ReadinessItemStatus.FAILED,
+						failReason: "产线未绑定锡膏",
+					},
+				];
+			}
+
+			// Find the latest status record for this solder paste lot
+			const latestStatus = await db.solderPasteStatusRecord.findFirst({
+				where: { lotId: currentBinding.lotId },
+				orderBy: { eventTime: "desc" },
+			});
+
+			if (!latestStatus) {
+				return [
+					{
+						itemType: ReadinessItemType.SOLDER_PASTE,
+						itemKey: currentBinding.lotId,
+						status: ReadinessItemStatus.FAILED,
+						failReason: `锡膏批次 ${currentBinding.lotId} 无状态记录`,
+					},
+				];
+			}
+
+			if (latestStatus.status !== SolderPasteStatus.COMPLIANT) {
+				return [
+					{
+						itemType: ReadinessItemType.SOLDER_PASTE,
+						itemKey: currentBinding.lotId,
+						status: ReadinessItemStatus.FAILED,
+						failReason: `锡膏状态为 ${latestStatus.status}，需要 COMPLIANT`,
+						evidenceJson: {
+							lotId: currentBinding.lotId,
+							status: latestStatus.status,
+							expiresAt: latestStatus.expiresAt?.toISOString(),
+							thawedAt: latestStatus.thawedAt?.toISOString(),
+							stirredAt: latestStatus.stirredAt?.toISOString(),
+						},
+					},
+				];
+			}
+
+			return [
+				{
+					itemType: ReadinessItemType.SOLDER_PASTE,
+					itemKey: currentBinding.lotId,
+					status: ReadinessItemStatus.PASSED,
+					evidenceJson: {
+						lotId: currentBinding.lotId,
+						status: latestStatus.status,
+					},
+				},
+			];
+		} finally {
+			span.end();
+		}
+	});
+}
+
+/**
+ * Check loading status for the run.
+ * Queries RunSlotExpectation, verifies all slots are LOADED.
+ */
+export async function checkLoading(db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
+	return tracer.startActiveSpan("readiness.checkLoading", async (span) => {
+		try {
+			// Find all slot expectations for this run
+			const expectations = await db.runSlotExpectation.findMany({
+				where: { runId: run.id },
+				include: { slot: true },
+			});
+
+			if (expectations.length === 0) {
+				// No loading requirements configured - pass
+				return [];
+			}
+
+			const results: CheckItemResult[] = [];
+
+			for (const exp of expectations) {
+				if (exp.status === "LOADED") {
+					results.push({
+						itemType: ReadinessItemType.LOADING,
+						itemKey: exp.slot.slotCode,
+						status: ReadinessItemStatus.PASSED,
+						evidenceJson: {
+							slotCode: exp.slot.slotCode,
+							expectedMaterialCode: exp.expectedMaterialCode,
+							loadedMaterialCode: exp.loadedMaterialCode,
+						},
+					});
+				} else if (exp.status === "MISMATCH") {
+					results.push({
+						itemType: ReadinessItemType.LOADING,
+						itemKey: exp.slot.slotCode,
+						status: ReadinessItemStatus.FAILED,
+						failReason: `站位 ${exp.slot.slotCode} 物料不匹配: 期望 ${exp.expectedMaterialCode}，实际 ${exp.loadedMaterialCode ?? "未上料"}`,
+						evidenceJson: {
+							slotCode: exp.slot.slotCode,
+							expectedMaterialCode: exp.expectedMaterialCode,
+							loadedMaterialCode: exp.loadedMaterialCode,
+						},
+					});
+				} else {
+					// PENDING status - not yet loaded
+					results.push({
+						itemType: ReadinessItemType.LOADING,
+						itemKey: exp.slot.slotCode,
+						status: ReadinessItemStatus.FAILED,
+						failReason: `站位 ${exp.slot.slotCode} 未完成上料`,
+						evidenceJson: {
+							slotCode: exp.slot.slotCode,
+							expectedMaterialCode: exp.expectedMaterialCode,
+							status: exp.status,
+						},
+					});
+				}
+			}
+
+			return results;
+		} finally {
+			span.end();
+		}
+	});
+}
+
 function calculateSummary(items: Array<{ status: ReadinessItemStatus }>): CheckSummary {
 	let passed = 0;
 	let failed = 0;
@@ -245,13 +472,30 @@ export async function performCheck(
 				};
 			}
 
-			const [equipmentResults, materialResults, routeResults] = await Promise.all([
+			const [
+				equipmentResults,
+				materialResults,
+				routeResults,
+				stencilResults,
+				solderPasteResults,
+				loadingResults,
+			] = await Promise.all([
 				checkEquipment(db, run),
 				checkMaterial(db, run),
 				checkRoute(db, run),
+				checkStencil(db, run),
+				checkSolderPaste(db, run),
+				checkLoading(db, run),
 			]);
 
-			const allResults = [...equipmentResults, ...materialResults, ...routeResults];
+			const allResults = [
+				...equipmentResults,
+				...materialResults,
+				...routeResults,
+				...stencilResults,
+				...solderPasteResults,
+				...loadingResults,
+			];
 			const summary = calculateSummary(allResults);
 			const checkStatus =
 				summary.failed > 0 ? ReadinessCheckStatus.FAILED : ReadinessCheckStatus.PASSED;
