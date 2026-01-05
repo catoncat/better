@@ -1,4 +1,4 @@
-import { useForm } from "@tanstack/react-form";
+import { useForm, useStore } from "@tanstack/react-form";
 import { useEffect } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -24,9 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MRB_DECISION_MAP, REWORK_TYPE_MAP } from "@/lib/constants";
 import type { client } from "@/lib/eden";
 
-type MrbDecisionInput = Parameters<
-	ReturnType<typeof client.api.runs>["mrb-decision"]["post"]
->[0];
+type MrbDecisionInput = Parameters<ReturnType<typeof client.api.runs>["mrb-decision"]["post"]>[0];
 
 const formSchema = z
 	.object({
@@ -64,6 +62,14 @@ const formSchema = z
 
 export type MrbDecisionFormValues = z.infer<typeof formSchema>;
 
+const buildDefaultValues = (): MrbDecisionFormValues => ({
+	decision: "RELEASE",
+	reworkType: undefined,
+	faiWaiver: false,
+	faiWaiverReason: "",
+	reason: "",
+});
+
 interface MrbDecisionDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -80,13 +86,7 @@ export function MrbDecisionDialog({
 	isSubmitting,
 }: MrbDecisionDialogProps) {
 	const form = useForm({
-		defaultValues: {
-			decision: "RELEASE",
-			reworkType: undefined,
-			faiWaiver: false,
-			faiWaiverReason: "",
-			reason: "",
-		} satisfies MrbDecisionFormValues,
+		defaultValues: buildDefaultValues(),
 		validators: {
 			onSubmit: formSchema,
 		},
@@ -120,19 +120,13 @@ export function MrbDecisionDialog({
 
 	useEffect(() => {
 		if (open) {
-			form.reset({
-				decision: "RELEASE",
-				reworkType: undefined,
-				faiWaiver: false,
-				faiWaiverReason: "",
-				reason: "",
-			});
+			form.reset(buildDefaultValues());
 		}
 	}, [open, form]);
 
-	const decision = form.useStore((state) => state.values.decision);
-	const reworkType = form.useStore((state) => state.values.reworkType);
-	const faiWaiver = form.useStore((state) => state.values.faiWaiver);
+	const decision = useStore(form.store, (state) => state.values.decision);
+	const reworkType = useStore(form.store, (state) => state.values.reworkType);
+	const faiWaiver = useStore(form.store, (state) => state.values.faiWaiver);
 	const showRework = decision === "REWORK";
 	const showFaiWaiver = showRework && reworkType === "REUSE_PREP";
 
@@ -212,22 +206,22 @@ export function MrbDecisionDialog({
 							</Field>
 						)}
 
-					{showFaiWaiver && (
-						<Field form={form} name="faiWaiver" label="FAI 豁免">
-							{(field) => (
-								<div className="flex items-center justify-between rounded-md border border-border p-3">
-									<span className="text-sm text-muted-foreground">允许跳过 FAI 检验</span>
-									<Switch
-										checked={Boolean(field.state.value)}
-										onCheckedChange={(checked) => field.handleChange(checked)}
-									/>
-								</div>
-							)}
-						</Field>
-					)}
+						{showFaiWaiver && (
+							<Field form={form} name="faiWaiver" label="FAI 豁免">
+								{(field) => (
+									<div className="flex items-center justify-between rounded-md border border-border p-3">
+										<span className="text-sm text-muted-foreground">允许跳过 FAI 检验</span>
+										<Switch
+											checked={Boolean(field.state.value)}
+											onCheckedChange={(checked) => field.handleChange(checked)}
+										/>
+									</div>
+								)}
+							</Field>
+						)}
 
-					{showFaiWaiver && faiWaiver && (
-						<Field
+						{showFaiWaiver && faiWaiver && (
+							<Field
 								form={form}
 								name="faiWaiverReason"
 								label="FAI 豁免原因"

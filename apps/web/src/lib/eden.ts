@@ -19,7 +19,11 @@ type ApiErrorPayload = {
 	details?: unknown;
 };
 
-type ApiEnvelope<T> = { ok: boolean; data: T; error?: ApiErrorPayload };
+type ApiEnvelope<T> = {
+	ok: boolean;
+	data?: T;
+	error?: ApiErrorPayload;
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === "object" && value !== null;
@@ -63,7 +67,7 @@ export function unwrap<T>(response: {
 	// 2. Business logic check (Success HTTP status, but check envelope)
 	// Check for standard envelope { ok: true, data: ... }
 	const data = response.data as unknown;
-	if (isRecord(data) && "ok" in data && "data" in data) {
+	if (isRecord(data) && "ok" in data && ("data" in data || "error" in data)) {
 		const envelope = data as ApiEnvelope<T>;
 
 		if (!envelope.ok) {
@@ -76,6 +80,9 @@ export function unwrap<T>(response: {
 				err.details,
 				200,
 			);
+		}
+		if (envelope.data === undefined) {
+			throw new ApiError("NO_DATA", "No data received from server");
 		}
 		return envelope.data;
 	}

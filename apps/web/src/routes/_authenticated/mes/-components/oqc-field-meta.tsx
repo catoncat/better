@@ -64,10 +64,8 @@ export const oqcFieldMeta: DataListFieldMeta<OqcInspection>[] = [
 		label: "批次状态",
 		cardSecondary: true,
 		accessorFn: (oqc) => oqc.run?.status,
-		tableCell: (oqc) =>
-			oqc.run?.status ? getRunStatusBadge(oqc.run.status) : <span>-</span>,
-		cardValue: (oqc) =>
-			oqc.run?.status ? getRunStatusBadge(oqc.run.status) : <span>-</span>,
+		tableCell: (oqc) => (oqc.run?.status ? getRunStatusBadge(oqc.run.status) : <span>-</span>),
+		cardValue: (oqc) => (oqc.run?.status ? getRunStatusBadge(oqc.run.status) : <span>-</span>),
 	},
 	{
 		key: "sampleQty",

@@ -2,9 +2,9 @@ import {
 	InspectionStatus,
 	InspectionType,
 	Prisma,
+	type PrismaClient,
 	RunStatus,
 	UnitStatus,
-	type PrismaClient,
 } from "@better-app/db";
 import { SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
@@ -106,10 +106,7 @@ export async function createOqc(
 						});
 					} catch (error) {
 						if (
-							!(
-								error instanceof Prisma.PrismaClientKnownRequestError &&
-								error.code === "P2002"
-							)
+							!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")
 						) {
 							throw error;
 						}
@@ -126,7 +123,7 @@ export async function createOqc(
 			const sampleQty = data.sampleQty ?? unitCount; // Default to all units if not specified
 
 			// Store OQC metadata in the data field
-			const oqcData: Prisma.InputJsonObject = {};
+			const oqcData: Record<string, Prisma.InputJsonValue> = {};
 			if (options?.sampledUnitIds) oqcData.sampledUnitIds = options.sampledUnitIds;
 			if (options?.samplingRuleId) oqcData.samplingRuleId = options.samplingRuleId;
 			if (options?.samplingType) oqcData.samplingType = options.samplingType;
@@ -144,7 +141,10 @@ export async function createOqc(
 							passedQty: 0,
 							failedQty: 0,
 							remark: data.remark,
-							data: Object.keys(oqcData).length > 0 ? oqcData : Prisma.JsonNull,
+							data:
+								Object.keys(oqcData).length > 0
+									? (oqcData as Prisma.InputJsonObject)
+									: Prisma.JsonNull,
 						},
 						include: { items: true, run: { select: { runNo: true, status: true } } },
 					});
@@ -156,10 +156,7 @@ export async function createOqc(
 				span.setAttribute("oqc.sampleQty", sampleQty);
 				return { success: true as const, data: oqc };
 			} catch (error) {
-				if (
-					error instanceof Prisma.PrismaClientKnownRequestError &&
-					error.code === "P2002"
-				) {
+				if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
 					const activeOqc = await db.inspection.findFirst({
 						where: { activeKey },
 						include: { items: true, run: { select: { runNo: true, status: true } } },
@@ -173,7 +170,6 @@ export async function createOqc(
 
 				throw error;
 			}
-
 		} catch (error) {
 			span.recordException(error as Error);
 			span.setStatus({ code: SpanStatusCode.ERROR });
@@ -445,7 +441,8 @@ export async function completeOqc(
 				}
 			}
 
-			const newInspectionStatus = data.decision === "PASS" ? InspectionStatus.PASS : InspectionStatus.FAIL;
+			const newInspectionStatus =
+				data.decision === "PASS" ? InspectionStatus.PASS : InspectionStatus.FAIL;
 			const newRunStatus = data.decision === "PASS" ? RunStatus.COMPLETED : RunStatus.ON_HOLD;
 
 			await db.$transaction(async (tx) => {
@@ -479,7 +476,17 @@ export async function completeOqc(
 				include: { items: true, run: { select: { runNo: true, status: true } } },
 			});
 
-			return { success: true as const, data: result! };
+			if (!result) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				return {
+					success: false as const,
+					code: "OQC_NOT_FOUND",
+					message: "OQC task not found",
+					status: 404,
+				};
+			}
+
+			return { success: true as const, data: result };
 		} catch (error) {
 			span.recordException(error as Error);
 			span.setStatus({ code: SpanStatusCode.ERROR });
@@ -615,12 +622,14 @@ export async function listOqc(
 export async function checkOqcGate(
 	db: PrismaClient,
 	runNo: string,
-): Promise<ServiceResult<{
-	requiresOqc: boolean;
-	oqcPassed: boolean;
-	oqcId?: string;
-	oqcStatus?: InspectionStatus;
-}>> {
+): Promise<
+	ServiceResult<{
+		requiresOqc: boolean;
+		oqcPassed: boolean;
+		oqcId?: string;
+		oqcStatus?: InspectionStatus;
+	}>
+> {
 	const run = await db.run.findUnique({
 		where: { runNo },
 		include: {

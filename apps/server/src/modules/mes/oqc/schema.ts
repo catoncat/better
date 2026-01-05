@@ -73,11 +73,7 @@ export const oqcQuerySchema = t.Object({
 // ==========================================
 
 export const mrbDecisionSchema = t.Object({
-	decision: t.Union([
-		t.Literal("RELEASE"),
-		t.Literal("REWORK"),
-		t.Literal("SCRAP"),
-	]),
+	decision: t.Union([t.Literal("RELEASE"), t.Literal("REWORK"), t.Literal("SCRAP")]),
 	reworkType: t.Optional(t.Union([t.Literal("REUSE_PREP"), t.Literal("FULL_PREP")])),
 	faiWaiver: t.Optional(t.Boolean()),
 	faiWaiverReason: t.Optional(t.String()),

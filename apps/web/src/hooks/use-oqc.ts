@@ -20,12 +20,8 @@ export type OqcQuery = {
 };
 
 type OqcRecordInput = Parameters<ReturnType<typeof client.api.oqc>["items"]["post"]>[0];
-type OqcCompleteInput = Parameters<
-	ReturnType<typeof client.api.oqc>["complete"]["post"]
->[0];
-type MrbDecisionInput = Parameters<
-	ReturnType<typeof client.api.runs>["mrb-decision"]["post"]
->[0];
+type OqcCompleteInput = Parameters<ReturnType<typeof client.api.oqc>["complete"]["post"]>[0];
+type MrbDecisionInput = Parameters<ReturnType<typeof client.api.runs>["mrb-decision"]["post"]>[0];
 
 /**
  * List OQC inspections with filters

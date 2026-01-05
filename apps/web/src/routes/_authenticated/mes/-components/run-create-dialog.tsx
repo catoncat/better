@@ -37,17 +37,23 @@ export function RunCreateDialog({
 	isSubmitting,
 	workOrder,
 }: RunCreateDialogProps) {
+	const defaultValues: RunFormValues = {
+		lineCode: "",
+		shiftCode: "Day",
+		changeoverNo: "",
+	};
+
 	const form = useForm({
-		defaultValues: {
-			lineCode: "",
-			shiftCode: "Day",
-			changeoverNo: "",
-		},
+		defaultValues,
 		validators: {
 			onChange: runSchema,
 		},
 		onSubmit: async ({ value: values }) => {
-			await onSubmit(values);
+			await onSubmit({
+				...values,
+				shiftCode: values.shiftCode?.trim() || undefined,
+				changeoverNo: values.changeoverNo?.trim() || undefined,
+			});
 			form.reset();
 			onOpenChange(false);
 		},
@@ -81,7 +87,7 @@ export function RunCreateDialog({
 						{(field) => (
 							<Input
 								placeholder="Day / Night"
-								value={field.state.value}
+								value={field.state.value ?? ""}
 								onBlur={field.handleBlur}
 								onChange={(e) => field.handleChange(e.target.value)}
 							/>
@@ -90,7 +96,7 @@ export function RunCreateDialog({
 					<Field form={form} name="changeoverNo" label="换线单号 (可选)">
 						{(field) => (
 							<Input
-								value={field.state.value}
+								value={field.state.value ?? ""}
 								onBlur={field.handleBlur}
 								onChange={(e) => field.handleChange(e.target.value)}
 							/>

@@ -78,10 +78,7 @@ export async function createFai(
 						});
 					} catch (error) {
 						if (
-							!(
-								error instanceof Prisma.PrismaClientKnownRequestError &&
-								error.code === "P2002"
-							)
+							!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")
 						) {
 							throw error;
 						}
@@ -117,10 +114,7 @@ export async function createFai(
 					return inspection;
 				});
 			} catch (error) {
-				if (
-					error instanceof Prisma.PrismaClientKnownRequestError &&
-					error.code === "P2002"
-				) {
+				if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
 					span.setStatus({ code: SpanStatusCode.ERROR });
 					return {
 						success: false as const,
@@ -540,11 +534,7 @@ export async function checkFaiGate(
 		};
 	}
 
-	if (
-		run.authorizationType === "MRB_OVERRIDE" &&
-		run.mrbFaiWaiver &&
-		run.mrbWaiverReason
-	) {
+	if (run.authorizationType === "MRB_OVERRIDE" && run.mrbFaiWaiver && run.mrbWaiverReason) {
 		return {
 			success: true as const,
 			data: { requiresFai: true, faiPassed: true },

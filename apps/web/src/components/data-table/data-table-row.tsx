@@ -1,4 +1,4 @@
-import { type Row, flexRender } from "@tanstack/react-table";
+import { flexRender, type Row } from "@tanstack/react-table";
 import { memo } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 
@@ -18,5 +18,4 @@ function DataTableRowComponent<TData>({ row }: DataTableRowProps<TData>) {
 	);
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: memo generic typing
 export const DataTableRow = memo(DataTableRowComponent) as typeof DataTableRowComponent;
