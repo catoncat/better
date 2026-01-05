@@ -34,6 +34,12 @@ export const navMain: NavItem[] = [
 				permissions: [Permission.READINESS_VIEW],
 			},
 			{
+				title: "上料防错",
+				url: "/mes/loading",
+				permissions: [Permission.LOADING_VERIFY, Permission.LOADING_VIEW],
+				permissionMode: "any",
+			},
+			{
 				title: "首件检验",
 				url: "/mes/fai",
 				permissions: [Permission.QUALITY_FAI],
@@ -41,6 +47,11 @@ export const navMain: NavItem[] = [
 			{
 				title: "出货检验",
 				url: "/mes/oqc",
+				permissions: [Permission.QUALITY_OQC],
+			},
+			{
+				title: "OQC 规则",
+				url: "/mes/oqc/rules",
 				permissions: [Permission.QUALITY_OQC],
 			},
 			{
