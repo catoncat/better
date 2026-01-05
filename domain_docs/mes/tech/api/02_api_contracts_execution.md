@@ -209,6 +209,9 @@ Response example:
 Creates a rework Run from an original Run that was placed ON_HOLD due to OQC failure.
 Only available when the original Run is in `ON_HOLD` status.
 
+> **Note**: If you use `POST /api/runs/{runNo}/mrb-decision` with `decision=REWORK`, the server creates the rework Run automatically.
+> This endpoint exists for explicit rework creation when you already have the OQC inspection reference.
+
 Request example:
 ```json
 {
@@ -222,7 +225,7 @@ Request example:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `reworkType` | enum | Yes | `REUSE_PREP` (skip to AUTHORIZED) or `FULL_PREP` (start from PREP) |
-| `mrbDecisionId` | string | Yes | Reference to MRB decision record |
+| `mrbDecisionId` | string | Yes | Reference to the failed OQC inspection (used as the MRB decision anchor) |
 | `faiWaiver` | boolean | No | Whether to waive FAI for this rework Run (only valid for `REUSE_PREP`) |
 | `waiverReason` | string | Conditional | Required if `faiWaiver` is true |
 
@@ -260,7 +263,7 @@ Error codes:
 * `INVALID_MRB_DECISION` - mrbDecisionId does not reference a failed OQC inspection for this run
 * `FAI_WAIVER_REASON_REQUIRED` - faiWaiver is true but waiverReason missing
 * `FAI_WAIVER_NOT_ALLOWED` - FAI waiver is not allowed for this request
-* `INSUFFICIENT_PERMISSION` - Caller lacks `QUALITY_DISPOSITION` permission
+* `FORBIDDEN` - Caller lacks `QUALITY_DISPOSITION` permission
 
 ---
 

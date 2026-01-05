@@ -231,7 +231,7 @@ interface ReworkRun {
 
   // MRB 授权信息
   authorizationType: 'NORMAL' | 'MRB_OVERRIDE'
-  mrbDecisionId: string           // MRB 决策记录
+  mrbDecisionId: string           // MRB 决策锚点（使用该 Run 的失败 OQC inspection.id）
   mrbAuthorizedBy: string         // MRB 授权人
   mrbAuthorizedAt: string         // MRB 授权时间
 
@@ -240,6 +240,10 @@ interface ReworkRun {
   mrbWaiverReason?: string        // 豁免原因
 }
 ```
+
+**MRB 决策记录**（落地实现）：
+- MRB 决策信息不新增独立表，直接写入该 Run 的失败 OQC `inspection.data`（例如：`mrbDecision` / `mrbReason` / `mrbDecidedBy` / `mrbDecidedAt` / `reworkType` / `faiWaiver` / `faiWaiverReason`）。
+- `mrbReason`（处置原因）最少 4 个字。
 
 **规则**：
 - 所有返修 Run 必须有 `parentRunId` 指向原 Run

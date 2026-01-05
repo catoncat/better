@@ -15,9 +15,9 @@ export const Route = createFileRoute("/_authenticated/profile")({
 });
 
 const profileSchema = z.object({
-	name: z.string().min(1, "请输入姓名"),
-	department: z.string().optional(),
-	phone: z.string().optional(),
+	name: z.string().trim().min(1, "请输入姓名"),
+	department: z.string().trim(),
+	phone: z.string().trim(),
 });
 
 const passwordSchema = z
@@ -41,6 +41,9 @@ function ProfilePage() {
 			name: "",
 			department: "",
 			phone: "",
+		},
+		validators: {
+			onChange: profileSchema,
 		},
 		onSubmit: async ({ value }) => {
 			const normalized = {
@@ -67,7 +70,7 @@ function ProfilePage() {
 			confirmPassword: "",
 		},
 		validators: {
-			onSubmit: passwordSchema,
+			onChange: passwordSchema,
 		},
 		onSubmit: async ({ value, formApi }) => {
 			try {
@@ -120,14 +123,7 @@ function ProfilePage() {
 							}}
 							className="space-y-4"
 						>
-							<Field
-								form={profileForm}
-								name="name"
-								label="姓名"
-								validators={{
-									onChange: profileSchema.shape.name,
-								}}
-							>
+							<Field form={profileForm} name="name" label="姓名">
 								{(field) => (
 									<Input
 										placeholder="您的姓名"
@@ -174,13 +170,14 @@ function ProfilePage() {
 								</Field>
 							</div>
 							<div className="flex justify-end">
-								<profileForm.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-									{([canSubmit, isSubmitting]) => (
+								<profileForm.Subscribe
+									selector={(state) => [state.canSubmit, state.isSubmitting]}
+									children={([canSubmit, isSubmitting]) => (
 										<Button type="submit" disabled={!canSubmit || updateProfileMutation.isPending}>
 											{updateProfileMutation.isPending || isSubmitting ? "保存中..." : "保存更改"}
 										</Button>
 									)}
-								</profileForm.Subscribe>
+								/>
 							</div>
 						</form>
 					</CardContent>
@@ -200,14 +197,7 @@ function ProfilePage() {
 							}}
 							className="space-y-4"
 						>
-							<Field
-								form={passwordForm}
-								name="currentPassword"
-								label="当前密码"
-								validators={{
-									onChange: passwordSchema.shape.currentPassword,
-								}}
-							>
+							<Field form={passwordForm} name="currentPassword" label="当前密码">
 								{(field) => (
 									<Input
 										type="password"
@@ -220,14 +210,7 @@ function ProfilePage() {
 								)}
 							</Field>
 							<div className="grid grid-cols-1 gap-4">
-								<Field
-									form={passwordForm}
-									name="newPassword"
-									label="新密码"
-									validators={{
-										onChange: passwordSchema.shape.newPassword,
-									}}
-								>
+								<Field form={passwordForm} name="newPassword" label="新密码">
 									{(field) => (
 										<Input
 											type="password"
@@ -239,14 +222,7 @@ function ProfilePage() {
 										/>
 									)}
 								</Field>
-								<Field
-									form={passwordForm}
-									name="confirmPassword"
-									label="确认新密码"
-									validators={{
-										onChange: passwordSchema.shape.confirmPassword,
-									}}
-								>
+								<Field form={passwordForm} name="confirmPassword" label="确认新密码">
 									{(field) => (
 										<Input
 											type="password"
@@ -260,13 +236,14 @@ function ProfilePage() {
 								</Field>
 							</div>
 							<div className="flex justify-end">
-								<passwordForm.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-									{([canSubmit, isSubmitting]) => (
+								<passwordForm.Subscribe
+									selector={(state) => [state.canSubmit, state.isSubmitting]}
+									children={([canSubmit, isSubmitting]) => (
 										<Button type="submit" disabled={!canSubmit || changePasswordMutation.isPending}>
 											{changePasswordMutation.isPending || isSubmitting ? "修改中..." : "修改密码"}
 										</Button>
 									)}
-								</passwordForm.Subscribe>
+								/>
 							</div>
 						</form>
 					</CardContent>
