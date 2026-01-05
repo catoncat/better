@@ -18,5 +18,4 @@ function DataTableRowComponent<TData>({ row }: DataTableRowProps<TData>) {
 	);
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: memo generic typing
 export const DataTableRow = memo(DataTableRowComponent) as typeof DataTableRowComponent;

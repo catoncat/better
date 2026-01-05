@@ -37,12 +37,14 @@ export function RunCreateDialog({
 	isSubmitting,
 	workOrder,
 }: RunCreateDialogProps) {
+	const defaultValues: RunFormValues = {
+		lineCode: "",
+		shiftCode: "Day",
+		changeoverNo: "",
+	};
+
 	const form = useForm({
-		defaultValues: {
-			lineCode: "",
-			shiftCode: "Day",
-			changeoverNo: "",
-		},
+		defaultValues,
 		validators: {
 			onChange: runSchema,
 		},

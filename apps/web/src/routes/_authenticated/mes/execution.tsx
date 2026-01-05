@@ -60,6 +60,9 @@ const trackOutSchema = z.object({
 	result: z.enum(["PASS", "FAIL"]),
 });
 
+type TrackInFormValues = z.infer<typeof trackInSchema>;
+type TrackOutFormValues = z.infer<typeof trackOutSchema>;
+
 function ExecutionPage() {
 	const [selectedStation, setSelectedStation] = useState<string>("");
 	const [ngDialogOpen, setNgDialogOpen] = useState(false);
@@ -81,8 +84,9 @@ function ExecutionPage() {
 	const resolveTimerRef = useRef<number | null>(null);
 	const lastResolvedSnRef = useRef<string>("");
 
+	const inDefaultValues: TrackInFormValues = { sn: "", woNo: "", runNo: "" };
 	const inForm = useForm({
-		defaultValues: { sn: "", woNo: "", runNo: "" },
+		defaultValues: inDefaultValues,
 		validators: {
 			onChange: trackInSchema,
 		},
@@ -94,8 +98,9 @@ function ExecutionPage() {
 		},
 	});
 
+	const outDefaultValues: TrackOutFormValues = { sn: "", runNo: "", result: "PASS" };
 	const outForm = useForm({
-		defaultValues: { sn: "", runNo: "", result: "PASS" as "PASS" | "FAIL" },
+		defaultValues: outDefaultValues,
 		validators: {
 			onChange: trackOutSchema,
 		},
@@ -472,7 +477,9 @@ function ExecutionPage() {
 											{(field) => (
 												<Select
 													value={field.state.value}
-													onValueChange={(v) => field.handleChange(v as "PASS" | "FAIL")}
+													onValueChange={(value) =>
+														field.handleChange(value as TrackOutFormValues["result"])
+													}
 												>
 													<SelectTrigger>
 														<SelectValue placeholder="选择结果" />

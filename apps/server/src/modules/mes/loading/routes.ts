@@ -513,15 +513,28 @@ export const slotMappingModule = new Elysia({ prefix: "/slot-mappings" })
 	.use(permissionPlugin)
 	.get(
 		"/",
-		async ({ db, query }) => {
-			const result = await listSlotMaterialMappings(db, query);
+		async ({ db, query, set }) => {
+			const result = await listSlotMaterialMappings(db, {
+				lineId: query.lineId,
+				slotId: query.slotId,
+				productCode: query.productCode,
+				routingId: query.routingId,
+			});
+			if (!result.success) {
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
 			return { ok: true, data: result.data };
 		},
 		{
 			isAuth: true,
 			requirePermission: Permission.LOADING_VIEW,
 			query: slotMappingQuerySchema,
-			response: slotMappingsResponseSchema,
+			response: {
+				200: slotMappingsResponseSchema,
+				400: errorResponseSchema,
+				404: errorResponseSchema,
+			},
 			detail: { tags: ["MES - Loading"], summary: "List slot mappings" },
 		},
 	)
