@@ -33,6 +33,7 @@ import { Route as AuthenticatedMesExecutionRouteImport } from './routes/_authent
 import { Route as AuthenticatedMesDefectsRouteImport } from './routes/_authenticated/mes/defects'
 import { Route as AuthenticatedMesRunsIndexRouteImport } from './routes/_authenticated/mes/runs/index'
 import { Route as AuthenticatedMesRoutesIndexRouteImport } from './routes/_authenticated/mes/routes/index'
+import { Route as AuthenticatedMesLoadingIndexRouteImport } from './routes/_authenticated/mes/loading/index'
 import { Route as AuthenticatedMesRunsRunNoRouteImport } from './routes/_authenticated/mes/runs/$runNo'
 import { Route as AuthenticatedMesRoutesRoutingCodeRouteImport } from './routes/_authenticated/mes/routes/$routingCode'
 import { Route as AuthenticatedMesOqcRulesRouteImport } from './routes/_authenticated/mes/oqc/rules'
@@ -170,6 +171,12 @@ const AuthenticatedMesRoutesIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedMesRoutesRoute,
   } as any)
+const AuthenticatedMesLoadingIndexRoute =
+  AuthenticatedMesLoadingIndexRouteImport.update({
+    id: '/mes/loading/',
+    path: '/mes/loading/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMesRunsRunNoRoute =
   AuthenticatedMesRunsRunNoRouteImport.update({
     id: '/mes/runs/$runNo',
@@ -214,6 +221,7 @@ export interface FileRoutesByFullPath {
   '/mes/oqc/rules': typeof AuthenticatedMesOqcRulesRoute
   '/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
   '/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
+  '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
   '/mes/routes/': typeof AuthenticatedMesRoutesIndexRoute
   '/mes/runs': typeof AuthenticatedMesRunsIndexRoute
 }
@@ -241,6 +249,7 @@ export interface FileRoutesByTo {
   '/mes/oqc/rules': typeof AuthenticatedMesOqcRulesRoute
   '/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
   '/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
+  '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
   '/mes/routes': typeof AuthenticatedMesRoutesIndexRoute
   '/mes/runs': typeof AuthenticatedMesRunsIndexRoute
 }
@@ -271,6 +280,7 @@ export interface FileRoutesById {
   '/_authenticated/mes/oqc/rules': typeof AuthenticatedMesOqcRulesRoute
   '/_authenticated/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
   '/_authenticated/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
+  '/_authenticated/mes/loading/': typeof AuthenticatedMesLoadingIndexRoute
   '/_authenticated/mes/routes/': typeof AuthenticatedMesRoutesIndexRoute
   '/_authenticated/mes/runs/': typeof AuthenticatedMesRunsIndexRoute
 }
@@ -301,6 +311,7 @@ export interface FileRouteTypes {
     | '/mes/oqc/rules'
     | '/mes/routes/$routingCode'
     | '/mes/runs/$runNo'
+    | '/mes/loading'
     | '/mes/routes/'
     | '/mes/runs'
   fileRoutesByTo: FileRoutesByTo
@@ -328,6 +339,7 @@ export interface FileRouteTypes {
     | '/mes/oqc/rules'
     | '/mes/routes/$routingCode'
     | '/mes/runs/$runNo'
+    | '/mes/loading'
     | '/mes/routes'
     | '/mes/runs'
   id:
@@ -357,6 +369,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/oqc/rules'
     | '/_authenticated/mes/routes/$routingCode'
     | '/_authenticated/mes/runs/$runNo'
+    | '/_authenticated/mes/loading/'
     | '/_authenticated/mes/routes/'
     | '/_authenticated/mes/runs/'
   fileRoutesById: FileRoutesById
@@ -536,6 +549,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesRoutesIndexRouteImport
       parentRoute: typeof AuthenticatedMesRoutesRoute
     }
+    '/_authenticated/mes/loading/': {
+      id: '/_authenticated/mes/loading/'
+      path: '/mes/loading'
+      fullPath: '/mes/loading'
+      preLoaderRoute: typeof AuthenticatedMesLoadingIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/mes/runs/$runNo': {
       id: '/_authenticated/mes/runs/$runNo'
       path: '/mes/runs/$runNo'
@@ -610,6 +630,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesIndexRoute: typeof AuthenticatedMesIndexRoute
   AuthenticatedSystemIndexRoute: typeof AuthenticatedSystemIndexRoute
   AuthenticatedMesRunsRunNoRoute: typeof AuthenticatedMesRunsRunNoRoute
+  AuthenticatedMesLoadingIndexRoute: typeof AuthenticatedMesLoadingIndexRoute
   AuthenticatedMesRunsIndexRoute: typeof AuthenticatedMesRunsIndexRoute
 }
 
@@ -638,6 +659,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMesIndexRoute: AuthenticatedMesIndexRoute,
   AuthenticatedSystemIndexRoute: AuthenticatedSystemIndexRoute,
   AuthenticatedMesRunsRunNoRoute: AuthenticatedMesRunsRunNoRoute,
+  AuthenticatedMesLoadingIndexRoute: AuthenticatedMesLoadingIndexRoute,
   AuthenticatedMesRunsIndexRoute: AuthenticatedMesRunsIndexRoute,
 }
 

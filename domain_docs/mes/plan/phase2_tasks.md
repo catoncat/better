@@ -164,8 +164,8 @@ model ReadinessCheckItem {
 - [x] 2.4.10 API: `GET /api/lines/{lineId}/feeder-slots` + `POST /api/slot-mappings`
 - [x] 2.4.11 Gate: Run 授权前检查上料完成情况（通过 readiness 可配置项）
 - [x] 2.4.12 权限: `loading:view/verify/config`
-- [ ] 2.4.13 UI: 上料防错执行页 (扫码界面)
-- [ ] 2.4.14 UI: 上料记录查看 (Run 详情页标签)
+- [x] 2.4.13 UI: 上料防错执行页 (扫码界面)
+- [x] 2.4.14 UI: 上料记录查看 (Run 详情页标签)
 - [ ] 2.4.15 UI: 站位表配置页 (可选)
 
 ### 3.5 Task 2.5: OQC Sampling Flow
