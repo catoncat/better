@@ -1,4 +1,4 @@
-import { useForm } from "@tanstack/react-form";
+import { useForm, useStore } from "@tanstack/react-form";
 import { useEffect } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,12 @@ const formSchema = z
 
 export type OqcCompleteFormValues = z.infer<typeof formSchema>;
 
+const buildDefaultValues = (): OqcCompleteFormValues => ({
+	decision: "PASS",
+	failedQty: 1,
+	remark: "",
+});
+
 interface OqcCompleteDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -59,11 +65,7 @@ export function OqcCompleteDialog({
 	isSubmitting,
 }: OqcCompleteDialogProps) {
 	const form = useForm({
-		defaultValues: {
-			decision: "PASS",
-			failedQty: 1,
-			remark: "",
-		} satisfies OqcCompleteFormValues,
+		defaultValues: buildDefaultValues(),
 		validators: {
 			onSubmit: formSchema,
 		},
@@ -85,18 +87,14 @@ export function OqcCompleteDialog({
 
 	useEffect(() => {
 		if (open) {
-			form.reset({
-				decision: "PASS",
-				failedQty: 1,
-				remark: "",
-			});
+			form.reset(buildDefaultValues());
 		}
 	}, [open, form]);
 
-	const decision = form.useStore((state) => state.values.decision);
-	const failedQty = form.useStore((state) => state.values.failedQty);
+	const decision = useStore(form.store, (state) => state.values.decision);
+	const failedQty = useStore(form.store, (state) => state.values.failedQty);
 	const sampleQty = oqc?.sampleQty ?? undefined;
-	const statusLabel = oqc ? INSPECTION_STATUS_MAP[oqc.status] ?? oqc.status : "-";
+	const statusLabel = oqc ? (INSPECTION_STATUS_MAP[oqc.status] ?? oqc.status) : "-";
 
 	const remainingQty =
 		sampleQty !== undefined && failedQty !== undefined

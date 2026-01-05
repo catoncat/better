@@ -1,10 +1,9 @@
 import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Can } from "@/components/ability/can";
+import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
-import { useQueryPresets } from "@/hooks/use-query-presets";
 import {
 	type OqcInspection,
 	useCompleteOqc,
@@ -13,10 +12,11 @@ import {
 	useRecordOqcItem,
 	useStartOqc,
 } from "@/hooks/use-oqc";
+import { useQueryPresets } from "@/hooks/use-query-presets";
 import { INSPECTION_STATUS_MAP } from "@/lib/constants";
 import { OqcCard } from "./-components/oqc-card";
+import { type OqcTableMeta, oqcColumns } from "./-components/oqc-columns";
 import { OqcCompleteDialog, type OqcCompleteFormValues } from "./-components/oqc-complete-dialog";
-import { oqcColumns, type OqcTableMeta } from "./-components/oqc-columns";
 import { OqcRecordDialog, type OqcRecordFormValues } from "./-components/oqc-record-dialog";
 
 interface OqcFilters {
@@ -273,11 +273,11 @@ function OqcPage() {
 							<h1 className="text-2xl font-bold tracking-tight">出货检验 (OQC)</h1>
 							<p className="text-muted-foreground">管理 OQC 抽检任务与检验记录。</p>
 						</div>
-					<Can permissions={Permission.QUALITY_OQC}>
-						<Button variant="secondary" size="sm" onClick={() => void refetch()}>
-							刷新列表
-						</Button>
-					</Can>
+						<Can permissions={Permission.QUALITY_OQC}>
+							<Button variant="secondary" size="sm" onClick={() => void refetch()}>
+								刷新列表
+							</Button>
+						</Can>
 					</div>
 				}
 				queryPresetBarProps={{

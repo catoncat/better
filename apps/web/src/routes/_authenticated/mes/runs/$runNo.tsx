@@ -36,10 +36,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import {
-	MrbDecisionDialog,
-	type MrbDecisionFormValues,
-} from "@/routes/_authenticated/mes/-components/mrb-decision-dialog";
 import { useCreateFai, useFaiByRun, useFaiGate } from "@/hooks/use-fai";
 import { useMrbDecision, useOqcByRun } from "@/hooks/use-oqc";
 import {
@@ -51,6 +47,10 @@ import {
 } from "@/hooks/use-readiness";
 import { useRunDetail } from "@/hooks/use-runs";
 import { INSPECTION_STATUS_MAP } from "@/lib/constants";
+import {
+	MrbDecisionDialog,
+	type MrbDecisionFormValues,
+} from "@/routes/_authenticated/mes/-components/mrb-decision-dialog";
 
 export const Route = createFileRoute("/_authenticated/mes/runs/$runNo")({
 	component: RunDetailPage,

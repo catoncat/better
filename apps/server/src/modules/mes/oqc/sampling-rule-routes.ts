@@ -4,7 +4,6 @@ import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
-import { createSamplingRuleSchema, samplingRuleQuerySchema, updateSamplingRuleSchema } from "./schema";
 import {
 	createSamplingRule,
 	deleteSamplingRule,
@@ -12,6 +11,11 @@ import {
 	listSamplingRules,
 	updateSamplingRule,
 } from "./sampling-rule-service";
+import {
+	createSamplingRuleSchema,
+	samplingRuleQuerySchema,
+	updateSamplingRuleSchema,
+} from "./schema";
 
 export const samplingRuleRoutes = new Elysia({ prefix: "/oqc/sampling-rules" })
 	.use(prismaPlugin)
@@ -182,6 +186,9 @@ export const samplingRuleRoutes = new Elysia({ prefix: "/oqc/sampling-rules" })
 		{
 			isAuth: true,
 			requirePermission: Permission.QUALITY_OQC,
-			detail: { tags: ["MES - OQC Sampling Rules"], summary: "Delete (deactivate) OQC sampling rule" },
+			detail: {
+				tags: ["MES - OQC Sampling Rules"],
+				summary: "Delete (deactivate) OQC sampling rule",
+			},
 		},
 	);

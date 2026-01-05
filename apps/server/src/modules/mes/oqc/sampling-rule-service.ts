@@ -8,7 +8,10 @@ type CreateSamplingRuleInput = Static<typeof createSamplingRuleSchema>;
 type UpdateSamplingRuleInput = Static<typeof updateSamplingRuleSchema>;
 
 type SamplingRuleRecord = Prisma.OqcSamplingRuleGetPayload<{
-	include: { line: { select: { code: true; name: true } }; routing: { select: { code: true; name: true } } };
+	include: {
+		line: { select: { code: true; name: true } };
+		routing: { select: { code: true; name: true } };
+	};
 }>;
 
 const tracer = trace.getTracer("mes.oqc.sampling-rule");
@@ -265,9 +268,14 @@ export async function updateSamplingRule(
 			const updateData: Prisma.OqcSamplingRuleUpdateInput = {};
 
 			if (data.productCode !== undefined) updateData.productCode = data.productCode;
-			if (data.lineId !== undefined) updateData.line = data.lineId ? { connect: { id: data.lineId } } : { disconnect: true };
-			if (data.routingId !== undefined) updateData.routing = data.routingId ? { connect: { id: data.routingId } } : { disconnect: true };
-			if (data.samplingType !== undefined) updateData.samplingType = data.samplingType as OqcSamplingType;
+			if (data.lineId !== undefined)
+				updateData.line = data.lineId ? { connect: { id: data.lineId } } : { disconnect: true };
+			if (data.routingId !== undefined)
+				updateData.routing = data.routingId
+					? { connect: { id: data.routingId } }
+					: { disconnect: true };
+			if (data.samplingType !== undefined)
+				updateData.samplingType = data.samplingType as OqcSamplingType;
 			if (data.sampleValue !== undefined) updateData.sampleValue = data.sampleValue;
 			if (data.priority !== undefined) updateData.priority = data.priority;
 			if (data.isActive !== undefined) updateData.isActive = data.isActive;
@@ -365,10 +373,7 @@ export async function getApplicableRule(
 					},
 					// Line: either matches or rule has no line restriction
 					{
-						OR: [
-							{ lineId: null },
-							...(params.lineId ? [{ lineId: params.lineId }] : []),
-						],
+						OR: [{ lineId: null }, ...(params.lineId ? [{ lineId: params.lineId }] : [])],
 					},
 					// Routing: either matches or rule has no routing restriction
 					{

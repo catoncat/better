@@ -1,9 +1,9 @@
 import { Permission } from "@better-app/db/permissions";
+import { useForm, useStore } from "@tanstack/react-form";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { Edit2, PlusCircle, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "@tanstack/react-form";
 import * as z from "zod";
 import { Can } from "@/components/ability/can";
 import { Badge } from "@/components/ui/badge";
@@ -65,17 +65,17 @@ const stationTypeEnum = z.enum(["AUTO", "BATCH", "MANUAL", "TEST"]);
 const configSchema = z
 	.object({
 		scopeType: z.enum(["ROUTE", "OPERATION", "STEP", "SOURCE_STEP"]),
-		stepNo: z.string().optional(),
-		sourceStepKey: z.string().optional(),
-		operationCode: z.string().optional(),
-		stationType: z.union([stationTypeEnum, z.literal("")]).optional(),
-		stationGroupCode: z.string().optional(),
-		allowedStationIds: z.array(z.string()).optional(),
-		requiresFAI: z.boolean().optional(),
-		requiresAuthorization: z.boolean().optional(),
-		dataSpecIdsText: z.string().optional(),
-		ingestMappingText: z.string().optional(),
-		metaText: z.string().optional(),
+		stepNo: z.string(),
+		sourceStepKey: z.string(),
+		operationCode: z.string(),
+		stationType: z.union([stationTypeEnum, z.literal("")]),
+		stationGroupCode: z.string(),
+		allowedStationIds: z.array(z.string()),
+		requiresFAI: z.boolean(),
+		requiresAuthorization: z.boolean(),
+		dataSpecIdsText: z.string(),
+		ingestMappingText: z.string(),
+		metaText: z.string(),
 	})
 	.superRefine((data, ctx) => {
 		if (data.scopeType === "STEP" && !data.stepNo) {
@@ -94,6 +94,30 @@ const configSchema = z
 				path: ["operationCode"],
 				message: "请选择工序",
 			});
+		}
+
+		if (data.ingestMappingText.trim() !== "") {
+			try {
+				JSON.parse(data.ingestMappingText);
+			} catch {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["ingestMappingText"],
+					message: "JSON 格式不正确",
+				});
+			}
+		}
+
+		if (data.metaText.trim() !== "") {
+			try {
+				JSON.parse(data.metaText);
+			} catch {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["metaText"],
+					message: "JSON 格式不正确",
+				});
+			}
 		}
 	});
 
@@ -445,7 +469,7 @@ function ExecutionConfigDialog({
 	const createMutation = useCreateExecutionConfig(routingCode);
 	const updateMutation = useUpdateExecutionConfig(routingCode, editingConfig?.id ?? "");
 
-	const resolvedScopeType = useMemo(() => {
+	const resolvedScopeType = useMemo<ConfigFormValues["scopeType"]>(() => {
 		if (editingConfig?.routingStepId) return "STEP";
 		if (editingConfig?.sourceStepKey) return "SOURCE_STEP";
 		if (editingConfig?.operationId) return "OPERATION";
@@ -471,7 +495,7 @@ function ExecutionConfigDialog({
 				? JSON.stringify(editingConfig.ingestMapping, null, 2)
 				: "",
 			metaText: editingConfig?.meta ? JSON.stringify(editingConfig.meta, null, 2) : "",
-		},
+		} satisfies ConfigFormValues,
 		validators: {
 			onChange: configSchema,
 		},
@@ -480,24 +504,13 @@ function ExecutionConfigDialog({
 			const ingestMapping = parseJson(values.ingestMappingText);
 			const meta = parseJson(values.metaText);
 
-			if (values.ingestMappingText && ingestMapping === null) {
-				form.pushError({
-					name: "ingestMappingText",
-					message: "JSON 格式不正确",
-				});
-				return;
-			}
-			if (values.metaText && meta === null) {
-				form.pushError({
-					name: "metaText",
-					message: "JSON 格式不正确",
-				});
+			if (ingestMapping === null || meta === null) {
 				return;
 			}
 
 			const stationGroupCode =
 				values.stationGroupCode === "__NONE__" ? null : values.stationGroupCode || undefined;
-			const stationType = values.stationType || undefined;
+			const stationType = values.stationType !== "" ? values.stationType : undefined;
 
 			if (isEdit && editingConfig) {
 				await updateMutation.mutateAsync({
@@ -570,9 +583,7 @@ function ExecutionConfigDialog({
 		}
 	}, [editingConfig, form, open]);
 
-
-
-	const scopeType = form.useStore((state) => state.values.scopeType);
+	const scopeType = useStore(form.store, (state) => state.values.scopeType);
 	const stepOptionsForSelect = stepOptions.map((option) => ({
 		value: option.value,
 		label: option.label,
@@ -593,108 +604,45 @@ function ExecutionConfigDialog({
 					}}
 					className="space-y-4"
 				>
-						<div className="grid gap-4 md:grid-cols-2">
-							<Field
-								form={form}
-								name="scopeType"
-								label="配置范围"
-							>
-								{(field) => (
-									<Select
-										value={field.state.value}
-										onValueChange={field.handleChange}
-										disabled={isEdit}
-									>
-										<SelectTrigger>
-											<SelectValue placeholder="选择范围" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="ROUTE">整条路由</SelectItem>
-											<SelectItem value="OPERATION">工序</SelectItem>
-											<SelectItem value="STEP">步骤</SelectItem>
-											<SelectItem value="SOURCE_STEP">来源步骤</SelectItem>
-										</SelectContent>
-									</Select>
-								)}
-							</Field>
-
-							{scopeType === "STEP" && (
-								<Field form={form} name="stepNo" label="步骤">
-									{(field) => (
-										<Select value={field.state.value || ""} onValueChange={field.handleChange}>
-											<SelectTrigger>
-												<SelectValue placeholder="选择步骤" />
-											</SelectTrigger>
-											<SelectContent>
-												{stepOptionsForSelect.map((option) => (
-													<SelectItem key={option.value} value={option.value}>
-														{option.label}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									)}
-								</Field>
-							)}
-
-							{scopeType === "SOURCE_STEP" && (
-								<Field
-									form={form}
-									name="sourceStepKey"
-									label="来源步骤"
+					<div className="grid gap-4 md:grid-cols-2">
+						<Field form={form} name="scopeType" label="配置范围">
+							{(field) => (
+								<Select
+									value={field.state.value}
+									onValueChange={(value) => {
+										if (
+											value === "ROUTE" ||
+											value === "OPERATION" ||
+											value === "STEP" ||
+											value === "SOURCE_STEP"
+										) {
+											field.handleChange(value);
+										}
+									}}
+									disabled={isEdit}
 								>
-									{(field) => (
-										<Select value={field.state.value || ""} onValueChange={field.handleChange}>
-											<SelectTrigger>
-												<SelectValue placeholder="选择来源步骤" />
-											</SelectTrigger>
-											<SelectContent>
-												{sourceStepOptions.map((option) => (
-													<SelectItem key={option.value} value={option.value}>
-														{option.label}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									)}
-								</Field>
+									<SelectTrigger>
+										<SelectValue placeholder="选择范围" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="ROUTE">整条路由</SelectItem>
+										<SelectItem value="OPERATION">工序</SelectItem>
+										<SelectItem value="STEP">步骤</SelectItem>
+										<SelectItem value="SOURCE_STEP">来源步骤</SelectItem>
+									</SelectContent>
+								</Select>
 							)}
+						</Field>
 
-							{scopeType === "OPERATION" && (
-								<Field
-									form={form}
-									name="operationCode"
-									label="工序"
-								>
-									{(field) => (
-										<Select value={field.state.value || ""} onValueChange={field.handleChange}>
-											<SelectTrigger>
-												<SelectValue placeholder="选择工序" />
-											</SelectTrigger>
-											<SelectContent>
-												{operationOptions.map((option) => (
-													<SelectItem key={option.value} value={option.value}>
-														{option.label}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									)}
-								</Field>
-							)}
-
-							<Field
-								form={form}
-								name="stationType"
-								label="站点类型"
-							>
+						{scopeType === "STEP" && (
+							<Field form={form} name="stepNo" label="步骤">
 								{(field) => (
 									<Select value={field.state.value || ""} onValueChange={field.handleChange}>
 										<SelectTrigger>
-											<SelectValue placeholder="选择站点类型" />
+											<SelectValue placeholder="选择步骤" />
 										</SelectTrigger>
 										<SelectContent>
-											{stationTypeOptions.map((option) => (
+											{stepOptionsForSelect.map((option) => (
 												<SelectItem key={option.value} value={option.value}>
 													{option.label}
 												</SelectItem>
@@ -703,171 +651,212 @@ function ExecutionConfigDialog({
 									</Select>
 								)}
 							</Field>
+						)}
 
-							<Field
-								form={form}
-								name="stationGroupCode"
-								label="站点组"
-							>
+						{scopeType === "SOURCE_STEP" && (
+							<Field form={form} name="sourceStepKey" label="来源步骤">
 								{(field) => (
-									<Combobox
-										options={[
-											{ value: "__NONE__", label: "不指定站点组" },
-											...stationGroupOptions,
-										]}
-										value={field.state.value || ""}
-										onValueChange={field.handleChange}
-										placeholder="选择站点组"
-										searchPlaceholder="搜索站点组"
-										emptyText="未找到站点组"
-									/>
+									<Select value={field.state.value || ""} onValueChange={field.handleChange}>
+										<SelectTrigger>
+											<SelectValue placeholder="选择来源步骤" />
+										</SelectTrigger>
+										<SelectContent>
+											{sourceStepOptions.map((option) => (
+												<SelectItem key={option.value} value={option.value}>
+													{option.label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
 								)}
 							</Field>
-						</div>
+						)}
 
-						<Field
-							form={form}
-							name="allowedStationIds"
-							label="允许站点"
-						>
+						{scopeType === "OPERATION" && (
+							<Field form={form} name="operationCode" label="工序">
+								{(field) => (
+									<Select
+										value={field.state.value || ""}
+										onValueChange={(value) => field.handleChange(value)}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="选择工序" />
+										</SelectTrigger>
+										<SelectContent>
+											{operationOptions.map((option) => (
+												<SelectItem key={option.value} value={option.value}>
+													{option.label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								)}
+							</Field>
+						)}
+
+						<Field form={form} name="stationType" label="站点类型">
 							{(field) => (
-								<div className="max-h-48 overflow-auto rounded-md border border-border p-3 space-y-2">
-									{stations.length === 0 ? (
-										<div className="text-sm text-muted-foreground">暂无工位数据</div>
-									) : (
-										stations.map((station) => {
-											const checked = (field.state.value ?? []).includes(station.id);
-											const checkboxId = `station-${station.id}`;
-											return (
-												<div key={station.id} className="flex items-center gap-2 text-sm">
-													<Checkbox
-														id={checkboxId}
-														checked={checked}
-														onCheckedChange={(value) => {
-															const next = new Set(field.state.value ?? []);
-															if (value) {
-																next.add(station.id);
-															} else {
-																next.delete(station.id);
-															}
-															field.handleChange(Array.from(next));
-														}}
-													/>
-													<label htmlFor={checkboxId} className="cursor-pointer">
-														{station.code} · {station.name}
-													</label>
-												</div>
-											);
-										})
-									)}
-								</div>
+								<Select
+									value={field.state.value || ""}
+									onValueChange={(value) => {
+										if (
+											value === "" ||
+											value === "AUTO" ||
+											value === "BATCH" ||
+											value === "MANUAL" ||
+											value === "TEST"
+										) {
+											field.handleChange(value);
+										}
+									}}
+								>
+									<SelectTrigger>
+										<SelectValue placeholder="选择站点类型" />
+									</SelectTrigger>
+									<SelectContent>
+										{stationTypeOptions.map((option) => (
+											<SelectItem key={option.value} value={option.value}>
+												{option.label}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
 							)}
 						</Field>
 
-						<div className="grid gap-4 md:grid-cols-2">
-							<Field
-								form={form}
-								name="requiresFAI"
-								label="需要首件"
-							>
-								{(field) => (
-									<Select
-										value={field.state.value ? "true" : "false"}
-										onValueChange={(value) => field.handleChange(value === "true")}
-									>
-										<SelectTrigger>
-											<SelectValue placeholder="选择" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="false">否</SelectItem>
-											<SelectItem value="true">是</SelectItem>
-										</SelectContent>
-									</Select>
-								)}
-							</Field>
-							<Field
-								form={form}
-								name="requiresAuthorization"
-								label="需要授权"
-							>
-								{(field) => (
-									<Select
-										value={field.state.value ? "true" : "false"}
-										onValueChange={(value) => field.handleChange(value === "true")}
-									>
-										<SelectTrigger>
-											<SelectValue placeholder="选择" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="false">否</SelectItem>
-											<SelectItem value="true">是</SelectItem>
-										</SelectContent>
-									</Select>
-								)}
-							</Field>
-						</div>
-
-						<Field
-							form={form}
-							name="dataSpecIdsText"
-							label="采集项标识"
-						>
+						<Field form={form} name="stationGroupCode" label="站点组">
 							{(field) => (
-								<Input
-									placeholder="多个用逗号分隔，例如 TEMP,POWER"
+								<Combobox
+									options={[{ value: "__NONE__", label: "不指定站点组" }, ...stationGroupOptions]}
+									value={field.state.value || ""}
+									onValueChange={field.handleChange}
+									placeholder="选择站点组"
+									searchPlaceholder="搜索站点组"
+									emptyText="未找到站点组"
+								/>
+							)}
+						</Field>
+					</div>
+
+					<Field form={form} name="allowedStationIds" label="允许站点">
+						{(field) => (
+							<div className="max-h-48 overflow-auto rounded-md border border-border p-3 space-y-2">
+								{stations.length === 0 ? (
+									<div className="text-sm text-muted-foreground">暂无工位数据</div>
+								) : (
+									stations.map((station) => {
+										const checked = (field.state.value ?? []).includes(station.id);
+										const checkboxId = `station-${station.id}`;
+										return (
+											<div key={station.id} className="flex items-center gap-2 text-sm">
+												<Checkbox
+													id={checkboxId}
+													checked={checked}
+													onCheckedChange={(value) => {
+														const next = new Set(field.state.value ?? []);
+														if (value) {
+															next.add(station.id);
+														} else {
+															next.delete(station.id);
+														}
+														field.handleChange(Array.from(next));
+													}}
+												/>
+												<label htmlFor={checkboxId} className="cursor-pointer">
+													{station.code} · {station.name}
+												</label>
+											</div>
+										);
+									})
+								)}
+							</div>
+						)}
+					</Field>
+
+					<div className="grid gap-4 md:grid-cols-2">
+						<Field form={form} name="requiresFAI" label="需要首件">
+							{(field) => (
+								<Select
+									value={field.state.value ? "true" : "false"}
+									onValueChange={(value) => field.handleChange(value === "true")}
+								>
+									<SelectTrigger>
+										<SelectValue placeholder="选择" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="false">否</SelectItem>
+										<SelectItem value="true">是</SelectItem>
+									</SelectContent>
+								</Select>
+							)}
+						</Field>
+						<Field form={form} name="requiresAuthorization" label="需要授权">
+							{(field) => (
+								<Select
+									value={field.state.value ? "true" : "false"}
+									onValueChange={(value) => field.handleChange(value === "true")}
+								>
+									<SelectTrigger>
+										<SelectValue placeholder="选择" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="false">否</SelectItem>
+										<SelectItem value="true">是</SelectItem>
+									</SelectContent>
+								</Select>
+							)}
+						</Field>
+					</div>
+
+					<Field form={form} name="dataSpecIdsText" label="采集项标识">
+						{(field) => (
+							<Input
+								placeholder="多个用逗号分隔，例如 TEMP,POWER"
+								value={field.state.value}
+								onBlur={field.handleBlur}
+								onChange={(e) => field.handleChange(e.target.value)}
+							/>
+						)}
+					</Field>
+
+					<div className="grid gap-4 md:grid-cols-2">
+						<Field form={form} name="ingestMappingText" label="采集映射 (JSON)">
+							{(field) => (
+								<Textarea
+									placeholder='例如 {"serial":"SN","result":"PASS"}'
+									rows={6}
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
 							)}
 						</Field>
+						<Field form={form} name="metaText" label="扩展信息 (JSON)">
+							{(field) => (
+								<Textarea
+									placeholder='例如 {"note":"..."}'
+									rows={6}
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+								/>
+							)}
+						</Field>
+					</div>
 
-						<div className="grid gap-4 md:grid-cols-2">
-							<Field
-								form={form}
-								name="ingestMappingText"
-								label="采集映射 (JSON)"
-							>
-								{(field) => (
-									<Textarea
-										placeholder='例如 {"serial":"SN","result":"PASS"}'
-										rows={6}
-										value={field.state.value}
-										onBlur={field.handleBlur}
-										onChange={(e) => field.handleChange(e.target.value)}
-									/>
-								)}
-							</Field>
-							<Field
-								form={form}
-								name="metaText"
-								label="扩展信息 (JSON)"
-							>
-								{(field) => (
-									<Textarea
-										placeholder='例如 {"note":"..."}'
-										rows={6}
-										value={field.state.value}
-										onBlur={field.handleBlur}
-										onChange={(e) => field.handleChange(e.target.value)}
-									/>
-								)}
-							</Field>
-						</div>
-
-						<DialogFooter>
-							<Button
-								type="submit"
-								disabled={
-									createMutation.isPending ||
-									updateMutation.isPending ||
-									!hasPermission(Permission.ROUTE_CONFIGURE)
-								}
-							>
-								{createMutation.isPending || updateMutation.isPending ? "保存中..." : "保存配置"}
-							</Button>
-						</DialogFooter>
-					</form>
+					<DialogFooter>
+						<Button
+							type="submit"
+							disabled={
+								createMutation.isPending ||
+								updateMutation.isPending ||
+								!hasPermission(Permission.ROUTE_CONFIGURE)
+							}
+						>
+							{createMutation.isPending || updateMutation.isPending ? "保存中..." : "保存配置"}
+						</Button>
+					</DialogFooter>
+				</form>
 			</DialogContent>
 		</Dialog>
 	);

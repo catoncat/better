@@ -1,5 +1,5 @@
 import { Permission } from "@better-app/db/permissions";
-import { ClipboardCheck, Eye, Play, CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ClipboardCheck, Eye, Play } from "lucide-react";
 import { Can } from "@/components/ability/can";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -23,15 +23,11 @@ export function OqcCard({ oqc, onStart, onRecord, onComplete, onView }: OqcCardP
 	return (
 		<Card>
 			<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-				<div className="text-sm font-medium">
-					{primaryField?.cardValue?.(oqc) ?? "-"}
-				</div>
+				<div className="text-sm font-medium">{primaryField?.cardValue?.(oqc) ?? "-"}</div>
 				{badgeField?.cardValue?.(oqc)}
 			</CardHeader>
 			<CardContent>
-				<div className="text-lg font-bold">
-					{secondaryField?.cardValue?.(oqc) ?? "-"}
-				</div>
+				<div className="text-lg font-bold">{secondaryField?.cardValue?.(oqc) ?? "-"}</div>
 				<div className="mt-4 space-y-1 text-sm">
 					{detailFields.map((field) => (
 						<div key={field.key} className="flex justify-between">

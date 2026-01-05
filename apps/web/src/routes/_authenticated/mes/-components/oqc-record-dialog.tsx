@@ -1,4 +1,4 @@
-import { useForm } from "@tanstack/react-form";
+import { useForm, useStore } from "@tanstack/react-form";
 import { useEffect } from "react";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +46,16 @@ const formSchema = z.object({
 
 export type OqcRecordFormValues = z.infer<typeof formSchema>;
 
+const buildDefaultValues = (): OqcRecordFormValues => ({
+	unitSn: "",
+	itemName: "",
+	itemSpec: "",
+	actualValue: "",
+	result: "PASS",
+	defectCode: "",
+	remark: "",
+});
+
 interface OqcRecordDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -64,15 +74,7 @@ export function OqcRecordDialog({
 	readOnly,
 }: OqcRecordDialogProps) {
 	const form = useForm({
-		defaultValues: {
-			unitSn: "",
-			itemName: "",
-			itemSpec: "",
-			actualValue: "",
-			result: "PASS",
-			defectCode: "",
-			remark: "",
-		} satisfies OqcRecordFormValues,
+		defaultValues: buildDefaultValues(),
 		validators: {
 			onSubmit: formSchema,
 		},
@@ -98,9 +100,9 @@ export function OqcRecordDialog({
 		}
 	}, [open, form]);
 
-	const result = form.useStore((state) => state.values.result);
+	const result = useStore(form.store, (state) => state.values.result);
 	const canRecord = !readOnly && oqc?.status === "INSPECTING";
-	const statusLabel = oqc ? INSPECTION_STATUS_MAP[oqc.status] ?? oqc.status : "-";
+	const statusLabel = oqc ? (INSPECTION_STATUS_MAP[oqc.status] ?? oqc.status) : "-";
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -163,18 +165,16 @@ export function OqcRecordDialog({
 										<TableBody>
 											{oqc.items.map((item) => (
 												<TableRow key={item.id}>
-													<TableCell className="font-mono text-xs">
-														{item.unitSn ?? "-"}
-													</TableCell>
+													<TableCell className="font-mono text-xs">{item.unitSn ?? "-"}</TableCell>
 													<TableCell>{item.itemName}</TableCell>
 													<TableCell>
 														<Badge
 															variant={
 																item.result === "FAIL"
-																		? "destructive"
-																		: item.result === "PASS"
-																			? "secondary"
-																			: "outline"
+																	? "destructive"
+																	: item.result === "PASS"
+																		? "secondary"
+																		: "outline"
 															}
 														>
 															{INSPECTION_RESULT_MAP[item.result] ?? item.result}

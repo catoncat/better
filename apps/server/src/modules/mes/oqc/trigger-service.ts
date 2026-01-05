@@ -1,8 +1,4 @@
-import {
-	RunStatus,
-	UnitStatus,
-	type PrismaClient,
-} from "@better-app/db";
+import { type PrismaClient, RunStatus, UnitStatus } from "@better-app/db";
 import { trace } from "@opentelemetry/api";
 import type { ServiceResult } from "../../../types/service-result";
 import { calculateSampleSize, getApplicableRule } from "./sampling-rule-service";
@@ -13,17 +9,12 @@ const tracer = trace.getTracer("mes.oqc.trigger");
 /**
  * Unit statuses that indicate a unit has completed OQC eligibility.
  */
-const TERMINAL_UNIT_STATUSES: UnitStatus[] = [
-	UnitStatus.DONE,
-];
+const TERMINAL_UNIT_STATUSES: UnitStatus[] = [UnitStatus.DONE];
 
 /**
  * Check if all units in a run are DONE.
  */
-export async function areAllUnitsTerminal(
-	db: PrismaClient,
-	runId: string,
-): Promise<boolean> {
+export async function areAllUnitsTerminal(db: PrismaClient, runId: string): Promise<boolean> {
 	const run = await db.run.findUnique({
 		where: { id: runId },
 		include: { units: { select: { status: true } } },
@@ -48,8 +39,12 @@ export function selectSampleUnits<T>(units: T[], sampleSize: number): T[] {
 	const shuffled = [...units];
 	for (let i = shuffled.length - 1; i > 0; i--) {
 		const j = Math.floor(Math.random() * (i + 1));
-		const temp = shuffled[i]!;
-		shuffled[i] = shuffled[j]!;
+		const temp = shuffled[i];
+		const swap = shuffled[j];
+		if (temp === undefined || swap === undefined) {
+			continue;
+		}
+		shuffled[i] = swap;
 		shuffled[j] = temp;
 	}
 
@@ -104,7 +99,10 @@ export async function checkAndTriggerOqc(
 				span.setAttribute("reason", `run_status_${run.status}`);
 				return {
 					success: true as const,
-					data: { triggered: false as const, reason: `Run status ${run.status} does not allow OQC trigger` },
+					data: {
+						triggered: false as const,
+						reason: `Run status ${run.status} does not allow OQC trigger`,
+					},
 				};
 			}
 
@@ -145,7 +143,11 @@ export async function checkAndTriggerOqc(
 
 				return {
 					success: true as const,
-					data: { triggered: false as const, reason: "No sampling rule applicable", completed: true },
+					data: {
+						triggered: false as const,
+						reason: "No sampling rule applicable",
+						completed: true,
+					},
 				};
 			}
 
@@ -165,13 +167,18 @@ export async function checkAndTriggerOqc(
 			const sampledUnitIds = sampledUnits.map((u) => u.id);
 
 			// Create OQC task
-			const oqcResult = await createOqc(db, runNo, { sampleQty: sampleSize }, {
-				createdBy: options?.createdBy,
-				sampledUnitIds,
-				samplingRuleId: rule.id,
-				samplingType: rule.samplingType,
-				samplingValue: rule.sampleValue,
-			});
+			const oqcResult = await createOqc(
+				db,
+				runNo,
+				{ sampleQty: sampleSize },
+				{
+					createdBy: options?.createdBy,
+					sampledUnitIds,
+					samplingRuleId: rule.id,
+					samplingType: rule.samplingType,
+					samplingValue: rule.sampleValue,
+				},
+			);
 
 			if (!oqcResult.success) {
 				return oqcResult;
@@ -183,7 +190,7 @@ export async function checkAndTriggerOqc(
 			return {
 				success: true as const,
 				data: {
-					triggered: true,
+					triggered: true as const,
 					oqcId: oqcResult.data.id,
 					sampleSize,
 				},

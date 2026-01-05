@@ -1,9 +1,9 @@
 import { Permission } from "@better-app/db/permissions";
+import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useForm } from "@tanstack/react-form";
 import * as z from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -81,8 +81,11 @@ function ExecutionPage() {
 	const resolveTimerRef = useRef<number | null>(null);
 	const lastResolvedSnRef = useRef<string>("");
 
+	const trackInDefaults: z.infer<typeof trackInSchema> = { sn: "", woNo: "", runNo: "" };
+	const trackOutDefaults: z.infer<typeof trackOutSchema> = { sn: "", runNo: "", result: "PASS" };
+
 	const inForm = useForm({
-		defaultValues: { sn: "", woNo: "", runNo: "" },
+		defaultValues: trackInDefaults,
 		validators: {
 			onChange: trackInSchema,
 		},
@@ -95,7 +98,7 @@ function ExecutionPage() {
 	});
 
 	const outForm = useForm({
-		defaultValues: { sn: "", runNo: "", result: "PASS" as const },
+		defaultValues: trackOutDefaults,
 		validators: {
 			onChange: trackOutSchema,
 		},
@@ -415,11 +418,7 @@ function ExecutionPage() {
 												)}
 											</Field>
 										</div>
-										<Button
-											type="submit"
-											className="w-full"
-											disabled={isInPending || !canTrackIn}
-										>
+										<Button type="submit" className="w-full" disabled={isInPending || !canTrackIn}>
 											{!canTrackIn ? "无进站权限" : isInPending ? "处理中..." : "确认进站"}
 										</Button>
 									</form>
@@ -476,7 +475,11 @@ function ExecutionPage() {
 											{(field) => (
 												<Select
 													value={field.state.value}
-													onValueChange={field.handleChange}
+													onValueChange={(value) => {
+														if (value === "PASS" || value === "FAIL") {
+															field.handleChange(value);
+														}
+													}}
 												>
 													<SelectTrigger>
 														<SelectValue placeholder="选择结果" />
@@ -496,9 +499,7 @@ function ExecutionPage() {
 											{!canTrackOut ? "无出站权限" : isOutPending ? "处理中..." : "确认出站"}
 										</Button>
 										{isResolvingSn && (
-											<div className="text-xs text-muted-foreground">
-												正在根据 SN 自动匹配批次…
-											</div>
+											<div className="text-xs text-muted-foreground">正在根据 SN 自动匹配批次…</div>
 										)}
 									</form>
 								</CardContent>

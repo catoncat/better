@@ -1,10 +1,10 @@
 import {
 	InspectionStatus,
 	InspectionType,
-	RunStatus,
-	UnitStatus,
 	type Prisma,
 	type PrismaClient,
+	RunStatus,
+	UnitStatus,
 } from "@better-app/db";
 import { SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
@@ -13,6 +13,14 @@ import type { createReworkRunSchema, mrbDecisionSchema } from "./schema";
 
 type MrbDecisionInput = Static<typeof mrbDecisionSchema>;
 type CreateReworkRunInput = Static<typeof createReworkRunSchema>;
+
+type ReworkType = "REUSE_PREP" | "FULL_PREP";
+
+const isReworkDecision = (
+	input: MrbDecisionInput,
+): input is MrbDecisionInput & { decision: "REWORK"; reworkType: ReworkType } =>
+	input.decision === "REWORK" &&
+	(input.reworkType === "REUSE_PREP" || input.reworkType === "FULL_PREP");
 
 type RunWithRelations = Prisma.RunGetPayload<{
 	include: {
@@ -224,7 +232,7 @@ export async function recordMrbDecision(
 					where: { id: oqcInspection.id },
 					data: {
 						data: {
-							...(oqcInspection.data as Record<string, unknown> || {}),
+							...((oqcInspection.data as Record<string, unknown>) || {}),
 							...mrbData,
 						},
 					},
@@ -232,29 +240,23 @@ export async function recordMrbDecision(
 
 				// Apply the decision
 				let newRunStatus: RunStatus;
-				switch (data.decision) {
-					case "RELEASE":
-						newRunStatus = RunStatus.COMPLETED;
-						break;
-					case "REWORK":
-						newRunStatus = RunStatus.CLOSED_REWORK;
-						// Create rework run
-						reworkRunNo = await createReworkRun(tx, run, {
-							reworkType: data.reworkType!,
-							faiWaiver: data.faiWaiver,
-							faiWaiverReason: data.faiWaiverReason,
-							mrbAuthorizedBy: options?.decidedBy,
-							firstStepNo: firstStepResult?.data.firstStepNo ?? 1,
-						});
-						break;
-					case "SCRAP":
-						newRunStatus = RunStatus.SCRAPPED;
-						// Mark all units as SCRAPPED
-						await tx.unit.updateMany({
-							where: { runId: run.id },
-							data: { status: UnitStatus.SCRAPPED },
-						});
-						break;
+				if (data.decision === "RELEASE") {
+					newRunStatus = RunStatus.COMPLETED;
+				} else if (isReworkDecision(data)) {
+					newRunStatus = RunStatus.CLOSED_REWORK;
+					reworkRunNo = await createReworkRun(tx, run, {
+						reworkType: data.reworkType,
+						faiWaiver: data.faiWaiver,
+						faiWaiverReason: data.faiWaiverReason,
+						mrbAuthorizedBy: options?.decidedBy,
+						firstStepNo: firstStepResult?.data.firstStepNo ?? 1,
+					});
+				} else {
+					newRunStatus = RunStatus.SCRAPPED;
+					await tx.unit.updateMany({
+						where: { runId: run.id },
+						data: { status: UnitStatus.SCRAPPED },
+					});
 				}
 
 				// Update run status
@@ -478,9 +480,10 @@ async function createReworkRun(
 	const reworkRunNo = `${parentRun.runNo}-RW${reworkSeq}`;
 
 	// Determine initial status based on rework type
-	const initialStatus = options.reworkType === "REUSE_PREP"
-		? RunStatus.AUTHORIZED  // Skip PREP and FAI
-		: RunStatus.PREP;       // Full lifecycle
+	const initialStatus =
+		options.reworkType === "REUSE_PREP"
+			? RunStatus.AUTHORIZED // Skip PREP and FAI
+			: RunStatus.PREP; // Full lifecycle
 
 	// Create the rework run
 	const reworkRun = await tx.run.create({
