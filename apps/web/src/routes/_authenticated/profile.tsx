@@ -123,7 +123,14 @@ function ProfilePage() {
 							}}
 							className="space-y-4"
 						>
-							<Field form={profileForm} name="name" label="姓名">
+							<Field
+								form={profileForm}
+								name="name"
+								label="姓名"
+								validators={{
+									onChange: profileSchema.shape.name,
+								}}
+							>
 								{(field) => (
 									<Input
 										placeholder="您的姓名"
@@ -146,7 +153,14 @@ function ProfilePage() {
 							</div>
 
 							<div className="grid grid-cols-1 gap-4">
-								<Field form={profileForm} name="department" label="部门">
+								<Field
+									form={profileForm}
+									name="department"
+									label="部门"
+									validators={{
+										onChange: profileSchema.shape.department,
+									}}
+								>
 									{(field) => (
 										<Input
 											placeholder="所属部门"
@@ -157,7 +171,14 @@ function ProfilePage() {
 										/>
 									)}
 								</Field>
-								<Field form={profileForm} name="phone" label="手机号">
+								<Field
+									form={profileForm}
+									name="phone"
+									label="手机号"
+									validators={{
+										onChange: profileSchema.shape.phone,
+									}}
+								>
 									{(field) => (
 										<Input
 											placeholder="联系电话"
@@ -170,14 +191,13 @@ function ProfilePage() {
 								</Field>
 							</div>
 							<div className="flex justify-end">
-								<profileForm.Subscribe
-									selector={(state) => [state.canSubmit, state.isSubmitting]}
-									children={([canSubmit, isSubmitting]) => (
+								<profileForm.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+									{([canSubmit, isSubmitting]) => (
 										<Button type="submit" disabled={!canSubmit || updateProfileMutation.isPending}>
 											{updateProfileMutation.isPending || isSubmitting ? "保存中..." : "保存更改"}
 										</Button>
 									)}
-								/>
+								</profileForm.Subscribe>
 							</div>
 						</form>
 					</CardContent>
@@ -197,7 +217,14 @@ function ProfilePage() {
 							}}
 							className="space-y-4"
 						>
-							<Field form={passwordForm} name="currentPassword" label="当前密码">
+							<Field
+								form={passwordForm}
+								name="currentPassword"
+								label="当前密码"
+								validators={{
+									onChange: passwordSchema.shape.currentPassword,
+								}}
+							>
 								{(field) => (
 									<Input
 										type="password"
@@ -210,7 +237,14 @@ function ProfilePage() {
 								)}
 							</Field>
 							<div className="grid grid-cols-1 gap-4">
-								<Field form={passwordForm} name="newPassword" label="新密码">
+								<Field
+									form={passwordForm}
+									name="newPassword"
+									label="新密码"
+									validators={{
+										onChange: passwordSchema.shape.newPassword,
+									}}
+								>
 									{(field) => (
 										<Input
 											type="password"
@@ -222,7 +256,14 @@ function ProfilePage() {
 										/>
 									)}
 								</Field>
-								<Field form={passwordForm} name="confirmPassword" label="确认新密码">
+								<Field
+									form={passwordForm}
+									name="confirmPassword"
+									label="确认新密码"
+									validators={{
+										onChange: passwordSchema.shape.confirmPassword,
+									}}
+								>
 									{(field) => (
 										<Input
 											type="password"
@@ -236,14 +277,13 @@ function ProfilePage() {
 								</Field>
 							</div>
 							<div className="flex justify-end">
-								<passwordForm.Subscribe
-									selector={(state) => [state.canSubmit, state.isSubmitting]}
-									children={([canSubmit, isSubmitting]) => (
+								<passwordForm.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+									{([canSubmit, isSubmitting]) => (
 										<Button type="submit" disabled={!canSubmit || changePasswordMutation.isPending}>
 											{changePasswordMutation.isPending || isSubmitting ? "修改中..." : "修改密码"}
 										</Button>
 									)}
-								/>
+								</passwordForm.Subscribe>
 							</div>
 						</form>
 					</CardContent>

@@ -60,6 +60,9 @@ const trackOutSchema = z.object({
 	result: z.enum(["PASS", "FAIL"]),
 });
 
+type TrackInFormValues = z.infer<typeof trackInSchema>;
+type TrackOutFormValues = z.infer<typeof trackOutSchema>;
+
 function ExecutionPage() {
 	const [selectedStation, setSelectedStation] = useState<string>("");
 	const [ngDialogOpen, setNgDialogOpen] = useState(false);

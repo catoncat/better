@@ -41,6 +41,11 @@ export const Permission = {
 	READINESS_OVERRIDE: "readiness:override",
 	READINESS_CONFIG: "readiness:config",
 
+	// Loading domain (M2)
+	LOADING_VIEW: "loading:view",
+	LOADING_VERIFY: "loading:verify",
+	LOADING_CONFIG: "loading:config",
+
 	// Trace domain
 	TRACE_READ: "trace:read",
 	TRACE_EXPORT: "trace:export",
@@ -112,6 +117,14 @@ export const PERMISSION_GROUPS = {
 			{ value: Permission.READINESS_CHECK, label: "执行准备检查" },
 			{ value: Permission.READINESS_OVERRIDE, label: "豁免检查项" },
 			{ value: Permission.READINESS_CONFIG, label: "管理检查配置" },
+		],
+	},
+	loading: {
+		label: "上料管理",
+		permissions: [
+			{ value: Permission.LOADING_VIEW, label: "查看上料记录" },
+			{ value: Permission.LOADING_VERIFY, label: "执行上料验证" },
+			{ value: Permission.LOADING_CONFIG, label: "管理站位配置" },
 		],
 	},
 	trace: {

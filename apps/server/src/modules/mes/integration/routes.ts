@@ -12,6 +12,24 @@ import {
 	syncErpWorkOrders,
 } from "./erp";
 import {
+	bindSolderPasteToLine,
+	bindStencilToLine,
+	unbindSolderPasteFromLine,
+	unbindStencilFromLine,
+} from "./line-binding-service";
+import {
+	lineSolderPasteBindResponseSchema,
+	lineSolderPasteBindSchema,
+	lineSolderPasteUnbindResponseSchema,
+	lineStencilBindResponseSchema,
+	lineStencilBindSchema,
+	lineStencilUnbindResponseSchema,
+	solderPasteStatusReceiveSchema,
+	solderPasteStatusResponseSchema,
+	stencilStatusReceiveSchema,
+	stencilStatusResponseSchema,
+} from "./loading-schema";
+import {
 	getMockErpMaterials,
 	getMockErpRoutes,
 	getMockErpWorkCenters,
@@ -39,6 +57,8 @@ import {
 	tpmSyncQuerySchema,
 } from "./schema";
 import { receiveWorkOrder } from "./service";
+import { receiveSolderPasteStatus } from "./solder-paste-service";
+import { receiveStencilStatus } from "./stencil-service";
 import { syncTpmEquipment, syncTpmMaintenanceTasks, syncTpmStatusLogs } from "./tpm-sync-service";
 
 export const integrationModule = new Elysia({
@@ -748,6 +768,324 @@ export const integrationModule = new Elysia({
 			requirePermission: Permission.SYSTEM_INTEGRATION,
 			body: integrationReceiveWorkOrderSchema,
 			response: integrationWorkOrderResponseSchema,
+			detail: { tags: ["MES - Integration"] },
+		},
+	)
+	// ==========================================
+	// Stencil Status Endpoint (Phase 3.1)
+	// ==========================================
+	.post(
+		"/stencil-status",
+		async ({ db, body, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+
+			try {
+				const result = await receiveStencilStatus(db, body);
+
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: result.id,
+					entityDisplay: `Stencil ${result.stencilId}`,
+					action: "STENCIL_STATUS_RECEIVE",
+					actor,
+					status: "SUCCESS",
+					request: requestMeta,
+					payload: {
+						sourceSystem: "TPM",
+						entityType: "STENCIL_STATUS",
+						eventId: result.eventId,
+						stencilId: result.stencilId,
+						status: result.status,
+						isDuplicate: result.isDuplicate,
+					},
+				});
+
+				return { ok: true, data: result };
+			} catch (error) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: body.eventId,
+					entityDisplay: `Stencil ${body.stencilId}`,
+					action: "STENCIL_STATUS_RECEIVE",
+					actor,
+					status: "FAIL",
+					errorCode: "STENCIL_STATUS_RECEIVE_FAILED",
+					errorMessage: error instanceof Error ? error.message : "Unknown error",
+					request: requestMeta,
+					payload: { sourceSystem: "TPM", entityType: "STENCIL_STATUS" },
+				});
+				throw error;
+			}
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
+			body: stencilStatusReceiveSchema,
+			response: stencilStatusResponseSchema,
+			detail: { tags: ["MES - Integration"] },
+		},
+	)
+	// ==========================================
+	// Solder Paste Status Endpoint (Phase 3.2)
+	// ==========================================
+	.post(
+		"/solder-paste-status",
+		async ({ db, body, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+
+			try {
+				const result = await receiveSolderPasteStatus(db, body);
+
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: result.id,
+					entityDisplay: `Solder Paste ${result.lotId}`,
+					action: "SOLDER_PASTE_STATUS_RECEIVE",
+					actor,
+					status: "SUCCESS",
+					request: requestMeta,
+					payload: {
+						sourceSystem: "WMS",
+						entityType: "SOLDER_PASTE_STATUS",
+						eventId: result.eventId,
+						lotId: result.lotId,
+						status: result.status,
+						isDuplicate: result.isDuplicate,
+					},
+				});
+
+				return { ok: true, data: result };
+			} catch (error) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: body.eventId,
+					entityDisplay: `Solder Paste ${body.lotId}`,
+					action: "SOLDER_PASTE_STATUS_RECEIVE",
+					actor,
+					status: "FAIL",
+					errorCode: "SOLDER_PASTE_STATUS_RECEIVE_FAILED",
+					errorMessage: error instanceof Error ? error.message : "Unknown error",
+					request: requestMeta,
+					payload: { sourceSystem: "WMS", entityType: "SOLDER_PASTE_STATUS" },
+				});
+				throw error;
+			}
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
+			body: solderPasteStatusReceiveSchema,
+			response: solderPasteStatusResponseSchema,
+			detail: { tags: ["MES - Integration"] },
+		},
+	)
+	// ==========================================
+	// Line Stencil Binding APIs (Phase 3.4)
+	// ==========================================
+	.post(
+		"/lines/:lineId/stencil/bind",
+		async ({ db, params, body, user, request, set }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+
+			const result = await bindStencilToLine(db, params.lineId, body.stencilId, user?.id);
+
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: params.lineId,
+					entityDisplay: `Line ${params.lineId} Stencil Bind`,
+					action: "LINE_STENCIL_BIND",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					request: requestMeta,
+					payload: { lineId: params.lineId, stencilId: body.stencilId },
+				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INTEGRATION,
+				entityId: result.data.id,
+				entityDisplay: `Line ${params.lineId} - Stencil ${body.stencilId}`,
+				action: "LINE_STENCIL_BIND",
+				actor,
+				status: "SUCCESS",
+				request: requestMeta,
+				payload: { lineId: params.lineId, stencilId: body.stencilId, bindingId: result.data.id },
+			});
+
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.LOADING_CONFIG,
+			body: lineStencilBindSchema,
+			response: {
+				200: lineStencilBindResponseSchema,
+				400: integrationErrorResponseSchema,
+				404: integrationErrorResponseSchema,
+			},
+			detail: { tags: ["MES - Integration"] },
+		},
+	)
+	.post(
+		"/lines/:lineId/stencil/unbind",
+		async ({ db, params, user, request, set }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+
+			const result = await unbindStencilFromLine(db, params.lineId, user?.id);
+
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: params.lineId,
+					entityDisplay: `Line ${params.lineId} Stencil Unbind`,
+					action: "LINE_STENCIL_UNBIND",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					request: requestMeta,
+					payload: { lineId: params.lineId },
+				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INTEGRATION,
+				entityId: result.data.id,
+				entityDisplay: `Line ${params.lineId} - Stencil ${result.data.stencilId}`,
+				action: "LINE_STENCIL_UNBIND",
+				actor,
+				status: "SUCCESS",
+				request: requestMeta,
+				payload: {
+					lineId: params.lineId,
+					stencilId: result.data.stencilId,
+					bindingId: result.data.id,
+				},
+			});
+
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.LOADING_CONFIG,
+			response: {
+				200: lineStencilUnbindResponseSchema,
+				400: integrationErrorResponseSchema,
+				404: integrationErrorResponseSchema,
+			},
+			detail: { tags: ["MES - Integration"] },
+		},
+	)
+	// ==========================================
+	// Line Solder Paste Binding APIs (Phase 3.4)
+	// ==========================================
+	.post(
+		"/lines/:lineId/solder-paste/bind",
+		async ({ db, params, body, user, request, set }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+
+			const result = await bindSolderPasteToLine(db, params.lineId, body.lotId, user?.id);
+
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: params.lineId,
+					entityDisplay: `Line ${params.lineId} Solder Paste Bind`,
+					action: "LINE_SOLDER_PASTE_BIND",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					request: requestMeta,
+					payload: { lineId: params.lineId, lotId: body.lotId },
+				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INTEGRATION,
+				entityId: result.data.id,
+				entityDisplay: `Line ${params.lineId} - Solder Paste ${body.lotId}`,
+				action: "LINE_SOLDER_PASTE_BIND",
+				actor,
+				status: "SUCCESS",
+				request: requestMeta,
+				payload: { lineId: params.lineId, lotId: body.lotId, bindingId: result.data.id },
+			});
+
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.LOADING_CONFIG,
+			body: lineSolderPasteBindSchema,
+			response: {
+				200: lineSolderPasteBindResponseSchema,
+				400: integrationErrorResponseSchema,
+				404: integrationErrorResponseSchema,
+			},
+			detail: { tags: ["MES - Integration"] },
+		},
+	)
+	.post(
+		"/lines/:lineId/solder-paste/unbind",
+		async ({ db, params, user, request, set }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+
+			const result = await unbindSolderPasteFromLine(db, params.lineId, user?.id);
+
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: params.lineId,
+					entityDisplay: `Line ${params.lineId} Solder Paste Unbind`,
+					action: "LINE_SOLDER_PASTE_UNBIND",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					request: requestMeta,
+					payload: { lineId: params.lineId },
+				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INTEGRATION,
+				entityId: result.data.id,
+				entityDisplay: `Line ${params.lineId} - Solder Paste ${result.data.lotId}`,
+				action: "LINE_SOLDER_PASTE_UNBIND",
+				actor,
+				status: "SUCCESS",
+				request: requestMeta,
+				payload: { lineId: params.lineId, lotId: result.data.lotId, bindingId: result.data.id },
+			});
+
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.LOADING_CONFIG,
+			response: {
+				200: lineSolderPasteUnbindResponseSchema,
+				400: integrationErrorResponseSchema,
+				404: integrationErrorResponseSchema,
+			},
 			detail: { tags: ["MES - Integration"] },
 		},
 	);
