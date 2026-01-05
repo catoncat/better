@@ -782,6 +782,7 @@ model Inspection {
   runId       String
   type        InspectionType
   status      InspectionStatus @default(PENDING)
+  activeKey   String?          @unique
 
   // FAI specific fields
   sampleQty   Int?             // Number of samples to inspect (FAI only)

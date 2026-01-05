@@ -12,7 +12,7 @@ ALTER TABLE "Inspection" ADD COLUMN "sampleQty" INTEGER;
 ALTER TABLE "Inspection" ADD COLUMN "startedAt" DATETIME;
 
 -- CreateTable
-CREATE TABLE "ErpWorkOrderRaw" (
+CREATE TABLE IF NOT EXISTS "ErpWorkOrderRaw" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "sourceSystem" TEXT NOT NULL,
     "sourceKey" TEXT NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE "ErpWorkOrderRaw" (
 );
 
 -- CreateTable
-CREATE TABLE "ErpMaterialRaw" (
+CREATE TABLE IF NOT EXISTS "ErpMaterialRaw" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "sourceSystem" TEXT NOT NULL,
     "sourceKey" TEXT NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE "ErpMaterialRaw" (
 );
 
 -- CreateTable
-CREATE TABLE "ErpBomRaw" (
+CREATE TABLE IF NOT EXISTS "ErpBomRaw" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "sourceSystem" TEXT NOT NULL,
     "sourceKey" TEXT NOT NULL,
@@ -42,7 +42,7 @@ CREATE TABLE "ErpBomRaw" (
 );
 
 -- CreateTable
-CREATE TABLE "ErpWorkCenterRaw" (
+CREATE TABLE IF NOT EXISTS "ErpWorkCenterRaw" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "sourceSystem" TEXT NOT NULL,
     "sourceKey" TEXT NOT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE "ErpWorkCenterRaw" (
 );
 
 -- CreateTable
-CREATE TABLE "ReadinessCheck" (
+CREATE TABLE IF NOT EXISTS "ReadinessCheck" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "runId" TEXT NOT NULL,
     "type" TEXT NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE "ReadinessCheck" (
 );
 
 -- CreateTable
-CREATE TABLE "ReadinessCheckItem" (
+CREATE TABLE IF NOT EXISTS "ReadinessCheckItem" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "checkId" TEXT NOT NULL,
     "itemType" TEXT NOT NULL,
@@ -107,7 +107,7 @@ CREATE TABLE "new_WorkOrder" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "woNo" TEXT NOT NULL,
     "productCode" TEXT NOT NULL,
-    "plannedQty" INTEGER NOT NULL,
+    "plannedQty" REAL NOT NULL,
     "routingId" TEXT,
     "status" TEXT NOT NULL DEFAULT 'RECEIVED',
     "erpStatus" TEXT,
@@ -127,40 +127,40 @@ PRAGMA foreign_keys=ON;
 PRAGMA defer_foreign_keys=OFF;
 
 -- CreateIndex
-CREATE INDEX "ErpWorkOrderRaw_sourceSystem_sourceKey_idx" ON "ErpWorkOrderRaw"("sourceSystem", "sourceKey");
+CREATE INDEX IF NOT EXISTS "ErpWorkOrderRaw_sourceSystem_sourceKey_idx" ON "ErpWorkOrderRaw"("sourceSystem", "sourceKey");
 
 -- CreateIndex
-CREATE INDEX "ErpWorkOrderRaw_dedupeKey_idx" ON "ErpWorkOrderRaw"("dedupeKey");
+CREATE INDEX IF NOT EXISTS "ErpWorkOrderRaw_dedupeKey_idx" ON "ErpWorkOrderRaw"("dedupeKey");
 
 -- CreateIndex
-CREATE INDEX "ErpMaterialRaw_sourceSystem_sourceKey_idx" ON "ErpMaterialRaw"("sourceSystem", "sourceKey");
+CREATE INDEX IF NOT EXISTS "ErpMaterialRaw_sourceSystem_sourceKey_idx" ON "ErpMaterialRaw"("sourceSystem", "sourceKey");
 
 -- CreateIndex
-CREATE INDEX "ErpMaterialRaw_dedupeKey_idx" ON "ErpMaterialRaw"("dedupeKey");
+CREATE INDEX IF NOT EXISTS "ErpMaterialRaw_dedupeKey_idx" ON "ErpMaterialRaw"("dedupeKey");
 
 -- CreateIndex
-CREATE INDEX "ErpBomRaw_sourceSystem_sourceKey_idx" ON "ErpBomRaw"("sourceSystem", "sourceKey");
+CREATE INDEX IF NOT EXISTS "ErpBomRaw_sourceSystem_sourceKey_idx" ON "ErpBomRaw"("sourceSystem", "sourceKey");
 
 -- CreateIndex
-CREATE INDEX "ErpBomRaw_dedupeKey_idx" ON "ErpBomRaw"("dedupeKey");
+CREATE INDEX IF NOT EXISTS "ErpBomRaw_dedupeKey_idx" ON "ErpBomRaw"("dedupeKey");
 
 -- CreateIndex
-CREATE INDEX "ErpWorkCenterRaw_sourceSystem_sourceKey_idx" ON "ErpWorkCenterRaw"("sourceSystem", "sourceKey");
+CREATE INDEX IF NOT EXISTS "ErpWorkCenterRaw_sourceSystem_sourceKey_idx" ON "ErpWorkCenterRaw"("sourceSystem", "sourceKey");
 
 -- CreateIndex
-CREATE INDEX "ErpWorkCenterRaw_dedupeKey_idx" ON "ErpWorkCenterRaw"("dedupeKey");
+CREATE INDEX IF NOT EXISTS "ErpWorkCenterRaw_dedupeKey_idx" ON "ErpWorkCenterRaw"("dedupeKey");
 
 -- CreateIndex
-CREATE INDEX "ReadinessCheck_runId_idx" ON "ReadinessCheck"("runId");
+CREATE INDEX IF NOT EXISTS "ReadinessCheck_runId_idx" ON "ReadinessCheck"("runId");
 
 -- CreateIndex
-CREATE INDEX "ReadinessCheck_type_status_idx" ON "ReadinessCheck"("type", "status");
+CREATE INDEX IF NOT EXISTS "ReadinessCheck_type_status_idx" ON "ReadinessCheck"("type", "status");
 
 -- CreateIndex
-CREATE INDEX "ReadinessCheckItem_checkId_idx" ON "ReadinessCheckItem"("checkId");
+CREATE INDEX IF NOT EXISTS "ReadinessCheckItem_checkId_idx" ON "ReadinessCheckItem"("checkId");
 
 -- CreateIndex
-CREATE INDEX "ReadinessCheckItem_itemType_status_idx" ON "ReadinessCheckItem"("itemType", "status");
+CREATE INDEX IF NOT EXISTS "ReadinessCheckItem_itemType_status_idx" ON "ReadinessCheckItem"("itemType", "status");
 
 -- CreateIndex
 CREATE INDEX "InspectionItem_inspectionId_idx" ON "InspectionItem"("inspectionId");
