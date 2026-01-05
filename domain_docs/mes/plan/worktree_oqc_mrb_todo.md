@@ -19,7 +19,7 @@ Status: [x] done, [~] in progress, [ ] pending
 - [x] 2.5.4 OQC 任务管理 API (列表/详情)
 - [x] 2.5.5 OQC 结果记录 API (PASS/FAIL)
 - [x] 2.5.6 Gate: Run 完成需 OQC 通过；FAIL → RUN=ON_HOLD
-- [ ] 2.5.8 UI: OQC 规则配置（抽检规则 CRUD）
+- [x] 2.5.8 UI: OQC 规则配置（抽检规则 CRUD）
 - [x] 2.5.9 MRB 决策流程 (ON_HOLD → COMPLETED/CLOSED_REWORK/SCRAPPED)
 - [x] 2.5.10 返修 Run 创建 API (`POST /api/runs/{runNo}/rework`)
 - [x] 2.5.11 终态变更与审计 (CLOSED_REWORK / SCRAPPED)
@@ -56,7 +56,7 @@ Status: [x] done, [~] in progress, [ ] pending
 - [x] OQC 任务列表 + 结果录入
 - [x] Run 详情 MRB 决策入口/对话框
 - [x] 状态标签/筛选支持 ON_HOLD/CLOSED_REWORK/SCRAPPED
-- [ ] OQC 抽检规则配置页（支持新增/编辑/停用）
+- [x] OQC 抽检规则配置页（支持新增/编辑/停用）
 
 5) QA/Docs
 - [ ] 回填 `phase2_tasks.md` 勾选（本 worktree 全部完成后）
