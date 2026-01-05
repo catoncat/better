@@ -3,6 +3,7 @@ import {
 	InspectionType,
 	Prisma,
 	RunStatus,
+	UnitStatus,
 	type PrismaClient,
 } from "@better-app/db";
 import { SpanStatusCode, trace } from "@opentelemetry/api";
@@ -19,6 +20,7 @@ type InspectionRecord = Prisma.InspectionGetPayload<{
 }>;
 
 const tracer = trace.getTracer("mes.oqc");
+const buildInspectionActiveKey = (runId: string, type: InspectionType) => `${runId}:${type}`;
 
 /**
  * Create an OQC (Outgoing Quality Control) task for a run.
@@ -60,8 +62,8 @@ export async function createOqc(
 			}
 
 			// Check if run is in a valid state for OQC creation
-			// OQC can be created when run is IN_PROGRESS (all units done) or ON_HOLD (re-inspection)
-			if (run.status !== RunStatus.IN_PROGRESS && run.status !== RunStatus.ON_HOLD) {
+			// OQC can be created when run is IN_PROGRESS and all units are DONE
+			if (run.status !== RunStatus.IN_PROGRESS) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				return {
 					success: false as const,
@@ -70,6 +72,20 @@ export async function createOqc(
 					status: 400,
 				};
 			}
+
+			const allUnitsDone =
+				run.units.length > 0 && run.units.every((unit) => unit.status === UnitStatus.DONE);
+			if (!allUnitsDone) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				return {
+					success: false as const,
+					code: "OQC_NOT_READY",
+					message: "Not all units are DONE for OQC creation",
+					status: 400,
+				};
+			}
+
+			const activeKey = buildInspectionActiveKey(run.id, InspectionType.OQC);
 
 			// Check if there's already an active OQC (idempotency)
 			const existingOqc = await db.inspection.findFirst({
@@ -82,6 +98,23 @@ export async function createOqc(
 			});
 
 			if (existingOqc) {
+				if (!existingOqc.activeKey) {
+					try {
+						await db.inspection.update({
+							where: { id: existingOqc.id },
+							data: { activeKey },
+						});
+					} catch (error) {
+						if (
+							!(
+								error instanceof Prisma.PrismaClientKnownRequestError &&
+								error.code === "P2002"
+							)
+						) {
+							throw error;
+						}
+					}
+				}
 				// Return existing OQC for idempotency
 				span.setAttribute("oqc.id", existingOqc.id);
 				span.setAttribute("oqc.idempotent", true);
@@ -99,27 +132,48 @@ export async function createOqc(
 			if (options?.samplingType) oqcData.samplingType = options.samplingType;
 			if (options?.samplingValue) oqcData.samplingValue = options.samplingValue;
 
-			const oqc = await db.$transaction(async (tx) => {
-				const inspection = await tx.inspection.create({
-					data: {
-						runId: run.id,
-						type: InspectionType.OQC,
-						status: InspectionStatus.PENDING,
-						sampleQty,
-						passedQty: 0,
-						failedQty: 0,
-						remark: data.remark,
-						data: Object.keys(oqcData).length > 0 ? oqcData : Prisma.JsonNull,
-					},
-					include: { items: true, run: { select: { runNo: true, status: true } } },
+			try {
+				const oqc = await db.$transaction(async (tx) => {
+					const inspection = await tx.inspection.create({
+						data: {
+							runId: run.id,
+							type: InspectionType.OQC,
+							status: InspectionStatus.PENDING,
+							activeKey,
+							sampleQty,
+							passedQty: 0,
+							failedQty: 0,
+							remark: data.remark,
+							data: Object.keys(oqcData).length > 0 ? oqcData : Prisma.JsonNull,
+						},
+						include: { items: true, run: { select: { runNo: true, status: true } } },
+					});
+
+					return inspection;
 				});
 
-				return inspection;
-			});
+				span.setAttribute("oqc.id", oqc.id);
+				span.setAttribute("oqc.sampleQty", sampleQty);
+				return { success: true as const, data: oqc };
+			} catch (error) {
+				if (
+					error instanceof Prisma.PrismaClientKnownRequestError &&
+					error.code === "P2002"
+				) {
+					const activeOqc = await db.inspection.findFirst({
+						where: { activeKey },
+						include: { items: true, run: { select: { runNo: true, status: true } } },
+					});
+					if (activeOqc) {
+						span.setAttribute("oqc.id", activeOqc.id);
+						span.setAttribute("oqc.idempotent", true);
+						return { success: true as const, data: activeOqc };
+					}
+				}
 
-			span.setAttribute("oqc.id", oqc.id);
-			span.setAttribute("oqc.sampleQty", sampleQty);
-			return { success: true as const, data: oqc };
+				throw error;
+			}
+
 		} catch (error) {
 			span.recordException(error as Error);
 			span.setStatus({ code: SpanStatusCode.ERROR });
@@ -205,7 +259,10 @@ export async function recordOqcItem(
 		span.setAttribute("oqc.itemName", data.itemName);
 
 		try {
-			const oqc = await db.inspection.findUnique({ where: { id: oqcId } });
+			const oqc = await db.inspection.findUnique({
+				where: { id: oqcId },
+				select: { id: true, type: true, status: true, runId: true, data: true },
+			});
 
 			if (!oqc) {
 				return {
@@ -232,6 +289,41 @@ export async function recordOqcItem(
 					message: "OQC must be in INSPECTING status to record items",
 					status: 400,
 				};
+			}
+
+			const unit = await db.unit.findUnique({
+				where: { sn: data.unitSn },
+				select: { id: true, runId: true },
+			});
+
+			if (!unit) {
+				return {
+					success: false as const,
+					code: "UNIT_NOT_FOUND",
+					message: "Unit not found",
+					status: 404,
+				};
+			}
+
+			if (unit.runId !== oqc.runId) {
+				return {
+					success: false as const,
+					code: "UNIT_RUN_MISMATCH",
+					message: "Unit does not belong to this run",
+					status: 400,
+				};
+			}
+
+			const sampledUnitIds = (oqc.data as Record<string, unknown> | null)?.sampledUnitIds;
+			if (Array.isArray(sampledUnitIds) && sampledUnitIds.length > 0) {
+				if (!sampledUnitIds.includes(unit.id)) {
+					return {
+						success: false as const,
+						code: "UNIT_NOT_IN_SAMPLE",
+						message: "Unit is not in sampled list for this OQC",
+						status: 400,
+					};
+				}
 			}
 
 			const item = await db.inspectionItem.create({
@@ -321,6 +413,14 @@ export async function completeOqc(
 				failedQty = failedQty ?? 0;
 				if (sampleQty !== null && sampleQty !== undefined) {
 					passedQty = passedQty ?? sampleQty;
+					if (passedQty !== sampleQty) {
+						return {
+							success: false as const,
+							code: "INVALID_OQC_COUNTS",
+							message: "Passed quantity must equal sample quantity when decision is PASS",
+							status: 400,
+						};
+					}
 				}
 			} else {
 				// FAIL decision
@@ -334,6 +434,14 @@ export async function completeOqc(
 				}
 				if (sampleQty !== null && sampleQty !== undefined) {
 					passedQty = passedQty ?? sampleQty - failedQty;
+					if (passedQty < 0 || passedQty + failedQty !== sampleQty) {
+						return {
+							success: false as const,
+							code: "INVALID_OQC_COUNTS",
+							message: "Passed + failed quantities must equal sample quantity",
+							status: 400,
+						};
+					}
 				}
 			}
 
@@ -346,6 +454,7 @@ export async function completeOqc(
 					where: { id: oqcId },
 					data: {
 						status: newInspectionStatus,
+						activeKey: null,
 						passedQty,
 						failedQty,
 						decidedBy,
