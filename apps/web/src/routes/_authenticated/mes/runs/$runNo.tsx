@@ -43,6 +43,7 @@ import {
 	useWaiveItem,
 } from "@/hooks/use-readiness";
 import { useRunDetail } from "@/hooks/use-runs";
+import { READINESS_ITEM_TYPE_MAP } from "@/lib/constants";
 
 export const Route = createFileRoute("/_authenticated/mes/runs/$runNo")({
 	component: RunDetailPage,
@@ -140,12 +141,7 @@ function RunDetailPage() {
 	};
 
 	const getItemTypeLabel = (type: string) => {
-		const map: Record<string, string> = {
-			EQUIPMENT: "设备",
-			MATERIAL: "物料",
-			ROUTE: "路由",
-		};
-		return map[type] ?? type;
+		return READINESS_ITEM_TYPE_MAP[type] ?? type;
 	};
 
 	const getFaiStatusBadge = (status: string) => {

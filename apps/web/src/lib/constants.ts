@@ -34,3 +34,12 @@ export const RUN_STATUS_MAP: Record<string, string> = {
 	CLOSED_REWORK: "闭环返修",
 	SCRAPPED: "报废",
 };
+
+export const READINESS_ITEM_TYPE_MAP: Record<string, string> = {
+	EQUIPMENT: "设备",
+	MATERIAL: "物料",
+	ROUTE: "路由",
+	STENCIL: "钢网",
+	SOLDER_PASTE: "锡膏",
+	LOADING: "上料",
+};
