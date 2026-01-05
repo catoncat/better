@@ -23,6 +23,65 @@ type RunWithRelations = Prisma.RunGetPayload<{
 
 const tracer = trace.getTracer("mes.oqc.mrb");
 
+type SnapshotStep = { stepNo: number };
+
+const getSnapshotSteps = (snapshot: unknown): SnapshotStep[] | null => {
+	if (!snapshot || typeof snapshot !== "object") return null;
+	const record = snapshot as { steps?: unknown };
+	if (!Array.isArray(record.steps)) return null;
+	return record.steps as SnapshotStep[];
+};
+
+const resolveFirstStepNo = async (
+	db: PrismaClient | Prisma.TransactionClient,
+	routeVersionId: string | null,
+): Promise<ServiceResult<{ firstStepNo: number }>> => {
+	if (!routeVersionId) {
+		return {
+			success: false as const,
+			code: "ROUTE_VERSION_NOT_READY",
+			message: "Run has no executable route version",
+			status: 400,
+		};
+	}
+
+	const routeVersion = await db.executableRouteVersion.findUnique({
+		where: { id: routeVersionId },
+		select: { snapshotJson: true },
+	});
+
+	if (!routeVersion) {
+		return {
+			success: false as const,
+			code: "ROUTE_VERSION_NOT_READY",
+			message: "Run has no executable route version",
+			status: 400,
+		};
+	}
+
+	const steps = getSnapshotSteps(routeVersion.snapshotJson);
+	if (!steps || steps.length === 0) {
+		return {
+			success: false as const,
+			code: "ROUTING_EMPTY",
+			message: "Routing has no steps",
+			status: 400,
+		};
+	}
+
+	const firstStepNo = [...steps].sort((a, b) => a.stepNo - b.stepNo)[0]?.stepNo;
+	if (!firstStepNo && firstStepNo !== 0) {
+		return {
+			success: false as const,
+			code: "ROUTING_EMPTY",
+			message: "Routing has no steps",
+			status: 400,
+		};
+	}
+
+	return { success: true as const, data: { firstStepNo } };
+};
+
 /**
  * Record MRB (Material Review Board) decision for a run in ON_HOLD status.
  *
@@ -138,6 +197,15 @@ export async function recordMrbDecision(
 				};
 			}
 
+			const firstStepResult =
+				data.decision === "REWORK"
+					? await resolveFirstStepNo(db, run.routeVersionId ?? null)
+					: null;
+			if (firstStepResult && !firstStepResult.success) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				return firstStepResult;
+			}
+
 			let reworkRunNo: string | undefined;
 
 			const result = await db.$transaction(async (tx) => {
@@ -176,6 +244,7 @@ export async function recordMrbDecision(
 							faiWaiver: data.faiWaiver,
 							faiWaiverReason: data.faiWaiverReason,
 							mrbAuthorizedBy: options?.decidedBy,
+							firstStepNo: firstStepResult?.data.firstStepNo ?? 1,
 						});
 						break;
 					case "SCRAP":
@@ -284,6 +353,25 @@ export async function createReworkRunFromHold(
 				};
 			}
 
+			const decisionInspection = await db.inspection.findUnique({
+				where: { id: data.mrbDecisionId },
+				select: { id: true, runId: true, type: true, status: true },
+			});
+			if (
+				!decisionInspection ||
+				decisionInspection.runId !== run.id ||
+				decisionInspection.type !== InspectionType.OQC ||
+				decisionInspection.status !== InspectionStatus.FAIL
+			) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				return {
+					success: false as const,
+					code: "INVALID_MRB_DECISION",
+					message: "mrbDecisionId does not reference a failed OQC inspection for this run",
+					status: 400,
+				};
+			}
+
 			if (data.faiWaiver && !data.waiverReason) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				return {
@@ -314,12 +402,19 @@ export async function createReworkRunFromHold(
 				};
 			}
 
+			const firstStepResult = await resolveFirstStepNo(db, run.routeVersionId ?? null);
+			if (!firstStepResult.success) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				return firstStepResult;
+			}
+
 			const result = await db.$transaction(async (tx) => {
 				const reworkRunNo = await createReworkRun(tx, run, {
 					reworkType: data.reworkType,
 					faiWaiver: data.faiWaiver,
 					faiWaiverReason: data.waiverReason,
 					mrbAuthorizedBy: options?.decidedBy,
+					firstStepNo: firstStepResult.data.firstStepNo,
 				});
 
 				const updatedParent = await tx.run.update({
@@ -372,6 +467,7 @@ async function createReworkRun(
 		faiWaiver?: boolean;
 		faiWaiverReason?: string;
 		mrbAuthorizedBy?: string;
+		firstStepNo: number;
 	},
 ): Promise<string> {
 	// Generate rework run number: {parentRunNo}-RW{seq}
@@ -411,7 +507,7 @@ async function createReworkRun(
 		data: {
 			runId: reworkRun.id,
 			status: UnitStatus.QUEUED,
-			currentStepNo: 1,
+			currentStepNo: options.firstStepNo,
 		},
 	});
 

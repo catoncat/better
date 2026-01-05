@@ -1,7 +1,7 @@
 import {
 	InspectionStatus,
 	InspectionType,
-	type Prisma,
+	Prisma,
 	type PrismaClient,
 	RunStatus,
 } from "@better-app/db";
@@ -19,6 +19,7 @@ type InspectionRecord = Prisma.InspectionGetPayload<{
 }>;
 
 const tracer = trace.getTracer("mes.fai");
+const buildInspectionActiveKey = (runId: string, type: InspectionType) => `${runId}:${type}`;
 
 /**
  * Create a FAI (First Article Inspection) task for a run.
@@ -57,6 +58,8 @@ export async function createFai(
 				};
 			}
 
+			const activeKey = buildInspectionActiveKey(run.id, InspectionType.FAI);
+
 			// Check if there's already an active FAI
 			const existingFai = await db.inspection.findFirst({
 				where: {
@@ -67,6 +70,23 @@ export async function createFai(
 			});
 
 			if (existingFai) {
+				if (!existingFai.activeKey) {
+					try {
+						await db.inspection.update({
+							where: { id: existingFai.id },
+							data: { activeKey },
+						});
+					} catch (error) {
+						if (
+							!(
+								error instanceof Prisma.PrismaClientKnownRequestError &&
+								error.code === "P2002"
+							)
+						) {
+							throw error;
+						}
+					}
+				}
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				return {
 					success: false as const,
@@ -76,23 +96,41 @@ export async function createFai(
 				};
 			}
 
-			const fai = await db.$transaction(async (tx) => {
-				// Create the FAI inspection
-				const inspection = await tx.inspection.create({
-					data: {
-						runId: run.id,
-						type: InspectionType.FAI,
-						status: InspectionStatus.PENDING,
-						sampleQty: data.sampleQty,
-						passedQty: 0,
-						failedQty: 0,
-						remark: data.remark,
-					},
-					include: { items: true },
-				});
+			let fai: InspectionRecord;
+			try {
+				fai = await db.$transaction(async (tx) => {
+					// Create the FAI inspection
+					const inspection = await tx.inspection.create({
+						data: {
+							runId: run.id,
+							type: InspectionType.FAI,
+							status: InspectionStatus.PENDING,
+							activeKey,
+							sampleQty: data.sampleQty,
+							passedQty: 0,
+							failedQty: 0,
+							remark: data.remark,
+						},
+						include: { items: true },
+					});
 
-				return inspection;
-			});
+					return inspection;
+				});
+			} catch (error) {
+				if (
+					error instanceof Prisma.PrismaClientKnownRequestError &&
+					error.code === "P2002"
+				) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					return {
+						success: false as const,
+						code: "FAI_ALREADY_EXISTS",
+						message: "An active FAI task already exists for this run",
+						status: 400,
+					};
+				}
+				throw error;
+			}
 
 			span.setAttribute("fai.id", fai.id);
 			return { success: true as const, data: fai };
@@ -334,6 +372,7 @@ export async function completeFai(
 				where: { id: faiId },
 				data: {
 					status: newStatus,
+					activeKey: null,
 					passedQty,
 					failedQty,
 					decidedBy,
