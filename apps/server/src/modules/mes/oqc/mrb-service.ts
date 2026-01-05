@@ -141,8 +141,8 @@ export async function recordMrbDecision(
 					span.setStatus({ code: SpanStatusCode.ERROR });
 					return {
 						success: false as const,
-						code: "INVALID_RUN_STATUS",
-						message: `Run status ${run.status} does not allow MRB decision. Expected ON_HOLD.`,
+						code: "RUN_NOT_ON_HOLD",
+						message: "Run is not in ON_HOLD status",
 						status: 400,
 					};
 				}
@@ -202,6 +202,24 @@ export async function recordMrbDecision(
 					code: "FAI_WAIVER_NOT_ALLOWED",
 					message: "User is not allowed to waive FAI",
 					status: 403,
+				};
+			}
+			if (data.faiWaiver && data.decision !== "REWORK") {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				return {
+					success: false as const,
+					code: "FAI_WAIVER_NOT_ALLOWED",
+					message: "FAI waiver is only allowed for REWORK decision",
+					status: 400,
+				};
+			}
+			if (data.faiWaiver && data.reworkType !== "REUSE_PREP") {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				return {
+					success: false as const,
+					code: "FAI_WAIVER_NOT_ALLOWED",
+					message: "FAI waiver is only allowed for REUSE_PREP rework",
+					status: 400,
 				};
 			}
 

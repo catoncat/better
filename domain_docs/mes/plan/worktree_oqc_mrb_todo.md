@@ -1,16 +1,14 @@
 # Worktree TODO - OQC + MRB (SMP v2.4)
 
 ## Worktree Info
-- Path: /Users/envvar/lzb/better-worktrees/mes-oqc-mrb
-- Branch: feature/mes-oqc-mrb
-- Base: main @ f1a64f8
+- Scope: OQC + MRB (SMP v2.4)
 
 ## Goal
 落地 OQC 抽检与 MRB 决策闭环，严格对齐 `domain_docs/mes/spec/process/03_smp_flows.md`。
 
 ## Tracking Policy
 - 本文件是 OQC/MRB 任务追踪的唯一来源。
-- 同步维护 `domain_docs/mes/plan/phase2_tasks.md` 中 2.5.* 的勾选状态（高层汇总）。
+- 本 worktree 全部完成后，再回填 `domain_docs/mes/plan/phase2_tasks.md` 中 2.5.* 的勾选状态（高层汇总）。
 
 ## Scope (从 phase2_tasks.md 拆分)
 Status: [x] done, [~] in progress, [ ] pending
@@ -61,7 +59,7 @@ Status: [x] done, [~] in progress, [ ] pending
 - [ ] OQC 抽检规则配置页（支持新增/编辑/停用）
 
 5) QA/Docs
-- [x] 同步更新 `phase2_tasks.md` 勾选
+- [ ] 回填 `phase2_tasks.md` 勾选（本 worktree 全部完成后）
 - [x] 必要的服务层测试或最小验收脚本
 
 6) Follow-up Fixes (post review)

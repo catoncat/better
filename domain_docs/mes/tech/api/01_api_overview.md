@@ -19,9 +19,12 @@ Standard errors (e.g. `BAD_REQUEST`, `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `
 *   `FAI_REQUIRED`: Step execution blocked because First Article Inspection is pending or failed.
 *   `FAI_NOT_PASSED`: Run authorization blocked because required FAI is missing or not passed.
 *   `FAI_WAIVER_REASON_REQUIRED`: MRB FAI waiver requested but waiver reason not provided.
+*   `FAI_WAIVER_NOT_ALLOWED`: MRB FAI waiver not allowed (permission or request constraints).
 *   `INVALID_MRB_DECISION`: MRB decision reference is missing or does not point to a failed OQC inspection for the run.
 *   `MRB_DECISION_REQUIRED`: Rework operation requires MRB decision reference.
+*   `NO_FAILED_OQC`: MRB decision requires a failed OQC inspection for the run.
 *   `OQC_NOT_READY`: OQC creation requires Run IN_PROGRESS with all units DONE.
+*   `REWORK_TYPE_REQUIRED`: MRB REWORK decision requires `reworkType`.
 *   `STEP_MISMATCH`: The unit is not at the correct step for this operation.
 *   `STATION_NOT_ALLOWED`: The selected station is not valid for the current step.
 *   `TPM_EQUIPMENT_UNAVAILABLE`: Equipment status from TPM is not `normal`.
@@ -92,7 +95,24 @@ The MES API is divided into the following functional areas:
 *   `GET /api/runs` (list runs with pagination and filtering)
 *   `GET /api/runs/{runNo}` (run detail with unit statistics)
 *   `POST /api/runs/{runNo}/authorize` (authorize or revoke run)
+*   `POST /api/runs/{runNo}/mrb-decision` (record MRB decision for ON_HOLD run, M2)
 *   `POST /api/runs/{runNo}/rework` (create rework run from ON_HOLD run, M2)
+*   `GET /api/runs/{runNo}/rework-runs` (list rework runs for a parent run, M2)
+
+### 2.11 OQC (Outgoing Quality Control)
+*   `GET  /api/oqc` (list OQC inspections)
+*   `GET  /api/oqc/{oqcId}` (OQC detail)
+*   `GET  /api/oqc/run/{runNo}` (latest OQC for a run)
+*   `GET  /api/oqc/run/{runNo}/gate` (check if run can be completed)
+*   `POST /api/oqc/run/{runNo}` (create OQC task for run, M2)
+*   `POST /api/oqc/{oqcId}/start` (start OQC)
+*   `POST /api/oqc/{oqcId}/items` (record OQC items)
+*   `POST /api/oqc/{oqcId}/complete` (complete OQC with PASS/FAIL)
+*   `GET  /api/oqc/sampling-rules` (list sampling rules)
+*   `GET  /api/oqc/sampling-rules/{ruleId}` (sampling rule detail)
+*   `POST /api/oqc/sampling-rules` (create sampling rule)
+*   `PATCH /api/oqc/sampling-rules/{ruleId}` (update sampling rule)
+*   `DELETE /api/oqc/sampling-rules/{ruleId}` (deactivate sampling rule)
 
 ---
 
