@@ -50,7 +50,7 @@ type RunSlotExpectationDetail = {
 	position: number;
 	expectedMaterialCode: string;
 	alternates: string[];
-	status: string;
+	status: "PENDING" | "LOADED" | "MISMATCH";
 	loadedMaterialCode: string | null;
 	loadedAt: string | null;
 	loadedBy: string | null;
@@ -220,7 +220,7 @@ const mapExpectation = (expectation: {
 	position: expectation.slot.position,
 	expectedMaterialCode: expectation.expectedMaterialCode,
 	alternates: parseAlternates(expectation.alternates),
-	status: expectation.status,
+	status: expectation.status as "PENDING" | "LOADED" | "MISMATCH",
 	loadedMaterialCode: expectation.loadedMaterialCode,
 	loadedAt: expectation.loadedAt ? expectation.loadedAt.toISOString() : null,
 	loadedBy: expectation.loadedBy,
@@ -307,9 +307,12 @@ export async function loadSlotTable(
 	}
 
 	if (routingId) {
-		mappingWhere.AND = [...(mappingWhere.AND ?? []), { OR: [{ routingId: null }, { routingId }] }];
+		const conditions: Prisma.SlotMaterialMappingWhereInput[] = [{ routingId: null }, { routingId }];
+		const existingAnd = (mappingWhere.AND as Prisma.SlotMaterialMappingWhereInput[]) ?? [];
+		mappingWhere.AND = [...existingAnd, { OR: conditions }];
 	} else {
-		mappingWhere.AND = [...(mappingWhere.AND ?? []), { routingId: null }];
+		const existingAnd = (mappingWhere.AND as Prisma.SlotMaterialMappingWhereInput[]) ?? [];
+		mappingWhere.AND = [...existingAnd, { routingId: null }];
 	}
 
 	const mappings = await db.slotMaterialMapping.findMany({
@@ -346,6 +349,12 @@ export async function loadSlotTable(
 		);
 		const sorted = [...scoped].sort((a, b) => a.priority - b.priority);
 		const primary = sorted.find((item) => !item.isAlternate) ?? sorted[0];
+
+		if (!primary) {
+			missingSlots.push(slot.slotCode);
+			return [];
+		}
+
 		const alternates = sorted
 			.filter((item) => item.materialCode !== primary.materialCode)
 			.map((item) => item.materialCode);
@@ -373,7 +382,9 @@ export async function loadSlotTable(
 	return db.$transaction(async (tx) => {
 		await tx.runSlotExpectation.deleteMany({ where: { runId: run.id } });
 		if (expectations.length > 0) {
-			await tx.runSlotExpectation.createMany({ data: expectations });
+			await tx.runSlotExpectation.createMany({
+				data: expectations as Prisma.RunSlotExpectationCreateManyInput[],
+			});
 		}
 		return {
 			success: true,
@@ -475,12 +486,16 @@ export async function verifyLoading(
 					select: { materialCode: true },
 				});
 				if (candidates.length === 1) {
-					scannedMaterialCode = candidates[0].materialCode;
+					const [candidate] = candidates;
+					if (candidate) scannedMaterialCode = candidate.materialCode;
 				}
 			}
 
 			// If same material is scanned, return existing record (idempotent)
-			if (scannedMaterialCode && scannedMaterialCode === expectation.loadedMaterialCode) {
+			if (
+				scannedMaterialCode &&
+				scannedMaterialCode === (expectation.loadedMaterialCode as string)
+			) {
 				const existingRecord = await tx.loadingRecord.findFirst({
 					where: {
 						runId: run.id,
@@ -508,7 +523,7 @@ export async function verifyLoading(
 			};
 		}
 
-		let materialLot = null as null | { id: string; lotNo: string; materialCode: string };
+		let materialLot: { id: string; lotNo: string; materialCode: string } | null = null;
 		let materialCode = "";
 		let lotNo = "";
 
@@ -528,9 +543,12 @@ export async function verifyLoading(
 				select: { id: true, lotNo: true, materialCode: true },
 			});
 			if (candidates.length === 1) {
-				materialLot = candidates[0];
-				materialCode = candidates[0].materialCode;
-				lotNo = candidates[0].lotNo;
+				const [candidate] = candidates;
+				if (candidate) {
+					materialLot = candidate;
+					materialCode = candidate.materialCode;
+					lotNo = candidate.lotNo;
+				}
 			} else if (candidates.length > 1) {
 				return {
 					success: false as const,
@@ -556,6 +574,15 @@ export async function verifyLoading(
 		let recordStatus: LoadingRecordStatus;
 		let failReason: string | null = null;
 		const now = new Date();
+
+		if (!materialLot) {
+			return {
+				success: false as const,
+				code: "MATERIAL_LOT_NOT_FOUND",
+				message: "Material lot not found",
+				status: 404,
+			};
+		}
 
 		if (isExpected || isAlternate) {
 			verifyResult = isExpected ? LoadingVerifyResult.PASS : LoadingVerifyResult.WARNING;
@@ -799,7 +826,7 @@ export async function replaceLoading(
 		});
 
 		// Resolve new material lot
-		let materialLot = null as null | { id: string; lotNo: string; materialCode: string };
+		let materialLot: { id: string; lotNo: string; materialCode: string } | null = null;
 		let materialCode = "";
 		let lotNo = "";
 
@@ -819,9 +846,12 @@ export async function replaceLoading(
 				select: { id: true, lotNo: true, materialCode: true },
 			});
 			if (candidates.length === 1) {
-				materialLot = candidates[0];
-				materialCode = candidates[0].materialCode;
-				lotNo = candidates[0].lotNo;
+				const [candidate] = candidates;
+				if (candidate) {
+					materialLot = candidate;
+					materialCode = candidate.materialCode;
+					lotNo = candidate.lotNo;
+				}
 			} else if (candidates.length > 1) {
 				return {
 					success: false as const,
@@ -840,6 +870,15 @@ export async function replaceLoading(
 		}
 
 		// Verify new material
+		if (!materialLot) {
+			return {
+				success: false as const,
+				code: "MATERIAL_LOT_NOT_FOUND",
+				message: "Material lot not found",
+				status: 404,
+			};
+		}
+
 		const alternates = parseAlternates(expectation.alternates);
 		const isExpected = materialCode === expectation.expectedMaterialCode;
 		const isAlternate = alternates.includes(materialCode);

@@ -174,7 +174,7 @@
 **描述**：验证 TPM 自动推送钢网状态并用于就绪检查。
 
 **步骤**：
-1. 绑定钢网到产线（`POST /api/lines/{lineId}/stencil/bind`）。
+1. 绑定钢网到产线（`POST /api/integration/lines/{lineId}/stencil/bind`）。
 2. 推送钢网状态（`POST /api/integration/stencil-status`，status=READY）。
 3. 执行 readiness check（`POST /api/runs/{runNo}/readiness/check`）。
 
@@ -198,7 +198,7 @@
 **描述**：验证 WMS 推送锡膏合规状态并用于就绪检查。
 
 **步骤**：
-1. 绑定锡膏到产线（`POST /api/lines/{lineId}/solder-paste/bind`）。
+1. 绑定锡膏到产线（`POST /api/integration/lines/{lineId}/solder-paste/bind`）。
 2. 推送锡膏状态（`POST /api/integration/solder-paste-status`，status=COMPLIANT）。
 3. 执行 readiness check。
 

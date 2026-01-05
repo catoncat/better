@@ -3,6 +3,7 @@ import { defectRoutes, reworkRoutes } from "./defect/routes";
 import { executionModule } from "./execution/routes";
 import { faiRoutes } from "./fai/routes";
 import { integrationModule } from "./integration/routes";
+import { lineModule } from "./line/routes";
 import {
 	feederSlotModule,
 	lineLoadingModule,
@@ -10,7 +11,6 @@ import {
 	runLoadingModule,
 	slotMappingModule,
 } from "./loading/routes";
-import { lineModule } from "./line/routes";
 import { readinessExceptionsModule, readinessModule } from "./readiness/routes";
 import { routingModule } from "./routing/routes";
 import { runModule } from "./run/routes";
