@@ -8,20 +8,21 @@ import {
 	errorResponseSchema,
 	feederSlotCreateBodySchema,
 	feederSlotResponseSchema,
-	feederSlotUpdateBodySchema,
 	feederSlotsResponseSchema,
+	feederSlotUpdateBodySchema,
 	lineIdParamSchema,
-	loadSlotTableResponseSchema,
 	loadingExpectationsResponseSchema,
 	loadingRecordsResponseSchema,
+	loadSlotTableResponseSchema,
+	replaceLoadingBodySchema,
 	runNoParamSchema,
 	slotIdParamSchema,
 	slotMappingCreateBodySchema,
 	slotMappingIdParamSchema,
 	slotMappingQuerySchema,
 	slotMappingResponseSchema,
-	slotMappingUpdateBodySchema,
 	slotMappingsResponseSchema,
+	slotMappingUpdateBodySchema,
 	unlockSlotBodySchema,
 	verifyLoadingBodySchema,
 	verifyLoadingResponseSchema,
@@ -36,6 +37,7 @@ import {
 	getRunLoadingRecords,
 	listSlotMaterialMappings,
 	loadSlotTable,
+	replaceLoading,
 	unlockSlot,
 	updateFeederSlot,
 	updateSlotMaterialMapping,
@@ -98,6 +100,61 @@ export const loadingModule = new Elysia({ prefix: "/loading" })
 				409: errorResponseSchema,
 			},
 			detail: { tags: ["MES - Loading"], summary: "Verify loading" },
+		},
+	)
+	.post(
+		"/replace",
+		async ({ db, body, set, user, request }) => {
+			const operatorId = body.operatorId ?? user?.id ?? null;
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const result = await replaceLoading(db, {
+				runNo: body.runNo,
+				slotCode: body.slotCode,
+				newMaterialLotBarcode: body.newMaterialLotBarcode,
+				operatorId: operatorId ?? "",
+				reason: body.reason,
+			});
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.MATERIAL_USE,
+					entityId: body.runNo,
+					entityDisplay: `Run ${body.runNo} loading replace`,
+					action: "LOADING_REPLACE",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					request: requestMeta,
+					payload: body,
+				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.MATERIAL_USE,
+				entityId: result.data.id,
+				entityDisplay: `Loading ${result.data.id}`,
+				action: "LOADING_REPLACE",
+				actor,
+				status: "SUCCESS",
+				after: result.data,
+				request: requestMeta,
+				payload: body,
+			});
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.LOADING_VERIFY,
+			body: replaceLoadingBodySchema,
+			response: {
+				200: verifyLoadingResponseSchema,
+				400: errorResponseSchema,
+				404: errorResponseSchema,
+				409: errorResponseSchema,
+			},
+			detail: { tags: ["MES - Loading"], summary: "Replace loaded material" },
 		},
 	);
 
@@ -274,13 +331,20 @@ export const lineLoadingModule = new Elysia({ prefix: "/lines" })
 		"/:lineId/feeder-slots/:slotId",
 		async ({ db, params, body, set, user, request }) => {
 			const slot = await db.feederSlot.findUnique({ where: { id: params.slotId } });
-			if (slot && slot.lineId !== params.lineId) {
+			if (!slot) {
 				set.status = 404;
-				return { ok: false, error: { code: "SLOT_NOT_FOUND", message: "Slot not found" } };
+				return { ok: false, error: { code: "SLOT_NOT_FOUND", message: "Feeder slot not found" } };
+			}
+			if (slot.lineId !== params.lineId) {
+				set.status = 400;
+				return {
+					ok: false,
+					error: { code: "SLOT_LINE_MISMATCH", message: "Slot does not belong to this line" },
+				};
 			}
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
-			const before = slot ?? null;
+			const before = slot;
 			const result = await updateFeederSlot(db, params.slotId, body);
 			if (!result.success) {
 				await recordAuditEvent(db, {
@@ -331,13 +395,20 @@ export const lineLoadingModule = new Elysia({ prefix: "/lines" })
 		"/:lineId/feeder-slots/:slotId",
 		async ({ db, params, set, user, request }) => {
 			const slot = await db.feederSlot.findUnique({ where: { id: params.slotId } });
-			if (slot && slot.lineId !== params.lineId) {
+			if (!slot) {
 				set.status = 404;
-				return { ok: false, error: { code: "SLOT_NOT_FOUND", message: "Slot not found" } };
+				return { ok: false, error: { code: "SLOT_NOT_FOUND", message: "Feeder slot not found" } };
+			}
+			if (slot.lineId !== params.lineId) {
+				set.status = 400;
+				return {
+					ok: false,
+					error: { code: "SLOT_LINE_MISMATCH", message: "Slot does not belong to this line" },
+				};
 			}
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
-			const before = slot ?? null;
+			const before = slot;
 			const result = await deleteFeederSlot(db, params.slotId);
 			if (!result.success) {
 				await recordAuditEvent(db, {
