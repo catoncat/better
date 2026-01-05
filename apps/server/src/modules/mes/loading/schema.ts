@@ -1,5 +1,24 @@
 import { t } from "elysia";
 
+// Enum schemas for type-safe validation
+const loadingRecordStatusSchema = t.Union([
+	t.Literal("LOADED"),
+	t.Literal("UNLOADED"),
+	t.Literal("REPLACED"),
+]);
+
+const loadingVerifyResultSchema = t.Union([
+	t.Literal("PASS"),
+	t.Literal("FAIL"),
+	t.Literal("WARNING"),
+]);
+
+const runSlotExpectationStatusSchema = t.Union([
+	t.Literal("PENDING"),
+	t.Literal("LOADED"),
+	t.Literal("MISMATCH"),
+]);
+
 export const runNoParamSchema = t.Object({
 	runNo: t.String(),
 });
@@ -23,6 +42,14 @@ export const verifyLoadingBodySchema = t.Object({
 	operatorId: t.Optional(t.String()),
 });
 
+export const replaceLoadingBodySchema = t.Object({
+	runNo: t.String(),
+	slotCode: t.String(),
+	newMaterialLotBarcode: t.String({ minLength: 1 }),
+	operatorId: t.Optional(t.String()),
+	reason: t.String({ minLength: 1 }),
+});
+
 export const loadSlotTableResponseSchema = t.Object({
 	ok: t.Boolean(),
 	data: t.Object({
@@ -42,8 +69,8 @@ const loadingRecordSchema = t.Object({
 	lotNo: t.String(),
 	materialCode: t.String(),
 	expectedCode: t.Union([t.String(), t.Null()]),
-	status: t.String(),
-	verifyResult: t.String(),
+	status: loadingRecordStatusSchema,
+	verifyResult: loadingVerifyResultSchema,
 	failReason: t.Union([t.String(), t.Null()]),
 	loadedAt: t.String(),
 	loadedBy: t.String(),
@@ -71,7 +98,7 @@ const runSlotExpectationSchema = t.Object({
 	position: t.Number(),
 	expectedMaterialCode: t.String(),
 	alternates: t.Array(t.String()),
-	status: t.String(),
+	status: runSlotExpectationStatusSchema,
 	loadedMaterialCode: t.Union([t.String(), t.Null()]),
 	loadedAt: t.Union([t.String(), t.Null()]),
 	loadedBy: t.Union([t.String(), t.Null()]),

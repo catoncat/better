@@ -1,8 +1,8 @@
 import {
-	type Prisma,
-	type PrismaClient,
 	LoadingRecordStatus,
 	LoadingVerifyResult,
+	type Prisma,
+	type PrismaClient,
 	RunStatus,
 } from "@better-app/db";
 import type { ServiceResult } from "../../../types/service-result";
@@ -97,9 +97,7 @@ const parseAlternates = (raw: Prisma.JsonValue | null): string[] => {
 	return [];
 };
 
-const parseMaterialLotBarcode = (
-	raw: string,
-): { materialCode: string; lotNo: string } | null => {
+const parseMaterialLotBarcode = (raw: string): { materialCode: string; lotNo: string } | null => {
 	const trimmed = raw.trim();
 	for (const separator of BARCODE_SEPARATORS) {
 		const index = trimmed.indexOf(separator);
@@ -172,22 +170,20 @@ const mapSlotMapping = (mapping: {
 	isAlternate: mapping.isAlternate,
 });
 
-const mapLoadingRecord = (
-	record: {
-		id: string;
-		run: { runNo: string };
-		slot: { id: string; slotCode: string; slotName: string | null; position: number };
-		materialLot: { id: string; lotNo: string; materialCode: string };
-		expectedCode: string | null;
-		status: LoadingRecordStatus;
-		verifyResult: LoadingVerifyResult;
-		failReason: string | null;
-		loadedAt: Date;
-		loadedBy: string;
-		unloadedAt: Date | null;
-		unloadedBy: string | null;
-	},
-): LoadingRecordDetail => ({
+const mapLoadingRecord = (record: {
+	id: string;
+	run: { runNo: string };
+	slot: { id: string; slotCode: string; slotName: string | null; position: number };
+	materialLot: { id: string; lotNo: string; materialCode: string };
+	expectedCode: string | null;
+	status: LoadingRecordStatus;
+	verifyResult: LoadingVerifyResult;
+	failReason: string | null;
+	loadedAt: Date;
+	loadedBy: string;
+	unloadedAt: Date | null;
+	unloadedBy: string | null;
+}): LoadingRecordDetail => ({
 	id: record.id,
 	runNo: record.run.runNo,
 	slotId: record.slot.id,
@@ -207,18 +203,16 @@ const mapLoadingRecord = (
 	unloadedBy: record.unloadedBy,
 });
 
-const mapExpectation = (
-	expectation: {
-		id: string;
-		expectedMaterialCode: string;
-		alternates: Prisma.JsonValue | null;
-		status: string;
-		loadedMaterialCode: string | null;
-		loadedAt: Date | null;
-		loadedBy: string | null;
-		slot: { id: string; slotCode: string; slotName: string | null; position: number };
-	},
-): RunSlotExpectationDetail => ({
+const mapExpectation = (expectation: {
+	id: string;
+	expectedMaterialCode: string;
+	alternates: Prisma.JsonValue | null;
+	status: string;
+	loadedMaterialCode: string | null;
+	loadedAt: Date | null;
+	loadedBy: string | null;
+	slot: { id: string; slotCode: string; slotName: string | null; position: number };
+}): RunSlotExpectationDetail => ({
 	id: expectation.id,
 	slotId: expectation.slot.id,
 	slotCode: expectation.slot.slotCode,
@@ -307,19 +301,13 @@ export async function loadSlotTable(
 	};
 
 	if (run.workOrder.productCode) {
-		mappingWhere.OR = [
-			{ productCode: null },
-			{ productCode: run.workOrder.productCode },
-		];
+		mappingWhere.OR = [{ productCode: null }, { productCode: run.workOrder.productCode }];
 	} else {
 		mappingWhere.productCode = null;
 	}
 
 	if (routingId) {
-		mappingWhere.AND = [
-			...(mappingWhere.AND ?? []),
-			{ OR: [{ routingId: null }, { routingId }] },
-		];
+		mappingWhere.AND = [...(mappingWhere.AND ?? []), { OR: [{ routingId: null }, { routingId }] }];
 	} else {
 		mappingWhere.AND = [...(mappingWhere.AND ?? []), { routingId: null }];
 	}
@@ -354,8 +342,7 @@ export async function loadSlotTable(
 			...candidates.map((mapping) => (mapping.productCode ? 1 : 0) + (mapping.routingId ? 1 : 0)),
 		);
 		const scoped = candidates.filter(
-			(mapping) =>
-				(mapping.productCode ? 1 : 0) + (mapping.routingId ? 1 : 0) === maxSpecificity,
+			(mapping) => (mapping.productCode ? 1 : 0) + (mapping.routingId ? 1 : 0) === maxSpecificity,
 		);
 		const sorted = [...scoped].sort((a, b) => a.priority - b.priority);
 		const primary = sorted.find((item) => !item.isAlternate) ?? sorted[0];
@@ -475,11 +462,48 @@ export async function verifyLoading(
 			};
 		}
 
+		// Idempotent re-scan: if slot is already loaded, check if same material is being scanned
 		if (expectation.status === "LOADED") {
+			// Parse barcode to get material info for comparison
+			let scannedMaterialCode = "";
+			if (parsed) {
+				scannedMaterialCode = parsed.materialCode;
+			} else {
+				const candidates = await tx.materialLot.findMany({
+					where: { lotNo: fallbackLotNo },
+					take: 2,
+					select: { materialCode: true },
+				});
+				if (candidates.length === 1) {
+					scannedMaterialCode = candidates[0].materialCode;
+				}
+			}
+
+			// If same material is scanned, return existing record (idempotent)
+			if (scannedMaterialCode && scannedMaterialCode === expectation.loadedMaterialCode) {
+				const existingRecord = await tx.loadingRecord.findFirst({
+					where: {
+						runId: run.id,
+						slotId: slot.id,
+						status: LoadingRecordStatus.LOADED,
+					},
+					orderBy: { loadedAt: "desc" },
+					include: {
+						run: { select: { runNo: true } },
+						slot: { select: { id: true, slotCode: true, slotName: true, position: true } },
+						materialLot: { select: { id: true, lotNo: true, materialCode: true } },
+					},
+				});
+				if (existingRecord) {
+					return { success: true as const, data: mapLoadingRecord(existingRecord) };
+				}
+			}
+
+			// Different material or no match - require explicit replace
 			return {
 				success: false as const,
 				code: "SLOT_ALREADY_LOADED",
-				message: "Slot already loaded for this run",
+				message: "Slot already loaded. Use replace endpoint to change material.",
 				status: 409,
 			};
 		}
@@ -624,6 +648,19 @@ export async function unlockSlot(
 		};
 	}
 
+	const existingMeta = (slot.meta as Prisma.InputJsonObject) ?? {};
+	const unlockHistory = Array.isArray(existingMeta.unlockHistory)
+		? (existingMeta.unlockHistory as Prisma.InputJsonArray)
+		: [];
+
+	const unlockEvent = {
+		by: operatorCheck.data,
+		reason,
+		at: new Date().toISOString(),
+		previousLockedAt: slot.lockedAt?.toISOString() ?? null,
+		previousLockedReason: slot.lockedReason,
+	};
+
 	const updated = await db.feederSlot.update({
 		where: { id: slotId },
 		data: {
@@ -631,13 +668,264 @@ export async function unlockSlot(
 			failedAttempts: 0,
 			lockedAt: null,
 			lockedReason: null,
-			meta: slot.meta
-				? { ...(slot.meta as Prisma.InputJsonObject), unlockedReason: reason }
-				: { unlockedReason: reason },
+			meta: {
+				...existingMeta,
+				unlockHistory: [...unlockHistory, unlockEvent],
+			},
 		},
 	});
 
 	return { success: true, data: mapFeederSlot(updated) };
+}
+
+type ReplaceLoadingInput = {
+	runNo: string;
+	slotCode: string;
+	newMaterialLotBarcode: string;
+	operatorId: string;
+	reason: string;
+};
+
+export async function replaceLoading(
+	db: PrismaClient,
+	input: ReplaceLoadingInput,
+): Promise<ServiceResult<LoadingRecordDetail>> {
+	const run = await db.run.findUnique({
+		where: { runNo: input.runNo },
+		select: { id: true, lineId: true, status: true },
+	});
+
+	if (!run) {
+		return { success: false, code: "RUN_NOT_FOUND", message: "Run not found", status: 404 };
+	}
+
+	if (!run.lineId) {
+		return {
+			success: false,
+			code: "RUN_LINE_NOT_SET",
+			message: "Run line is not assigned",
+			status: 400,
+		};
+	}
+
+	if (run.status !== RunStatus.PREP) {
+		return {
+			success: false,
+			code: "RUN_STATUS_INVALID",
+			message: "Loading replacement is only allowed in PREP status",
+			status: 400,
+		};
+	}
+
+	const operatorCheck = getOperatorId(input.operatorId);
+	if (!operatorCheck.success) {
+		return operatorCheck;
+	}
+
+	if (!input.reason || input.reason.trim().length === 0) {
+		return {
+			success: false,
+			code: "REASON_REQUIRED",
+			message: "Replacement reason is required",
+			status: 400,
+		};
+	}
+
+	const parsed = parseMaterialLotBarcode(input.newMaterialLotBarcode);
+	const fallbackLotNo = input.newMaterialLotBarcode.trim();
+
+	return db.$transaction(async (tx) => {
+		const slot = await tx.feederSlot.findFirst({
+			where: { lineId: run.lineId ?? undefined, slotCode: input.slotCode },
+		});
+
+		if (!slot) {
+			return {
+				success: false as const,
+				code: "SLOT_NOT_FOUND",
+				message: "Feeder slot not found for this line",
+				status: 404,
+			};
+		}
+
+		if (slot.isLocked) {
+			return {
+				success: false as const,
+				code: "SLOT_LOCKED",
+				message: "Feeder slot is locked. Manual unlock required before replacement.",
+				status: 409,
+			};
+		}
+
+		const expectation = await tx.runSlotExpectation.findUnique({
+			where: {
+				runId_slotId: {
+					runId: run.id,
+					slotId: slot.id,
+				},
+			},
+		});
+
+		if (!expectation) {
+			return {
+				success: false as const,
+				code: "SLOT_EXPECTATION_MISSING",
+				message: "Run slot expectation not loaded",
+				status: 400,
+			};
+		}
+
+		if (expectation.status !== "LOADED") {
+			return {
+				success: false as const,
+				code: "SLOT_NOT_LOADED",
+				message: "Slot is not loaded. Use verify endpoint for initial loading.",
+				status: 400,
+			};
+		}
+
+		// Mark previous LOADED record as REPLACED
+		await tx.loadingRecord.updateMany({
+			where: {
+				runId: run.id,
+				slotId: slot.id,
+				status: LoadingRecordStatus.LOADED,
+			},
+			data: {
+				status: LoadingRecordStatus.REPLACED,
+				unloadedAt: new Date(),
+				unloadedBy: operatorCheck.data,
+			},
+		});
+
+		// Resolve new material lot
+		let materialLot = null as null | { id: string; lotNo: string; materialCode: string };
+		let materialCode = "";
+		let lotNo = "";
+
+		if (parsed) {
+			materialCode = parsed.materialCode;
+			lotNo = parsed.lotNo;
+			materialLot = await tx.materialLot.upsert({
+				where: { materialCode_lotNo: { materialCode, lotNo } },
+				create: { materialCode, lotNo },
+				update: {},
+				select: { id: true, lotNo: true, materialCode: true },
+			});
+		} else {
+			const candidates = await tx.materialLot.findMany({
+				where: { lotNo: fallbackLotNo },
+				take: 2,
+				select: { id: true, lotNo: true, materialCode: true },
+			});
+			if (candidates.length === 1) {
+				materialLot = candidates[0];
+				materialCode = candidates[0].materialCode;
+				lotNo = candidates[0].lotNo;
+			} else if (candidates.length > 1) {
+				return {
+					success: false as const,
+					code: "MATERIAL_LOT_AMBIGUOUS",
+					message: "Material lot barcode is ambiguous",
+					status: 400,
+				};
+			} else {
+				return {
+					success: false as const,
+					code: "MATERIAL_LOT_NOT_FOUND",
+					message: "Material lot not found for barcode",
+					status: 404,
+				};
+			}
+		}
+
+		// Verify new material
+		const alternates = parseAlternates(expectation.alternates);
+		const isExpected = materialCode === expectation.expectedMaterialCode;
+		const isAlternate = alternates.includes(materialCode);
+
+		let verifyResult: LoadingVerifyResult;
+		let failReason: string | null = null;
+		const now = new Date();
+
+		if (isExpected || isAlternate) {
+			verifyResult = isExpected ? LoadingVerifyResult.PASS : LoadingVerifyResult.WARNING;
+
+			await tx.feederSlot.update({
+				where: { id: slot.id },
+				data: {
+					currentMaterialLotId: materialLot.id,
+					failedAttempts: 0,
+					isLocked: false,
+					lockedAt: null,
+					lockedReason: null,
+				},
+			});
+
+			await tx.runSlotExpectation.update({
+				where: { id: expectation.id },
+				data: {
+					loadedMaterialCode: materialCode,
+					loadedAt: now,
+					loadedBy: operatorCheck.data,
+				},
+			});
+		} else {
+			verifyResult = LoadingVerifyResult.FAIL;
+			failReason = `Material mismatch. Expected ${expectation.expectedMaterialCode}, got ${materialCode}`;
+
+			const failedAttempts = slot.failedAttempts + 1;
+			const locked = failedAttempts >= LOCK_THRESHOLD;
+
+			await tx.feederSlot.update({
+				where: { id: slot.id },
+				data: {
+					currentMaterialLotId: null,
+					failedAttempts,
+					isLocked: locked,
+					lockedAt: locked ? now : null,
+					lockedReason: locked ? "3 consecutive failures" : null,
+				},
+			});
+
+			await tx.runSlotExpectation.update({
+				where: { id: expectation.id },
+				data: {
+					status: "MISMATCH",
+					loadedMaterialCode: null,
+					loadedAt: null,
+					loadedBy: null,
+				},
+			});
+		}
+
+		const record = await tx.loadingRecord.create({
+			data: {
+				runId: run.id,
+				slotId: slot.id,
+				runSlotExpectationId: expectation.id,
+				materialLotId: materialLot.id,
+				materialCode,
+				expectedCode: expectation.expectedMaterialCode,
+				status:
+					verifyResult === LoadingVerifyResult.FAIL
+						? LoadingRecordStatus.UNLOADED
+						: LoadingRecordStatus.LOADED,
+				verifyResult,
+				failReason,
+				loadedAt: now,
+				loadedBy: operatorCheck.data,
+				meta: { replaceReason: input.reason },
+			},
+			include: {
+				run: { select: { runNo: true } },
+				slot: { select: { id: true, slotCode: true, slotName: true, position: true } },
+				materialLot: { select: { id: true, lotNo: true, materialCode: true } },
+			},
+		});
+
+		return { success: true as const, data: mapLoadingRecord(record) };
+	});
 }
 
 export async function getRunLoadingRecords(
