@@ -222,7 +222,7 @@ model ReadinessCheckItem {
 - Run 创建后自动预检尚未实现（需求原始设计包含）。
 - Readiness 权限尚未纳入任何默认角色，需要为运行/质量角色补齐。
 - Readiness 配置页与配置 API 暂未实现。
-- 上料防错 UI（扫码执行页、Run 详情上料记录、站位表配置页）尚未实现；BOM position 缺失下以 `SlotMaterialMapping` 作为期望来源。
+- 上料防错站位表配置页尚未实现；BOM position 缺失下以 `SlotMaterialMapping` 作为期望来源。
 - 集成接口：SPI/AOI 检测结果接收与 UI 尚未实现；手动录入已支持 `source: MANUAL` 并要求 `operatorId`。
 
 ---
