@@ -9,6 +9,7 @@ import {
 import { SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
+import { performCheck } from "../readiness/service";
 import type { createReworkRunSchema, mrbDecisionSchema } from "./schema";
 
 type MrbDecisionInput = Static<typeof mrbDecisionSchema>;
@@ -299,6 +300,10 @@ export async function recordMrbDecision(
 			span.setAttribute("newStatus", result.status);
 			if (reworkRunNo) {
 				span.setAttribute("reworkRunNo", reworkRunNo);
+				// Trigger auto precheck for rework runs (especially FULL_PREP)
+				performCheck(db, reworkRunNo, "PRECHECK").catch((err) => {
+					console.error(`[ReworkRun ${reworkRunNo}] Auto precheck failed:`, err);
+				});
 			}
 
 			return {
@@ -460,6 +465,11 @@ export async function createReworkRunFromHold(
 					parentRunNo: updatedParent.runNo,
 					parentRunStatus: updatedParent.status,
 				};
+			});
+
+			// Trigger auto precheck for rework runs
+			performCheck(db, result.reworkRunNo, "PRECHECK").catch((err) => {
+				console.error(`[ReworkRun ${result.reworkRunNo}] Auto precheck failed:`, err);
 			});
 
 			return { success: true as const, data: result };
