@@ -1,7 +1,6 @@
 # Traceability Contract & Strategies
 
 > **更新时间**: 2025-01-02
-> **实现状态**: M1.7 已完成，追溯查询 UI + API 可用
 
 This document defines the traceability contract, with a specific requirement for routing:
 - Trace MUST reflect the **route source** and the **frozen executable route version** used at execution time.

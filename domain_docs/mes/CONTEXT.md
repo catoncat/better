@@ -1,44 +1,29 @@
-# MES Domain Context
+# MES 文档索引
 
-> LLM 快速了解 MES 实现进度。详细定义见各流程文档。
+## 阅读路径
 
-## 当前里程碑: M2
+| 目的 | 文档 |
+|------|------|
+| 了解当前进度/待办 | `plan/phase2_tasks.md` |
+| 了解全局流程 | `spec/process/01_end_to_end_flows.md` |
+| 了解 SMT 流程 | `spec/process/03_smp_flows.md` |
+| 了解 DIP 流程 | `spec/process/04_dip_flows.md` |
+| 查找节点对应实现 | `spec/impl_align/` |
 
-## 待实现（按优先级）
+## 流程定义
 
-### M2 收尾
+- `spec/process/01_end_to_end_flows.md` - 端到端流程
+- `spec/process/02_state_machines.md` - 状态机定义
+- `spec/process/03_smp_flows.md` - SMT 产线流程
+- `spec/process/04_dip_flows.md` - DIP 产线流程
 
-- **IPQC 服务**（DIP 后焊/测试首件检验）
-  - 参考: `spec/process/04_dip_flows.md` → DIP-3, DIP-4 段
-  - API（规划，建议与 FAI/OQC 一致）:
-    - `POST /api/ipqc/run/{runNo}`（创建）
-    - `POST /api/ipqc/{inspectionId}/items`（记录检验项）
-    - `POST /api/ipqc/{inspectionId}/complete`（完成）
-  - 实现模块: `apps/server/src/modules/mes/ipqc/`（新增）
+## 实现对齐
 
-### M3 规划
+- `spec/impl_align/01_e2e_align.md` - 端到端闭环节点实现映射
+- `spec/impl_align/03_smp_align.md` - SMT 节点实现映射
+- `spec/impl_align/04_dip_align.md` - DIP 节点实现映射
 
-- **数据采集服务**（SPI/AOI/ICT/FCT 集成）
-  - 参考: `spec/process/03_smp_flows.md` → SPI/AOI 节点
-  - 参考: `spec/process/04_dip_flows.md` → AOI/ICT/FCT 节点
-  - 现状：`POST /api/stations/{stationCode}/track-out` 支持 `data[]` 写入 `DataValue`
-  - API（规划）：如需独立“设备数采入口”，再新增专用 ingest 端点（与 SCADA 对接）
-  - 集成对象: SCADA
+## 任务追踪
 
-## 流程文档索引
-
-| 流程 | 文档 | 状态 |
-|------|------|------|
-| 通用 | `spec/process/01_end_to_end_flows.md` | M1/M2 ✅ |
-| SMT | `spec/process/03_smp_flows.md` | M1/M2 ✅, M3 ⬜ |
-| DIP | `spec/process/04_dip_flows.md` | M1/M2 大部分 ✅, IPQC ⬜, M3 ⬜ |
-
-每个流程文档末尾有 `## Implementation Status` 节，记录流程节点 → 实现层的对齐状态。
-
-## 提交检查清单（MES 功能）
-
-完成 MES 功能时：
-
-1. **更新流程文档的 `## Implementation Status` 表**（标记 ✅）
-2. 如新增流程节点，同步更新 Mermaid 图
-3. 如待办变更，更新本文件的「待实现」节
+- `plan/01_milestones.md` - 里程碑概览
+- `plan/phase2_tasks.md` - 当前任务分解（进度主入口）

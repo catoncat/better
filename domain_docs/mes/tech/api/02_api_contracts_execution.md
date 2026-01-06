@@ -21,16 +21,18 @@ Error codes reference `domain_docs/mes/tech/api/01_api_overview.md` plus global 
 ### 1.1 Receive WorkOrder (ERP/APS)
 **POST** `/api/integration/work-orders`
 
-- Behavior: idempotent upsert; write `IntegrationMessage`
-- Idempotency: `Idempotency-Key` header is required
-- Result: work order in `RECEIVED`
+- Behavior: idempotent upsert by `woNo`
+- Idempotency: request is idempotent by `woNo` (no `Idempotency-Key` requirement)
+- Result: new work order is created in `RECEIVED`; existing work order fields are updated
 
 Request example:
 ```json
 {
   "woNo": "WO20250101-001",
   "productCode": "P-10001",
-  "qty": 100,
+  "plannedQty": 100,
+  "routingCode": "ROUTE-001",
+  "sourceSystem": "ERP",
   "dueDate": "2025-01-15T00:00:00Z"
 }
 ```
@@ -100,35 +102,24 @@ Response SHOULD include routing identity:
 
 ---
 
-## 2. Gatekeeping (Prep / FAI / Authorization)
+## 2. Gatekeeping (Readiness / FAI / Authorization)
 
-### 2.1 Submit PrepCheck item
+### 2.1 Readiness Check (Precheck / Formal)
 
-**POST** `/api/runs/{runNo}/prep-checks`
+**POST** `/api/runs/{runNo}/readiness/precheck`
 
-* Stores prep status per type
-* When all required checks pass, Run may proceed to FAI gating (if enabled)
+- Creates a PRECHECK record (non-blocking); used for early warning after run creation and upstream changes.
 
-Request example:
-```json
-{
-  "type": "EQUIPMENT",
-  "result": "PASS",
-  "checkedBy": "OP001",
-  "remark": "Ready"
-}
-```
+**POST** `/api/runs/{runNo}/readiness/check`
 
-Response example:
-```json
-{
-  "ok": true,
-  "data": {
-    "prepCheckId": "PC001",
-    "status": "RECORDED"
-  }
-}
-```
+- Creates a FORMAL record (blocking); can be used directly from UI.
+- Run authorization calls `canAuthorize` and will auto-trigger a FORMAL check if none exists.
+
+Query / exception endpoints:
+- `GET /api/runs/{runNo}/readiness/latest?type=PRECHECK|FORMAL`
+- `GET /api/runs/{runNo}/readiness/history`
+- `POST /api/runs/{runNo}/readiness/items/{itemId}/waive`
+- `GET /api/readiness/exceptions`
 
 ### 2.2 FAI lifecycle (M2+ if fully enforced)
 
@@ -171,35 +162,29 @@ Query endpoints:
 * `GET /api/fai/{faiId}`
 * `GET /api/fai/run/{runNo}`
 
-Routing Engine guard:
-* If a step requires FAI, Track/ingest must reject until the **latest** FAI for the run is `PASS`.
-* Run authorization uses the same rule and returns `FAI_NOT_PASSED` when blocked.
+Run-level gate (as-built):
+* If any compiled step has `requiresFAI=true`, Run authorization is blocked until the latest FAI is `PASS` (`FAI_NOT_PASSED`).
+* MANUAL TrackIn/TrackOut requires Run status `AUTHORIZED`/`IN_PROGRESS`, so FAI is effectively enforced before the first TrackIn (via authorization), not per-step.
 
 ### 2.3 Authorization (Batch go-ahead)
 
-**POST** `/api/runs/{runNo}/authorizations`
+**POST** `/api/runs/{runNo}/authorize`
 
-Routing Engine guard:
-
-* If a step requires authorization, Track/ingest must reject until authorized.
+Run-level gate (as-built):
+* MANUAL TrackIn/TrackOut requires Run status `AUTHORIZED`/`IN_PROGRESS` (`RUN_NOT_AUTHORIZED`).
+* Step-level `requiresAuthorization` is stored in the snapshot but not yet enforced (reserved for ingest/AUTO/BATCH/TEST).
 
 Request example:
 ```json
 {
-  "authorizedBy": "SUP001",
-  "remark": "Batch approved"
+  "action": "AUTHORIZE",
+  "reason": "Batch approved"
 }
 ```
 
-Response example:
+Revoke example:
 ```json
-{
-  "ok": true,
-  "data": {
-    "authorizationId": "AUTH001",
-    "status": "AUTHORIZED"
-  }
-}
+{ "action": "REVOKE", "reason": "Rework needed" }
 ```
 
 ### 2.4 Rework Run (MRB Decision) [M2]
@@ -276,9 +261,8 @@ Error codes:
 Required inputs:
 
 * `runNo`
+* `woNo`
 * `sn`
-
-Idempotency: `Idempotency-Key` header is required.
 
 Guards (minimum):
 
@@ -291,6 +275,7 @@ Request example:
 ```json
 {
   "runNo": "RUN20250101-01",
+  "woNo": "WO20250101-001",
   "sn": "SN0001"
 }
 ```
@@ -300,7 +285,6 @@ Response example:
 {
   "ok": true,
   "data": {
-    "trackId": "TRK001",
     "status": "IN_STATION"
   }
 }
@@ -315,8 +299,6 @@ Required inputs:
 * `runNo`
 * `sn`
 * `result`: PASS/FAIL
-
-Idempotency: `Idempotency-Key` header is required.
 
 PASS behavior:
 
@@ -336,7 +318,11 @@ Request example:
 {
   "runNo": "RUN20250101-01",
   "sn": "SN0001",
-  "result": "PASS"
+  "result": "PASS",
+  "operatorId": "OP001",
+  "data": [
+    { "specName": "TEMP", "valueNumber": 247.2 }
+  ]
 }
 ```
 
@@ -345,114 +331,12 @@ Response example:
 {
   "ok": true,
   "data": {
-    "trackId": "TRK002",
     "status": "QUEUED"
   }
 }
 ```
 
 Note: if the step is the last step in the route, the unit status becomes `DONE`.
-
----
-
-## 4. Ingest Execution (AUTO / BATCH / TEST)
-
-### 4.1 Equipment event ingest (AUTO)
-
-**POST** `/api/ingest/equipment-events`
-
-* Idempotency required (`Idempotency-Key` header)
-* Must map to route snapshot step semantics via execution config ingestMapping
-
-Request example:
-```json
-{
-  "eventId": "EVT001",
-  "stationCode": "AUTO-01",
-  "sn": "SN0001",
-  "timestamp": "2025-01-01T08:00:00Z",
-  "result": "PASS",
-  "measurements": {
-    "temp_peak": 247.2
-  }
-}
-```
-
-Response example:
-```json
-{
-  "ok": true,
-  "data": {
-    "accepted": true,
-    "trackId": "TRK100"
-  }
-}
-```
-
-### 4.2 Batch event ingest (BATCH)
-
-**POST** `/api/ingest/batch-events`
-
-* Produces CarrierTrack and optionally per-unit Tracks
-* Idempotency required (`Idempotency-Key` header)
-* Advances units according to snapshot steps (not +1)
-
-Request example:
-```json
-{
-  "batchId": "BATCH001",
-  "carrierNo": "CARRIER-01",
-  "sns": ["SN0001", "SN0002"],
-  "timestamp": "2025-01-01T08:10:00Z",
-  "result": "PASS"
-}
-```
-
-Response example:
-```json
-{
-  "ok": true,
-  "data": {
-    "carrierTrackId": "CTR001",
-    "acceptedCount": 2
-  }
-}
-```
-
-### 4.3 Test result ingest (TEST)
-
-**POST** `/api/ingest/test-results`
-
-* Must produce DataValue rows for measurements
-* Must yield PASS/FAIL outcome for the step
-* FAIL results set unit to OUT_FAILED (M1)
-* Idempotency required (`Idempotency-Key` header)
-
-Request example:
-```json
-{
-  "testResultId": "TEST001",
-  "stationCode": "TEST-01",
-  "sn": "SN0001",
-  "timestamp": "2025-01-01T08:20:00Z",
-  "result": "PASS",
-  "measurements": {
-    "voltage": 3.3,
-    "current": 0.2
-  }
-}
-```
-
-Response example:
-```json
-{
-  "ok": true,
-  "data": {
-    "accepted": true,
-    "dataValueCount": 2
-  }
-}
-```
 
 ---
 

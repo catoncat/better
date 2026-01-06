@@ -11,20 +11,20 @@
 
 ### 1.1 Line Readiness Check（已落地）
 - **数据模型**：已新增 `ReadinessCheck` / `ReadinessCheckItem` + enums + `AuditEntityType.READINESS_CHECK`。
-- **检查逻辑**：设备 / 物料 / 路由三类检查已实现。
+- **检查逻辑**：设备 / 物料 / 路由 / 钢网 / 锡膏 / 上料 六类检查已实现。
 - **API**：预检、正式检查、最新/历史、豁免、异常看板接口已实现。
 - **门禁**：Run 授权时调用 `canAuthorize`；若无正式检查记录，会自动触发一次正式检查。
-- **触发**：TPM 同步与路由版本变更后会对关联 Run 触发预检；**Run 创建后自动预检尚未实现**。
+- **触发**：Run 创建、TPM 同步、路由版本变更会触发预检（异步，非阻断）。
 - **UI**：Run 详情页已有准备检查卡片、执行/豁免操作；异常看板页面已完成；配置页未实现。
 - **权限**：`readiness:view/check/override/config` 已加入权限字典。
 
 ### 1.2 Phase 2 其它模块进度
-- ✅ FAI 首件检验：已完成（2025-01-02）
-- ✅ 缺陷处置（Defect & Disposition）：已完成（2025-01-02）
-- ✅ 上料防错（Loading Verify）：核心模型/服务/API/门禁已完成（UI 未实现）
-- ✅ OQC 抽检：核心链路与 UI 已完成
-- 🚧 集成接口（Integration APIs）：钢网/锡膏状态接收 + 线体绑定 + 就绪检查集成已完成（SPI/AOI 未实现，UI 未实现）
-- ⬜ Closeout 收尾：未开始
+- [x] FAI 首件检验（2025-01-02）
+- [x] 缺陷处置（Defect & Disposition）（2025-01-02）
+- [x] 上料防错（Loading Verify）（核心链路已完成）
+- [x] OQC 抽检（核心链路与 UI 已完成）
+- [~] 集成接口（Integration APIs）（SPI/AOI 未实现，UI 未实现）
+- [ ] Closeout 收尾
 
 ---
 
@@ -35,7 +35,7 @@
 ```prisma
 enum ReadinessCheckType { PRECHECK FORMAL }
 enum ReadinessCheckStatus { PENDING PASSED FAILED }
-enum ReadinessItemType { EQUIPMENT MATERIAL ROUTE }
+enum ReadinessItemType { EQUIPMENT MATERIAL ROUTE STENCIL SOLDER_PASTE LOADING }
 enum ReadinessItemStatus { PASSED FAILED WAIVED }
 
 model ReadinessCheck {
@@ -75,6 +75,15 @@ model ReadinessCheckItem {
 - **路由检查 (ROUTE)**
   - 数据源：`ExecutableRouteVersion`
   - 规则：未绑定路由版本、版本不存在、或状态非 `READY` 失败。
+- **钢网检查 (STENCIL)**
+  - 数据源：`LineStencil` + `StencilStatusRecord`
+  - 规则：无绑定失败；最新状态非 `READY` 失败。
+- **锡膏检查 (SOLDER_PASTE)**
+  - 数据源：`LineSolderPaste` + `SolderPasteStatusRecord`
+  - 规则：无绑定失败；最新状态非 `COMPLIANT` 失败。
+- **上料检查 (LOADING)**
+  - 数据源：`RunSlotExpectation`（由上料防错初始化）
+  - 规则：无期望时视为无需上料；存在未上料/不匹配站位则失败。
 
 ### 2.3 API（已实现）
 - `POST /api/runs/{runNo}/readiness/precheck`
@@ -99,7 +108,7 @@ model ReadinessCheckItem {
 ### 2.6 自动触发（部分实现）
 - [x] TPM 同步变更触发预检
 - [x] 路由版本变更触发预检
-- [ ] Run 创建后自动预检
+- [x] Run 创建后自动预检
 
 ### 2.7 UI（已实现/部分）
 - [x] Run 详情页：准备状态卡片、检查项列表、豁免操作、执行预检/正式检查按钮
@@ -120,7 +129,7 @@ model ReadinessCheckItem {
 - [x] 2.1.6 API: 豁免接口 (waive)
 - [x] 2.1.7 Gate: Run 授权前置检查
 - [x] 2.1.8 权限: `mes:readiness:*` 权限常量
-- [ ] 2.1.9 事件: Run 创建时自动预检
+- [x] 2.1.9 事件: Run 创建时自动预检
 - [x] 2.1.10 事件: TPM/路由变更时重新预检
 - [x] 2.1.11 UI: Run 详情页准备状态卡片
 - [x] 2.1.12 UI: 准备检查执行页（已整合在 Run 详情页）
@@ -184,7 +193,8 @@ model ReadinessCheckItem {
 
 ### 3.6 Task 2.6: Integration APIs (集成接口)
 
-> 参考: `domain_docs/mes/spec/process/03_smp_flows.md` - 集成接口规范
+> 参考: `domain_docs/mes/spec/integration/01_system_integrations.md`
+> 参考: `domain_docs/mes/spec/integration/02_integration_payloads.md`
 > 设计原则: MES 只接收结论状态，不管理外部系统生命周期；支持手动降级模式
 
 - [x] 2.6.1 Schema: `StencilStatusRecord` / `SolderPasteStatusRecord` + `LineStencil` / `LineSolderPaste` + `IntegrationSource`
@@ -194,7 +204,7 @@ model ReadinessCheckItem {
 - [x] 2.6.5 Service: 手动降级录入逻辑 (source: MANUAL + operatorId)
 - [x] 2.6.6 API: `POST /api/integration/stencil-status` 接收钢网状态
 - [x] 2.6.7 API: `POST /api/integration/solder-paste-status` 接收锡膏状态
-- [ ] 2.6.8 API: `POST /mes/integration/inspection-result` 接收检测结果
+- [ ] 2.6.8 API: `POST /api/integration/inspection-result` 接收检测结果
 - [x] 2.6.9 集成: 就绪检查读取集成状态 (钢网/锡膏) + 线体绑定
 - [ ] 2.6.10 集成: FAI/TrackOut 读取检测结果
 - [x] 2.6.11 权限: `system:integration`（接收）+ `loading:config`（线体绑定）
@@ -219,7 +229,6 @@ model ReadinessCheckItem {
 
 ## 4. Review Notes / Gaps
 
-- Run 创建后自动预检尚未实现（需求原始设计包含）。
 - Readiness 权限尚未纳入任何默认角色，需要为运行/质量角色补齐。
 - Readiness 配置页与配置 API 暂未实现。
 - 上料防错站位表配置页尚未实现；BOM position 缺失下以 `SlotMaterialMapping` 作为期望来源。

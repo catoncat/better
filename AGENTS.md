@@ -83,19 +83,29 @@ Use the smallest set of docs needed for the task. Skip anything not required.
 **Note**: When implementing MES features, strictly follow engineering standards in `agent_docs`.
 
 ### Quick Context (Read First for MES Tasks)
-- `domain_docs/mes/CONTEXT.md` - 当前进度摘要 + 待办列表
+- `domain_docs/mes/CONTEXT.md` - 文档索引 + 阅读路径导航
 
-### Commit Checklist (MES Features)
-完成 MES 功能时必须：
-1. 更新对应流程文档的 `## Implementation Status` 表（标记 ✅）
-2. 如新增流程节点，同步更新 Mermaid 图
-3. 如待办变更，更新 `CONTEXT.md`
+### Update Rules (MES Features)
+
+| 事件 | 必改 | 可选 |
+|------|------|------|
+| 新增流程节点（设计） | flow, plan | align（等实现时补） |
+| 完成功能（实现落地） | align, plan | - |
+| 重构/路径变更 | align | - |
+| 砍掉/推迟功能 | flow, plan | align（删除对应行） |
+
+**PR 护栏**：任何实现变更/新增节点落地的 PR 必须同步更新对应 align 文件。
 
 ### Process Specs (Source of Truth)
 - End-to-End Flows: `domain_docs/mes/spec/process/01_end_to_end_flows.md`
 - State Machines: `domain_docs/mes/spec/process/02_state_machines.md`
 - SMT Flows: `domain_docs/mes/spec/process/03_smp_flows.md`
 - DIP Flows: `domain_docs/mes/spec/process/04_dip_flows.md`
+
+### Implementation Alignment
+- E2E Align: `domain_docs/mes/spec/impl_align/01_e2e_align.md`
+- SMT Align: `domain_docs/mes/spec/impl_align/03_smp_align.md`
+- DIP Align: `domain_docs/mes/spec/impl_align/04_dip_align.md`
 
 ### Routing
 - Routing Engine: `domain_docs/mes/spec/routing/01_routing_engine.md`
@@ -117,6 +127,7 @@ Use the smallest set of docs needed for the task. Skip anything not required.
 
 ### Plan
 - Milestones: `domain_docs/mes/plan/01_milestones.md`
+- Current Tasks: `domain_docs/mes/plan/phase2_tasks.md`
 
 ## References (Only When Needed)
 - `agent_docs/99_reference/elysia_reference.md`

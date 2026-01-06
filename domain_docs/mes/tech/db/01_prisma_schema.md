@@ -7,7 +7,7 @@ This document describes the Prisma schema approach for the MES project, with emp
 - Compiled executable route versions (for Run freeze)
 
 Note: This is documentation. The source of truth is the actual `schema.prisma` in the codebase.
-Implementation status: schema + migrations are updated in `schema.prisma`; apply via `bun run db:migrate`.
+Apply migrations via `bun run db:migrate`.
 
 ---
 
@@ -17,7 +17,7 @@ M1 baseline entities typically include:
 - WorkOrder, Run, Unit
 - Station / Line
 - Track
-- PrepCheck, Inspection, Authorization
+- ReadinessCheck, Inspection, Authorization
 - DataCollectionSpec, DataValue
 - IntegrationMessage, AuditEvent
 - TraceSnapshot (optional)
