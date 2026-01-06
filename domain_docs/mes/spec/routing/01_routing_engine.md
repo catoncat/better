@@ -1,7 +1,6 @@
 # Routing Engine Design & Configuration
 
 > **更新时间**: 2025-01-02
-> **实现状态**: M1.5 已完成，核心功能可用
 
 This document defines the MES Routing Engine behavior and configuration model, aligned with:
 - `domain_docs/mes/spec/process/01_end_to_end_flows.md` (E2E flowchart)
@@ -47,7 +46,7 @@ MES provides these via **Route Execution Config** for all routes (see `03_route_
 
 Routing Engine participates in the production closed loop:
 - Work Order received/released
-- Run creation (PREP) and gatekeeping (PrepCheck / FAI / Authorization)
+- Run creation (PREP) and gatekeeping (ReadinessCheck / FAI / Authorization)
 - Execution events (manual TrackIn/TrackOut, or ingest events)
 - PASS advance, FAIL to quality loop
 - Trace output
@@ -146,14 +145,17 @@ Only new Runs use new versions.
 
 ## 6. Guards (Gatekeeping at Execution Time)
 
-Guards are enforced at TrackIn/TrackOut or ingest handling:
+Guards are enforced at Run authorization and TrackIn/TrackOut:
 
-Required guards (minimum set):
-- `WO_NOT_RELEASED`
-- `RUN_NOT_AUTHORIZED` (when authorization gate is enabled for the step)
-- `FAI_REQUIRED` (when FAI gate is enabled for the step)
-- `STEP_MISMATCH` (requested step vs unit.currentStepNo)
-- `STATION_NOT_ALLOWED` (station/station group constraint)
+Run authorization (`POST /api/runs/:runNo/authorize`) guards:
+- `RUN_NOT_READY` (Run must be `PREP`)
+- `READINESS_CHECK_FAILED`
+- `FAI_NOT_PASSED` (when any step requires FAI)
+
+MANUAL TrackIn/TrackOut guards:
+- `RUN_NOT_AUTHORIZED` (Run must be `AUTHORIZED` or `IN_PROGRESS`)
+- `STEP_MISMATCH` (unit.currentStepNo is not found in the frozen snapshot)
+- `STATION_MISMATCH` (station constraint mismatch)
 - `REQUIRED_DATA_MISSING` (required data specs not satisfied)
 - `UNIT_NOT_IN_STATION` (manual track-out without prior track-in)
 

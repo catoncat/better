@@ -1,7 +1,6 @@
 # Route Execution Config (MES-owned Execution Semantics)
 
 > **更新时间**: 2025-01-02
-> **实现状态**: ✅ M1.5 已完成，路由详情页可编辑执行配置
 
 This document defines how MES configures runtime execution semantics without changing the canonical step sequence from ERP (2B).
 Execution semantics are configured here for all routes, regardless of source system.
@@ -83,15 +82,12 @@ Minimum:
 
 ## 4. Gates: FAI and Authorization
 
-If `requiresFAI=true`:
-- the run must have a PASS FAI inspection before this step can execute.
+If `requiresFAI=true`, it marks the step as requiring an FAI gate in the compiled snapshot.
 
-If `requiresAuthorization=true`:
-- the run must be authorized before this step can execute.
-
-Routing Engine must reject otherwise:
-- `FAI_REQUIRED`
-- `RUN_NOT_AUTHORIZED`
+Current behavior (as-built):
+- FAI is a Run-level gate: if any compiled step has `requiresFAI=true`, Run authorization is blocked until the latest FAI is `PASS` (`FAI_NOT_PASSED`).
+- MANUAL TrackIn/TrackOut requires Run status `AUTHORIZED`/`IN_PROGRESS` (`RUN_NOT_AUTHORIZED`), so authorization currently behaves as a Run-level mandatory gate for execution.
+- Step-level `requiresAuthorization` is stored in the snapshot but not yet enforced (reserved for ingest/AUTO/BATCH/TEST).
 
 ---
 

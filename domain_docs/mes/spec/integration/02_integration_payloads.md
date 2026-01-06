@@ -1,7 +1,6 @@
 # Integration Payload Contracts (ERP / TPM)
 
 > **更新时间**: 2025-01-02
-> **实现状态**: ✅ M1.6 已完成，Mock + Kingdee 实际同步可用
 
 This document defines the pull payload structures from ERP and TPM and how they map into MES.
 All API responses use the standard envelope, with the integration payload in `data`:
@@ -364,7 +363,7 @@ Mapping:
 
 Mapping:
 - `POST /api/integration/stencil-status`
-- MES 在就绪检查 (PrepCheck) 时验证 `status === 'READY'`
+- MES 在就绪检查 (ReadinessCheck) 时验证 `status === 'READY'`
 - 支持手动降级：`source: 'MANUAL'` + `operatorId`
 
 ### 3.2 锡膏合规状态 (WMS → MES) [M2]
@@ -385,7 +384,7 @@ Mapping:
 
 Mapping:
 - `POST /api/integration/solder-paste-status`
-- MES 在就绪检查 (PrepCheck) 时验证 `status === 'COMPLIANT'`
+- MES 在就绪检查 (ReadinessCheck) 时验证 `status === 'COMPLIANT'`
 - 支持手动降级：`source: 'MANUAL'` + `operatorId`
 
 ### 3.3 SPI/AOI 检测结果 (SCADA → MES) [M3]

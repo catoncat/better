@@ -1,7 +1,6 @@
 # System Integrations (ERP / TPM)
 
 > **更新时间**: 2025-01-02
-> **实现状态**: M1.6 已完成，Kingdee + TPM 同步可用
 
 This document defines the integration scope and data flow patterns for MES.
 It covers ERP/APS and TPM (equipment management). Additional systems can extend this model.

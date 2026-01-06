@@ -1,188 +1,82 @@
-# State Machines Design
+# 状态机定义
 
-> **更新时间**: 2026-01-06
-> **实现状态**: Run/Unit/WO 状态机已与当前代码实现对齐（含 M2: OQC/MRB/返修 Run/单件 HOLD/SCRAP）
-> **参考**: `domain_docs/mes/spec/process/03_smp_flows.md`（关键设计决策）
-
-## 实现说明
-
-- ✅ 工单状态机 (WorkOrderStatus): RECEIVED → RELEASED → IN_PROGRESS → COMPLETED
-- ✅ 批次状态机 (RunStatus): PREP → AUTHORIZED → IN_PROGRESS → COMPLETED
-- ✅ 批次扩展状态 (M2): ON_HOLD, CLOSED_REWORK, SCRAPPED
-- ✅ 单件状态机 (UnitStatus): QUEUED → IN_STATION → DONE / OUT_FAILED
-- ✅ 单件扩展状态 (M2): ON_HOLD, SCRAPPED
-
----
-
-## 1. 工单状态机 (WorkOrderStatus) - M1 ✅
+## 工单状态机（WorkOrderStatus）
 
 ```mermaid
 stateDiagram-v2
   [*] --> RECEIVED
-  RECEIVED --> RELEASED: Release
-  RELEASED --> IN_PROGRESS: 首个Run进入IN_PROGRESS
-  IN_PROGRESS --> COMPLETED: 所有Run完成
+  RECEIVED --> RELEASED: 工单释放
+  RELEASED --> IN_PROGRESS: 创建 Run
+  IN_PROGRESS --> COMPLETED: 外部系统完工/结案
 ```
 
-| 状态 | 触发条件 | API |
-|------|---------|-----|
-| RECEIVED | ERP 同步 | `POST /api/integration/work-orders` |
-| RELEASED | 手动释放 | `POST /api/work-orders/{woNo}/release` |
-| IN_PROGRESS | 首个 Run 进入 IN_PROGRESS | (自动触发) |
-| COMPLETED | 所有 Run 完成 | (自动触发) |
+| 状态 | 语义 | 触发点 |
+|------|------|--------|
+| `RECEIVED` | 已接收，未释放 | 工单接收（ERP/手动） |
+| `RELEASED` | 已释放，可创建 Run | 工单释放 |
+| `IN_PROGRESS` | 已开始执行 | 创建首个 Run（或 ERP 状态更新） |
+| `COMPLETED` | 工单完工/结案 | ERP 状态更新（当前无 MES 内部 closeout） |
 
-> **说明**：工单状态以 SMP 主流程为准，无额外状态分支。
-
----
-
-## 2. 批次状态机 (RunStatus)
-
-### M1 基础状态 ✅
+## 批次状态机（RunStatus）
 
 ```mermaid
 stateDiagram-v2
-  [*] --> PREP: 创建Run
-  PREP --> AUTHORIZED: FAI通过+授权
-  AUTHORIZED --> IN_PROGRESS: 首个TrackIn
-  IN_PROGRESS --> COMPLETED: 批次完成
-```
+  [*] --> PREP: 创建 Run
+  PREP --> AUTHORIZED: 授权通过（就绪检查 + FAI 门禁）
+  AUTHORIZED --> PREP: 撤销授权
+  AUTHORIZED --> IN_PROGRESS: 首个 TrackIn
 
-### M2 扩展状态 ✅
+  IN_PROGRESS --> COMPLETED: 无 OQC 或 OQC 合格
+  IN_PROGRESS --> ON_HOLD: OQC 不合格
 
-```mermaid
-stateDiagram-v2
-  [*] --> PREP: 创建Run
-  PREP --> AUTHORIZED: FAI通过+授权
-
-  AUTHORIZED --> IN_PROGRESS: 首个TrackIn
-  IN_PROGRESS --> ON_HOLD: OQC不合格
-
-  ON_HOLD --> COMPLETED: MRB放行
-  ON_HOLD --> CLOSED_REWORK: MRB返修
-  ON_HOLD --> SCRAPPED: MRB报废
-
-  IN_PROGRESS --> COMPLETED: OQC通过/无OQC
+  ON_HOLD --> COMPLETED: MRB 放行
+  ON_HOLD --> CLOSED_REWORK: MRB 返修
+  ON_HOLD --> SCRAPPED: MRB 报废
 
   COMPLETED --> [*]
   CLOSED_REWORK --> [*]
   SCRAPPED --> [*]
 ```
 
-| 状态 | 语义 | 触发条件 | 里程碑 |
-|------|------|---------|--------|
-| PREP | 准备中 | 创建 Run | M1 ✅ |
-| AUTHORIZED | 已授权 | FAI 通过 + 授权 | M1 ✅ |
-| IN_PROGRESS | 执行中 | 首个 TrackIn | M1 ✅ |
-| ON_HOLD | OQC隔离 | OQC 不合格 | M2 ✅ |
-| COMPLETED | 成功完成 | OQC 通过 或 MRB 放行 | M1 ✅ |
-| CLOSED_REWORK | 闭环返修 | MRB 决策返修 | M2 ✅ |
-| SCRAPPED | 报废 | MRB 决策报废 | M2 ✅ |
+| 状态 | 语义 | 触发点 |
+|------|------|--------|
+| `PREP` | 准备中 | 创建 Run |
+| `AUTHORIZED` | 已授权 | 授权接口通过门禁 |
+| `IN_PROGRESS` | 执行中 | 首个 TrackIn |
+| `COMPLETED` | 成功完工 | OQC 不触发或 OQC 合格 |
+| `ON_HOLD` | 隔离待评审 | OQC 不合格 |
+| `CLOSED_REWORK` | 原 Run 关闭并进入返修闭环 | MRB 决策返修（同时创建返修 Run） |
+| `SCRAPPED` | 原 Run 整批报废 | MRB 决策报废 |
 
-**状态语义说明**：
-- `COMPLETED`: 生产成功完成，无质量问题或已放行
-- `CLOSED_REWORK`: 生产流程结束，但因 OQC 不合格已创建返修批次
-- `SCRAPPED`: 整批报废
-
-**MRB 返修时原 Run 状态变化**：
-```
-原 Run: IN_PROGRESS → ON_HOLD (OQC失败) → CLOSED_REWORK (MRB返修)
-返修 Run: PREP 或 AUTHORIZED (取决于返修类型)
-```
-
----
-
-## 3. 单件状态机 (UnitStatus)
-
-### M1 基础状态 ✅
+## 单件状态机（UnitStatus）
 
 ```mermaid
 stateDiagram-v2
   [*] --> QUEUED
   QUEUED --> IN_STATION: TrackIn
-  IN_STATION --> OUT_FAILED: TrackOut(FAIL)
+
   IN_STATION --> QUEUED: TrackOut(PASS, 非末工序)
   IN_STATION --> DONE: TrackOut(PASS, 末工序)
-
-  OUT_FAILED --> [*]
-  DONE --> [*]
-```
-
-### M2 扩展状态 ✅
-
-```mermaid
-stateDiagram-v2
-  [*] --> QUEUED
-  QUEUED --> IN_STATION: TrackIn
   IN_STATION --> OUT_FAILED: TrackOut(FAIL)
-  IN_STATION --> QUEUED: TrackOut(PASS, 非末工序)
-  IN_STATION --> DONE: TrackOut(PASS, 末工序)
 
-  OUT_FAILED --> ON_HOLD: Defect disposition = HOLD
-  OUT_FAILED --> SCRAPPED: Defect disposition = SCRAP
-  OUT_FAILED --> QUEUED: Defect disposition = REWORK
+  OUT_FAILED --> QUEUED: 处置=REWORK
+  OUT_FAILED --> ON_HOLD: 处置=HOLD
+  OUT_FAILED --> SCRAPPED: 处置=SCRAP
+
+  ON_HOLD --> QUEUED: HOLD 放行
 
   DONE --> [*]
   SCRAPPED --> [*]
 ```
 
-| 状态 | 触发条件 | 里程碑 |
-|------|---------|--------|
-| QUEUED | 初始/等待下工序 | M1 ✅ |
-| IN_STATION | TrackIn | M1 ✅ |
-| DONE | TrackOut(PASS, 末工序) | M1 ✅ |
-| OUT_FAILED | TrackOut(FAIL) | M1 ✅ |
-| ON_HOLD | 隔离处置（Defect disposition=HOLD） | M2 ✅ |
-| SCRAPPED | 报废处置（Defect disposition=SCRAP） | M2 ✅ |
+| 状态 | 语义 | 触发点 |
+|------|------|--------|
+| `QUEUED` | 等待加工/待下一工序 | 初始状态、PASS 推进、返修/放行回流 |
+| `IN_STATION` | 已进站加工中 | TrackIn |
+| `OUT_FAILED` | 出站失败待处置 | TrackOut(FAIL) |
+| `DONE` | 单件完成 | TrackOut(PASS, 末工序) |
+| `ON_HOLD` | 单件隔离 | 不良处置=HOLD |
+| `SCRAPPED` | 单件报废 | 不良处置=SCRAP |
 
----
-
-## 4. MRB 返修流程状态变化
-
-当 OQC 不合格触发 MRB 评审，决策返修时：
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ 原批次 (Run A)                                               │
-│   IN_PROGRESS → ON_HOLD → CLOSED_REWORK                     │
-│                                                              │
-│ 返修批次 (Run A-RW1)                                         │
-│   ┌─ 复用就绪 → AUTHORIZED (MRB授权, 可豁免FAI)              │
-│   └─ 重新检查 → PREP (需重新FAI)                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**MRB FAI 豁免规则**：
-- 常规授权：必须 FAI PASS
-- MRB 授权（返修 Run）：可豁免 FAI，但必须记录 `mrbFaiWaiver` + `mrbWaiverReason`
-- 豁免权限仅限具备 `QUALITY_DISPOSITION` 权限的角色
-
----
-
-## 5. 规范与历史实现映射（数据迁移参考）
-
-> 本仓库按“绿地实现”推进，不承诺/不维护旧系统枚举迁移表；如未来需要迁移支持，请单独在迁移文档中维护。
-
----
-
-## 参考文档
-
-- SMP 流程图: `03_smp_flows.md`
-- DIP 流程图: `04_dip_flows.md`
-- 端到端流程: `01_end_to_end_flows.md`
-- 关键决策: `03_smp_flows.md` → “关键设计决策”
-
----
-
-## 6. 段首件 IPQC（规划）
-
-当前系统只支持 **Run 级 FAI（一次）**（授权 gate）。DIP 的“后焊/测试首件”等段首件需求，建议按 IPQC 记录，不作为 Run 授权 gate：
-
-- 复用 `Inspection`：
-  - `Inspection.type = IPQC`
-  - `Inspection.activeKey = ${runId}:IPQC:${stepNo}`（同一 Run 可多条 IPQC）
-  - `Inspection.data` 存储 `{ stepNo, stepGroup, checkType, unitSn }`
-- 与执行关系：
-  - 通过 UI 提示或执行前置校验实现“软提示/软卡控”
-  - 不改变 `Run.status`；不新增 Unit 状态
-
-详见：`04_dip_flows.md` → “IPQC（段首件）实现方案（规划）”。
+说明：
+- Unit 不引入 `REWORK` 状态；返修以 `ReworkTask` 表达，Unit 通过回退 `currentStepNo` 回到 `QUEUED`。
