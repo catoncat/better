@@ -2,27 +2,55 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { client, unwrap } from "@/lib/eden";
 
-// Infer types
-export type LoadingExpectationsResponse = Awaited<
-	ReturnType<typeof client.api.runs[":runNo"]["loading"]["expectations"]["get"]>
->["data"];
-export type LoadingExpectation = NonNullable<LoadingExpectationsResponse>["data"]["items"][number];
+export type LoadingExpectation = {
+	id: string;
+	slotId: string;
+	slotCode: string;
+	slotName: string | null;
+	position: number;
+	expectedMaterialCode: string;
+	alternates: string[];
+	status: "PENDING" | "LOADED" | "MISMATCH";
+	loadedMaterialCode: string | null;
+	loadedAt: string | null;
+	loadedBy: string | null;
+};
 
-export type LoadingRecordsResponse = Awaited<
-	ReturnType<typeof client.api.runs[":runNo"]["loading"]["get"]>
->["data"];
-export type LoadingRecord = NonNullable<LoadingRecordsResponse>["data"]["items"][number];
+export type LoadingRecord = {
+	id: string;
+	runNo: string;
+	slotId: string;
+	slotCode: string;
+	slotName: string | null;
+	position: number;
+	materialLotId: string;
+	lotNo: string;
+	materialCode: string;
+	expectedCode: string | null;
+	status: "LOADED" | "UNLOADED" | "REPLACED";
+	verifyResult: "PASS" | "FAIL" | "WARNING";
+	failReason: string | null;
+	loadedAt: string;
+	loadedBy: string;
+	unloadedAt: string | null;
+	unloadedBy: string | null;
+};
 
-export type FeederSlotsResponse = Awaited<
-	ReturnType<typeof client.api.lines[":lineId"]["feeder-slots"]["get"]>
->["data"];
-export type FeederSlot = NonNullable<FeederSlotsResponse>["data"]["items"][number];
+export type FeederSlot = {
+	id: string;
+	lineId: string;
+	slotCode: string;
+	slotName: string | null;
+	position: number;
+	currentMaterialLotId: string | null;
+	isLocked: boolean;
+	failedAttempts: number;
+	lockedAt: string | null;
+	lockedReason: string | null;
+};
 
 type VerifyLoadingInput = Parameters<typeof client.api.loading.verify.post>[0];
 type ReplaceLoadingInput = Parameters<typeof client.api.loading.replace.post>[0];
-type UnlockSlotInput = Parameters<
-	typeof client.api["feeder-slots"][":slotId"]["unlock"]["post"]
->[0];
 
 /**
  * Get loading expectations for a run
@@ -34,7 +62,7 @@ export function useLoadingExpectations(runNo: string | undefined) {
 		queryFn: async () => {
 			if (!runNo) return [];
 			const response = await client.api.runs({ runNo }).loading.expectations.get();
-			return unwrap(response).data.items;
+			return (unwrap(response).items ?? []) as LoadingExpectation[];
 		},
 		staleTime: 5000,
 	});
@@ -50,7 +78,7 @@ export function useLoadingRecords(runNo: string | undefined) {
 		queryFn: async () => {
 			if (!runNo) return [];
 			const response = await client.api.runs({ runNo }).loading.get();
-			return unwrap(response).data.items;
+			return (unwrap(response).items ?? []) as LoadingRecord[];
 		},
 		staleTime: 5000,
 	});
@@ -86,9 +114,9 @@ export function useVerifyLoading() {
 			return unwrap(response);
 		},
 		onSuccess: (data, variables) => {
-			if (data.data.verifyResult === "PASS") {
+			if (data.verifyResult === "PASS") {
 				toast.success("上料验证通过");
-			} else if (data.data.verifyResult === "WARNING") {
+			} else if (data.verifyResult === "WARNING") {
 				toast.warning("上料验证警告");
 			}
 			queryClient.invalidateQueries({
@@ -98,11 +126,19 @@ export function useVerifyLoading() {
 				queryKey: ["mes", "loading", "records", variables.runNo],
 			});
 		},
-		onError: (error: any) => {
-			// Specific error handling for slot locks
-			if (error?.code === "SLOT_LOCKED") {
-				toast.error("站位已锁定", { description: error.message });
+		onError: (error: unknown) => {
+			if (error && typeof error === "object" && "code" in error) {
+				const code = (error as { code?: unknown }).code;
+				const message = (error as { message?: unknown }).message;
+				if (code === "SLOT_LOCKED") {
+					toast.error("站位已锁定", {
+						description: typeof message === "string" ? message : undefined,
+					});
+					return;
+				}
 			}
+
+			toast.error("上料验证失败");
 		},
 	});
 }

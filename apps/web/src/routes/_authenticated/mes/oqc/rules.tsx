@@ -1,25 +1,12 @@
+import { Permission } from "@better-app/db/permissions";
 import { createFileRoute } from "@tanstack/react-router";
-import {
-	Filter,
-	Loader2,
-	MoreHorizontal,
-	Plus,
-	Search,
-	Trash2,
-} from "lucide-react";
+import { Filter, Loader2, MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-
 import { Can } from "@/components/ability/can";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -35,14 +22,9 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import {
-	type OqcSamplingRule,
-	useDeleteOqcRule,
-	useOqcRuleList,
-} from "@/hooks/use-oqc-rules";
+import { type OqcSamplingRule, useDeleteOqcRule, useOqcRuleList } from "@/hooks/use-oqc-rules";
 import { OQC_SAMPLING_TYPE_MAP } from "@/lib/constants";
 import { RuleDialog } from "./-components/rule-dialog";
-import { Permission } from "@better-app/db/permissions";
 
 const ruleSearchSchema = z.object({
 	page: z.number().default(1),
@@ -181,9 +163,7 @@ function OqcRulesPage() {
 												<span className="text-muted-foreground">ALL</span>
 											)}
 										</TableCell>
-										<TableCell>
-											{OQC_SAMPLING_TYPE_MAP[rule.samplingType]}
-										</TableCell>
+										<TableCell>{OQC_SAMPLING_TYPE_MAP[rule.samplingType]}</TableCell>
 										<TableCell>
 											{rule.sampleValue}
 											{rule.samplingType === "PERCENTAGE" ? "%" : " pcs"}
@@ -226,11 +206,7 @@ function OqcRulesPage() {
 				</CardContent>
 			</Card>
 
-			<RuleDialog
-				open={dialogOpen}
-				onOpenChange={setDialogOpen}
-				rule={editingRule}
-			/>
+			<RuleDialog open={dialogOpen} onOpenChange={setDialogOpen} rule={editingRule} />
 		</div>
 	);
 }

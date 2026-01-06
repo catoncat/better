@@ -13,7 +13,13 @@ import {
 	workOrderResponseSchema,
 	workOrderUpdatePickStatusSchema,
 } from "./schema";
-import { createRun, listWorkOrders, releaseWorkOrder, updatePickStatus } from "./service";
+import {
+	closeWorkOrder,
+	createRun,
+	listWorkOrders,
+	releaseWorkOrder,
+	updatePickStatus,
+} from "./service";
 
 const notFoundCodes = new Set(["WORK_ORDER_NOT_FOUND", "LINE_NOT_FOUND"]);
 
@@ -232,5 +238,56 @@ export const workOrderModule = new Elysia({
 				404: workOrderErrorResponseSchema,
 			},
 			detail: { tags: ["MES - Work Orders"] },
+		},
+	)
+	.post(
+		"/:woNo/close",
+		async ({ db, params: { woNo }, set, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const before = await db.workOrder.findUnique({ where: { woNo } });
+
+			const result = await closeWorkOrder(db, woNo);
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.WORK_ORDER,
+					entityId: String(before?.id ?? woNo),
+					entityDisplay: String(woNo),
+					action: "WORK_ORDER_CLOSE",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					before,
+					request: requestMeta,
+				});
+				set.status = result.status ?? (notFoundCodes.has(result.code) ? 404 : 400);
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.WORK_ORDER,
+				entityId: String(result.data.id),
+				entityDisplay: String(result.data.woNo),
+				action: "WORK_ORDER_CLOSE",
+				actor,
+				status: "SUCCESS",
+				before,
+				after: result.data,
+				request: requestMeta,
+			});
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.WO_CLOSE,
+			params: t.Object({ woNo: t.String() }),
+			response: {
+				200: workOrderResponseSchema,
+				400: workOrderErrorResponseSchema,
+				404: workOrderErrorResponseSchema,
+				409: workOrderErrorResponseSchema,
+			},
+			detail: { tags: ["MES - Work Orders"], summary: "Work order closeout" },
 		},
 	);

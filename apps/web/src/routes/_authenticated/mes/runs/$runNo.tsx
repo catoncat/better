@@ -45,8 +45,9 @@ import {
 	useReadinessLatest,
 	useWaiveItem,
 } from "@/hooks/use-readiness";
-import { useRunDetail } from "@/hooks/use-runs";
+import { useCloseRun, useRunDetail } from "@/hooks/use-runs";
 import { INSPECTION_STATUS_MAP, READINESS_ITEM_TYPE_MAP } from "@/lib/constants";
+import { CloseoutDialog } from "@/routes/_authenticated/mes/-components/closeout-dialog";
 import {
 	MrbDecisionDialog,
 	type MrbDecisionFormValues,
@@ -59,6 +60,7 @@ export const Route = createFileRoute("/_authenticated/mes/runs/$runNo")({
 function RunDetailPage() {
 	const { runNo } = Route.useParams();
 	const { data, isLoading, refetch, isFetching } = useRunDetail(runNo);
+	const closeRun = useCloseRun();
 	const {
 		data: readinessData,
 		isLoading: readinessLoading,
@@ -88,6 +90,7 @@ function RunDetailPage() {
 
 	// MRB dialog state
 	const [mrbDialogOpen, setMrbDialogOpen] = useState(false);
+	const [closeoutDialogOpen, setCloseoutDialogOpen] = useState(false);
 
 	const formatTime = (value?: string | Date | null) => {
 		if (!value) return "-";
@@ -225,6 +228,12 @@ function RunDetailPage() {
 		await mrbDecision.mutateAsync({ runNo, data: values });
 	};
 
+	const handleCloseoutConfirm = async () => {
+		await closeRun.mutateAsync({ runNo });
+		setCloseoutDialogOpen(false);
+		refetch();
+	};
+
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center py-12">
@@ -273,10 +282,25 @@ function RunDetailPage() {
 						</p>
 					</div>
 				</div>
-				<Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-					<RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-					刷新
-				</Button>
+				<div className="flex items-center gap-2">
+					{data.run.status === "IN_PROGRESS" && (
+						<Can permissions={Permission.RUN_CLOSE}>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setCloseoutDialogOpen(true)}
+								disabled={closeRun.isPending}
+							>
+								<ClipboardCheck className="mr-2 h-4 w-4" />
+								收尾
+							</Button>
+						</Can>
+					)}
+					<Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+						<RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+						刷新
+					</Button>
+				</div>
 			</div>
 
 			<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -780,6 +804,16 @@ function RunDetailPage() {
 				runNo={runNo}
 				onSubmit={handleMrbDecision}
 				isSubmitting={mrbDecision.isPending}
+			/>
+
+			<CloseoutDialog
+				open={closeoutDialogOpen}
+				onOpenChange={setCloseoutDialogOpen}
+				title="批次收尾确认"
+				description={`确认对批次 ${runNo} 执行收尾关闭吗？`}
+				confirmText="确认收尾"
+				isSubmitting={closeRun.isPending}
+				onConfirm={handleCloseoutConfirm}
 			/>
 		</div>
 	);

@@ -18,6 +18,12 @@ type WorkOrderListQuery = Static<typeof workOrderListQuerySchema>;
 
 const tracer = trace.getTracer("mes");
 
+const TERMINAL_RUN_STATUSES: RunStatus[] = [
+	RunStatus.COMPLETED,
+	RunStatus.CLOSED_REWORK,
+	RunStatus.SCRAPPED,
+];
+
 const setSpanAttributes = (span: Span, attributes: Record<string, unknown>) => {
 	for (const [key, value] of Object.entries(attributes)) {
 		if (value === undefined || value === null) continue;
@@ -448,4 +454,73 @@ export const updatePickStatus = async (
 		data: { pickStatus },
 	});
 	return { success: true, data: updated };
+};
+
+export const closeWorkOrder = async (
+	db: PrismaClient,
+	woNo: string,
+): Promise<ServiceResult<Prisma.WorkOrderGetPayload<Prisma.WorkOrderDefaultArgs>>> => {
+	return tracer.startActiveSpan("mes.work_orders.close", async (span) => {
+		setSpanAttributes(span, { "mes.work_order.wo_no": woNo });
+
+		try {
+			const wo = await db.workOrder.findUnique({
+				where: { woNo },
+				include: { runs: { select: { runNo: true, status: true } } },
+			});
+
+			if (!wo) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "WORK_ORDER_NOT_FOUND");
+				return {
+					success: false as const,
+					code: "WORK_ORDER_NOT_FOUND",
+					message: "Work order not found",
+					status: 404,
+				};
+			}
+
+			if (wo.status === WorkOrderStatus.COMPLETED) {
+				return { success: true as const, data: wo };
+			}
+
+			if (wo.runs.length === 0) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "WORK_ORDER_HAS_NO_RUNS");
+				return {
+					success: false as const,
+					code: "WORK_ORDER_HAS_NO_RUNS",
+					message: "Work order has no runs",
+					status: 400,
+				};
+			}
+
+			const nonTerminalRuns = wo.runs.filter((run) => !TERMINAL_RUN_STATUSES.includes(run.status));
+			if (nonTerminalRuns.length > 0) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "WORK_ORDER_RUNS_NOT_TERMINAL");
+				return {
+					success: false as const,
+					code: "WORK_ORDER_RUNS_NOT_TERMINAL",
+					message: `Work order has non-terminal runs: ${nonTerminalRuns
+						.map((run) => `${run.runNo}(${run.status})`)
+						.join(", ")}`,
+					status: 409,
+				};
+			}
+
+			const updated = await db.workOrder.update({
+				where: { woNo },
+				data: { status: WorkOrderStatus.COMPLETED },
+			});
+
+			return { success: true as const, data: updated };
+		} catch (error) {
+			span.recordException(error as Error);
+			span.setStatus({ code: SpanStatusCode.ERROR });
+			throw error;
+		} finally {
+			span.end();
+		}
+	});
 };

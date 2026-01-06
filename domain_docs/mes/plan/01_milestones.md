@@ -1,6 +1,6 @@
 # Development Plan & Milestones
 
-> **更新时间**: 2025-01-02
+> **更新时间**: 2026-01-06
 > **状态**: M1 系列已完成，M2 进行中
 
 ## 1. Milestone Overview
@@ -59,7 +59,7 @@ This document outlines the development milestones for the MES system, focusing o
   * [x] FAI 首件检验 (2025-01-02): API + UI 已完成，Run 详情页可创建 FAI
   * [x] Defect & Disposition (2025-01-02): 缺陷记录、处置分配、返工任务 UI 已完成
   * [x] OQC Sampling: 核心链路与 UI 已完成
-  * [ ] Final Confirmation: 未开始
+  * [~] Final Confirmation: 执行中（closeout API + UI 已落地）
 
 ### M3: Data Collection and Traceability
 * **Goal**: Implement data collection and traceability features.

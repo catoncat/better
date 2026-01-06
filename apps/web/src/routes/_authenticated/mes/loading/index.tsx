@@ -4,16 +4,10 @@ import { useState } from "react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useLoadTable, useLoadingExpectations } from "@/hooks/use-loading";
+import { useLoadingExpectations, useLoadTable } from "@/hooks/use-loading";
 import { useRunDetail } from "@/hooks/use-runs";
 import { ScanPanel } from "./-components/scan-panel";
 import { SlotList } from "./-components/slot-list";
@@ -31,11 +25,10 @@ function LoadingPage() {
 	const search = Route.useSearch();
 	const navigate = Route.useNavigate();
 	const [inputRunNo, setInputRunNo] = useState(search.runNo ?? "");
+	const runNo = search.runNo;
 
-	const { data: run, isLoading: isRunLoading } = useRunDetail(search.runNo);
-	const { data: expectations, isLoading: isExpectationsLoading } = useLoadingExpectations(
-		search.runNo,
-	);
+	const { data: run, isLoading: isRunLoading } = useRunDetail(runNo ?? "");
+	const { data: expectations, isLoading: isExpectationsLoading } = useLoadingExpectations(runNo);
 	const loadTable = useLoadTable();
 
 	const handleRunSubmit = (e: React.FormEvent) => {
@@ -46,12 +39,12 @@ function LoadingPage() {
 	};
 
 	const handleLoadTable = async () => {
-		if (search.runNo) {
-			await loadTable.mutateAsync(search.runNo);
+		if (runNo) {
+			await loadTable.mutateAsync(runNo);
 		}
 	};
 
-	const showScan = run && expectations && expectations.length > 0;
+	const showScan = Boolean(runNo && run && expectations && expectations.length > 0);
 	const showLoadTable =
 		run && (!expectations || expectations.length === 0) && !isExpectationsLoading;
 
@@ -103,9 +96,7 @@ function LoadingPage() {
 				<Card>
 					<CardHeader>
 						<CardTitle>初始化站位表</CardTitle>
-						<CardDescription>
-							当前批次尚未加载站位期望，请点击下方按钮加载。
-						</CardDescription>
+						<CardDescription>当前批次尚未加载站位期望，请点击下方按钮加载。</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<Button onClick={handleLoadTable} disabled={loadTable.isPending}>
@@ -116,13 +107,13 @@ function LoadingPage() {
 				</Card>
 			)}
 
-			{showScan && (
+			{runNo && showScan && (
 				<div className="grid gap-6 lg:grid-cols-2">
 					<div className="space-y-6">
-						<ScanPanel runNo={search.runNo!} />
+						<ScanPanel runNo={runNo} />
 					</div>
 					<div className="space-y-6">
-						<SlotList runNo={search.runNo!} />
+						<SlotList runNo={runNo} />
 					</div>
 				</div>
 			)}

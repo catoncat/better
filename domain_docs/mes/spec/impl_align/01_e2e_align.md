@@ -55,3 +55,10 @@
 | Run=ON_HOLD | `POST /api/oqc/:oqcId/complete` | `apps/server/src/modules/mes/oqc/service.ts` | `apps/web/src/routes/_authenticated/mes/oqc.tsx` |
 | Run=CLOSED_REWORK (创建返修 Run) | `POST /api/runs/:runNo/mrb-decision`, `POST /api/runs/:runNo/rework` | `apps/server/src/modules/mes/oqc/mrb-service.ts` | `apps/web/src/routes/_authenticated/mes/-components/mrb-decision-dialog.tsx` |
 | Run=SCRAPPED | `POST /api/runs/:runNo/mrb-decision` | `apps/server/src/modules/mes/oqc/mrb-service.ts` | `apps/web/src/routes/_authenticated/mes/-components/mrb-decision-dialog.tsx` |
+
+## 收尾关闭
+
+| 节点 | API | Server | Web |
+|------|-----|--------|-----|
+| 批次收尾确认 | `POST /api/runs/:runNo/close` | `apps/server/src/modules/mes/run/service.ts`, `apps/server/src/modules/mes/run/routes.ts` | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx`, `apps/web/src/routes/_authenticated/mes/-components/closeout-dialog.tsx` |
+| 工单收尾确认 (WO=COMPLETED) | `POST /api/work-orders/:woNo/close` | `apps/server/src/modules/mes/work-order/service.ts`, `apps/server/src/modules/mes/work-order/routes.ts` | `apps/web/src/routes/_authenticated/mes/work-orders.tsx`, `apps/web/src/routes/_authenticated/mes/-components/closeout-dialog.tsx` |

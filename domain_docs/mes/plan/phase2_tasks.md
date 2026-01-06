@@ -1,7 +1,7 @@
 # Phase 2 Plan (M2 - Execution Control & Quality) — Consolidated
 
 > 状态：**执行中**
-> 更新时间：2026-01-05
+> 更新时间：2026-01-06
 > 目标：准备检查门禁、上料防错、FAI、缺陷处置、OQC 抽检、集成接口、收尾关闭
 > 说明：本文件合并 `phase2_detailed_breakdown.md` 与 `phase2_line_readiness_design.md`。
 
@@ -24,7 +24,7 @@
 - [x] 上料防错（Loading Verify）（核心链路已完成）
 - [x] OQC 抽检（核心链路与 UI 已完成）
 - [~] 集成接口（Integration APIs）（SPI/AOI 未实现，UI 未实现）
-- [ ] Closeout 收尾
+- [~] Closeout 收尾
 
 ---
 
@@ -213,11 +213,11 @@ model ReadinessCheckItem {
 - [x] 2.6.14 审计: 数据来源标识 (AUTO/MANUAL) 追溯
 
 ### 3.7 Task 2.7: Final Confirmation & Closeout
-- [ ] 2.7.1 Service: Run 终态判定 (COMPLETED / CLOSED_REWORK / SCRAPPED)
-- [ ] 2.7.2 Service: WO 完成条件检查 (所有 Run 处于终态)
-- [ ] 2.7.3 API: Run closeout
-- [ ] 2.7.4 API: WO closeout
-- [ ] 2.7.5 UI: 关闭确认对话框
+- [x] 2.7.1 Service: Run 终态判定 (COMPLETED / CLOSED_REWORK / SCRAPPED)
+- [x] 2.7.2 Service: WO 完成条件检查 (所有 Run 处于终态)
+- [x] 2.7.3 API: Run closeout
+- [x] 2.7.4 API: WO closeout
+- [x] 2.7.5 UI: 关闭确认对话框
 - [ ] 2.7.6 归档占位符 (后续扩展)
 
 ### 3.8 Task 2.8: Status Enum Alignment

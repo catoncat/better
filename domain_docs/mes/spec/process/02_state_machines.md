@@ -7,7 +7,7 @@ stateDiagram-v2
   [*] --> RECEIVED
   RECEIVED --> RELEASED: 工单释放
   RELEASED --> IN_PROGRESS: 创建 Run
-  IN_PROGRESS --> COMPLETED: 外部系统完工/结案
+  IN_PROGRESS --> COMPLETED: 工单收尾确认（所有 Run 终态）/ ERP 完工结案
 ```
 
 | 状态 | 语义 | 触发点 |
@@ -15,7 +15,7 @@ stateDiagram-v2
 | `RECEIVED` | 已接收，未释放 | 工单接收（ERP/手动） |
 | `RELEASED` | 已释放，可创建 Run | 工单释放 |
 | `IN_PROGRESS` | 已开始执行 | 创建首个 Run（或 ERP 状态更新） |
-| `COMPLETED` | 工单完工/结案 | ERP 状态更新（当前无 MES 内部 closeout） |
+| `COMPLETED` | 工单完工/结案 | 工单收尾确认（所有 Run 终态）或 ERP 状态更新 |
 
 ## 批次状态机（RunStatus）
 

@@ -1,15 +1,9 @@
-import { AlertTriangle, CheckCircle2, Lock, Unlock } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Unlock } from "lucide-react";
 import { useMemo } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
 	Table,
 	TableBody,
@@ -18,17 +12,8 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import {
-	useLoadingExpectations,
-	useLoadingRecords,
-	useUnlockSlot,
-} from "@/hooks/use-loading";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useLoadingExpectations, useUnlockSlot } from "@/hooks/use-loading";
 
 interface SlotListProps {
 	runNo: string;
@@ -36,7 +21,6 @@ interface SlotListProps {
 
 export function SlotList({ runNo }: SlotListProps) {
 	const { data: expectations } = useLoadingExpectations(runNo);
-	const { data: records } = useLoadingRecords(runNo);
 	const unlockSlot = useUnlockSlot();
 
 	// Merge expectations and records to get full slot status
@@ -44,14 +28,14 @@ export function SlotList({ runNo }: SlotListProps) {
 	// The `records` are the history logs mostly, but let's stick to expectations for the current state view.
 	// Wait, schema says `RunSlotExpectation` has `status` (PENDING/LOADED/MISMATCH) and `loadedMaterialCode`.
 	// So `expectations` is enough for the main list.
-	
+
 	// However, `FeederSlot` has `isLocked`. The expectation doesn't explicitly say if the SLOT is locked.
 	// The backend `getRunLoadingExpectations` might not return lock status of the slot.
 	// Let's assume for now we just show what we have. If a verification failed, the user will see error toast.
 	// If we need to show lock icon, we might need to fetch feeder slots or rely on error handling.
 	// Actually, `expectations` usually join the slot info. Let's check schema...
 	// `RunSlotExpectation` schema has: slotId, slotCode... but no isLocked.
-	
+
 	// For MVP, I will just list the expectations.
 
 	const sortedItems = useMemo(() => {
@@ -70,8 +54,8 @@ export function SlotList({ runNo }: SlotListProps) {
 			<CardHeader>
 				<CardTitle>站位状态</CardTitle>
 				<CardDescription>
-					总计: {expectations?.length ?? 0} | 
-					已上料: {expectations?.filter((e) => e.status === "LOADED").length ?? 0}
+					总计: {expectations?.length ?? 0} | 已上料:{" "}
+					{expectations?.filter((e) => e.status === "LOADED").length ?? 0}
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
@@ -99,9 +83,7 @@ export function SlotList({ runNo }: SlotListProps) {
 										</span>
 									)}
 								</TableCell>
-								<TableCell className="font-mono">
-									{item.loadedMaterialCode || "-"}
-								</TableCell>
+								<TableCell className="font-mono">{item.loadedMaterialCode || "-"}</TableCell>
 								<TableCell>
 									{item.status === "LOADED" ? (
 										<Badge variant="default" className="bg-green-600 hover:bg-green-700">

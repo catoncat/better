@@ -115,3 +115,22 @@ export function useAuthorizeRun() {
 		},
 	});
 }
+
+export function useCloseRun() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({ runNo }: { runNo: string }) => {
+			const response = await client.api.runs({ runNo }).close.post();
+			return unwrap(response);
+		},
+		onSuccess: (_data, { runNo }) => {
+			toast.success("批次已收尾");
+			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
+			queryClient.invalidateQueries({ queryKey: ["mes", "run-detail", runNo] });
+		},
+		onError: (error: Error) => {
+			toast.error(error.message);
+		},
+	});
+}
