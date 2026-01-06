@@ -37,8 +37,6 @@ const ruleSchema = z.object({
 	isActive: z.boolean(),
 });
 
-type RuleFormValues = z.infer<typeof ruleSchema>;
-
 interface RuleDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -254,7 +252,7 @@ export function RuleDialog({ open, onOpenChange, rule }: RuleDialogProps) {
 							取消
 						</Button>
 						<form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-							{([canSubmit, isSubmitting]) => (
+							{([canSubmit, _isSubmitting]) => (
 								<Button type="submit" disabled={!canSubmit || isPending}>
 									{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 									{isEdit ? "保存更改" : "创建规则"}
