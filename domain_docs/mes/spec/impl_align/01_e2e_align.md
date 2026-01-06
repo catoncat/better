@@ -14,6 +14,16 @@
 | 配置执行语义 (RouteExecutionConfig) | `GET/POST/PATCH /api/routes/:routingCode/execution-config` | `apps/server/src/modules/mes/routing/service.ts` | `apps/web/src/routes/_authenticated/mes/routes/$routingCode.tsx` |
 | 编译可执行版本 (ExecutableRouteVersion=READY) | `POST /api/routes/:routingCode/compile`, `GET /api/routes/:routingCode/versions` | `apps/server/src/modules/mes/routing/service.ts` | `apps/web/src/routes/_authenticated/mes/route-versions.tsx` |
 
+## 外部系统集成
+
+| 节点 | API | Server | Web |
+|------|-----|--------|-----|
+| 钢网状态接收 | `POST /api/integration/stencil-status` | `apps/server/src/modules/mes/integration/stencil-service.ts` | - |
+| 锡膏状态接收 | `POST /api/integration/solder-paste-status` | `apps/server/src/modules/mes/integration/solder-paste-service.ts` | - |
+| SPI/AOI 检测结果接收 | `POST /api/integration/inspection-result` | `apps/server/src/modules/mes/integration/inspection-result-service.ts` | - |
+| 线体钢网绑定 | `POST /api/integration/lines/:lineId/stencil/bind` | `apps/server/src/modules/mes/integration/line-binding-service.ts` | - |
+| 线体锡膏绑定 | `POST /api/integration/lines/:lineId/solder-paste/bind` | `apps/server/src/modules/mes/integration/line-binding-service.ts` | - |
+
 ## 工单/批次
 
 | 节点 | API | Server | Web |

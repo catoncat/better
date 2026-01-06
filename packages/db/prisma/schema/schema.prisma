@@ -319,6 +319,16 @@ enum IntegrationSource {
   MANUAL
 }
 
+enum InspectionResultType {
+  SPI
+  AOI
+}
+
+enum InspectionResultStatus {
+  PASS
+  FAIL
+}
+
 enum AuditEntityType {
   WORK_ORDER
   RUN
@@ -1473,4 +1483,35 @@ model UserStationBinding {
   @@index([userId])
   @@index([stationId])
   @@map("user_station_bindings")
+}
+
+// ==========================================
+// Inspection Result Record (SPI/AOI Integration)
+// ==========================================
+
+model InspectionResultRecord {
+  id             String                  @id @default(cuid())
+  eventId        String                  @unique
+  eventTime      DateTime
+  runNo          String
+  stationCode    String
+  unitSn         String
+  stepNo         Int
+  inspectionType InspectionResultType
+  result         InspectionResultStatus
+  defects        Json?
+  rawData        Json?
+  source         IntegrationSource
+  equipmentId    String?
+  operatorId     String?
+  trackId        String?
+  defectIds      Json?
+  receivedAt     DateTime                @default(now())
+  meta           Json?
+
+  @@index([runNo])
+  @@index([unitSn])
+  @@index([stationCode])
+  @@index([eventTime])
+  @@index([inspectionType, result])
 }

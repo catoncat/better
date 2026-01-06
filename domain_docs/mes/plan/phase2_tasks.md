@@ -200,11 +200,11 @@ model ReadinessCheckItem {
 - [x] 2.6.1 Schema: `StencilStatusRecord` / `SolderPasteStatusRecord` + `LineStencil` / `LineSolderPaste` + `IntegrationSource`
 - [x] 2.6.2 Service: 钢网状态接收逻辑 (TPM → MES)
 - [x] 2.6.3 Service: 锡膏状态接收逻辑 (WMS → MES)
-- [ ] 2.6.4 Service: 检测结果接收逻辑 (SPI/AOI → MES)
+- [x] 2.6.4 Service: 检测结果接收逻辑 (SPI/AOI → MES)
 - [x] 2.6.5 Service: 手动降级录入逻辑 (source: MANUAL + operatorId)
 - [x] 2.6.6 API: `POST /api/integration/stencil-status` 接收钢网状态
 - [x] 2.6.7 API: `POST /api/integration/solder-paste-status` 接收锡膏状态
-- [ ] 2.6.8 API: `POST /api/integration/inspection-result` 接收检测结果
+- [x] 2.6.8 API: `POST /api/integration/inspection-result` 接收检测结果
 - [x] 2.6.9 集成: 就绪检查读取集成状态 (钢网/锡膏) + 线体绑定
 - [ ] 2.6.10 集成: FAI/TrackOut 读取检测结果
 - [x] 2.6.11 权限: `system:integration`（接收）+ `loading:config`（线体绑定）
