@@ -21,6 +21,7 @@
 | 钢网状态接收 | `POST /api/integration/stencil-status` | `apps/server/src/modules/mes/integration/stencil-service.ts` | - |
 | 锡膏状态接收 | `POST /api/integration/solder-paste-status` | `apps/server/src/modules/mes/integration/solder-paste-service.ts` | - |
 | SPI/AOI 检测结果接收 | `POST /api/integration/inspection-result` | `apps/server/src/modules/mes/integration/inspection-result-service.ts` | - |
+| SPI/AOI 检测结果消费 | `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/execution/service.ts` | - |
 | 线体钢网绑定 | `POST /api/integration/lines/:lineId/stencil/bind` | `apps/server/src/modules/mes/integration/line-binding-service.ts` | - |
 | 线体锡膏绑定 | `POST /api/integration/lines/:lineId/solder-paste/bind` | `apps/server/src/modules/mes/integration/line-binding-service.ts` | - |
 
