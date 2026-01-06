@@ -1,16 +1,16 @@
 # State Machines Design
 
-> **更新时间**: 2025-01-03
-> **实现状态**: Run/Unit/WO 枚举已对齐 SMP v2.4，扩展流转 (RUN: ON_HOLD/CLOSED_REWORK/SCRAPPED, UNIT: ON_HOLD/SCRAPPED) 逻辑待 M2 完成
-> **决策记录**: `conversation/smp_flow_design_decisions.md`
+> **更新时间**: 2026-01-06
+> **实现状态**: Run/Unit/WO 状态机已与当前代码实现对齐（含 M2: OQC/MRB/返修 Run/单件 HOLD/SCRAP）
+> **参考**: `domain_docs/mes/spec/process/03_smp_flows.md`（关键设计决策）
 
 ## 实现说明
 
 - ✅ 工单状态机 (WorkOrderStatus): RECEIVED → RELEASED → IN_PROGRESS → COMPLETED
 - ✅ 批次状态机 (RunStatus): PREP → AUTHORIZED → IN_PROGRESS → COMPLETED
-- ⬜ 批次扩展状态 (M2): ON_HOLD, CLOSED_REWORK, SCRAPPED
+- ✅ 批次扩展状态 (M2): ON_HOLD, CLOSED_REWORK, SCRAPPED
 - ✅ 单件状态机 (UnitStatus): QUEUED → IN_STATION → DONE / OUT_FAILED
-- ⬜ 单件扩展状态 (M2): ON_HOLD, SCRAPPED
+- ✅ 单件扩展状态 (M2): ON_HOLD, SCRAPPED
 
 ---
 
@@ -47,7 +47,7 @@ stateDiagram-v2
   IN_PROGRESS --> COMPLETED: 批次完成
 ```
 
-### M2 扩展状态 ⬜
+### M2 扩展状态 ✅
 
 ```mermaid
 stateDiagram-v2
@@ -73,10 +73,10 @@ stateDiagram-v2
 | PREP | 准备中 | 创建 Run | M1 ✅ |
 | AUTHORIZED | 已授权 | FAI 通过 + 授权 | M1 ✅ |
 | IN_PROGRESS | 执行中 | 首个 TrackIn | M1 ✅ |
-| ON_HOLD | OQC隔离 | OQC 不合格 | M2 ⬜ |
+| ON_HOLD | OQC隔离 | OQC 不合格 | M2 ✅ |
 | COMPLETED | 成功完成 | OQC 通过 或 MRB 放行 | M1 ✅ |
-| CLOSED_REWORK | 闭环返修 | MRB 决策返修 | M2 ⬜ |
-| SCRAPPED | 报废 | MRB 决策报废 | M2 ⬜ |
+| CLOSED_REWORK | 闭环返修 | MRB 决策返修 | M2 ✅ |
+| SCRAPPED | 报废 | MRB 决策报废 | M2 ✅ |
 
 **状态语义说明**：
 - `COMPLETED`: 生产成功完成，无质量问题或已放行
@@ -107,7 +107,7 @@ stateDiagram-v2
   DONE --> [*]
 ```
 
-### M2 扩展状态 ⬜
+### M2 扩展状态 ✅
 
 ```mermaid
 stateDiagram-v2
@@ -117,12 +117,9 @@ stateDiagram-v2
   IN_STATION --> QUEUED: TrackOut(PASS, 非末工序)
   IN_STATION --> DONE: TrackOut(PASS, 末工序)
 
-  OUT_FAILED --> ON_HOLD: 隔离处置
-  OUT_FAILED --> SCRAPPED: 报废处置
-  OUT_FAILED --> QUEUED: 返修处置
-
-  ON_HOLD --> QUEUED: MRB放行返修
-  ON_HOLD --> SCRAPPED: MRB报废
+  OUT_FAILED --> ON_HOLD: Defect disposition = HOLD
+  OUT_FAILED --> SCRAPPED: Defect disposition = SCRAP
+  OUT_FAILED --> QUEUED: Defect disposition = REWORK
 
   DONE --> [*]
   SCRAPPED --> [*]
@@ -134,8 +131,8 @@ stateDiagram-v2
 | IN_STATION | TrackIn | M1 ✅ |
 | DONE | TrackOut(PASS, 末工序) | M1 ✅ |
 | OUT_FAILED | TrackOut(FAIL) | M1 ✅ |
-| ON_HOLD | 隔离处置 | M2 ⬜ |
-| SCRAPPED | 报废处置 | M2 ⬜ |
+| ON_HOLD | 隔离处置（Defect disposition=HOLD） | M2 ✅ |
+| SCRAPPED | 报废处置（Defect disposition=SCRAP） | M2 ✅ |
 
 ---
 
@@ -163,48 +160,29 @@ stateDiagram-v2
 
 ## 5. 规范与历史实现映射（数据迁移参考）
 
-> **注意**：旧枚举值已随 v2.4 对齐迁移，本表仅用于历史数据/迁移参考。
-
-### WorkOrderStatus 映射
-
-| 规范状态 | 历史值 | 说明 |
-|---------|------------|------|
-| RECEIVED | RECEIVED | ✅ 一致 |
-| RELEASED | RELEASED | ✅ 一致 |
-| IN_PROGRESS | IN_PROGRESS | ✅ 一致 |
-| COMPLETED | COMPLETED | ✅ 一致 |
-| COMPLETED | CANCELLED / CLOSED | 🗑️ 合并到 COMPLETED |
-
-### RunStatus 映射
-
-| 规范状态 | 历史值 | 说明 |
-|---------|------------|------|
-| PREP | PREP | ✅ 一致 |
-| AUTHORIZED | AUTHORIZED | ✅ 一致 |
-| IN_PROGRESS | RUNNING | ⚠️ 需迁移 |
-| ON_HOLD | (新增) | M2 新增 |
-| COMPLETED | FINISHING / ARCHIVED | ⚠️ 需迁移 |
-| CLOSED_REWORK | (新增) | M2 新增 |
-| SCRAPPED | (新增) | M2 新增 |
-| PREP | FAI_PENDING | 🗑️ 移除 (已用 FAI 任务状态替代) |
-| SCRAPPED | CANCELLED | 🗑️ 合并到 SCRAPPED |
-
-### UnitStatus 映射
-
-| 规范状态 | 历史值 | 说明 |
-|---------|------------|------|
-| QUEUED | QUEUED | ✅ 一致 |
-| IN_STATION | IN_STATION | ✅ 一致 |
-| DONE | DONE | ✅ 一致 |
-| OUT_FAILED | OUT_FAILED | ✅ 一致 |
-| ON_HOLD | HOLD | ⚠️ 命名差异 |
-| SCRAPPED | SCRAPPED | ✅ 一致 |
-| QUEUED | OUT_PASSED / REWORK | 🗑️ 合并到 QUEUED |
+> 本仓库按“绿地实现”推进，不承诺/不维护旧系统枚举迁移表；如未来需要迁移支持，请单独在迁移文档中维护。
 
 ---
 
 ## 参考文档
 
 - SMP 流程图: `03_smp_flows.md`
+- DIP 流程图: `04_dip_flows.md`
 - 端到端流程: `01_end_to_end_flows.md`
-- 决策记录: `conversation/smp_flow_design_decisions.md`
+- 关键决策: `03_smp_flows.md` → “关键设计决策”
+
+---
+
+## 6. 段首件 IPQC（规划）
+
+当前系统只支持 **Run 级 FAI（一次）**（授权 gate）。DIP 的“后焊/测试首件”等段首件需求，建议按 IPQC 记录，不作为 Run 授权 gate：
+
+- 复用 `Inspection`：
+  - `Inspection.type = IPQC`
+  - `Inspection.activeKey = ${runId}:IPQC:${stepNo}`（同一 Run 可多条 IPQC）
+  - `Inspection.data` 存储 `{ stepNo, stepGroup, checkType, unitSn }`
+- 与执行关系：
+  - 通过 UI 提示或执行前置校验实现“软提示/软卡控”
+  - 不改变 `Run.status`；不新增 Unit 状态
+
+详见：`04_dip_flows.md` → “IPQC（段首件）实现方案（规划）”。
