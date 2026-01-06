@@ -12,6 +12,11 @@ import {
 	syncErpWorkOrders,
 } from "./erp";
 import {
+	inspectionResultReceiveSchema,
+	inspectionResultResponseSchema,
+} from "./inspection-result-schema";
+import { receiveInspectionResult } from "./inspection-result-service";
+import {
 	bindSolderPasteToLine,
 	bindStencilToLine,
 	unbindSolderPasteFromLine,
@@ -878,6 +883,64 @@ export const integrationModule = new Elysia({
 			requirePermission: Permission.SYSTEM_INTEGRATION,
 			body: solderPasteStatusReceiveSchema,
 			response: solderPasteStatusResponseSchema,
+			detail: { tags: ["MES - Integration"] },
+		},
+	)
+	// ==========================================
+	// Inspection Result Endpoint (SPI/AOI from SCADA)
+	// ==========================================
+	.post(
+		"/inspection-result",
+		async ({ db, body, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+
+			try {
+				const result = await receiveInspectionResult(db, body);
+
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: result.id,
+					entityDisplay: `${result.inspectionType} ${result.unitSn}`,
+					action: "INSPECTION_RESULT_RECEIVE",
+					actor,
+					status: "SUCCESS",
+					request: requestMeta,
+					payload: {
+						sourceSystem: "SCADA",
+						entityType: "INSPECTION_RESULT",
+						eventId: result.eventId,
+						runNo: result.runNo,
+						unitSn: result.unitSn,
+						inspectionType: result.inspectionType,
+						result: result.result,
+						defectsCreated: result.defectsCreated,
+						isDuplicate: result.isDuplicate,
+					},
+				});
+
+				return { ok: true, data: result };
+			} catch (error) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: body.eventId,
+					entityDisplay: `${body.inspectionType} ${body.unitSn}`,
+					action: "INSPECTION_RESULT_RECEIVE",
+					actor,
+					status: "FAIL",
+					errorCode: "INSPECTION_RESULT_RECEIVE_FAILED",
+					errorMessage: error instanceof Error ? error.message : "Unknown error",
+					request: requestMeta,
+					payload: { sourceSystem: "SCADA", entityType: "INSPECTION_RESULT" },
+				});
+				throw error;
+			}
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
+			body: inspectionResultReceiveSchema,
+			response: inspectionResultResponseSchema,
 			detail: { tags: ["MES - Integration"] },
 		},
 	)
