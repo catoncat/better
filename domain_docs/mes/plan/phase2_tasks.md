@@ -206,7 +206,7 @@ model ReadinessCheckItem {
 - [x] 2.6.7 API: `POST /api/integration/solder-paste-status` 接收锡膏状态
 - [x] 2.6.8 API: `POST /api/integration/inspection-result` 接收检测结果
 - [x] 2.6.9 集成: 就绪检查读取集成状态 (钢网/锡膏) + 线体绑定
-- [ ] 2.6.10 集成: FAI/TrackOut 读取检测结果
+- [x] 2.6.10 集成: FAI/TrackOut 读取检测结果
 - [x] 2.6.11 权限: `system:integration`（接收）+ `loading:config`（线体绑定）
 - [ ] 2.6.12 UI: 手动录入界面 (就绪检查页、执行页)
 - [ ] 2.6.13 UI: 集成状态监控页 (可选)

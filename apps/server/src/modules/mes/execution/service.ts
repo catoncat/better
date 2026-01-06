@@ -1,5 +1,11 @@
 import type { PrismaClient } from "@better-app/db";
-import { RunStatus, TrackResult, TrackSource, UnitStatus } from "@better-app/db";
+import {
+	InspectionResultStatus,
+	RunStatus,
+	TrackResult,
+	TrackSource,
+	UnitStatus,
+} from "@better-app/db";
 import { type Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
 import { createDefectFromTrackOut } from "../defect/service";
@@ -383,7 +389,23 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 				};
 			}
 
-			const result = data.result === "PASS" ? TrackResult.PASS : TrackResult.FAIL;
+			// Check inspection result records (SPI/AOI) for this track - auto-override if FAIL
+			const inspectionFail = await db.inspectionResultRecord.findFirst({
+				where: {
+					trackId: track.id,
+					result: InspectionResultStatus.FAIL,
+				},
+				orderBy: { eventTime: "desc" },
+			});
+			const inspectionOverride = inspectionFail !== null;
+			if (inspectionOverride) {
+				span.setAttribute("mes.inspection.override", true);
+				span.setAttribute("mes.inspection.fail_record_id", inspectionFail.id);
+			}
+
+			// If inspection FAIL exists, force result to FAIL regardless of manual input
+			const result =
+				inspectionOverride || data.result === "FAIL" ? TrackResult.FAIL : TrackResult.PASS;
 
 			const snapshotSteps = getSnapshotSteps(run.routeVersion.snapshotJson);
 			const steps = snapshotSteps ? [...snapshotSteps].sort((a, b) => a.stepNo - b.stepNo) : [];
@@ -565,7 +587,13 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 				}
 			}
 
-			return { success: true, data: { status: updatedUnit.status } };
+			return {
+				success: true,
+				data: {
+					status: updatedUnit.status,
+					...(inspectionOverride && { inspectionOverride: true }),
+				},
+			};
 		} catch (error) {
 			span.recordException(error as Error);
 			span.setStatus({ code: SpanStatusCode.ERROR });

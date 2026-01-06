@@ -30,6 +30,9 @@ export const trackResponseSchema = t.Object({
 	ok: t.Boolean(),
 	data: t.Object({
 		status: t.String(),
+		inspectionOverride: t.Optional(
+			t.Boolean({ description: "True if SPI/AOI inspection FAIL overrode the result" }),
+		),
 	}),
 });
 
