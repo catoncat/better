@@ -1,12 +1,12 @@
 import { Permission } from "@better-app/db/permissions";
 import { createFileRoute } from "@tanstack/react-router";
-import { Filter, Loader2, MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
+import { Loader2, MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Can } from "@/components/ability/can";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
 	DropdownMenu,
 	DropdownMenuContent,

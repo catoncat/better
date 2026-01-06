@@ -9,22 +9,22 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useReplaceLoading, useVerifyLoading } from "@/hooks/use-loading";
 
-const scanSchema = z.object({
-	slotCode: z.string().min(1, "请输入站位码"),
-	materialLotBarcode: z.string().min(1, "请输入物料条码"),
-	isReplaceMode: z.boolean(),
-	replaceReason: z.string(),
-}).superRefine((values, ctx) => {
-	if (values.isReplaceMode && !values.replaceReason.trim()) {
-		ctx.addIssue({
-			code: z.ZodIssueCode.custom,
-			path: ["replaceReason"],
-			message: "请输入换料原因",
-		});
-	}
-});
-
-type ScanFormValues = z.infer<typeof scanSchema>;
+const scanSchema = z
+	.object({
+		slotCode: z.string().min(1, "请输入站位码"),
+		materialLotBarcode: z.string().min(1, "请输入物料条码"),
+		isReplaceMode: z.boolean(),
+		replaceReason: z.string(),
+	})
+	.superRefine((values, ctx) => {
+		if (values.isReplaceMode && !values.replaceReason.trim()) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["replaceReason"],
+				message: "请输入换料原因",
+			});
+		}
+	});
 
 interface ScanPanelProps {
 	runNo: string;
