@@ -6,6 +6,7 @@
 - Always use **bun**.
 - Use **biome** for linting and formatting.
 - Use **tsc** for type checking.
+- Start each task/turn with `git status` (if not clean, call it out before proceeding).
 - **Update Docs with Code**: If implementation diverges from specs (in `agent_docs` or `domain_docs`), update the documentation *before* or *during* the PR. Docs must reflect reality.
 - This is a greenfield system; do not assume legacy/transition behavior.
 - If unsure whether something is legacy-related, check existing implementation or database data first; ask only if still unclear.
@@ -15,9 +16,13 @@
 - Read `agent_docs/00_onboarding/setup.md` and follow the steps.
 
 ## Workflow & Planning
-- **Follow the Plan**: When implementing a feature/domain, verify if a specific plan exists (e.g., `domain_docs/mes/plan/phase1_tasks.md`).
+- **Follow the Plan**: When implementing a feature/domain, verify if a specific plan exists (e.g., `domain_docs/mes/plan/phase2_tasks.md`).
 - **Mark Progress**: As you complete tasks in a plan file, update the file to mark them as done (e.g., `[x] Task 1.1`).
 - **Update the Plan**: If new tasks are discovered or priorities change, update the plan file to reflect the new reality.
+- **What Next (Triage)**: Group candidates into 2-4 parallelizable tracks and call out conflicts (shared touch points) explicitly.
+- **Worktree**: If `git status` is not clean or the task is high-churn, recommend a dedicated `git worktree` + branch.
+- **Small-Step Commits**: Commit after each coherent slice, keep commits minimally scoped, and avoid mixing unrelated changes.
+- **Conversation Sync**: If a response includes discussion/plan/decision, also write a note to `conversation/YYYY-MM-DD_HHMMSS_<topic>.md` (timestamp via `date '+%Y-%m-%d_%H%M%S'`).
 
 ---
 
@@ -99,12 +104,12 @@ Use the smallest set of docs needed for the task. Skip anything not required.
 ### Process Specs (Source of Truth)
 - End-to-End Flows: `domain_docs/mes/spec/process/01_end_to_end_flows.md`
 - State Machines: `domain_docs/mes/spec/process/02_state_machines.md`
-- SMT Flows: `domain_docs/mes/spec/process/03_smp_flows.md`
+- SMP Flows: `domain_docs/mes/spec/process/03_smp_flows.md`
 - DIP Flows: `domain_docs/mes/spec/process/04_dip_flows.md`
 
 ### Implementation Alignment
 - E2E Align: `domain_docs/mes/spec/impl_align/01_e2e_align.md`
-- SMT Align: `domain_docs/mes/spec/impl_align/03_smp_align.md`
+- SMP Align: `domain_docs/mes/spec/impl_align/03_smp_align.md`
 - DIP Align: `domain_docs/mes/spec/impl_align/04_dip_align.md`
 
 ### Routing
