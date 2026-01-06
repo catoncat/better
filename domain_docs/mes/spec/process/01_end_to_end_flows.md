@@ -54,9 +54,9 @@ flowchart TB
     DISP -- HOLD --> HOLD[隔离 (Unit=ON_HOLD)] --> QA[处置评审] --> DISP
   end
 
-  DONEU --> RUNCHK{Run 完成?}
+  DONEU --> RUNCHK{Run 可收尾?}
   RUNCHK -- 否 --> LOOP
-  RUNCHK -- 是 --> OQC{触发 OQC?}
+  RUNCHK -- 是 --> RUN_CLOSEOUT[批次收尾确认] --> OQC{触发 OQC?}
   OQC -- 否 --> COMPLETED[Run=COMPLETED]
   OQC -- 是 --> OQCT[OQC 抽检任务] --> OQCP{OQC 合格?}
   OQCP -- 合格 --> COMPLETED
@@ -67,11 +67,9 @@ flowchart TB
   MRB_RUN -- 返修 --> CLOSED_REWORK[Run=CLOSED_REWORK (创建返修 Run)]
   MRB_RUN -- 报废 --> SCRAPPED[Run=SCRAPPED]
 
-  COMPLETED --> RUN_CLOSEOUT[批次收尾确认]
-  CLOSED_REWORK --> RUN_CLOSEOUT
-  SCRAPPED --> RUN_CLOSEOUT
-
-  RUN_CLOSEOUT --> WOCHK{工单可收尾?}
+  COMPLETED --> WOCHK{工单可收尾?}
+  CLOSED_REWORK --> WOCHK
+  SCRAPPED --> WOCHK
   WOCHK -- 否 --> END((结束))
   WOCHK -- 是 --> WO_CLOSEOUT[工单收尾确认 (WO=COMPLETED)] --> END
 ```
@@ -80,6 +78,8 @@ flowchart TB
 
 - 本文定义 MES 的通用端到端闭环流程；SMT/DIP 细节见对应流程文档。
 - Run/WO/Unit 的状态枚举与语义以状态机文档为准。
+- 批次收尾确认：当 Run=IN_PROGRESS 且 Unit 全部终态（DONE/SCRAPPED）时可执行，用于触发 OQC 或直接完工。
+- 工单收尾确认：当所有 Run 处于终态（COMPLETED/CLOSED_REWORK/SCRAPPED）时可执行，将 WO=COMPLETED。
 
 ## References
 
