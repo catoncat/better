@@ -316,8 +316,12 @@ function WorkOrdersPage() {
 
 	const handleCloseoutConfirm = async () => {
 		if (!selectedWO) return;
-		await closeWorkOrder.mutateAsync({ woNo: selectedWO.woNo });
-		setCloseoutDialogOpen(false);
+		try {
+			await closeWorkOrder.mutateAsync({ woNo: selectedWO.woNo });
+			setCloseoutDialogOpen(false);
+		} catch {
+			// Toast handled in mutation onError
+		}
 	};
 
 	return (

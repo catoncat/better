@@ -133,6 +133,16 @@ export const applyWorkOrders = async (
 		});
 
 		// B5 Fix: Use item.plannedQty directly without Math.round()
+		const mappedStatus = mapWorkOrderStatus(item.status);
+		const existing = await tx.workOrder.findUnique({
+			where: { woNo: item.woNo },
+			select: { status: true },
+		});
+		const status =
+			existing?.status === WorkOrderStatus.COMPLETED && mappedStatus !== WorkOrderStatus.COMPLETED
+				? WorkOrderStatus.COMPLETED
+				: mappedStatus;
+
 		await tx.workOrder.upsert({
 			where: { woNo: item.woNo },
 			update: {
@@ -140,7 +150,7 @@ export const applyWorkOrders = async (
 				plannedQty: item.plannedQty, // B5 Fix: Preserve decimal precision
 				routingId: routing?.id,
 				dueDate: parseDate(item.dueDate),
-				status: mapWorkOrderStatus(item.status),
+				status,
 				erpStatus: item.status,
 				erpPickStatus: item.pickStatus,
 				meta: erpMeta,
@@ -151,7 +161,7 @@ export const applyWorkOrders = async (
 				plannedQty: item.plannedQty, // B5 Fix: Preserve decimal precision
 				routingId: routing?.id,
 				dueDate: parseDate(item.dueDate),
-				status: mapWorkOrderStatus(item.status),
+				status,
 				erpStatus: item.status,
 				erpPickStatus: item.pickStatus,
 				meta: erpMeta,

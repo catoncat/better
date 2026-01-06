@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api-error";
 import { client, unwrap } from "@/lib/eden";
 
 // Infer types from the API using Eden Treaty
@@ -129,7 +130,10 @@ export function useCloseRun() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "run-detail", runNo] });
 		},
-		onError: (error: Error) => {
+		onError: (error: Error, { runNo }) => {
+			if (error instanceof ApiError && error.code === "OQC_REQUIRED") {
+				queryClient.invalidateQueries({ queryKey: ["mes", "oqc", "run", runNo] });
+			}
 			toast.error(error.message);
 		},
 	});
