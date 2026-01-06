@@ -218,7 +218,7 @@ model ReadinessCheckItem {
 - [x] 2.7.3 API: Run closeout
 - [x] 2.7.4 API: WO closeout
 - [x] 2.7.5 UI: 关闭确认对话框
-- [ ] 2.7.6 归档占位符 (后续扩展)
+- [x] 2.7.6 归档占位符 (后续扩展)
 
 ### 3.8 Task 2.8: Status Enum Alignment
 

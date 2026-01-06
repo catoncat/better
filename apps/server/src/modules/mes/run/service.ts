@@ -425,3 +425,24 @@ export const closeRun = async (
 		}
 	});
 };
+
+/**
+ * Archive a completed Run to history storage.
+ * TODO: Implement when archive functionality is needed:
+ * - Move Run and related Units to archive tables
+ * - Preserve traceability data
+ * - Clean up from active tables
+ * - Consider retention policies
+ */
+export const archiveRun = async (
+	_db: PrismaClient,
+	_runNo: string,
+): Promise<ServiceResult<{ archived: boolean }>> => {
+	// Placeholder - not yet implemented
+	return {
+		success: false as const,
+		code: "NOT_IMPLEMENTED",
+		message: "Run archiving is not yet implemented",
+		status: 501,
+	};
+};

@@ -526,3 +526,24 @@ export const closeWorkOrder = async (
 		}
 	});
 };
+
+/**
+ * Archive a completed WorkOrder to history storage.
+ * TODO: Implement when archive functionality is needed:
+ * - Move WorkOrder and all related Runs/Units to archive tables
+ * - Preserve traceability and audit data
+ * - Clean up from active tables
+ * - Consider retention policies and compliance requirements
+ */
+export const archiveWorkOrder = async (
+	_db: PrismaClient,
+	_woNo: string,
+): Promise<ServiceResult<{ archived: boolean }>> => {
+	// Placeholder - not yet implemented
+	return {
+		success: false as const,
+		code: "NOT_IMPLEMENTED",
+		message: "WorkOrder archiving is not yet implemented",
+		status: 501,
+	};
+};
