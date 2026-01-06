@@ -1,10 +1,10 @@
 # SMT 产线执行流程 (SMP Flow v2)
 
 > **版本**: v2.4 - 状态语义对齐版
-> **基于**: 03_smp_flows_userfeeback_draft.md
+> **基于**: `conversation/03_smp_flows_userfeeback_draft.md`
 > **设计原则**: MES 专注执行层，外部系统通过集成接口对接，支持手动降级模式
 > **里程碑**: M1 基础状态机，M2 扩展状态/OQC，M3 数据采集
-> **决策记录**: `conversation/smp_flow_design_decisions.md`
+> **决策记录**: 本文 `## 关键设计决策`
 
 ---
 
@@ -521,15 +521,15 @@ interface OeeDataInput {
 
 | API | 方法 | 用途 | 状态 |
 |-----|------|------|------|
-| `/api/integration/stencil-status` | POST | 接收钢网状态 | ⬜ M2 |
-| `/api/integration/solder-paste-status` | POST | 接收锡膏状态 | ⬜ M2 |
+| `/api/integration/stencil-status` | POST | 接收钢网状态 | ✅ M2 |
+| `/api/integration/solder-paste-status` | POST | 接收锡膏状态 | ✅ M2 |
 | `/api/integration/inspection-result` | POST | 接收 SPI/AOI 结果 | ⬜ M3 |
 
 ---
 
 ## 参考文档
 
-- 原版草稿: `03_smp_flows_userfeeback_draft.md`
+- 原版草稿: `conversation/03_smp_flows_userfeeback_draft.md`
 - MES 端到端流程: `01_end_to_end_flows.md`
 - 状态机定义: `02_state_machines.md`
 - 系统集成规范: `domain_docs/mes/spec/integration/01_system_integrations.md`
@@ -537,3 +537,43 @@ interface OeeDataInput {
 - 数据采集规格: `domain_docs/mes/spec/data_collection/01_data_collection_specs.md`
 - API 合同 (执行): `domain_docs/mes/tech/api/02_api_contracts_execution.md`
 - API 合同 (质量): `domain_docs/mes/tech/api/03_api_contracts_quality.md`
+
+---
+
+## Implementation Status
+
+<!-- 完成 SMT 功能后同步更新此表。Status: ✅ done | ⬜ pending | 🔌 integration -->
+
+### 产线准备
+
+| 流程节点 | API | Backend Module | Status | MS | 备注 |
+|---------|-----|----------------|--------|-----|------|
+| 钢网就绪检查 🔌 | `POST /api/runs/{runNo}/readiness/check` | `readiness/service.ts` | ✅ | M2 | TPM 集成 |
+| 锡膏合规检查 🔌 | `POST /api/runs/{runNo}/readiness/check` | `readiness/service.ts` | ✅ | M2 | WMS 集成 |
+| 物料备料 | 手动确认 | - | ✅ | M1 | 车间库物料扫码 |
+| 设备就绪 | 手动确认 | - | ✅ | M1 | 贴片程序加载 |
+
+### 上料防错
+
+| 流程节点 | API | Backend Module | Status | MS | 备注 |
+|---------|-----|----------------|--------|-----|------|
+| 加载站位表 | `POST /api/runs/{runNo}/loading/load-table` | `loading/service.ts` | ✅ | M2 | 初始化站位期望 |
+| 扫码验证 | `POST /api/loading/verify` | `loading/service.ts` | ✅ | M2 | BOM 比对 |
+
+### 首件流程
+
+| 流程节点 | API | Backend Module | Status | MS | 备注 |
+|---------|-----|----------------|--------|-----|------|
+| 首件生产 | TrackIn/Out | `execution/service.ts` | ✅ | M1 | 标记首件 UNIT |
+| SPI 结果 🔌 |（规划）SCADA ingest → `track-out.data[]` | - | ⬜ | M3 | 数采集成 |
+| 回流焊接 | TrackIn/Out | `execution/service.ts` | ✅ | M1 | - |
+| AOI 结果 🔌 |（规划）SCADA ingest → `track-out.data[]` | - | ⬜ | M3 | 数采集成 |
+| 首件判定 | `POST /api/fai/{faiId}/complete` | `fai/service.ts` | ✅ | M1 | MES 汇总判定 |
+
+### 批量生产
+
+| 流程节点 | API | Backend Module | Status | MS | 备注 |
+|---------|-----|----------------|--------|-----|------|
+| 批量授权 | `POST /api/runs/{runNo}/authorize` | `run/service.ts` | ✅ | M1 | FAI PASS |
+| 批量 TrackIn/Out | `POST /api/stations/{stationCode}/track-in`, `POST /api/stations/{stationCode}/track-out` | `execution/service.ts` | ✅ | M1 | - |
+| 过程数据采集 🔌 |（规划）SCADA ingest → `track-out.data[]` | - | ⬜ | M3 | SPI/AOI 数据 |
