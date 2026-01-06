@@ -62,7 +62,7 @@ export async function createOqc(
 			}
 
 			// Check if run is in a valid state for OQC creation
-			// OQC can be created when run is IN_PROGRESS and all units are DONE
+			// OQC can be created when run is IN_PROGRESS and all units are terminal (DONE/SCRAPPED)
 			if (run.status !== RunStatus.IN_PROGRESS) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				return {
@@ -73,14 +73,29 @@ export async function createOqc(
 				};
 			}
 
-			const allUnitsDone =
-				run.units.length > 0 && run.units.every((unit) => unit.status === UnitStatus.DONE);
-			if (!allUnitsDone) {
+			const allUnitsTerminal =
+				run.units.length > 0 &&
+				run.units.every(
+					(unit) => unit.status === UnitStatus.DONE || unit.status === UnitStatus.SCRAPPED,
+				);
+			if (!allUnitsTerminal) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				return {
 					success: false as const,
 					code: "OQC_NOT_READY",
-					message: "Not all units are DONE for OQC creation",
+					message: "Not all units are terminal for OQC creation",
+					status: 400,
+				};
+			}
+
+			const eligibleUnits = run.units.filter((unit) => unit.status === UnitStatus.DONE);
+			const eligibleCount = eligibleUnits.length;
+			if (eligibleCount === 0) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				return {
+					success: false as const,
+					code: "NO_ELIGIBLE_UNITS",
+					message: "No eligible (DONE) units for OQC creation",
 					status: 400,
 				};
 			}
@@ -119,8 +134,16 @@ export async function createOqc(
 			}
 
 			// Calculate sample quantity
-			const unitCount = run.units.length;
-			const sampleQty = data.sampleQty ?? unitCount; // Default to all units if not specified
+			const sampleQty = data.sampleQty ?? eligibleCount; // Default to all eligible units if not specified
+			if (sampleQty < 1 || sampleQty > eligibleCount) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				return {
+					success: false as const,
+					code: "INVALID_SAMPLE_QTY",
+					message: "Sample quantity is invalid",
+					status: 400,
+				};
+			}
 
 			// Store OQC metadata in the data field
 			const oqcData: Record<string, Prisma.InputJsonValue> = {};

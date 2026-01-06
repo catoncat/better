@@ -4,6 +4,7 @@ import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
 import { parseSortOrderBy } from "../../../utils/sort";
 import { checkFaiGate } from "../fai/service";
+import { checkAndTriggerOqc } from "../oqc/trigger-service";
 import { canAuthorize as checkReadiness } from "../readiness/service";
 import type { runAuthorizeSchema, runListQuerySchema } from "./schema";
 
@@ -12,6 +13,14 @@ type RunListQuery = Static<typeof runListQuerySchema>;
 type RunRecord = Prisma.RunGetPayload<Prisma.RunDefaultArgs>;
 
 const tracer = trace.getTracer("mes");
+
+const TERMINAL_RUN_STATUSES: RunStatus[] = [
+	RunStatus.COMPLETED,
+	RunStatus.CLOSED_REWORK,
+	RunStatus.SCRAPPED,
+];
+
+const TERMINAL_UNIT_STATUSES: UnitStatus[] = [UnitStatus.DONE, UnitStatus.SCRAPPED];
 
 const setSpanAttributes = (span: Span, attributes: Record<string, unknown>) => {
 	for (const [key, value] of Object.entries(attributes)) {
@@ -294,4 +303,123 @@ export const authorizeRun = async (
 			}
 		},
 	);
+};
+
+export const closeRun = async (
+	db: PrismaClient,
+	runNo: string,
+	options?: { closedBy?: string },
+): Promise<ServiceResult<RunRecord>> => {
+	return tracer.startActiveSpan("mes.runs.close", async (span) => {
+		setSpanAttributes(span, { "mes.run.run_no": runNo });
+
+		try {
+			const run = await db.run.findUnique({
+				where: { runNo },
+				include: { units: { select: { status: true } } },
+			});
+
+			if (!run) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "RUN_NOT_FOUND");
+				return {
+					success: false as const,
+					code: "RUN_NOT_FOUND",
+					message: "Run not found",
+					status: 404,
+				};
+			}
+
+			if (TERMINAL_RUN_STATUSES.includes(run.status)) {
+				return { success: true as const, data: run };
+			}
+
+			if (run.status !== RunStatus.IN_PROGRESS) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "RUN_NOT_CLOSABLE");
+				return {
+					success: false as const,
+					code: "RUN_NOT_CLOSABLE",
+					message: `Run status ${run.status} does not allow closeout`,
+					status: 400,
+				};
+			}
+
+			if (run.units.length === 0) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "RUN_HAS_NO_UNITS");
+				return {
+					success: false as const,
+					code: "RUN_HAS_NO_UNITS",
+					message: "Run has no units",
+					status: 400,
+				};
+			}
+
+			const allUnitsTerminal = run.units.every((unit) =>
+				TERMINAL_UNIT_STATUSES.includes(unit.status),
+			);
+			if (!allUnitsTerminal) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "RUN_UNITS_NOT_TERMINAL");
+				return {
+					success: false as const,
+					code: "RUN_UNITS_NOT_TERMINAL",
+					message: "Not all units are terminal (DONE/SCRAPPED)",
+					status: 400,
+				};
+			}
+
+			const oqcTriggerResult = await checkAndTriggerOqc(db, runNo, {
+				createdBy: options?.closedBy,
+			});
+			if (!oqcTriggerResult.success) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", oqcTriggerResult.code);
+				return oqcTriggerResult as ServiceResult<RunRecord>;
+			}
+
+			if (oqcTriggerResult.data.triggered) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "OQC_REQUIRED");
+				return {
+					success: false as const,
+					code: "OQC_REQUIRED",
+					message: `OQC is required. Task ${oqcTriggerResult.data.oqcId} created.`,
+					status: 409,
+				};
+			}
+
+			if (!oqcTriggerResult.data.completed) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "RUN_CLOSEOUT_FAILED");
+				return {
+					success: false as const,
+					code: "RUN_CLOSEOUT_FAILED",
+					message: oqcTriggerResult.data.reason,
+					status: 400,
+				};
+			}
+
+			const updatedRun = await db.run.findUnique({ where: { runNo } });
+			if (!updatedRun) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "RUN_NOT_FOUND");
+				return {
+					success: false as const,
+					code: "RUN_NOT_FOUND",
+					message: "Run not found",
+					status: 404,
+				};
+			}
+
+			return { success: true as const, data: updatedRun };
+		} catch (error) {
+			span.recordException(error as Error);
+			span.setStatus({ code: SpanStatusCode.ERROR });
+			throw error;
+		} finally {
+			span.end();
+		}
+	});
 };

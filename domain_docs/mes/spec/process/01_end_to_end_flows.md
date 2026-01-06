@@ -67,9 +67,13 @@ flowchart TB
   MRB_RUN -- 返修 --> CLOSED_REWORK[Run=CLOSED_REWORK (创建返修 Run)]
   MRB_RUN -- 报废 --> SCRAPPED[Run=SCRAPPED]
 
-  COMPLETED --> END((结束))
-  CLOSED_REWORK --> END
-  SCRAPPED --> END
+  COMPLETED --> RUN_CLOSEOUT[批次收尾确认]
+  CLOSED_REWORK --> RUN_CLOSEOUT
+  SCRAPPED --> RUN_CLOSEOUT
+
+  RUN_CLOSEOUT --> WOCHK{工单可收尾?}
+  WOCHK -- 否 --> END((结束))
+  WOCHK -- 是 --> WO_CLOSEOUT[工单收尾确认 (WO=COMPLETED)] --> END
 ```
 
 ## 说明

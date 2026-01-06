@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { client } from "@/lib/eden";
+import { client, unwrap } from "@/lib/eden";
 
 // Infer types from the API using Eden Treaty
 type ApiWorkOrderResponse = Awaited<ReturnType<(typeof client.api)["work-orders"]["get"]>>["data"];
@@ -136,6 +136,24 @@ export function useUpdatePickStatus() {
 		onSuccess: () => {
 			toast.success("领料状态已更新");
 			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
+		},
+	});
+}
+
+export function useCloseWorkOrder() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({ woNo }: { woNo: string }) => {
+			const response = await client.api["work-orders"]({ woNo }).close.post();
+			return unwrap(response);
+		},
+		onSuccess: () => {
+			toast.success("工单已收尾");
+			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
+		},
+		onError: (error: Error) => {
+			toast.error(error.message);
 		},
 	});
 }

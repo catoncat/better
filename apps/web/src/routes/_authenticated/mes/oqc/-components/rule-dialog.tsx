@@ -23,22 +23,18 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useLines } from "@/hooks/use-lines";
-import {
-	type OqcSamplingRule,
-	useCreateOqcRule,
-	useUpdateOqcRule,
-} from "@/hooks/use-oqc-rules";
+import { type OqcSamplingRule, useCreateOqcRule, useUpdateOqcRule } from "@/hooks/use-oqc-rules";
 import { useRouteSearch } from "@/hooks/use-routes";
 import { OQC_SAMPLING_TYPE_MAP } from "@/lib/constants";
 
 const ruleSchema = z.object({
-	productCode: z.string().optional(),
-	lineId: z.string().optional(),
-	routingId: z.string().optional(),
+	productCode: z.string(),
+	lineId: z.string(),
+	routingId: z.string(),
 	samplingType: z.enum(["PERCENTAGE", "FIXED"]),
 	sampleValue: z.number().min(0, "必须大于等于0"),
-	priority: z.number().int().default(0),
-	isActive: z.boolean().default(true),
+	priority: z.number().int(),
+	isActive: z.boolean(),
 });
 
 type RuleFormValues = z.infer<typeof ruleSchema>;
@@ -71,7 +67,7 @@ export function RuleDialog({ open, onOpenChange, rule }: RuleDialogProps) {
 		onSubmit: async ({ value }) => {
 			const normalized = {
 				...value,
-				productCode: value.productCode?.trim() || undefined,
+				productCode: value.productCode.trim() || undefined,
 				lineId: value.lineId === "ALL" ? undefined : value.lineId,
 				routingId: value.routingId === "ALL" ? undefined : value.routingId,
 			};
@@ -151,10 +147,7 @@ export function RuleDialog({ open, onOpenChange, rule }: RuleDialogProps) {
 					<div className="grid grid-cols-2 gap-4">
 						<Field form={form} name="lineId" label="产线 (选填)">
 							{(field) => (
-								<Select
-									value={field.state.value}
-									onValueChange={field.handleChange}
-								>
+								<Select value={field.state.value} onValueChange={field.handleChange}>
 									<SelectTrigger>
 										<SelectValue placeholder="所有产线" />
 									</SelectTrigger>
@@ -194,7 +187,7 @@ export function RuleDialog({ open, onOpenChange, rule }: RuleDialogProps) {
 											/>
 										</div>
 										<SelectItem value="ALL">所有路由</SelectItem>
-										{routeOptions?.map((route) => (
+										{routeOptions?.items.map((route) => (
 											<SelectItem key={route.id} value={route.id}>
 												{route.name} ({route.code})
 											</SelectItem>
@@ -210,9 +203,7 @@ export function RuleDialog({ open, onOpenChange, rule }: RuleDialogProps) {
 							{(field) => (
 								<Select
 									value={field.state.value}
-									onValueChange={(v) =>
-										field.handleChange(v as "PERCENTAGE" | "FIXED")
-									}
+									onValueChange={(v) => field.handleChange(v as "PERCENTAGE" | "FIXED")}
 								>
 									<SelectTrigger>
 										<SelectValue />
@@ -250,10 +241,7 @@ export function RuleDialog({ open, onOpenChange, rule }: RuleDialogProps) {
 					<Field form={form} name="isActive" label="是否启用">
 						{(field) => (
 							<div className="flex items-center gap-2">
-								<Switch
-									checked={field.state.value}
-									onCheckedChange={field.handleChange}
-								/>
+								<Switch checked={field.state.value} onCheckedChange={field.handleChange} />
 								<span className="text-sm text-muted-foreground">
 									{field.state.value ? "已启用" : "已停用"}
 								</span>

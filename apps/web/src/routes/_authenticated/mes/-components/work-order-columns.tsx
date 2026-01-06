@@ -1,6 +1,6 @@
 import { Permission } from "@better-app/db/permissions";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Pencil, Play, Send } from "lucide-react";
+import { Pencil, Play, Send, ShieldCheck } from "lucide-react";
 import { createColumnsFromFieldMeta } from "@/components/data-list/field-meta";
 import { TableActions } from "@/components/data-table/table-actions";
 import { useAbility } from "@/hooks/use-ability";
@@ -11,6 +11,7 @@ export type WorkOrderTableMeta = {
 	onRelease?: (wo: WorkOrder) => void;
 	onCreateRun?: (wo: WorkOrder) => void;
 	onEditPickStatus?: (wo: WorkOrder) => void;
+	onCloseout?: (wo: WorkOrder) => void;
 };
 
 const actionsColumn: ColumnDef<WorkOrder> = {
@@ -54,6 +55,14 @@ const actionsColumn: ColumnDef<WorkOrder> = {
 				icon: Play,
 				label: "创建批次",
 				onClick: () => meta?.onCreateRun?.(wo),
+			});
+		}
+
+		if (wo.status === "IN_PROGRESS" && hasPermission(Permission.WO_CLOSE)) {
+			actions.push({
+				icon: ShieldCheck,
+				label: "收尾关闭",
+				onClick: () => meta?.onCloseout?.(wo),
 			});
 		}
 

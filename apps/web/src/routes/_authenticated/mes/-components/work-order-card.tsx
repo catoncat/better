@@ -1,5 +1,5 @@
 import { Permission } from "@better-app/db/permissions";
-import { CheckCircle2, Clock, Pencil, Play, Send } from "lucide-react";
+import { CheckCircle2, Clock, Pencil, Play, Send, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ interface WorkOrderCardProps {
 	onCreateRun?: (wo: WorkOrder) => void;
 	onRelease?: (wo: WorkOrder) => void;
 	onEditPickStatus?: (wo: WorkOrder) => void;
+	onCloseout?: (wo: WorkOrder) => void;
 }
 
 export function WorkOrderCard({
@@ -21,6 +22,7 @@ export function WorkOrderCard({
 	onCreateRun,
 	onRelease,
 	onEditPickStatus,
+	onCloseout,
 }: WorkOrderCardProps) {
 	const { hasPermission } = useAbility();
 	const statusLabel = WORK_ORDER_STATUS_MAP[workOrder.status] || workOrder.status;
@@ -130,6 +132,12 @@ export function WorkOrderCard({
 							创建批次
 						</Button>
 					)}
+				{workOrder.status === "IN_PROGRESS" && hasPermission(Permission.WO_CLOSE) && (
+					<Button variant="ghost" size="sm" onClick={() => onCloseout?.(workOrder)}>
+						<ShieldCheck className="mr-2 h-4 w-4" />
+						收尾
+					</Button>
+				)}
 			</CardFooter>
 		</Card>
 	);

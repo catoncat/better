@@ -10,6 +10,7 @@ export const Permission = {
 	WO_RECEIVE: "wo:receive",
 	WO_RELEASE: "wo:release",
 	WO_UPDATE: "wo:update",
+	WO_CLOSE: "wo:close",
 
 	// Run (Batch) domain
 	RUN_READ: "run:read",
@@ -72,6 +73,7 @@ export const PERMISSION_GROUPS = {
 			{ value: Permission.WO_RECEIVE, label: "接收工单" },
 			{ value: Permission.WO_RELEASE, label: "发布工单" },
 			{ value: Permission.WO_UPDATE, label: "更新工单" },
+			{ value: Permission.WO_CLOSE, label: "关闭工单" },
 		],
 	},
 	run: {

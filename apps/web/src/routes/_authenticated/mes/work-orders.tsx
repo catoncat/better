@@ -9,12 +9,14 @@ import { useQueryPresets } from "@/hooks/use-query-presets";
 import { useRouteList } from "@/hooks/use-routes";
 import { useCreateRun } from "@/hooks/use-runs";
 import {
+	useCloseWorkOrder,
 	useReceiveWorkOrder,
 	useReleaseWorkOrder,
 	useUpdatePickStatus,
 	useWorkOrderList,
 	type WorkOrder,
 } from "@/hooks/use-work-orders";
+import { CloseoutDialog } from "./-components/closeout-dialog";
 import { PickStatusDialog, type PickStatusFormValues } from "./-components/pick-status-dialog";
 import { RunCreateDialog, type RunFormValues } from "./-components/run-create-dialog";
 import { WorkOrderCard } from "./-components/work-order-card";
@@ -65,6 +67,7 @@ function WorkOrdersPage() {
 	const [runDialogOpen, setRunDialogOpen] = useState(false);
 	const [pickStatusDialogOpen, setPickStatusDialogOpen] = useState(false);
 	const [releaseDialogOpen, setReleaseDialogOpen] = useState(false);
+	const [closeoutDialogOpen, setCloseoutDialogOpen] = useState(false);
 	const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null);
 
 	// Parse filters from URL
@@ -151,6 +154,7 @@ function WorkOrdersPage() {
 	const { mutateAsync: releaseWO, isPending: isReleasing } = useReleaseWorkOrder();
 	const { mutateAsync: updatePickStatus, isPending: isUpdatingPickStatus } = useUpdatePickStatus();
 	const { mutateAsync: createRun, isPending: isCreatingRun } = useCreateRun();
+	const closeWorkOrder = useCloseWorkOrder();
 
 	// Query presets
 	const {
@@ -279,6 +283,11 @@ function WorkOrdersPage() {
 		setPickStatusDialogOpen(true);
 	};
 
+	const handleCloseoutOpen = useCallback((wo: WorkOrder) => {
+		setSelectedWO(wo);
+		setCloseoutDialogOpen(true);
+	}, []);
+
 	const handleReceiveSubmit = async (values: Parameters<typeof receiveWO>[0]) => {
 		await receiveWO(values);
 	};
@@ -305,6 +314,12 @@ function WorkOrdersPage() {
 		}
 	};
 
+	const handleCloseoutConfirm = async () => {
+		if (!selectedWO) return;
+		await closeWorkOrder.mutateAsync({ woNo: selectedWO.woNo });
+		setCloseoutDialogOpen(false);
+	};
+
 	return (
 		<DataListLayout
 			mode="server"
@@ -329,6 +344,7 @@ function WorkOrdersPage() {
 				onRelease: handleReleaseOpen,
 				onCreateRun: handleCreateRunOpen,
 				onEditPickStatus: handleEditPickStatusOpen,
+				onCloseout: handleCloseoutOpen,
 			}}
 			dataListViewProps={{
 				viewPreferencesKey,
@@ -338,6 +354,7 @@ function WorkOrdersPage() {
 						onCreateRun={handleCreateRunOpen}
 						onRelease={handleReleaseOpen}
 						onEditPickStatus={handleEditPickStatusOpen}
+						onCloseout={handleCloseoutOpen}
 					/>
 				),
 			}}
@@ -426,6 +443,15 @@ function WorkOrdersPage() {
 				onSubmit={handlePickStatusSubmit}
 				isSubmitting={isUpdatingPickStatus}
 				workOrder={selectedWO}
+			/>
+			<CloseoutDialog
+				open={closeoutDialogOpen}
+				onOpenChange={setCloseoutDialogOpen}
+				title="工单收尾确认"
+				description={selectedWO ? `确认关闭工单 ${selectedWO.woNo} 吗？` : undefined}
+				confirmText="确认收尾"
+				isSubmitting={closeWorkOrder.isPending}
+				onConfirm={handleCloseoutConfirm}
 			/>
 		</DataListLayout>
 	);

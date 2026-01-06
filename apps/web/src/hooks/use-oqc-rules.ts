@@ -4,7 +4,7 @@ import { client, unwrap } from "@/lib/eden";
 
 // Infer types from API responses
 export type OqcRuleListResponse = Awaited<
-	ReturnType<typeof client.api.oqc["sampling-rules"]["get"]>
+	ReturnType<(typeof client.api.oqc)["sampling-rules"]["get"]>
 >["data"];
 export type OqcRuleListData = NonNullable<OqcRuleListResponse>["data"];
 export type OqcSamplingRule = OqcRuleListData["items"][number];
@@ -18,11 +18,9 @@ export type OqcRuleQuery = {
 	pageSize?: number;
 };
 
-type CreateRuleInput = Parameters<
-	typeof client.api.oqc["sampling-rules"]["post"]
->[0];
+type CreateRuleInput = Parameters<(typeof client.api.oqc)["sampling-rules"]["post"]>[0];
 type UpdateRuleInput = Parameters<
-	ReturnType<typeof client.api.oqc["sampling-rules"]>["patch"]
+	ReturnType<(typeof client.api.oqc)["sampling-rules"]>["patch"]
 >[0];
 
 /**

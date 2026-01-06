@@ -3,13 +3,7 @@ import { Loader2, Scan } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -18,8 +12,16 @@ import { useReplaceLoading, useVerifyLoading } from "@/hooks/use-loading";
 const scanSchema = z.object({
 	slotCode: z.string().min(1, "请输入站位码"),
 	materialLotBarcode: z.string().min(1, "请输入物料条码"),
-	isReplaceMode: z.boolean().default(false),
-	replaceReason: z.string().optional(),
+	isReplaceMode: z.boolean(),
+	replaceReason: z.string(),
+}).superRefine((values, ctx) => {
+	if (values.isReplaceMode && !values.replaceReason.trim()) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["replaceReason"],
+			message: "请输入换料原因",
+		});
+	}
 });
 
 type ScanFormValues = z.infer<typeof scanSchema>;
@@ -87,13 +89,9 @@ export function ScanPanel({ runNo }: ScanPanelProps) {
 				>
 					<Field form={form} name="isReplaceMode" label="换料模式">
 						{(field) => (
-							<div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-								<div className="space-y-0.5">
-									<label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-										换料模式
-									</label>
-								</div>
+							<div className="flex items-center justify-end rounded-lg border p-3 shadow-sm">
 								<Switch
+									id={field.name}
 									checked={field.state.value}
 									onCheckedChange={field.handleChange}
 								/>

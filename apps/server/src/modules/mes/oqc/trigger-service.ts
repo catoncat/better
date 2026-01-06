@@ -7,9 +7,9 @@ import { createOqc } from "./service";
 const tracer = trace.getTracer("mes.oqc.trigger");
 
 /**
- * Unit statuses that indicate a unit has completed OQC eligibility.
+ * Unit statuses that indicate a unit is terminal for run completion.
  */
-const TERMINAL_UNIT_STATUSES: UnitStatus[] = [UnitStatus.DONE];
+const TERMINAL_UNIT_STATUSES: UnitStatus[] = [UnitStatus.DONE, UnitStatus.SCRAPPED];
 
 /**
  * Check if all units in a run are DONE.
@@ -161,6 +161,26 @@ export async function checkAndTriggerOqc(
 
 			span.setAttribute("units.done", doneUnits.length);
 			span.setAttribute("sampleSize", sampleSize);
+
+			// Sample size 0 means no OQC is required (e.g. rule=0% or no eligible units)
+			if (sampleSize <= 0) {
+				await db.run.update({
+					where: { id: run.id },
+					data: {
+						status: RunStatus.COMPLETED,
+						endedAt: new Date(),
+					},
+				});
+
+				return {
+					success: true as const,
+					data: {
+						triggered: false as const,
+						reason: "Sample size is 0, no OQC required",
+						completed: true,
+					},
+				};
+			}
 
 			// Select sample units
 			const sampledUnits = selectSampleUnits(doneUnits, sampleSize);
