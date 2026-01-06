@@ -37,6 +37,9 @@ import { Route as AuthenticatedMesLoadingIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedMesRunsRunNoRouteImport } from './routes/_authenticated/mes/runs/$runNo'
 import { Route as AuthenticatedMesRoutesRoutingCodeRouteImport } from './routes/_authenticated/mes/routes/$routingCode'
 import { Route as AuthenticatedMesOqcRulesRouteImport } from './routes/_authenticated/mes/oqc/rules'
+import { Route as AuthenticatedMesLoadingSlotConfigRouteImport } from './routes/_authenticated/mes/loading/slot-config'
+import { Route as AuthenticatedMesIntegrationStatusRouteImport } from './routes/_authenticated/mes/integration/status'
+import { Route as AuthenticatedMesIntegrationManualEntryRouteImport } from './routes/_authenticated/mes/integration/manual-entry'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -195,6 +198,24 @@ const AuthenticatedMesOqcRulesRoute =
     path: '/rules',
     getParentRoute: () => AuthenticatedMesOqcRoute,
   } as any)
+const AuthenticatedMesLoadingSlotConfigRoute =
+  AuthenticatedMesLoadingSlotConfigRouteImport.update({
+    id: '/mes/loading/slot-config',
+    path: '/mes/loading/slot-config',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMesIntegrationStatusRoute =
+  AuthenticatedMesIntegrationStatusRouteImport.update({
+    id: '/mes/integration/status',
+    path: '/mes/integration/status',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMesIntegrationManualEntryRoute =
+  AuthenticatedMesIntegrationManualEntryRouteImport.update({
+    id: '/mes/integration/manual-entry',
+    path: '/mes/integration/manual-entry',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
@@ -218,6 +239,9 @@ export interface FileRoutesByFullPath {
   '/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/mes': typeof AuthenticatedMesIndexRoute
   '/system': typeof AuthenticatedSystemIndexRoute
+  '/mes/integration/manual-entry': typeof AuthenticatedMesIntegrationManualEntryRoute
+  '/mes/integration/status': typeof AuthenticatedMesIntegrationStatusRoute
+  '/mes/loading/slot-config': typeof AuthenticatedMesLoadingSlotConfigRoute
   '/mes/oqc/rules': typeof AuthenticatedMesOqcRulesRoute
   '/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
   '/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
@@ -246,6 +270,9 @@ export interface FileRoutesByTo {
   '/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/mes': typeof AuthenticatedMesIndexRoute
   '/system': typeof AuthenticatedSystemIndexRoute
+  '/mes/integration/manual-entry': typeof AuthenticatedMesIntegrationManualEntryRoute
+  '/mes/integration/status': typeof AuthenticatedMesIntegrationStatusRoute
+  '/mes/loading/slot-config': typeof AuthenticatedMesLoadingSlotConfigRoute
   '/mes/oqc/rules': typeof AuthenticatedMesOqcRulesRoute
   '/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
   '/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
@@ -277,6 +304,9 @@ export interface FileRoutesById {
   '/_authenticated/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/_authenticated/mes/': typeof AuthenticatedMesIndexRoute
   '/_authenticated/system/': typeof AuthenticatedSystemIndexRoute
+  '/_authenticated/mes/integration/manual-entry': typeof AuthenticatedMesIntegrationManualEntryRoute
+  '/_authenticated/mes/integration/status': typeof AuthenticatedMesIntegrationStatusRoute
+  '/_authenticated/mes/loading/slot-config': typeof AuthenticatedMesLoadingSlotConfigRoute
   '/_authenticated/mes/oqc/rules': typeof AuthenticatedMesOqcRulesRoute
   '/_authenticated/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
   '/_authenticated/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
@@ -308,6 +338,9 @@ export interface FileRouteTypes {
     | '/system/user-management'
     | '/mes'
     | '/system'
+    | '/mes/integration/manual-entry'
+    | '/mes/integration/status'
+    | '/mes/loading/slot-config'
     | '/mes/oqc/rules'
     | '/mes/routes/$routingCode'
     | '/mes/runs/$runNo'
@@ -336,6 +369,9 @@ export interface FileRouteTypes {
     | '/system/user-management'
     | '/mes'
     | '/system'
+    | '/mes/integration/manual-entry'
+    | '/mes/integration/status'
+    | '/mes/loading/slot-config'
     | '/mes/oqc/rules'
     | '/mes/routes/$routingCode'
     | '/mes/runs/$runNo'
@@ -366,6 +402,9 @@ export interface FileRouteTypes {
     | '/_authenticated/system/user-management'
     | '/_authenticated/mes/'
     | '/_authenticated/system/'
+    | '/_authenticated/mes/integration/manual-entry'
+    | '/_authenticated/mes/integration/status'
+    | '/_authenticated/mes/loading/slot-config'
     | '/_authenticated/mes/oqc/rules'
     | '/_authenticated/mes/routes/$routingCode'
     | '/_authenticated/mes/runs/$runNo'
@@ -577,6 +616,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesOqcRulesRouteImport
       parentRoute: typeof AuthenticatedMesOqcRoute
     }
+    '/_authenticated/mes/loading/slot-config': {
+      id: '/_authenticated/mes/loading/slot-config'
+      path: '/mes/loading/slot-config'
+      fullPath: '/mes/loading/slot-config'
+      preLoaderRoute: typeof AuthenticatedMesLoadingSlotConfigRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/mes/integration/status': {
+      id: '/_authenticated/mes/integration/status'
+      path: '/mes/integration/status'
+      fullPath: '/mes/integration/status'
+      preLoaderRoute: typeof AuthenticatedMesIntegrationStatusRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/mes/integration/manual-entry': {
+      id: '/_authenticated/mes/integration/manual-entry'
+      path: '/mes/integration/manual-entry'
+      fullPath: '/mes/integration/manual-entry'
+      preLoaderRoute: typeof AuthenticatedMesIntegrationManualEntryRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -629,6 +689,9 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSystemUserManagementRoute: typeof AuthenticatedSystemUserManagementRoute
   AuthenticatedMesIndexRoute: typeof AuthenticatedMesIndexRoute
   AuthenticatedSystemIndexRoute: typeof AuthenticatedSystemIndexRoute
+  AuthenticatedMesIntegrationManualEntryRoute: typeof AuthenticatedMesIntegrationManualEntryRoute
+  AuthenticatedMesIntegrationStatusRoute: typeof AuthenticatedMesIntegrationStatusRoute
+  AuthenticatedMesLoadingSlotConfigRoute: typeof AuthenticatedMesLoadingSlotConfigRoute
   AuthenticatedMesRunsRunNoRoute: typeof AuthenticatedMesRunsRunNoRoute
   AuthenticatedMesLoadingIndexRoute: typeof AuthenticatedMesLoadingIndexRoute
   AuthenticatedMesRunsIndexRoute: typeof AuthenticatedMesRunsIndexRoute
@@ -658,6 +721,12 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedSystemUserManagementRoute,
   AuthenticatedMesIndexRoute: AuthenticatedMesIndexRoute,
   AuthenticatedSystemIndexRoute: AuthenticatedSystemIndexRoute,
+  AuthenticatedMesIntegrationManualEntryRoute:
+    AuthenticatedMesIntegrationManualEntryRoute,
+  AuthenticatedMesIntegrationStatusRoute:
+    AuthenticatedMesIntegrationStatusRoute,
+  AuthenticatedMesLoadingSlotConfigRoute:
+    AuthenticatedMesLoadingSlotConfigRoute,
   AuthenticatedMesRunsRunNoRoute: AuthenticatedMesRunsRunNoRoute,
   AuthenticatedMesLoadingIndexRoute: AuthenticatedMesLoadingIndexRoute,
   AuthenticatedMesRunsIndexRoute: AuthenticatedMesRunsIndexRoute,

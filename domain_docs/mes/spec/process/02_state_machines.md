@@ -26,7 +26,7 @@ stateDiagram-v2
   AUTHORIZED --> PREP: 撤销授权
   AUTHORIZED --> IN_PROGRESS: 首个 TrackIn
 
-  IN_PROGRESS --> COMPLETED: 无 OQC 或 OQC 合格
+  IN_PROGRESS --> COMPLETED: 批次收尾确认（无 OQC 或 OQC 合格）
   IN_PROGRESS --> ON_HOLD: OQC 不合格
 
   ON_HOLD --> COMPLETED: MRB 放行
@@ -43,7 +43,7 @@ stateDiagram-v2
 | `PREP` | 准备中 | 创建 Run |
 | `AUTHORIZED` | 已授权 | 授权接口通过门禁 |
 | `IN_PROGRESS` | 执行中 | 首个 TrackIn |
-| `COMPLETED` | 成功完工 | OQC 不触发或 OQC 合格 |
+| `COMPLETED` | 成功完工 | 批次收尾确认（OQC 不触发或 OQC 合格） |
 | `ON_HOLD` | 隔离待评审 | OQC 不合格 |
 | `CLOSED_REWORK` | 原 Run 关闭并进入返修闭环 | MRB 决策返修（同时创建返修 Run） |
 | `SCRAPPED` | 原 Run 整批报废 | MRB 决策报废 |

@@ -175,7 +175,7 @@ model ReadinessCheckItem {
 - [x] 2.4.12 权限: `loading:view/verify/config`
 - [x] 2.4.13 UI: 上料防错执行页 (扫码界面)
 - [x] 2.4.14 UI: 上料记录查看 (Run 详情页标签)
-- [ ] 2.4.15 UI: 站位表配置页 (可选)
+- [x] 2.4.15 UI: 站位表配置页
 
 ### 3.5 Task 2.5: OQC Sampling Flow
 - [x] 2.5.1 Schema: OQC 抽检规则表 (比例/固定数量)
@@ -208,8 +208,8 @@ model ReadinessCheckItem {
 - [x] 2.6.9 集成: 就绪检查读取集成状态 (钢网/锡膏) + 线体绑定
 - [x] 2.6.10 集成: FAI/TrackOut 读取检测结果
 - [x] 2.6.11 权限: `system:integration`（接收）+ `loading:config`（线体绑定）
-- [ ] 2.6.12 UI: 手动录入界面 (就绪检查页、执行页)
-- [ ] 2.6.13 UI: 集成状态监控页 (可选)
+- [x] 2.6.12 UI: 手动录入界面 (就绪检查页、执行页)
+- [x] 2.6.13 UI: 集成状态监控页
 - [x] 2.6.14 审计: 数据来源标识 (AUTO/MANUAL) 追溯
 
 ### 3.7 Task 2.7: Final Confirmation & Closeout
@@ -231,8 +231,7 @@ model ReadinessCheckItem {
 
 - Readiness 权限尚未纳入任何默认角色，需要为运行/质量角色补齐。
 - Readiness 配置页与配置 API 暂未实现。
-- 上料防错站位表配置页尚未实现；BOM position 缺失下以 `SlotMaterialMapping` 作为期望来源。
-- 集成接口：SPI/AOI 检测结果接收与 UI 尚未实现；手动录入已支持 `source: MANUAL` 并要求 `operatorId`。
+- 集成接口：FAI/TrackOut 读取检测结果尚未实现。
 
 ---
 

@@ -480,8 +480,10 @@ export const closeWorkOrder = async (
 				};
 			}
 
+			const { runs: _runs, ...workOrderRecord } = wo;
+
 			if (wo.status === WorkOrderStatus.COMPLETED) {
-				return { success: true as const, data: wo };
+				return { success: true as const, data: workOrderRecord };
 			}
 
 			if (wo.runs.length === 0) {

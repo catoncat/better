@@ -3,8 +3,9 @@ import { toast } from "sonner";
 import { client, unwrap } from "@/lib/eden";
 
 // Infer types from API responses
+// Note: For dynamic routes like lines/:lineId, we use ReturnType<typeof fn> pattern
 export type FeederSlotsResponse = Awaited<
-	ReturnType<ReturnType<(typeof client.api.lines)[":lineId"]["feeder-slots"]["get"]>>
+	ReturnType<ReturnType<typeof client.api.lines>["feeder-slots"]["get"]>
 >["data"];
 export type FeederSlotsData = NonNullable<FeederSlotsResponse>["data"];
 export type FeederSlot = FeederSlotsData["items"][number];
@@ -50,7 +51,9 @@ export function useCreateFeederSlot() {
 		},
 		onSuccess: (_, variables) => {
 			toast.success("站位已创建");
-			queryClient.invalidateQueries({ queryKey: ["mes", "loading", "feeder-slots", variables.lineId] });
+			queryClient.invalidateQueries({
+				queryKey: ["mes", "loading", "feeder-slots", variables.lineId],
+			});
 		},
 	});
 }
@@ -66,13 +69,19 @@ export function useUpdateFeederSlot() {
 			lineId,
 			slotId,
 			data,
-		}: { lineId: string; slotId: string; data: UpdateFeederSlotInput }) => {
+		}: {
+			lineId: string;
+			slotId: string;
+			data: UpdateFeederSlotInput;
+		}) => {
 			const response = await client.api.lines({ lineId })["feeder-slots"]({ slotId }).put(data);
 			return unwrap(response);
 		},
 		onSuccess: (_, variables) => {
 			toast.success("站位已更新");
-			queryClient.invalidateQueries({ queryKey: ["mes", "loading", "feeder-slots", variables.lineId] });
+			queryClient.invalidateQueries({
+				queryKey: ["mes", "loading", "feeder-slots", variables.lineId],
+			});
 		},
 	});
 }
@@ -90,7 +99,9 @@ export function useDeleteFeederSlot() {
 		},
 		onSuccess: (_, variables) => {
 			toast.success("站位已删除");
-			queryClient.invalidateQueries({ queryKey: ["mes", "loading", "feeder-slots", variables.lineId] });
+			queryClient.invalidateQueries({
+				queryKey: ["mes", "loading", "feeder-slots", variables.lineId],
+			});
 		},
 	});
 }
