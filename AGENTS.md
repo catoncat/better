@@ -4,8 +4,8 @@
 
 ## Non-Negotiables
 - Always use **bun**.
-- Use **biome** for linting and formatting.
-- Use **tsc** for type checking.
+- Use `bun run lint` / `bun run format` (Biome) for linting and formatting.
+- Use `bun run check-types` (tsc) for type checking.
 - Start each task/turn with `git status` (if not clean, call it out before proceeding).
 - **Update Docs with Code**: If implementation diverges from specs (in `agent_docs` or `domain_docs`), update the documentation *before* or *during* the PR. Docs must reflect reality.
 - This is a greenfield system; do not assume legacy/transition behavior.
@@ -20,9 +20,23 @@
 - **Mark Progress**: As you complete tasks in a plan file, update the file to mark them as done (e.g., `[x] Task 1.1`).
 - **Update the Plan**: If new tasks are discovered or priorities change, update the plan file to reflect the new reality.
 - **What Next (Triage)**: Group candidates into 2-4 parallelizable tracks and call out conflicts (shared touch points) explicitly.
-- **Worktree**: If `git status` is not clean or the task is high-churn, recommend a dedicated `git worktree` + branch.
+- **Worktree**: If `git status` is not clean or the task is high-churn, recommend a dedicated `git worktree` + branch. When a user picks a task/track, ask whether to set up a worktree now.
 - **Small-Step Commits**: Commit after each coherent slice, keep commits minimally scoped, and avoid mixing unrelated changes.
-- **Conversation Sync**: If a response includes discussion/plan/decision, also write a note to `conversation/YYYY-MM-DD_HHMMSS_<topic>.md` (timestamp via `date '+%Y-%m-%d_%H%M%S'`).
+- **Conversation Sync**: If a response includes discussion/plan/decision, also write a note to `conversation/YYYY-MM-DD_HHMMSS_<topic>.md` (timestamp via `date '+%Y-%m-%d_%H%M%S'`). If a plan was produced, include the plan content.
+  - Template: Context, Decisions, Plan, Open Questions, References
+
+## Worktree Bootstrap (Recommended)
+
+Use a worktree to avoid `bun run lint` / `bun run check-types` noise from other in-flight edits.
+
+- Create: `git worktree add -b <branch> <path>`
+- Setup (in the worktree root):
+  - `bun install`
+  - Copy server env if present: `cp <main>/apps/server/.env apps/server/.env`
+  - Share DB/data: `ln -s <main>/data data`
+
+Shortcut: `bun scripts/worktree-new.ts <branch> <path>` (creates the worktree, runs `bun install`, copies `apps/server/.env` if present, symlinks `data`).
+Run it from the worktree that owns the canonical `apps/server/.env` and `data/` (typically the main checkout).
 
 ---
 
@@ -82,6 +96,7 @@ Use the smallest set of docs needed for the task. Skip anything not required.
 ## Quality and Release
 - Before commit or PR:
   1. `agent_docs/01_core/testing_quality.md`
+  2. Run `bun run lint` and `bun run check-types` in the branch/worktree you are about to merge.
 
 ## Domain Specs (MES)
 
