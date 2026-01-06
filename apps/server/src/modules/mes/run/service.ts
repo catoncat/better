@@ -330,8 +330,10 @@ export const closeRun = async (
 				};
 			}
 
+			const { units: _units, ...runRecord } = run;
+
 			if (TERMINAL_RUN_STATUSES.includes(run.status)) {
-				return { success: true as const, data: run };
+				return { success: true as const, data: runRecord };
 			}
 
 			if (run.status !== RunStatus.IN_PROGRESS) {

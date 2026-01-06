@@ -229,9 +229,13 @@ function RunDetailPage() {
 	};
 
 	const handleCloseoutConfirm = async () => {
-		await closeRun.mutateAsync({ runNo });
-		setCloseoutDialogOpen(false);
-		refetch();
+		try {
+			await closeRun.mutateAsync({ runNo });
+			setCloseoutDialogOpen(false);
+			refetch();
+		} catch {
+			// Toast handled in mutation onError
+		}
 	};
 
 	if (isLoading) {
