@@ -20,15 +20,13 @@ Isolate changes so parallel work does not interfere with lint/typecheck and redu
 
 0. Preflight:
    - Run `git status` and call out a dirty tree.
-   - Ensure the source worktree has a real `data/` directory (not a self-referential symlink).
 1. Create a worktree (preferred):
    - `bun scripts/worktree-new.ts <branch> <path>`
    - Behavior:
      - Creates a git worktree at `<path>` on `<branch>`
      - Runs `bun install`
      - Copies `apps/server/.env` from the current worktree (if present)
-     - Symlinks `data/` to share the DB state
-   - Note: if `DATABASE_URL` in the copied `.env` is already an absolute `file:` path pointing at the canonical `data/`, the `data/` symlink is optional.
+     - Rewrites `DATABASE_URL` in the new worktree `.env` to an absolute `file:` path pointing at the canonical main worktree `data/`
 2. Use it:
    - `cd <path>`
    - Run `bun run dev` (or `bun run dev:web` / `bun run dev:server`)

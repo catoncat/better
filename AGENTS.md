@@ -35,11 +35,9 @@ Use a worktree to avoid `bun run lint` / `bun run check-types` noise from other 
 - Setup (in the worktree root):
   - `bun install`
   - Copy server env if present: `cp <main>/apps/server/.env apps/server/.env`
-  - Share DB/data (in the NEW worktree only): `ln -s <main>/data data`
-    - Do not run this in `<main>`; `<main>/data` must be a real directory.
-    - Alternative: set `DATABASE_URL` in `apps/server/.env` to an absolute `file:` path under `<main>/data/` and skip the symlink.
+  - Ensure `DATABASE_URL` in `apps/server/.env` is an absolute `file:` path (so worktrees share the same DB without symlinks).
 
-Shortcut: `bun scripts/worktree-new.ts <branch> <path>` (creates the worktree, runs `bun install`, copies `apps/server/.env` if present, symlinks `data`).
+Shortcut: `bun scripts/worktree-new.ts <branch> <path>` (creates the worktree, runs `bun install`, copies `apps/server/.env` if present, rewrites `DATABASE_URL` to the canonical main worktree `data/`).
 Run it from the worktree that owns the canonical `apps/server/.env` and `data/` (typically the main checkout).
 
 Cleanup (after merge):
