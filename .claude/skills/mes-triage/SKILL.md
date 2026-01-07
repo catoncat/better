@@ -12,6 +12,10 @@ Select the next MES development target from the plan, then ask the user to choos
 ## Workflow
 
 0. Run `git status` (if not clean, call it out before proceeding).
+1. Worktree preflight (for parallel work):
+   - Run `bun scripts/worktree-scan.ts` and capture the output.
+   - Treat any non-current worktree that is `dirty` or `ahead` as "in-flight".
+   - Use the touched areas/files as conflict signals when proposing parallel tracks.
 1. Read the minimum docs:
    - `domain_docs/mes/CONTEXT.md`
    - `domain_docs/mes/plan/phase2_tasks.md`
@@ -26,7 +30,7 @@ Select the next MES development target from the plan, then ask the user to choos
 4. Produce the triage output (tracks + conflicts) in the Output Format below.
 5. Sync triage output to a conversation note BEFORE asking the user to pick:
    - Create a note: `bun scripts/conversation-new.ts "mes-triage_<topic>"`
-   - Paste the full triage output into the note (include Tracks, Candidates, Conflicts, and the selection prompt).
+   - Paste the full triage output into the note (include Worktree Scan, Tracks, Candidates, Conflicts, and the selection prompt).
    - Do not save only the chosen track; the note must preserve all options for parallel agents.
 6. Output the tracks + candidates to the user, then ask the user to pick one track or one candidate.
    - Also ask whether they want a dedicated worktree for the chosen item (recommended if they will run another track in parallel or run full lint/typecheck).
