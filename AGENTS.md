@@ -110,18 +110,18 @@ Use the smallest set of docs needed for the task. Skip anything not required.
 **Note**: When implementing MES features, strictly follow engineering standards in `agent_docs`.
 
 ### Quick Context (Read First for MES Tasks)
-- `domain_docs/mes/CONTEXT.md` - 文档索引 + 阅读路径导航
+- `domain_docs/mes/CONTEXT.md` - docs index + reading path
 
 ### Update Rules (MES Features)
 
-| 事件 | 必改 | 可选 |
+| Event | Must Update | Optional |
 |------|------|------|
-| 新增流程节点（设计） | flow, plan | align（等实现时补） |
-| 完成功能（实现落地） | align, plan | - |
-| 重构/路径变更 | align | - |
-| 砍掉/推迟功能 | flow, plan | align（删除对应行） |
+| Add process node (design) | flow, plan | align (add when implemented) |
+| Implement feature (land code) | align, plan | - |
+| Refactor / path changes | align | - |
+| Remove / defer feature | flow, plan | align (remove related rows) |
 
-**PR 护栏**：任何实现变更/新增节点落地的 PR 必须同步更新对应 align 文件。
+**PR Guardrail**: Any PR that changes implementation or lands a new node MUST update the corresponding align file.
 
 ### Process Specs (Source of Truth)
 - End-to-End Flows: `domain_docs/mes/spec/process/01_end_to_end_flows.md`
