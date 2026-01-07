@@ -23,11 +23,17 @@ Select the next MES development target from the plan, then ask the user to choos
 3. Group the shortlist into 2-4 parallelizable tracks:
    - Track = a set of tasks that do not block each other (avoid shared touch points like Prisma schema, `execution/service.ts`, routing engine).
    - Explicitly list conflicts (what cannot be done in parallel).
-4. Output the tracks + candidates, then ask the user to pick one track or one candidate.
+4. Produce the triage output (tracks + conflicts) in the Output Format below.
+5. Sync triage output to a conversation note BEFORE asking the user to pick:
+   - Create a note: `bun scripts/conversation-new.ts "mes-triage_<topic>"`
+   - Paste the full triage output into the note (include Tracks, Candidates, Conflicts, and the selection prompt).
+   - Do not save only the chosen track; the note must preserve all options for parallel agents.
+6. Output the tracks + candidates to the user, then ask the user to pick one track or one candidate.
    - Also ask whether they want a dedicated worktree for the chosen item (recommended if they will run another track in parallel or run full lint/typecheck).
    - If yes, propose using `bun scripts/worktree-new.ts <branch> <path>`.
-5. Sync the triage output to `conversation/YYYY-MM-DD_HHMMSS_mes-triage_<topic>.md` (timestamp via `date '+%Y-%m-%d_%H%M%S'`).
-6. After the user picks, switch to the implementation workflow (use `mes-implement`).
+7. After the user picks:
+   - Update the SAME triage note (append a short "Selected" section with the chosen track/task and any worktree decision).
+8. After the user picks, switch to the implementation workflow (use `mes-implement`).
 
 ## Output Format
 
@@ -45,6 +51,6 @@ End with: "Pick one; I will confirm scope and start plan-first implementation."
 
 ## Guardrails
 
-- Only write the conversation sync note; do not modify code/docs/plan during triage unless the user explicitly asks.
+- Only write/update the conversation note; do not modify code/docs/plan during triage unless the user explicitly asks.
 - Do not create worktrees or switch branches unless the user explicitly asks.
 - Do not invent new tasks outside `domain_docs/mes/plan/` without proposing them as plan additions first.

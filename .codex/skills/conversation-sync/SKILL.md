@@ -24,4 +24,4 @@ After any discussion/plan/decision, save a short, searchable note under `convers
    - No emoji
    - Prefer bullets and concrete file paths
 4. If a plan was produced in chat, copy the plan content into the note.
-
+5. If you produced structured output (tracks, candidates, tables, checklists), paste that content into the note verbatim so another agent can resume without re-analysis.
