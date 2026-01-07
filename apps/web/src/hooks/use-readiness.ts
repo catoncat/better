@@ -61,7 +61,9 @@ export function useUpdateReadinessConfig() {
 		},
 		onSuccess: (_data, variables) => {
 			toast.success("配置已保存");
-			queryClient.invalidateQueries({ queryKey: ["mes", "lines", variables.lineId, "readiness-config"] });
+			queryClient.invalidateQueries({
+				queryKey: ["mes", "lines", variables.lineId, "readiness-config"],
+			});
 		},
 		onError: () => {
 			toast.error("保存配置失败");

@@ -123,63 +123,51 @@ function ReadinessConfigPage() {
 					</div>
 
 					{/* Config panel */}
-					{selectedLineId && (
-						<>
-							{configLoading ? (
-								<div className="flex items-center justify-center py-8">
-									<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+					{selectedLineId &&
+						(configLoading ? (
+							<div className="flex items-center justify-center py-8">
+								<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+							</div>
+						) : (
+							<div className="space-y-4">
+								<div className="flex items-center gap-2">
+									<Button variant="outline" size="sm" onClick={handleSelectAll}>
+										全选
+									</Button>
+									<Button variant="outline" size="sm" onClick={handleClearAll}>
+										清空
+									</Button>
 								</div>
-							) : (
-								<div className="space-y-4">
-									<div className="flex items-center gap-2">
-										<Button variant="outline" size="sm" onClick={handleSelectAll}>
-											全选
-										</Button>
-										<Button variant="outline" size="sm" onClick={handleClearAll}>
-											清空
-										</Button>
-									</div>
 
-									<div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-										{ALL_READINESS_ITEM_TYPES.map((type) => (
-											<div
-												key={type}
-												className="flex items-center space-x-3 rounded-lg border p-4"
-											>
-												<Checkbox
-													id={type}
-													checked={enabledTypes.has(type)}
-													onCheckedChange={() => handleToggle(type)}
-												/>
-												<Label
-													htmlFor={type}
-													className="flex-1 cursor-pointer text-sm font-medium"
-												>
-													{READINESS_ITEM_TYPE_LABELS[type]}
-												</Label>
-											</div>
-										))}
-									</div>
-
-									<Can permissions={Permission.READINESS_CONFIG}>
-										<div className="flex justify-end pt-4">
-											<Button
-												onClick={handleSave}
-												disabled={!hasChanges || updateConfig.isPending}
-											>
-												{updateConfig.isPending ? (
-													<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-												) : (
-													<Check className="mr-2 h-4 w-4" />
-												)}
-												保存配置
-											</Button>
+								<div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+									{ALL_READINESS_ITEM_TYPES.map((type) => (
+										<div key={type} className="flex items-center space-x-3 rounded-lg border p-4">
+											<Checkbox
+												id={type}
+												checked={enabledTypes.has(type)}
+												onCheckedChange={() => handleToggle(type)}
+											/>
+											<Label htmlFor={type} className="flex-1 cursor-pointer text-sm font-medium">
+												{READINESS_ITEM_TYPE_LABELS[type]}
+											</Label>
 										</div>
-									</Can>
+									))}
 								</div>
-							)}
-						</>
-					)}
+
+								<Can permissions={Permission.READINESS_CONFIG}>
+									<div className="flex justify-end pt-4">
+										<Button onClick={handleSave} disabled={!hasChanges || updateConfig.isPending}>
+											{updateConfig.isPending ? (
+												<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+											) : (
+												<Check className="mr-2 h-4 w-4" />
+											)}
+											保存配置
+										</Button>
+									</div>
+								</Can>
+							</div>
+						))}
 
 					{!selectedLineId && (
 						<div className="py-8 text-center text-muted-foreground">请先选择一个产线</div>
