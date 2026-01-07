@@ -1,10 +1,6 @@
 # API Design Standards & Architecture Patterns
 
-> **Status**: Authoritative Source
-> **Audience**: LLMs, Architects, Senior Developers
-> **Scope**: All Backend Modules (`apps/server/src/modules/**`)
-
-This document defines the **mandatory** patterns for building APIs in this repository. It assumes a "clean slate" approach—any existing code violating these patterns should be refactored.
+Mandatory patterns for backend APIs in `apps/server/src/modules/**`.
 
 ---
 
@@ -37,10 +33,8 @@ export type ServiceResult<T> =
 **Template**:
 ```typescript
 export const executeLogic = async (db: PrismaClient, input: InputType): Promise<ServiceResult<Output>> => {
-  // 1. Validation
   if (invalid) return { success: false, code: "BAD_RULE", message: "...", status: 400 };
 
-  // 2. Transaction
   return await db.$transaction(async (tx) => {
     // ... logic ...
     return { success: true, data: result };
@@ -58,17 +52,13 @@ import { error } from "elysia";
 
 // ... inside a route handler
 .post("/", async ({ db, body, user, request }) => {
-  // 1. Prepare Context (Audit)
   const actor = buildAuditActor(user);
   const meta = buildAuditRequestMeta(request);
   const before = await db.entity.findUnique(...) // Capture state for audit
 
-  // 2. Call Service
   const result = await myService.execute(db, body);
 
-  // 3. Handle Failure
   if (!result.success) {
-    // 3.1 Audit Failure (Mandatory for MES writes)
     await recordAuditEvent(db, {
       action: "ENTITY_CREATE",
       status: "FAIL",
@@ -76,14 +66,12 @@ import { error } from "elysia";
       errorCode: result.code, errorMessage: result.message
     });
     
-    // 3.2 Return Error Envelope
     return error(result.status ?? 400, {
       ok: false,
       error: { code: result.code, message: result.message }
     });
   }
 
-  // 4. Handle Success
   await recordAuditEvent(db, {
     action: "ENTITY_CREATE",
     status: "SUCCESS",
@@ -92,7 +80,6 @@ import { error } from "elysia";
     after: result.data
   });
 
-  // 5. Return Success Envelope
   return { ok: true, data: result.data };
 })
 ```
