@@ -70,6 +70,9 @@ apps/server/server
 *.csv
 erp_workorders.csv
 
+# Local runtime data (SQLite/libsql, archives, etc.)
+/data
+
 old_project
 .spec-workflow
 deploy/cert/
