@@ -79,6 +79,7 @@ deploy/.config
 others/
 
 # Claude Code
+.codex/*
 .claude/*
 !.claude/skills/
 !.claude/skills/**
