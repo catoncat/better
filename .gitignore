@@ -85,3 +85,4 @@ others/
 .claude/*
 !.claude/skills/
 !.claude/skills/**
+.factory/
