@@ -48,6 +48,7 @@ export const traceUnitResponseSchema = t.Object({
 			t.Object({
 				stepNo: t.Union([t.Number(), t.Null()]),
 				name: t.String(),
+				value: t.Union([t.Number(), t.String(), t.Boolean(), t.Any(), t.Null()]),
 				valueNumber: t.Union([t.Number(), t.Null()]),
 				valueText: t.Union([t.String(), t.Null()]),
 				valueBoolean: t.Union([t.Boolean(), t.Null()]),
