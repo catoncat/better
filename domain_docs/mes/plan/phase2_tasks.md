@@ -231,7 +231,6 @@ model ReadinessCheckItem {
 
 - Readiness 权限尚未纳入任何默认角色，需要为运行/质量角色补齐。
 - Readiness 配置页与配置 API 暂未实现。
-- 集成接口：FAI/TrackOut 读取检测结果尚未实现。
 
 ---
 
