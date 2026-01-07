@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, lstatSync, symlinkSync } from "node:fs";
+import { copyFileSync, existsSync, lstatSync, realpathSync, symlinkSync } from "node:fs";
 import path from "node:path";
 
 type RunResult = {
@@ -36,7 +36,7 @@ function usage(): never {
       "- Creates a git worktree at <path> on <branch>.",
       "- Runs `bun install` in the new worktree.",
       "- Copies `apps/server/.env` from the current worktree (if present).",
-      "- Symlinks `data` to the current worktree's `data` (if present).",
+      "- Symlinks `data` to the current worktree's `data` (if present and resolvable).",
     ].join("\n"),
   );
 }
@@ -76,15 +76,32 @@ if (existsSync(srcEnv) && !existsSync(dstEnv)) {
 const srcData = path.join(mainRoot, "data");
 const dstData = path.join(targetPath, "data");
 if (existsSync(srcData)) {
+  let resolvedSrcData: string;
+  try {
+    resolvedSrcData = realpathSync(srcData);
+  } catch {
+    die(
+      [
+        `Unable to resolve ${srcData}.`,
+        "Fix: ensure the source worktree has a real `data/` directory (not a broken or self-referential symlink).",
+      ].join("\n"),
+    );
+  }
+
+  const resolvedStat = lstatSync(resolvedSrcData);
+  if (!resolvedStat.isDirectory()) {
+    die(`Expected ${resolvedSrcData} to be a directory.`);
+  }
+
   if (existsSync(dstData)) {
     const stat = lstatSync(dstData);
     if (!stat.isSymbolicLink()) {
       die(
-        `Refusing to replace existing ${dstData}. Remove it manually if you want to symlink to ${srcData}.`,
+        `Refusing to replace existing ${dstData}. Remove it manually if you want to symlink to ${resolvedSrcData}.`,
       );
     }
   } else {
-    const relTarget = path.relative(targetPath, srcData) || ".";
+    const relTarget = path.relative(targetPath, resolvedSrcData) || ".";
     symlinkSync(relTarget, dstData, "dir");
   }
 }
