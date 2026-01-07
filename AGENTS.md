@@ -25,6 +25,7 @@
 - **Conversation Sync**: If a response includes discussion/plan/decision, also write a note to `conversation/YYYY-MM-DD_HHMMSS_<topic>.md` (timestamp via `date '+%Y-%m-%d_%H%M%S'`). If a plan was produced, include the plan content.
   - Template: Context, Decisions, Plan, Open Questions, References
 - **Repo Skills**: Check in skills under `.codex/skills` (Codex) and `.claude/skills` (Claude Code). Prefer `repo-dev-loop`, `task-slicer`, `small-step-commits`, `mes-triage`, `mes-implement`.
+- **Worktree Cleanup**: When a worktree task is finished, remove the worktree and delete the branch (prefer `worktree-cleanup`).
 
 ## Worktree Bootstrap (Recommended)
 
@@ -38,6 +39,11 @@ Use a worktree to avoid `bun run lint` / `bun run check-types` noise from other 
 
 Shortcut: `bun scripts/worktree-new.ts <branch> <path>` (creates the worktree, runs `bun install`, copies `apps/server/.env` if present, symlinks `data`).
 Run it from the worktree that owns the canonical `apps/server/.env` and `data/` (typically the main checkout).
+
+Cleanup (after merge):
+- Remove: `git worktree remove <path>` (or `--force` to discard)
+- Prune: `git worktree prune`
+- Delete branch: `git branch -d <branch>` (or `-D`)
 
 ---
 
