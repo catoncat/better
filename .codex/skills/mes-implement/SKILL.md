@@ -24,6 +24,7 @@ Implement one selected MES task end-to-end while keeping plan/flow/align as sing
    - Worktree bootstrap (recommended):
      - `bun scripts/worktree-new.ts <branch> <path>` (run from the main checkout; creates the worktree, runs `bun install`, copies `apps/server/.env` if present, symlinks `data`)
      - Or manually: `bun install`, copy `apps/server/.env`, symlink `data` to the main worktree
+     - Guardrail: the source worktree must have a real `data/` directory (not a self-referential symlink). If `DATABASE_URL` in the copied `.env` is already an absolute `file:` path pointing at the canonical `data/`, the `data/` symlink is optional.
    - If using a worktree for a large task, prefer a worktree-scoped plan file under `domain_docs/mes/plan/` (e.g. `worktree_*_todo.md`) and backfill `phase2_tasks.md` after merge.
    - Commit in small steps and do not wait for full task completion. If needed, use `wip:` commits and follow with a cleanup commit.
 1. Confirm scope with short questions if needed:
