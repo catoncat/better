@@ -65,6 +65,8 @@ This document outlines the development milestones for the MES system, focusing o
 * **Goal**: Implement data collection and traceability features.
 * **Features**: Data collection for key metrics, traceability for each unit and material used.
 * **Acceptance Criteria**: Traceability queries must return full production history, including defects and data values.
+* **当前进度**:
+  * [x] Unit trace API 契约对齐（补齐 `dataValues.value`）
 
 ### M4: Ingest and Batch Processing
 * **Goal**: Extend the system to handle automated and batch processing scenarios.
