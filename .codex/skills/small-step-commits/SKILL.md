@@ -16,6 +16,7 @@ Keep changes conflict-friendly by committing early and often.
 2. After finishing one slice:
    - Stage only the relevant files (avoid `git add .` unless the slice is truly repo-wide).
    - Commit immediately (do not wait for the entire task).
+   - Commands: `git add <files...>` then `git commit -m "<type>(<scope>): <summary>"`.
 3. If you must stop mid-slice, make a `wip:` commit and continue in the next commit.
 
 ## Commit Rules
