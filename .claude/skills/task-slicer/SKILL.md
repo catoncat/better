@@ -1,6 +1,6 @@
 ---
 name: task-slicer
-description: 'Split a repo task into 2-6 conflict-friendly slices with explicit commit checkpoints. Use when starting a non-trivial task, when the user asks for a plan, or when small-step commits are desired. Outputs a slice plan with staged file hints and commit message suggestions.'
+description: 'Split a repo task into 2-6 conflict-friendly slices with explicit commit checkpoints. Use when starting a non-trivial task, when the user asks for a plan (拆分任务/拆分 plan/切片), or when small-step commits are desired (小步提交/多次 commit). Outputs a slice plan with staged file hints and commit message suggestions.'
 ---
 
 # Task Slicer

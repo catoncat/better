@@ -1,6 +1,6 @@
 ---
 name: small-step-commits
-description: 'Enforce small, frequent commits in this repo. Use when implementing or refactoring code, updating docs, or making multi-file changes; ensures work is committed in coherent slices (plan/docs/schema/api/ui) instead of one big end-of-task commit.'
+description: 'Enforce small, frequent commits (小步提交/多次 commit) in this repo. Use when implementing/refactoring code, updating docs, or making multi-file changes; ensures work is committed in coherent slices (plan/docs/schema/api/ui) instead of one big end-of-task commit.'
 ---
 
 # Small-Step Commits
