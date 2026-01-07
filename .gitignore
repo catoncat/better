@@ -77,4 +77,8 @@ deploy/.env
 deploy/.config
 
 others/
-.claude/
+
+# Claude Code
+.claude/*
+!.claude/skills/
+!.claude/skills/**

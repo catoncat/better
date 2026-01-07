@@ -21,9 +21,10 @@
 - **Update the Plan**: If new tasks are discovered or priorities change, update the plan file to reflect the new reality.
 - **What Next (Triage)**: Group candidates into 2-4 parallelizable tracks and call out conflicts (shared touch points) explicitly.
 - **Worktree**: If `git status` is not clean or the task is high-churn, recommend a dedicated `git worktree` + branch. When a user picks a task/track, ask whether to set up a worktree now.
-- **Small-Step Commits**: Commit after each coherent slice (plan/docs/schema/api/ui), do not wait for full task completion. If you must stop mid-way, make a `wip:` commit and continue in the next commit.
+- **Small-Step Commits**: Commit after each coherent slice (plan/docs/schema/api/ui) or completed plan checkbox; do not wait for full task completion. If you must stop mid-way, make a `wip:` commit and continue in the next commit.
 - **Conversation Sync**: If a response includes discussion/plan/decision, also write a note to `conversation/YYYY-MM-DD_HHMMSS_<topic>.md` (timestamp via `date '+%Y-%m-%d_%H%M%S'`). If a plan was produced, include the plan content.
   - Template: Context, Decisions, Plan, Open Questions, References
+- **Repo Skills**: Check in skills under `.codex/skills` (Codex) and `.claude/skills` (Claude Code). Prefer `mes-triage`, `mes-implement`, `small-step-commits`.
 
 ## Worktree Bootstrap (Recommended)
 
