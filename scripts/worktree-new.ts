@@ -1,10 +1,15 @@
-import { copyFileSync, existsSync, lstatSync, realpathSync, symlinkSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 type RunResult = {
   stdout: string;
   stderr: string;
   exitCode: number;
+};
+
+type WorktreeInfo = {
+  worktreePath: string;
+  branch?: string;
 };
 
 function run(cmd: string[], options?: { cwd?: string }): RunResult {
@@ -36,9 +41,80 @@ function usage(): never {
       "- Creates a git worktree at <path> on <branch>.",
       "- Runs `bun install` in the new worktree.",
       "- Copies `apps/server/.env` from the current worktree (if present).",
-      "- Symlinks `data` to the current worktree's `data` (if present and resolvable).",
+      "- Rewrites `DATABASE_URL` in the new worktree to use an absolute path to the canonical main worktree's `data/`.",
     ].join("\n"),
   );
+}
+
+function parseWorktreeListPorcelain(output: string): WorktreeInfo[] {
+  const lines = output.split(/\r?\n/);
+  const worktrees: WorktreeInfo[] = [];
+
+  let current: Partial<WorktreeInfo> | null = null;
+  const flush = () => {
+    if (current?.worktreePath) worktrees.push(current as WorktreeInfo);
+    current = null;
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flush();
+      continue;
+    }
+
+    const spaceIndex = trimmed.indexOf(" ");
+    const key = spaceIndex === -1 ? trimmed : trimmed.slice(0, spaceIndex);
+    const value = spaceIndex === -1 ? "" : trimmed.slice(spaceIndex + 1).trim();
+
+    if (key === "worktree") {
+      flush();
+      current = { worktreePath: value };
+      continue;
+    }
+
+    if (!current) continue;
+
+    if (key === "branch") {
+      current.branch = value;
+      continue;
+    }
+  }
+
+  flush();
+  return worktrees;
+}
+
+function findCanonicalMainWorktree(repoRoot: string): string {
+  const wtList = run(["git", "worktree", "list", "--porcelain"], { cwd: repoRoot });
+  if (wtList.exitCode !== 0) return repoRoot;
+
+  const worktrees = parseWorktreeListPorcelain(wtList.stdout);
+  const main = worktrees.find((wt) => wt.branch === "refs/heads/main");
+  return main ? path.resolve(main.worktreePath) : repoRoot;
+}
+
+function setEnvVar(filePath: string, key: string, value: string): void {
+  const original = existsSync(filePath) ? readFileSync(filePath, "utf8") : "";
+  const lines = original.length > 0 ? original.split(/\r?\n/) : [];
+
+  const entry = `${key}=${value}`;
+  let replaced = false;
+  const updated = lines.map((line) => {
+    const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=/);
+    if (!match) return line;
+    if (match[1] !== key) return line;
+    replaced = true;
+    return entry;
+  });
+
+  if (!replaced) {
+    if (updated.length > 0 && updated[updated.length - 1]?.trim() !== "") updated.push("");
+    updated.push(entry);
+  }
+
+  const out = updated.join("\n").replaceAll(/\n{3,}$/g, "\n\n");
+  writeFileSync(filePath, out, "utf8");
 }
 
 const [branch, targetPathArg] = process.argv.slice(2);
@@ -50,6 +126,10 @@ const mainRoot = repoRootResult.stdout.trim();
 if (!mainRoot) die("Unable to determine git toplevel");
 
 const targetPath = path.resolve(process.cwd(), targetPathArg);
+
+const canonicalRoot = findCanonicalMainWorktree(mainRoot);
+const canonicalDataDir = path.join(canonicalRoot, "data");
+mkdirSync(canonicalDataDir, { recursive: true });
 
 const branchExistsResult = run(
   ["git", "show-ref", "--verify", "--quiet", `refs/heads/${branch}`],
@@ -73,43 +153,16 @@ if (existsSync(srcEnv) && !existsSync(dstEnv)) {
   copyFileSync(srcEnv, dstEnv);
 }
 
-const srcData = path.join(mainRoot, "data");
-const dstData = path.join(targetPath, "data");
-if (existsSync(srcData)) {
-  let resolvedSrcData: string;
-  try {
-    resolvedSrcData = realpathSync(srcData);
-  } catch {
-    die(
-      [
-        `Unable to resolve ${srcData}.`,
-        "Fix: ensure the source worktree has a real `data/` directory (not a broken or self-referential symlink).",
-      ].join("\n"),
-    );
-  }
-
-  const resolvedStat = lstatSync(resolvedSrcData);
-  if (!resolvedStat.isDirectory()) {
-    die(`Expected ${resolvedSrcData} to be a directory.`);
-  }
-
-  if (existsSync(dstData)) {
-    const stat = lstatSync(dstData);
-    if (!stat.isSymbolicLink()) {
-      die(
-        `Refusing to replace existing ${dstData}. Remove it manually if you want to symlink to ${resolvedSrcData}.`,
-      );
-    }
-  } else {
-    const relTarget = path.relative(targetPath, resolvedSrcData) || ".";
-    symlinkSync(relTarget, dstData, "dir");
-  }
+if (existsSync(dstEnv)) {
+  const dbUrl = `file:${canonicalDataDir}${canonicalDataDir.endsWith(path.sep) ? "" : path.sep}`;
+  setEnvVar(dstEnv, "DATABASE_URL", dbUrl);
 }
 
 console.log(
   [
     "Worktree ready:",
     `- main:   ${mainRoot}`,
+    `- db:     file:${canonicalDataDir}${canonicalDataDir.endsWith(path.sep) ? "" : path.sep}`,
     `- branch: ${branch}`,
     `- path:   ${targetPath}`,
     "",
