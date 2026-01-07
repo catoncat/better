@@ -78,8 +78,10 @@ deploy/.config
 
 others/
 
-# Claude Code
+# Agents
 .codex/*
+!.codex/skills/
+!.codex/skills/**
 .claude/*
 !.claude/skills/
 !.claude/skills/**
