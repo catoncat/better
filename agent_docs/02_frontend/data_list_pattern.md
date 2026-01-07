@@ -97,35 +97,6 @@ Some pages don't follow this pattern:
 - **Small dataset pages**: When items are few and don't need pagination (e.g., `role-management.tsx` uses a pure card grid layout).
 - **Non-list pages**: Dashboards, detail pages, etc.
 
-## Minimal Usage
-```tsx
-<DataListLayout
-  mode="server"
-  data={data?.items ?? []}
-  columns={columns}
-  pageCount={pageCount}
-  onPaginationChange={handlePaginationChange}
-  locationSearch={locationSearch}
-  queryPresetBarProps={{
-    systemPresets,  // NO "all" preset
-    userPresets,
-    matchedPresetId: currentActivePresetId,
-    onApplyPreset: handleApplyPreset,
-    onSavePreset: (name) => savePreset(name, filters),
-    onDeletePreset: deletePreset,
-    onRenamePreset: renamePreset,
-  }}
-  filterToolbarProps={{
-    fields,
-    filters,
-    onFilterChange: setFilter,
-    onReset: resetFilters,
-    isFiltered,
-    viewPreferencesKey: "instruments",
-  }}
-  dataListViewProps={{
-    viewPreferencesKey: "instruments",
-    renderCard: (item) => <ItemCard item={item} />,
-  }}
-/>
-```
+## Implementation Notes
+- Prefer copying the canonical reference (`apps/web/src/routes/_authenticated/mes/runs/index.tsx`) and adapting it.
+- Keep `viewPreferencesKey` stable; changing it breaks saved view preferences.

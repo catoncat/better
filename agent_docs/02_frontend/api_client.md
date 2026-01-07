@@ -13,10 +13,9 @@
 The backend wraps all responses in a standard envelope: `{ ok: boolean, data: T, error?: ... }`.
 The frontend **MUST** use the `unwrap` utility to normalize this response.
 
-### Why?
-- It converts backend "Envelope Errors" (HTTP 200 with `ok: false`) into real Exceptions.
-- It normalizes `response.data.data` into just `data`.
-- It ensures types match what the UI expects (the inner `T`).
+`unwrap`:
+- Converts `{ ok: false }` envelope failures into thrown errors.
+- Normalizes `response.data.data` into the inner `T`.
 
 ### Usage in Hooks
 
@@ -72,13 +71,6 @@ try {
 }
 ```
 
-## ApiError Class
-
-```typescript
-export class ApiError extends Error {
-  code: string;      // Machine-readable code (e.g., "RESOURCE_NOT_FOUND")
-  message: string;   // Human-readable message
-  details?: unknown; // Optional validation details
-  status?: number;   // HTTP Status Code
-}
-```
+## ApiError
+- Class: `apps/web/src/lib/api-error.ts`
+- When you need custom handling, catch `ApiError` and branch on `code`.

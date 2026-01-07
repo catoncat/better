@@ -58,6 +58,7 @@
 ## Language
 - UI text must be Simplified Chinese.
 - Code and comments remain English.
+- Copywriting guidelines: `agent_docs/02_frontend/ui_copywriting.md`
 
 ## Avoid
 - Blue primary buttons; primary is neutral (black/dark gray).
@@ -81,22 +82,3 @@ Enhance clarity and polish without breaking established patterns.
 - Custom color palettes outside semantic tokens.
 - Layout experiments that break existing page patterns.
 - Heavy motion/parallax effects.
-
-## Chinese Copywriting Style (UI Text)
-
-### Writing Style
-| Guideline | Example |
-|-----------|---------|
-| Short sentences | ✓ "保存成功" ✗ "您的数据已经成功保存到系统中" |
-| Verb-first for actions | ✓ "添加仪器" ✗ "新仪器" |
-| Avoid English mixing | ✓ "筛选条件" ✗ "Filter 条件" |
-| Exception: Product terms | ✓ "工单 ID" (if ID is established term) |
-| No trailing punctuation in buttons | ✓ "确认" ✗ "确认。" |
-| Question for confirmations | ✓ "确定删除此记录？" |
-
-### Common Terms (Established)
-Use these consistently:
-- 工单 (Work Order)
-- 批次 (Batch/Lot)
-- 校准 (Calibration)
-- 仪器 (Instrument)
