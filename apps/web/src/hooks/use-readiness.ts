@@ -12,6 +12,65 @@ type ReadinessCheckItem = NonNullable<ReadinessCheck>["items"][number];
 
 export type { ReadinessCheckItem };
 
+// Readiness config types
+type ReadinessConfigResponse = Awaited<
+	ReturnType<ReturnType<typeof client.api.lines>["readiness-config"]["get"]>
+>["data"];
+
+export type ReadinessConfig = NonNullable<ReadinessConfigResponse>["data"];
+export type ReadinessItemType = ReadinessConfig["enabled"][number];
+
+export const ALL_READINESS_ITEM_TYPES: ReadinessItemType[] = [
+	"EQUIPMENT",
+	"MATERIAL",
+	"ROUTE",
+	"STENCIL",
+	"SOLDER_PASTE",
+	"LOADING",
+];
+
+export const READINESS_ITEM_TYPE_LABELS: Record<ReadinessItemType, string> = {
+	EQUIPMENT: "设备检查",
+	MATERIAL: "物料检查",
+	ROUTE: "路由检查",
+	STENCIL: "钢网检查",
+	SOLDER_PASTE: "锡膏检查",
+	LOADING: "上料检查",
+};
+
+export function useReadinessConfig(lineId: string | undefined) {
+	return useQuery({
+		queryKey: ["mes", "lines", lineId, "readiness-config"],
+		enabled: Boolean(lineId),
+		queryFn: async () => {
+			if (!lineId) throw new Error("lineId required");
+			const response = await client.api.lines({ lineId })["readiness-config"].get();
+			return unwrap(response);
+		},
+		staleTime: 30_000,
+	});
+}
+
+export function useUpdateReadinessConfig() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({ lineId, enabled }: { lineId: string; enabled: ReadinessItemType[] }) => {
+			const response = await client.api.lines({ lineId })["readiness-config"].put({ enabled });
+			return unwrap(response);
+		},
+		onSuccess: (_data, variables) => {
+			toast.success("配置已保存");
+			queryClient.invalidateQueries({
+				queryKey: ["mes", "lines", variables.lineId, "readiness-config"],
+			});
+		},
+		onError: () => {
+			toast.error("保存配置失败");
+		},
+	});
+}
+
 export function useReadinessLatest(runNo: string, type?: "PRECHECK" | "FORMAL") {
 	return useQuery<ReadinessCheck | null>({
 		queryKey: ["mes", "readiness", runNo, "latest", type],

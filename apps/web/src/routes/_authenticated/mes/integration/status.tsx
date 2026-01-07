@@ -92,7 +92,9 @@ function IntegrationStatusPage() {
 									</TableCell>
 								</TableRow>
 							) : (
-								data.jobs.map((job) => <JobRow key={`${job.sourceSystem}-${job.entityType}`} job={job} />)
+								data.jobs.map((job) => (
+									<JobRow key={`${job.sourceSystem}-${job.entityType}`} job={job} />
+								))
 							)}
 						</TableBody>
 					</Table>

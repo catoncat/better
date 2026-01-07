@@ -1,0 +1,179 @@
+import { Permission } from "@better-app/db/permissions";
+import { createFileRoute } from "@tanstack/react-router";
+import { Check, Loader2, Settings } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Can } from "@/components/ability/can";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { useLines } from "@/hooks/use-lines";
+import {
+	ALL_READINESS_ITEM_TYPES,
+	READINESS_ITEM_TYPE_LABELS,
+	type ReadinessItemType,
+	useReadinessConfig,
+	useUpdateReadinessConfig,
+} from "@/hooks/use-readiness";
+
+export const Route = createFileRoute("/_authenticated/mes/readiness-config")({
+	component: ReadinessConfigPage,
+});
+
+function ReadinessConfigPage() {
+	const { data: linesData, isLoading: linesLoading } = useLines();
+	const [selectedLineId, setSelectedLineId] = useState<string>("");
+	const [enabledTypes, setEnabledTypes] = useState<Set<ReadinessItemType>>(new Set());
+	const [hasChanges, setHasChanges] = useState(false);
+
+	const { data: configData, isLoading: configLoading } = useReadinessConfig(
+		selectedLineId || undefined,
+	);
+	const updateConfig = useUpdateReadinessConfig();
+
+	// Sync config data to local state
+	useEffect(() => {
+		if (configData) {
+			setEnabledTypes(new Set(configData.enabled));
+			setHasChanges(false);
+		}
+	}, [configData]);
+
+	const handleLineChange = (lineId: string) => {
+		setSelectedLineId(lineId);
+		setHasChanges(false);
+	};
+
+	const handleToggle = (type: ReadinessItemType) => {
+		setEnabledTypes((prev) => {
+			const next = new Set(prev);
+			if (next.has(type)) {
+				next.delete(type);
+			} else {
+				next.add(type);
+			}
+			return next;
+		});
+		setHasChanges(true);
+	};
+
+	const handleSelectAll = () => {
+		setEnabledTypes(new Set(ALL_READINESS_ITEM_TYPES));
+		setHasChanges(true);
+	};
+
+	const handleClearAll = () => {
+		setEnabledTypes(new Set());
+		setHasChanges(true);
+	};
+
+	const handleSave = async () => {
+		if (!selectedLineId) return;
+		await updateConfig.mutateAsync({
+			lineId: selectedLineId,
+			enabled: Array.from(enabledTypes),
+		});
+		setHasChanges(false);
+	};
+
+	const lines = linesData?.items ?? [];
+
+	return (
+		<div className="space-y-6">
+			<div className="flex items-center justify-between">
+				<div>
+					<h1 className="text-2xl font-bold tracking-tight">准备检查配置</h1>
+					<p className="text-muted-foreground">配置各产线的准备检查项目</p>
+				</div>
+			</div>
+
+			<Card>
+				<CardHeader>
+					<CardTitle className="flex items-center gap-2">
+						<Settings className="h-5 w-5" />
+						检查项配置
+					</CardTitle>
+					<CardDescription>
+						选择产线后，可配置该产线需要执行的准备检查类型。未配置时默认启用所有检查。
+					</CardDescription>
+				</CardHeader>
+				<CardContent className="space-y-6">
+					{/* Line selector */}
+					<div className="space-y-2">
+						<Label>选择产线</Label>
+						<Select value={selectedLineId} onValueChange={handleLineChange}>
+							<SelectTrigger className="w-64">
+								<SelectValue placeholder={linesLoading ? "加载中..." : "选择产线"} />
+							</SelectTrigger>
+							<SelectContent>
+								{lines.map((line) => (
+									<SelectItem key={line.id} value={line.id}>
+										{line.code} - {line.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+
+					{/* Config panel */}
+					{selectedLineId &&
+						(configLoading ? (
+							<div className="flex items-center justify-center py-8">
+								<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+							</div>
+						) : (
+							<div className="space-y-4">
+								<div className="flex items-center gap-2">
+									<Button variant="outline" size="sm" onClick={handleSelectAll}>
+										全选
+									</Button>
+									<Button variant="outline" size="sm" onClick={handleClearAll}>
+										清空
+									</Button>
+								</div>
+
+								<div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+									{ALL_READINESS_ITEM_TYPES.map((type) => (
+										<div key={type} className="flex items-center space-x-3 rounded-lg border p-4">
+											<Checkbox
+												id={type}
+												checked={enabledTypes.has(type)}
+												onCheckedChange={() => handleToggle(type)}
+											/>
+											<Label htmlFor={type} className="flex-1 cursor-pointer text-sm font-medium">
+												{READINESS_ITEM_TYPE_LABELS[type]}
+											</Label>
+										</div>
+									))}
+								</div>
+
+								<Can permissions={Permission.READINESS_CONFIG}>
+									<div className="flex justify-end pt-4">
+										<Button onClick={handleSave} disabled={!hasChanges || updateConfig.isPending}>
+											{updateConfig.isPending ? (
+												<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+											) : (
+												<Check className="mr-2 h-4 w-4" />
+											)}
+											保存配置
+										</Button>
+									</div>
+								</Can>
+							</div>
+						))}
+
+					{!selectedLineId && (
+						<div className="py-8 text-center text-muted-foreground">请先选择一个产线</div>
+					)}
+				</CardContent>
+			</Card>
+		</div>
+	);
+}
