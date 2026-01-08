@@ -65,6 +65,39 @@ export const traceUnitResponseSchema = t.Object({
 				status: t.String(),
 			}),
 		),
+		inspections: t.Array(
+			t.Object({
+				id: t.String(),
+				type: t.String(),
+				status: t.String(),
+				startedAt: t.Union([t.String(), t.Null()]),
+				inspectorId: t.Union([t.String(), t.Null()]),
+				decidedAt: t.Union([t.String(), t.Null()]),
+				decidedBy: t.Union([t.String(), t.Null()]),
+				remark: t.Union([t.String(), t.Null()]),
+				unitItems: t.Object({
+					pass: t.Number(),
+					fail: t.Number(),
+					na: t.Number(),
+				}),
+			}),
+		),
+		loadingRecords: t.Array(
+			t.Object({
+				id: t.String(),
+				slotCode: t.String(),
+				slotName: t.Union([t.String(), t.Null()]),
+				position: t.Number(),
+				materialCode: t.String(),
+				lotNo: t.String(),
+				status: t.String(),
+				verifyResult: t.String(),
+				loadedAt: t.String(),
+				loadedBy: t.String(),
+				unloadedAt: t.Union([t.String(), t.Null()]),
+				unloadedBy: t.Union([t.String(), t.Null()]),
+			}),
+		),
 		materials: t.Array(
 			t.Object({
 				position: t.Union([t.String(), t.Null()]),

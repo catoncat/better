@@ -106,6 +106,31 @@ export const getUnitTrace = async (
 			qty: number;
 			status: string;
 		}>;
+		inspections: Array<{
+			id: string;
+			type: string;
+			status: string;
+			startedAt: string | null;
+			inspectorId: string | null;
+			decidedAt: string | null;
+			decidedBy: string | null;
+			remark: string | null;
+			unitItems: { pass: number; fail: number; na: number };
+		}>;
+		loadingRecords: Array<{
+			id: string;
+			slotCode: string;
+			slotName: string | null;
+			position: number;
+			materialCode: string;
+			lotNo: string;
+			status: string;
+			verifyResult: string;
+			loadedAt: string;
+			loadedBy: string;
+			unloadedAt: string | null;
+			unloadedBy: string | null;
+		}>;
 		materials: Array<{
 			position: string | null;
 			materialCode: string;
@@ -216,6 +241,86 @@ export const getUnitTrace = async (
 		where: { unitId: unit.id },
 	});
 
+	const inspections = unit.runId
+		? await db.inspection.findMany({
+				where: { runId: unit.runId },
+				orderBy: { createdAt: "asc" },
+				select: {
+					id: true,
+					type: true,
+					status: true,
+					startedAt: true,
+					inspectorId: true,
+					decidedAt: true,
+					decidedBy: true,
+					remark: true,
+				},
+			})
+		: [];
+
+	const inspectionItems = unit.runId
+		? await db.inspectionItem.findMany({
+				where: { unitSn: unit.sn, inspection: { runId: unit.runId } },
+				select: { inspectionId: true, result: true },
+			})
+		: [];
+
+	const unitItemSummaryByInspectionId = new Map<
+		string,
+		{ pass: number; fail: number; na: number }
+	>();
+	for (const item of inspectionItems) {
+		const current = unitItemSummaryByInspectionId.get(item.inspectionId) ?? {
+			pass: 0,
+			fail: 0,
+			na: 0,
+		};
+		if (item.result === "PASS") current.pass += 1;
+		else if (item.result === "FAIL") current.fail += 1;
+		else current.na += 1;
+		unitItemSummaryByInspectionId.set(item.inspectionId, current);
+	}
+
+	let earliestInAt: Date | null = null;
+	let latestOutAt: Date | null = null;
+	for (const track of tracks) {
+		if (track.inAt) {
+			if (!earliestInAt || track.inAt < earliestInAt) earliestInAt = track.inAt;
+			const outAt = track.outAt ?? track.inAt;
+			if (!latestOutAt || outAt > latestOutAt) latestOutAt = outAt;
+		}
+	}
+
+	const loadingRecords = unit.runId
+		? await db.loadingRecord.findMany({
+				where: {
+					runId: unit.runId,
+					...(earliestInAt && latestOutAt
+						? {
+								AND: [
+									{ loadedAt: { lte: latestOutAt } },
+									{
+										OR: [{ unloadedAt: null }, { unloadedAt: { gte: earliestInAt } }],
+									},
+								],
+							}
+						: {}),
+				},
+				orderBy: { loadedAt: "asc" },
+				select: {
+					id: true,
+					status: true,
+					verifyResult: true,
+					loadedAt: true,
+					loadedBy: true,
+					unloadedAt: true,
+					unloadedBy: true,
+					slot: { select: { slotCode: true, slotName: true, position: true } },
+					materialLot: { select: { lotNo: true, materialCode: true } },
+				},
+			})
+		: [];
+
 	const materials = await db.materialUse.findMany({
 		where: { unitId: unit.id },
 		include: { materialLot: true },
@@ -301,6 +406,31 @@ export const getUnitTrace = async (
 				location: defect.location ?? null,
 				qty: defect.qty,
 				status: defect.status,
+			})),
+			inspections: inspections.map((inspection) => ({
+				id: inspection.id,
+				type: inspection.type,
+				status: inspection.status,
+				startedAt: toIso(inspection.startedAt),
+				inspectorId: inspection.inspectorId ?? null,
+				decidedAt: toIso(inspection.decidedAt),
+				decidedBy: inspection.decidedBy ?? null,
+				remark: inspection.remark ?? null,
+				unitItems: unitItemSummaryByInspectionId.get(inspection.id) ?? { pass: 0, fail: 0, na: 0 },
+			})),
+			loadingRecords: loadingRecords.map((record) => ({
+				id: record.id,
+				slotCode: record.slot.slotCode,
+				slotName: record.slot.slotName,
+				position: record.slot.position,
+				materialCode: record.materialLot.materialCode,
+				lotNo: record.materialLot.lotNo,
+				status: record.status,
+				verifyResult: record.verifyResult,
+				loadedAt: record.loadedAt.toISOString(),
+				loadedBy: record.loadedBy,
+				unloadedAt: toIso(record.unloadedAt),
+				unloadedBy: record.unloadedBy ?? null,
 			})),
 			materials: materials.map((use) => ({
 				position: use.position ?? null,
