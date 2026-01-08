@@ -25,6 +25,10 @@ export const Permission = {
 	EXEC_TRACK_OUT: "exec:track_out",
 	EXEC_DATA_COLLECT: "exec:data_collect",
 
+	// Data Collection Specs domain (config)
+	DATA_SPEC_READ: "data_spec:read",
+	DATA_SPEC_CONFIG: "data_spec:config",
+
 	// Routing domain
 	ROUTE_READ: "route:read",
 	ROUTE_CONFIGURE: "route:configure",
@@ -93,6 +97,13 @@ export const PERMISSION_GROUPS = {
 			{ value: Permission.EXEC_TRACK_IN, label: "进站操作" },
 			{ value: Permission.EXEC_TRACK_OUT, label: "出站操作" },
 			{ value: Permission.EXEC_DATA_COLLECT, label: "数据采集" },
+		],
+	},
+	data_spec: {
+		label: "数据采集配置",
+		permissions: [
+			{ value: Permission.DATA_SPEC_READ, label: "查看采集项" },
+			{ value: Permission.DATA_SPEC_CONFIG, label: "管理采集项" },
 		],
 	},
 	route: {

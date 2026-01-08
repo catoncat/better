@@ -117,6 +117,22 @@ function setEnvVar(filePath: string, key: string, value: string): void {
   writeFileSync(filePath, out, "utf8");
 }
 
+function getSqliteDbFileNameFromEnv(filePath: string): string | null {
+  if (!existsSync(filePath)) return null;
+  const content = readFileSync(filePath, "utf8");
+  const match = content.match(/^DATABASE_URL=(.+)$/m);
+  if (!match) return null;
+  const rawValue = match[1]?.trim();
+  if (!rawValue) return null;
+
+  const value = rawValue.replaceAll(/^['"]|['"]$/g, "");
+  if (!value.startsWith("file:")) return null;
+
+  const sqlitePath = value.slice("file:".length);
+  if (!sqlitePath || sqlitePath.endsWith("/") || sqlitePath.endsWith(path.sep)) return null;
+  return path.basename(sqlitePath);
+}
+
 const [branch, targetPathArg] = process.argv.slice(2);
 if (!branch || !targetPathArg) usage();
 
@@ -154,7 +170,8 @@ if (existsSync(srcEnv) && !existsSync(dstEnv)) {
 }
 
 if (existsSync(dstEnv)) {
-  const dbUrl = `file:${canonicalDataDir}${canonicalDataDir.endsWith(path.sep) ? "" : path.sep}`;
+  const dbFileName = getSqliteDbFileNameFromEnv(srcEnv) ?? "db.db";
+  const dbUrl = `file:${path.join(canonicalDataDir, dbFileName)}`;
   setEnvVar(dstEnv, "DATABASE_URL", dbUrl);
 }
 
@@ -162,7 +179,7 @@ console.log(
   [
     "Worktree ready:",
     `- main:   ${mainRoot}`,
-    `- db:     file:${canonicalDataDir}${canonicalDataDir.endsWith(path.sep) ? "" : path.sep}`,
+    `- db:     file:${path.join(canonicalDataDir, getSqliteDbFileNameFromEnv(srcEnv) ?? "db.db")}`,
     `- branch: ${branch}`,
     `- path:   ${targetPath}`,
     "",

@@ -1120,7 +1120,8 @@ model DataCollectionSpec {
   operation  Operation   @relation(fields: [operationId], references: [id])
   dataValues DataValue[]
 
-  @@index([operationId])
+  @@unique([operationId, name])
+  @@index([operationId, isActive])
 }
 
 model DataValue {

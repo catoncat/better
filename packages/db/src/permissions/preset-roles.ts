@@ -19,6 +19,7 @@ export const PRESET_ROLES: PresetRole[] = [
 			Permission.SYSTEM_ROLE_MANAGE,
 			Permission.SYSTEM_CONFIG,
 			Permission.SYSTEM_INTEGRATION,
+			Permission.DATA_SPEC_CONFIG,
 			// Admin can also view everything
 			Permission.WO_READ,
 			Permission.RUN_READ,
@@ -59,6 +60,7 @@ export const PRESET_ROLES: PresetRole[] = [
 			Permission.ROUTE_CONFIGURE,
 			Permission.ROUTE_COMPILE,
 			Permission.ROUTE_CREATE,
+			Permission.DATA_SPEC_CONFIG,
 			Permission.WO_READ,
 			Permission.RUN_READ,
 			Permission.TRACE_READ,

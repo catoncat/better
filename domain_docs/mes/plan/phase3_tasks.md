@@ -147,14 +147,14 @@ P1（应该）：
 
 > 结论：**必须补齐**（工程师可配置采集点；不再依赖手工 seed/手输 ID）。
 
-- [ ] 3.5.1 API: `DataCollectionSpec` CRUD（按 Operation 维度）
+- [x] 3.5.1 API: `DataCollectionSpec` CRUD（按 Operation 维度）
   - DoD：支持 list/filter（operation/name/isActive）、create/update/enable-disable；权限与审计明确
   - Touch points：`packages/db/prisma/schema/schema.prisma`、`apps/server/src/modules/mes/*`（新增模块）
   - Subtasks:
-    - [ ] 3.5.1.1 Schema: `DataCollectionSpec` 模型与必要索引/关系
-    - [ ] 3.5.1.2 Server: CRUD routes + schemas + service（含 filter/sort/pagination）
-    - [ ] 3.5.1.3 RBAC/Audit: 权限常量 + 默认角色 + 审计事件
-    - [ ] 3.5.1.4 Types: Eden types 回填与 API 客户端可用
+    - [x] 3.5.1.1 Schema: `DataCollectionSpec` 模型与必要索引/关系
+    - [x] 3.5.1.2 Server: CRUD routes + schemas + service（含 filter/sort/pagination）
+    - [x] 3.5.1.3 RBAC/Audit: 权限常量 + 默认角色 + 审计事件
+    - [x] 3.5.1.4 Types: Eden types 回填与 API 客户端可用
 
 - [ ] 3.5.2 Web: 采集项管理页（列表 + 新增/编辑对话框）
   - DoD：工程师可自助配置采集项（name/type/method/spec/alarm/isRequired/isActive）；可快速检索

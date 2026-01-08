@@ -1,7 +1,7 @@
 # Acceptance Scenarios & Test Cases
 
 > **更新时间**: 2026-01-08
-> **状态**: 场景 1~5、8~16 与当前实现一致；场景 4 的 DataCollectionSpec 配置 API 待 M3 实现。
+> **状态**: 场景 1~5、8~16 与当前实现一致；场景 4 的 DataCollectionSpec 配置 API 已实现。
 
 此文件列出用于验证 MES 系统功能的验收测试场景，确保各个业务闭环与 API 实现的正确性。
 
@@ -68,18 +68,18 @@
 
 ### 场景 4：数据采集与追溯
 
-> ⚠️ **注意**：数据采集配置 API（步骤 1~2）待 M3 `3.5.x` 任务实现。当前仅追溯查询可用。
+> 注意：数据采集配置通过 `POST /api/data-collection-specs` 管理；采集值在 TrackOut 时随 body.data 提交并写入 `DataValue`。
 
 **描述**：验证数据采集和追溯功能。
 
 **步骤**：
-1. **创建数据采集配置**（待实现）：
-   - 调用 `POST /api/data-collection-specs` 接口，配置采集规则。
+1. **创建数据采集配置**：
+   - 调用 `POST /api/data-collection-specs` 接口，配置采集规则（按 `operationCode` 维度）。
    - 验证返回的数据采集配置成功。
-2. **采集数据**（待实现）：
-   - TrackOut 时按绑定的 specs 输入数据值。
-   - 验证采集的数据是否正确绑定到 TrackRecord。
-3. **追溯查询**（已实现）：
+2. **采集数据**：
+   - 调用 `POST /api/stations/{stationCode}/track-out` 接口，在 body 的 `data` 字段里传入采集值（`specName` + `value*`）。
+   - 验证服务端对 `dataType` 与必填项的校验生效，且采集值被写入 `DataValue`（与 `trackId` 关联）。
+3. **追溯查询**：
    - 调用 `GET /api/trace/units/{sn}` 查询某个单件的追溯信息。
    - 验证返回的追溯数据包含 route/routeVersion/steps/tracks。
 
