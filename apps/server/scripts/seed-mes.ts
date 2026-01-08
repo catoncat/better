@@ -19,6 +19,40 @@ export const seedMESMasterData = async () => {
 		},
 	});
 
+	// 1.1 Seed go-live defaults for Readiness checks (min set for demo/acceptance script)
+	// Note: Readiness runs ALL checks when `meta.readinessChecks.enabled` is unset.
+	// For M3 acceptance, we default to ROUTE + LOADING to avoid relying on external integrations.
+	const isRecord = (value: unknown): value is Record<string, unknown> =>
+		Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+	const enabledReadiness = ["ROUTE", "LOADING"];
+	const existingMeta = await prisma.line.findUnique({
+		where: { id: lineA.id },
+		select: { meta: true },
+	});
+
+	const baseMeta = isRecord(existingMeta?.meta) ? existingMeta?.meta : {};
+	const readinessChecks = isRecord(baseMeta.readinessChecks) ? baseMeta.readinessChecks : {};
+	const existingEnabled =
+		Array.isArray(readinessChecks.enabled) && readinessChecks.enabled.every((v) => typeof v === "string")
+			? (readinessChecks.enabled as string[])
+			: null;
+
+	const nextMeta = {
+		...baseMeta,
+		readinessChecks: {
+			...readinessChecks,
+			enabled: existingEnabled && existingEnabled.length > 0 ? existingEnabled : enabledReadiness,
+		},
+	};
+
+	if (JSON.stringify(baseMeta) !== JSON.stringify(nextMeta)) {
+		await prisma.line.update({
+			where: { id: lineA.id },
+			data: { meta: nextMeta },
+		});
+	}
+
 	// 2. Create Station Group
 	const smtGroupA = await prisma.stationGroup.upsert({
 		where: { code: "SMT-LINE-A" },
@@ -115,6 +149,36 @@ export const seedMESMasterData = async () => {
 			},
 		});
 	}
+
+	// 7. Seed Loading Verification config (FeederSlot + SlotMaterialMapping)
+	const slot01 = await prisma.feederSlot.upsert({
+		where: { lineId_slotCode: { lineId: lineA.id, slotCode: "SLOT-01" } },
+		update: { slotName: "Feeder Slot 01", position: 1 },
+		create: {
+			lineId: lineA.id,
+			slotCode: "SLOT-01",
+			slotName: "Feeder Slot 01",
+			position: 1,
+		},
+	});
+
+	await prisma.slotMaterialMapping.upsert({
+		where: { slotId_materialCode: { slotId: slot01.id, materialCode: "MAT-001" } },
+		update: {
+			productCode: "P-1001",
+			routingId: routing.id,
+			priority: 1,
+			isAlternate: false,
+		},
+		create: {
+			slotId: slot01.id,
+			materialCode: "MAT-001",
+			productCode: "P-1001",
+			routingId: routing.id,
+			priority: 1,
+			isAlternate: false,
+		},
+	});
 
 	console.log("MES Master Data Seeded Successfully.");
 };

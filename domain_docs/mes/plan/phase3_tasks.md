@@ -78,21 +78,38 @@ P1（应该）：
 
 ### 3.2 Track B — E2E Demo & Seed Hardening（P0）
 
-- [ ] 3.2.1 Seed 覆盖 SMT + DIP 最小主数据与可执行路由版本（READY）
+- [~] 3.2.1 Seed 覆盖 SMT + DIP 最小主数据与可执行路由版本（READY）
   - DoD：`bun run db:seed` 后可直接创建 Run、执行门禁、跑通 execution，无需手工补表
   - Touch points：`apps/server/scripts/seed.ts`、`apps/server/scripts/seed-mes.ts`
+  - Subtasks:
+    - [x] 3.2.1.1 Seed: 产线默认 Readiness 开关（最小集：ROUTE + LOADING）
+    - [x] 3.2.1.2 Seed: 上料配置（`FeederSlot` + `SlotMaterialMapping`）覆盖 demo 产品
+    - [ ] 3.2.1.3 Seed: DIP 最小主数据（line/stations/routing）与可执行路由 READY
+    - [ ] 3.2.1.4 Seed: `db:seed` 产出可重复的验收默认数据（不依赖脚本内 upsert）
 
-- [ ] 3.2.2 E2E 演示脚本覆盖“门禁 + 质量闭环 + 收尾 + 追溯”
+- [~] 3.2.2 E2E 演示脚本覆盖“门禁 + 质量闭环 + 收尾 + 追溯”
   - DoD：`apps/server/scripts/test-mes-flow.ts` 能走：WO→Run→Readiness→Loading→FAI→Authorize→TrackIn/Out→Defect/MRB/OQC→Closeout→Trace 校验
   - Touch points：`apps/server/scripts/test-mes-flow.ts`、`apps/server/src/modules/mes/*`
+  - Subtasks:
+    - [x] 3.2.2.1 Happy path（SMT）：Readiness + Loading + FAI + Authorize + Execution + Closeout
+    - [x] 3.2.2.2 OQC：Closeout 触发后可完成（PASS）并让 Run 进入终态
+    - [x] 3.2.2.3 Trace：校验 route + routeVersion + steps +（至少）上料/检验摘要可定位
+    - [ ] 3.2.2.4 Negative branch：至少覆盖一个失败分支（Loading mismatch / OQC FAIL / MRB）
 
-- [ ] 3.2.3 把演示脚本升级为“验收脚本”：可选择场景、可重复、可定位
+- [~] 3.2.3 把演示脚本升级为“验收脚本”：可选择场景、可重复、可定位
   - DoD：脚本支持参数（例如只跑 SMT/只跑 DIP/只跑 OQC fail 分支），并输出结构化摘要（建议 JSON + 人类可读）
   - Touch points：`apps/server/scripts/test-mes-flow.ts`
+  - Subtasks:
+    - [x] 3.2.3.1 CLI：场景选择（SMT/DIP + 分支）与输出选项
+    - [x] 3.2.3.2 Summary：结构化结果（JSON）+ 人类可读步骤摘要（含错误码/步骤名）
+    - [ ] 3.2.3.3 Repeatable：同一场景可重复跑（数据隔离/幂等策略明确）
 
 - [ ] 3.2.4 外部集成“降级路径”纳入验收（不依赖外部系统在线）
   - DoD：脚本/清单明确如何用 MANUAL/waive 方式通过钢网/锡膏/设备等门禁；并能在 Trace 中看到来源标识
   - Touch points：`apps/server/scripts/test-mes-flow.ts`、`apps/server/src/modules/mes/integration/*`、`apps/server/src/modules/mes/readiness/*`
+  - Subtasks:
+    - [ ] 3.2.4.1 Readiness: 演示 waive/降级路径（不依赖外部系统在线）
+    - [ ] 3.2.4.2 Trace: 降级/豁免来源在 Trace 中可追溯（source/actor/reason）
 
 ### 3.3 Track C — Ops & Deployment Readiness（P0）
 
@@ -133,22 +150,41 @@ P1（应该）：
 - [ ] 3.5.1 API: `DataCollectionSpec` CRUD（按 Operation 维度）
   - DoD：支持 list/filter（operation/name/isActive）、create/update/enable-disable；权限与审计明确
   - Touch points：`packages/db/prisma/schema/schema.prisma`、`apps/server/src/modules/mes/*`（新增模块）
+  - Subtasks:
+    - [ ] 3.5.1.1 Schema: `DataCollectionSpec` 模型与必要索引/关系
+    - [ ] 3.5.1.2 Server: CRUD routes + schemas + service（含 filter/sort/pagination）
+    - [ ] 3.5.1.3 RBAC/Audit: 权限常量 + 默认角色 + 审计事件
+    - [ ] 3.5.1.4 Types: Eden types 回填与 API 客户端可用
 
 - [ ] 3.5.2 Web: 采集项管理页（列表 + 新增/编辑对话框）
   - DoD：工程师可自助配置采集项（name/type/method/spec/alarm/isRequired/isActive）；可快速检索
   - Touch points：`apps/web/src/routes/_authenticated/mes/*`（新增路由/页面）
+  - Subtasks:
+    - [ ] 3.5.2.1 Web List: 列表/筛选/状态切换（enable-disable）
+    - [ ] 3.5.2.2 Web Dialog: 新增/编辑（TanStack Form + Zod）
+    - [ ] 3.5.2.3 UX: 表单校验与错误提示（与后端一致）
 
 - [ ] 3.5.3 Web: 路由配置绑定体验升级（替换 `dataSpecIdsText` 手填）
   - DoD：路由配置页支持选择/移除采集项，并可按 Operation/Step 做绑定；保存后可编译进入 route snapshot
   - Touch points：`apps/web/src/routes/_authenticated/mes/routes/$routingCode.tsx`、`apps/server/src/modules/mes/routing/service.ts`
+  - Subtasks:
+    - [ ] 3.5.3.1 Web: 采集项选择器（按 Operation 分组/搜索）
+    - [ ] 3.5.3.2 Server: compile 将绑定写入 snapshot（`dataSpecIds`）
+    - [ ] 3.5.3.3 Guard: 未绑定/绑定缺失时给出可定位错误
 
 - [ ] 3.5.4 Execution: 手工数据采集入口补齐（TrackOut 时录入）
   - DoD：执行页在 TrackOut 时按绑定的 specs 生成输入项并校验类型；缺必填项时阻断并提示（与后端一致）
   - Touch points：`apps/web/src/routes/_authenticated/mes/execution.tsx`、`apps/server/src/modules/mes/execution/schema.ts`
+  - Subtasks:
+    - [ ] 3.5.4.1 Web: TrackOut 对话框生成动态输入项（按 spec dataType）
+    - [ ] 3.5.4.2 Server: `REQUIRED_DATA_MISSING` / `DATA_VALUE_INVALID` 错误可读且可定位
 
 - [ ] 3.5.5 RBAC: 默认角色权限对齐（采集配置/采集录入）
   - DoD：engineer 可管理采集项；执行角色具备必要的数据采集能力；权限与 UI 入口一致
   - Touch points：`packages/db/src/permissions/permissions.ts`、`packages/db/src/permissions/preset-roles.ts`
+  - Subtasks:
+    - [ ] 3.5.5.1 Permissions: 新增/复用权限点并加入默认角色
+    - [ ] 3.5.5.2 Web: 页面/按钮入口与权限一致（无权限不渲染或禁用）
 
 ---
 
