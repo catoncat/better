@@ -20,6 +20,9 @@ Implement one selected MES task end-to-end while keeping plan/flow/align as sing
 
 0. Before coding (parallel work + commits):
    - Check `git status`; if not clean, ask the user whether to switch to a worktree or to commit/stash before proceeding.
+   - Doc guardrails (warn early):
+     - If `domain_docs/mes/plan/` is missing: warn and create the plan structure before any code work.
+     - If `domain_docs/mes/spec/impl_align/` is missing: warn and create the align skeleton (mapping-only) before merge.
    - If the change is large/high-churn, recommend using a dedicated `git worktree` + branch.
    - Worktree bootstrap (recommended):
      - `bun scripts/worktree-new.ts <branch> <path>` (run from the main checkout; creates the worktree, runs `bun install`, copies `apps/server/.env` if present, rewrites `DATABASE_URL` to the canonical main worktree `data/`)
@@ -34,6 +37,7 @@ Implement one selected MES task end-to-end while keeping plan/flow/align as sing
 2. Identify the plan item:
    - Require a reference to `domain_docs/mes/plan/*`.
    - If missing, add a new task breakdown to the plan first (no implementation yet).
+   - If the referenced plan file does not exist, warn and create it (plan-first) before proceeding to code.
    - If the response includes discussion/plan/decision, sync it to `conversation/YYYY-MM-DD_HHMMSS_mes_<topic>.md` (timestamp via `date '+%Y-%m-%d_%H%M%S'`).
 3. Update docs before code only when needed:
    - If the process changes (new/changed node): update the relevant flow doc (diagram + notes + references only).
@@ -44,6 +48,7 @@ Implement one selected MES task end-to-end while keeping plan/flow/align as sing
 5. Update align:
    - Add/adjust rows in the corresponding `domain_docs/mes/spec/impl_align/*.md`.
    - Ensure node names match the flow doc exactly.
+   - If the relevant align file does not exist yet, warn and create it (mapping-only; no status tables).
 6. Update plan:
    - Mark tasks done only in the plan file(s).
 7. Verify:

@@ -17,7 +17,9 @@ Catch issues early and keep merge-ready commits.
    - If not clean, commit or stash; call it out.
 2. Required docs:
    - If this work included discussion/plan/decision, ensure a note exists in `conversation/YYYY-MM-DD_HHMMSS_<topic>.md`.
-   - If this work implemented MES changes, confirm the relevant `domain_docs/mes/spec/impl_align/*.md` and plan files are updated.
+   - If this work implemented MES changes:
+     - Warn if `domain_docs/mes/plan/` or `domain_docs/mes/spec/impl_align/` is missing.
+     - Confirm the relevant `domain_docs/mes/spec/impl_align/*.md` and plan files are updated.
 3. Formatting (optional but recommended):
    - `bun run format`
 4. Verification (required):
@@ -26,4 +28,3 @@ Catch issues early and keep merge-ready commits.
 5. Final sanity:
    - `git diff --stat`
    - Ensure staged/committed changes match the intended slice(s).
-
