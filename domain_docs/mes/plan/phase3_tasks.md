@@ -64,12 +64,12 @@ P1（应该）：
 
 ### 3.1 Track A — Docs & Contract Alignment（P0）
 
-- [ ] 3.1.1 重定义 M3/M4：把 M3 固化为“上线准备”，M4 作为“自动化/批量/回传二期”
+- [x] 3.1.1 重定义 M3/M4：把 M3 固化为"上线准备"，M4 作为"自动化/批量/回传二期"
   - DoD：`domain_docs/mes/plan/01_milestones.md`、`domain_docs/mes/CONTEXT.md`、`README.md` 的里程碑描述一致
   - Touch points：`domain_docs/mes/plan/01_milestones.md`、`domain_docs/mes/CONTEXT.md`、`README.md`
 
-- [ ] 3.1.2 修正文档 drift：验收用例与当前 API/实现一致（尤其 Data Collection/Trace 部分）
-  - DoD：`domain_docs/mes/tests/01_acceptance_scenarios.md` 不再引用不存在的 API；每个场景能指向“实际脚本/页面/API”
+- [x] 3.1.2 修正文档 drift：验收用例与当前 API/实现一致（尤其 Data Collection/Trace 部分）
+  - DoD：`domain_docs/mes/tests/01_acceptance_scenarios.md` 不再引用不存在的 API；每个场景能指向"实际脚本/页面/API"
   - Touch points：`domain_docs/mes/tests/01_acceptance_scenarios.md`、`apps/server/src/modules/mes/trace/*`、`apps/web/src/routes/_authenticated/mes/*`
 
 - [ ] 3.1.3 清理过期差距报告与重复规范（避免团队误判进度）
