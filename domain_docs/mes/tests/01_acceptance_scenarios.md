@@ -1,7 +1,6 @@
 # Acceptance Scenarios & Test Cases
 
 > **更新时间**: 2026-01-08
-> **状态**: 场景 1~5、8~16 与当前实现一致；场景 4 的 DataCollectionSpec 配置 API 已实现。
 
 此文件列出用于验证 MES 系统功能的验收测试场景，确保各个业务闭环与 API 实现的正确性。
 

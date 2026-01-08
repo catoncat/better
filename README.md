@@ -6,10 +6,10 @@ Better-app 是一个面向先进制造的 MES（Manufacturing Execution System�
 
 该系统支撑从 ERP 路由、工单、产线、站位、工艺执行，到数据采集、质量管控（FAI/OQC）、缺陷处置与返修、TPM/ERP 主数据同步，再到追溯、Run 版本冻结、批次授权等全流程能力。当前 milestone 包含：
 
-- M1~M1.7：完成 ERP 路由同步、MES 执行闭环、体验优化与 RBAC；
+- M1~M1.8：完成 ERP 路由同步、MES 执行闭环、体验优化与 RBAC；
 - M2：质量控制与授权闭环（FAI、OQC、缺陷处置、MRB、返修 Run）已落地；
 - M3：上线准备（可重复验收、部署与运维清单、文档/培训、真实数据联调冒烟、数据采集配置 UI；默认人工执行、外部集成可降级）；
-- M4：自动化/批量 Ingest 与回传等二期能力；
+- M4：自动化/批量 Ingest、设备自动 Track-in/out、回传等二期能力；
 
 详细流程、状态机、契约等规范请参阅 `domain_docs/mes/spec`，计划与任务安排见 `domain_docs/mes/plan`。
 
