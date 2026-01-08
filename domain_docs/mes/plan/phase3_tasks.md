@@ -104,12 +104,12 @@ P1（应该）：
     - [x] 3.2.3.2 Summary：结构化结果（JSON）+ 人类可读步骤摘要（含错误码/步骤名）
     - [x] 3.2.3.3 Repeatable：同一场景可重复跑（数据隔离/幂等策略明确）
 
-- [ ] 3.2.4 外部集成“降级路径”纳入验收（不依赖外部系统在线）
+- [x] 3.2.4 外部集成“降级路径”纳入验收（不依赖外部系统在线）
   - DoD：脚本/清单明确如何用 MANUAL/waive 方式通过钢网/锡膏/设备等门禁；并能在 Trace 中看到来源标识
   - Touch points：`apps/server/scripts/test-mes-flow.ts`、`apps/server/src/modules/mes/integration/*`、`apps/server/src/modules/mes/readiness/*`
   - Subtasks:
-    - [ ] 3.2.4.1 Readiness: 演示 waive/降级路径（不依赖外部系统在线）
-    - [ ] 3.2.4.2 Trace: 降级/豁免来源在 Trace 中可追溯（source/actor/reason）
+    - [x] 3.2.4.1 Readiness: 演示 waive/降级路径（不依赖外部系统在线）
+    - [x] 3.2.4.2 Trace: 降级/豁免来源在 Trace 中可追溯（source/actor/reason）
 
 ### 3.3 Track C — Ops & Deployment Readiness（P0）
 

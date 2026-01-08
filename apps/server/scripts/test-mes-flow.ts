@@ -127,6 +127,10 @@ class ApiClient {
 	async post(path: string, body?: unknown) {
 		return this.request("POST", path, body);
 	}
+
+	async put(path: string, body?: unknown) {
+		return this.request("PUT", path, body);
+	}
 }
 
 const parseCliOptions = (): CliOptions => {
@@ -173,7 +177,7 @@ const parseCliOptions = (): CliOptions => {
 				"                         - happy: OQC PASS → Run COMPLETED",
 				"                         - oqc-fail-mrb-release: OQC FAIL → MRB RELEASE → Run COMPLETED",
 				"                         - oqc-fail-mrb-scrap: OQC FAIL → MRB SCRAP → Run SCRAPPED",
-				"                         - readiness-waive: Readiness FAIL (Loading) → Waive → Authorize PASS",
+				"                         - readiness-waive: Readiness FAIL (Loading + External gates) → Waive → Authorize PASS",
 				"  --json                 Print JSON summary to stdout",
 				"  --json-file <path>     Write JSON summary to file",
 			].join("\n"),
@@ -320,6 +324,8 @@ async function runTest(options: CliOptions) {
 	summary.context.woNo = woNo;
 	summary.context.sn = sn;
 
+	let restoreReadinessConfig: null | { lineId: string; enabled: string[] } = null;
+
 	try {
 		await runStep(
 			summary,
@@ -431,6 +437,44 @@ async function runTest(options: CliOptions) {
 		}
 
 		if (options.scenario === "readiness-waive") {
+			const enabledReadiness = ["ROUTE", "LOADING", "EQUIPMENT", "STENCIL", "SOLDER_PASTE"];
+
+			const lineId = await runStep(summary, "Line: resolve lineId", async () => {
+				const { res, data } = await engineer.get("/lines");
+				const list = expectOk(res, data, "List lines");
+				const items = Array.isArray(list.items) ? list.items : [];
+				const line = items.find((item: any) => item?.code === options.lineCode);
+				if (!line?.id) {
+					throw new ApiError(`Line not found for code=${options.lineCode}`);
+				}
+				return line.id as string;
+			}, { actor: "engineer" });
+
+			restoreReadinessConfig = await runStep(summary, "Line: capture readiness config", async () => {
+				const { res, data } = await engineer.get(`/lines/${lineId}/readiness-config`);
+				const config = expectOk(res, data, "Get readiness config");
+				const enabled = Array.isArray(config.enabled)
+					? config.enabled.filter((v: any) => typeof v === "string")
+					: [];
+				return { lineId, enabled };
+			}, { actor: "engineer" });
+
+			await runStep(summary, "Line: set readiness config (enable external gates)", async () => {
+				const { res, data } = await engineer.put(`/lines/${lineId}/readiness-config`, {
+					enabled: enabledReadiness,
+				});
+				const updated = expectOk(res, data, "Update readiness config");
+				const enabled = Array.isArray(updated.enabled)
+					? updated.enabled.filter((v: any) => typeof v === "string")
+					: [];
+				for (const expected of enabledReadiness) {
+					if (!enabled.includes(expected)) {
+						throw new ApiError(`Readiness config missing enabled item: ${expected}`);
+					}
+				}
+				return updated;
+			}, { actor: "engineer" });
+
 			// Intentionally SKIP verify to cause Loading check failure (PENDING)
 			const check = await runStep(summary, "Readiness: formal check (expect FAIL)", async () => {
 				const { res, data } = await leader.post(`/runs/${runNo}/readiness/check`);
@@ -442,16 +486,27 @@ async function runTest(options: CliOptions) {
 				return result;
 			}, { actor: "leader" });
 
-			const loadingItem = check.items.find((i: any) => i.itemType === "LOADING" && i.status === "FAILED");
-			if (!loadingItem) {
-				throw new ApiError("Readiness FAIL but no failed LOADING item found");
+			const targetTypes = new Set(["LOADING", "EQUIPMENT", "STENCIL", "SOLDER_PASTE"]);
+			const failedItems = Array.isArray(check.items)
+				? check.items.filter((i: any) => targetTypes.has(i?.itemType) && i?.status === "FAILED")
+				: [];
+
+			const seenTypes = new Set(failedItems.map((i: any) => i.itemType));
+			for (const expected of ["LOADING", "EQUIPMENT", "STENCIL", "SOLDER_PASTE"]) {
+				if (!seenTypes.has(expected)) {
+					throw new ApiError(`Readiness FAIL but missing failed ${expected} item`);
+				}
 			}
 
-			await runStep(summary, "Readiness: waive item", async () => {
-				const { res, data } = await leader.post(`/runs/${runNo}/readiness/items/${loadingItem.id}/waive`, {
-					reason: "Acceptance test waive",
-				});
-				return expectOk(res, data, "Waive item");
+			await runStep(summary, "Readiness: waive failed items", async () => {
+				const results: unknown[] = [];
+				for (const item of failedItems) {
+					const { res, data } = await leader.post(`/runs/${runNo}/readiness/items/${item.id}/waive`, {
+						reason: `Acceptance test waive: ${item.itemType}`,
+					});
+					results.push(expectOk(res, data, `Waive item ${item.itemType}`));
+				}
+				return { waived: results.length };
 			}, { actor: "leader" });
 
 			await runStep(summary, "Readiness: verify waived status (expect PASS)", async () => {
@@ -463,15 +518,24 @@ async function runTest(options: CliOptions) {
 					throw new ApiError(`Readiness status is ${result.status}, expected PASSED after waive`);
 				}
 
-				const waivedItem = result.items.find((i: any) => i.id === loadingItem.id);
-				if (!waivedItem || waivedItem.status !== "WAIVED") {
-					throw new ApiError("Item status is not WAIVED");
+				const waived = Array.isArray(result.items)
+					? result.items.filter((i: any) => targetTypes.has(i?.itemType) && i?.status === "WAIVED")
+					: [];
+
+				const waivedTypes = new Set(waived.map((i: any) => i.itemType));
+				for (const expected of ["LOADING", "EQUIPMENT", "STENCIL", "SOLDER_PASTE"]) {
+					if (!waivedTypes.has(expected)) {
+						throw new ApiError(`Readiness PASSED but missing waived ${expected} item`);
+					}
 				}
-				// Verify attribution
-				// The seed user "leader" has id from DB. We don't know the exact UUID here easily without fetching user,
-				// but we can check if it is not null.
-				if (!waivedItem.waivedBy) {
-					throw new ApiError("Item waivedBy is missing (attribution check failed)");
+
+				for (const item of waived) {
+					if (!item.waivedBy) {
+						throw new ApiError(`Item waivedBy is missing for ${item.itemType} (attribution check failed)`);
+					}
+					if (!item.waiveReason) {
+						throw new ApiError(`Item waiveReason is missing for ${item.itemType}`);
+					}
 				}
 
 				return result;
@@ -528,12 +592,24 @@ async function runTest(options: CliOptions) {
 					throw new ApiError(`Trace readiness status is ${trace.readiness.status}, expected PASSED`);
 				}
 				
-				const waivedItem = trace.readiness.waivedItems?.find((i: any) => i.itemType === "LOADING");
-				if (!waivedItem) {
-					throw new ApiError("Trace readiness missing WAIVED item");
+				const waivedItems = Array.isArray(trace.readiness.waivedItems) ? trace.readiness.waivedItems : [];
+				const waivedTypes = new Set(waivedItems.map((i: any) => i?.itemType));
+				for (const expected of ["LOADING", "EQUIPMENT", "STENCIL", "SOLDER_PASTE"]) {
+					if (!waivedTypes.has(expected)) {
+						throw new ApiError(`Trace readiness missing waived item ${expected}`);
+					}
 				}
-				if (!waivedItem.waivedBy) {
-					throw new ApiError("Trace readiness missing waivedBy attribution");
+
+				for (const item of waivedItems) {
+					if (targetTypes.has(item?.itemType) && item?.source !== "WAIVE") {
+						throw new ApiError(`Trace readiness source=${item?.source} for ${item?.itemType}, expected WAIVE`);
+					}
+					if (targetTypes.has(item?.itemType) && !item?.waivedBy) {
+						throw new ApiError(`Trace readiness missing waivedBy for ${item?.itemType}`);
+					}
+					if (targetTypes.has(item?.itemType) && !item?.waiveReason) {
+						throw new ApiError(`Trace readiness missing waiveReason for ${item?.itemType}`);
+					}
 				}
 
 				return trace;
@@ -782,6 +858,24 @@ async function runTest(options: CliOptions) {
 		};
 		return summary;
 	} finally {
+		if (restoreReadinessConfig) {
+			try {
+				await runStep(
+					summary,
+					"Line: restore readiness config",
+					async () => {
+						const { res, data } = await engineer.put(
+							`/lines/${restoreReadinessConfig.lineId}/readiness-config`,
+							{ enabled: restoreReadinessConfig.enabled },
+						);
+						return expectOk(res, data, "Restore readiness config");
+					},
+					{ actor: "engineer" },
+				);
+			} catch {
+				// Best-effort cleanup (avoid masking the main failure).
+			}
+		}
 		if (samplingRuleId) {
 			try {
 				await runStep(
