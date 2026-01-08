@@ -20,9 +20,6 @@ Implement one selected MES task end-to-end while keeping plan/flow/align as sing
 
 0. Before coding (parallel work + commits):
    - Check `git status`; if not clean, ask the user whether to switch to a worktree or to commit/stash before proceeding.
-   - Doc guardrails (warn early):
-     - If `domain_docs/mes/plan/` is missing: warn and create the plan structure before any code work.
-     - If `domain_docs/mes/spec/impl_align/` is missing: warn and create the align skeleton (mapping-only) before merge.
    - If the change is large/high-churn, recommend using a dedicated `git worktree` + branch.
    - Worktree bootstrap (recommended):
      - `bun scripts/worktree-new.ts <branch> <path>` (run from the main checkout; creates the worktree, runs `bun install`, copies `apps/server/.env` if present, rewrites `DATABASE_URL` to the canonical main worktree `data/`)
@@ -70,3 +67,4 @@ If the task includes multiple slices, do not wait to the end. Commit after each 
 ## When Not To Use
 
 Do not use this workflow for pure “what next” triage; use `mes-triage` instead.
+triage; use `mes-triage` instead.
