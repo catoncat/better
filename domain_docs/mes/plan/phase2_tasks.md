@@ -1,7 +1,7 @@
 # Phase 2 Plan (M2 - Execution Control & Quality) — Consolidated
 
-> 状态：**执行中**
-> 更新时间：2026-01-06
+> 状态：**已完成**
+> 更新时间：2026-01-07
 > 目标：准备检查门禁、上料防错、FAI、缺陷处置、OQC 抽检、集成接口、收尾关闭
 > 说明：本文件合并 `phase2_detailed_breakdown.md` 与 `phase2_line_readiness_design.md`。
 
@@ -23,8 +23,8 @@
 - [x] 缺陷处置（Defect & Disposition）（2025-01-02）
 - [x] 上料防错（Loading Verify）（核心链路已完成）
 - [x] OQC 抽检（核心链路与 UI 已完成）
-- [~] 集成接口（Integration APIs）（SPI/AOI 未实现，UI 未实现）
-- [~] Closeout 收尾
+- [x] 集成接口（Integration APIs）（SPI/AOI + 手动降级 + 监控页 已完成）
+- [x] Closeout 收尾（API + UI 已完成）
 
 ---
 
@@ -229,8 +229,8 @@ model ReadinessCheckItem {
 
 ## 4. Review Notes / Gaps
 
-- Readiness 权限尚未纳入任何默认角色，需要为运行/质量角色补齐。
-- Readiness 配置页与配置 API 暂未实现。
+- Readiness 默认角色权限已覆盖（`leader`/`quality`/`engineer`），如新增岗位需同步调整 preset roles。
+- Readiness 配置页与配置 API 暂未实现（当前以默认策略 + waive 降级）；如需上线前可配置，纳入 M3。
 
 ---
 
