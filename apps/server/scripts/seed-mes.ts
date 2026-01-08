@@ -19,39 +19,53 @@ export const seedMESMasterData = async () => {
 		},
 	});
 
-	// 1.1 Seed go-live defaults for Readiness checks (min set for demo/acceptance script)
-	// Note: Readiness runs ALL checks when `meta.readinessChecks.enabled` is unset.
-	// For M3 acceptance, we default to ROUTE + LOADING to avoid relying on external integrations.
 	const isRecord = (value: unknown): value is Record<string, unknown> =>
 		Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
-	const enabledReadiness = ["ROUTE", "LOADING"];
-	const existingMeta = await prisma.line.findUnique({
-		where: { id: lineA.id },
-		select: { meta: true },
-	});
+	const ensureLineReadinessEnabled = async (lineId: string, enabledReadiness: string[]) => {
+		const existingMeta = await prisma.line.findUnique({
+			where: { id: lineId },
+			select: { meta: true },
+		});
 
-	const baseMeta = isRecord(existingMeta?.meta) ? existingMeta?.meta : {};
-	const readinessChecks = isRecord(baseMeta.readinessChecks) ? baseMeta.readinessChecks : {};
-	const existingEnabled =
-		Array.isArray(readinessChecks.enabled) && readinessChecks.enabled.every((v) => typeof v === "string")
-			? (readinessChecks.enabled as string[])
-			: null;
+		const baseMeta = isRecord(existingMeta?.meta) ? existingMeta?.meta : {};
+		const readinessChecks = isRecord(baseMeta.readinessChecks) ? baseMeta.readinessChecks : {};
+		const existingEnabled =
+			Array.isArray(readinessChecks.enabled) && readinessChecks.enabled.every((v) => typeof v === "string")
+				? (readinessChecks.enabled as string[])
+				: null;
 
-	const nextMeta = {
-		...baseMeta,
-		readinessChecks: {
-			...readinessChecks,
-			enabled: existingEnabled && existingEnabled.length > 0 ? existingEnabled : enabledReadiness,
-		},
+		const nextMeta = {
+			...baseMeta,
+			readinessChecks: {
+				...readinessChecks,
+				enabled: existingEnabled && existingEnabled.length > 0 ? existingEnabled : enabledReadiness,
+			},
+		};
+
+		if (JSON.stringify(baseMeta) !== JSON.stringify(nextMeta)) {
+			await prisma.line.update({
+				where: { id: lineId },
+				data: { meta: nextMeta },
+			});
+		}
 	};
 
-	if (JSON.stringify(baseMeta) !== JSON.stringify(nextMeta)) {
-		await prisma.line.update({
-			where: { id: lineA.id },
-			data: { meta: nextMeta },
-		});
-	}
+	// 1.1 Create DIP line (minimal go-live seed baseline)
+	const dipLineA = await prisma.line.upsert({
+		where: { code: "LINE-DIP-A" },
+		update: {},
+		create: {
+			code: "LINE-DIP-A",
+			name: "DIP Production Line A",
+		},
+	});
+
+	// 1.2 Seed go-live defaults for Readiness checks (min set for demo/acceptance script)
+	// Note: Readiness runs ALL checks when `meta.readinessChecks.enabled` is unset.
+	// For M3 acceptance, we default to ROUTE + (optional) LOADING to avoid relying on external integrations.
+	await ensureLineReadinessEnabled(lineA.id, ["ROUTE", "LOADING"]);
+	await ensureLineReadinessEnabled(dipLineA.id, ["ROUTE"]);
 
 	// 2. Create Station Group
 	const smtGroupA = await prisma.stationGroup.upsert({
@@ -60,6 +74,15 @@ export const seedMESMasterData = async () => {
 		create: {
 			code: "SMT-LINE-A",
 			name: "SMT Line A Group",
+		},
+	});
+
+	const dipGroupA = await prisma.stationGroup.upsert({
+		where: { code: "DIP-LINE-A" },
+		update: {},
+		create: {
+			code: "DIP-LINE-A",
+			name: "DIP Line A Group",
 		},
 	});
 
@@ -86,6 +109,27 @@ export const seedMESMasterData = async () => {
 		});
 	}
 
+	const dipStations = [
+		{ code: "ST-DIP-INS-01", name: "DIP Insertion 01", type: StationType.MANUAL },
+		{ code: "ST-DIP-WAVE-01", name: "Wave Solder 01", type: StationType.MANUAL },
+		{ code: "ST-DIP-POST-01", name: "Post Solder 01", type: StationType.MANUAL },
+		{ code: "ST-DIP-TEST-01", name: "Functional Test 01", type: StationType.MANUAL },
+	];
+
+	for (const s of dipStations) {
+		await prisma.station.upsert({
+			where: { code: s.code },
+			update: { lineId: dipLineA.id, groupId: dipGroupA.id },
+			create: {
+				code: s.code,
+				name: s.name,
+				stationType: s.type,
+				lineId: dipLineA.id,
+				groupId: dipGroupA.id,
+			},
+		});
+	}
+
 	// 4. Create Operations
 	const operations = [
 		{ code: "PRINTING", name: "Solder Paste Printing", type: StationType.MANUAL },
@@ -93,6 +137,10 @@ export const seedMESMasterData = async () => {
 		{ code: "MOUNTING", name: "Component Mounting", type: StationType.MANUAL },
 		{ code: "REFLOW", name: "Reflow Soldering", type: StationType.MANUAL },
 		{ code: "AOI", name: "Automated Optical Inspection", type: StationType.MANUAL, isKeyQuality: true },
+		{ code: "DIP_INSERT", name: "DIP Insertion", type: StationType.MANUAL },
+		{ code: "WAVE_SOLDER", name: "Wave Solder", type: StationType.MANUAL },
+		{ code: "POST_SOLDER", name: "Post Solder", type: StationType.MANUAL },
+		{ code: "FUNC_TEST", name: "Functional Test", type: StationType.MANUAL, isKeyQuality: true },
 	];
 
 	const opRecords: Record<string, any> = {};
@@ -143,6 +191,45 @@ export const seedMESMasterData = async () => {
 				stepNo: step.stepNo,
 				operationId: opRecords[step.opCode].id,
 				stationGroupId: smtGroupA.id,
+				stationType: opRecords[step.opCode].defaultType,
+				requiresFAI: step.requiresFAI || false,
+				isLast: step.isLast || false,
+			},
+		});
+	}
+
+	// 6.1 Create DIP Routing
+	const dipRouting = await prisma.routing.upsert({
+		where: { code: "PCBA-DIP-V1" },
+		update: {},
+		create: {
+			code: "PCBA-DIP-V1",
+			name: "DIP PCBA Process V1",
+			version: "1.0",
+		},
+	});
+
+	const dipSteps = [
+		{ stepNo: 1, opCode: "DIP_INSERT", requiresFAI: true },
+		{ stepNo: 2, opCode: "WAVE_SOLDER" },
+		{ stepNo: 3, opCode: "POST_SOLDER" },
+		{ stepNo: 4, opCode: "FUNC_TEST", isLast: true },
+	];
+
+	for (const step of dipSteps) {
+		await prisma.routingStep.upsert({
+			where: {
+				routingId_stepNo: {
+					routingId: dipRouting.id,
+					stepNo: step.stepNo,
+				},
+			},
+			update: {},
+			create: {
+				routingId: dipRouting.id,
+				stepNo: step.stepNo,
+				operationId: opRecords[step.opCode].id,
+				stationGroupId: dipGroupA.id,
 				stationType: opRecords[step.opCode].defaultType,
 				requiresFAI: step.requiresFAI || false,
 				isLast: step.isLast || false,

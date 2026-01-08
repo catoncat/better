@@ -95,16 +95,19 @@ const seedSystemConfig = async (adminId: string) => {
 
 
 const ensureDefaultRouteVersion = async () => {
-	const routingCode = "PCBA-STD-V1";
-	const result = await compileRouteExecution(prisma, routingCode);
-	if (!result.success) {
-		throw new Error(`Failed to compile route ${routingCode}: ${result.code} ${result.message}`);
-	}
-	if (result.data.status !== "READY") {
-		const errors = Array.isArray(result.data.errorsJson)
-			? JSON.stringify(result.data.errorsJson)
-			: "Unknown compile errors";
-		throw new Error(`Route ${routingCode} is not READY: ${errors}`);
+	const routingCodes = ["PCBA-STD-V1", "PCBA-DIP-V1"];
+
+	for (const routingCode of routingCodes) {
+		const result = await compileRouteExecution(prisma, routingCode);
+		if (!result.success) {
+			throw new Error(`Failed to compile route ${routingCode}: ${result.code} ${result.message}`);
+		}
+		if (result.data.status !== "READY") {
+			const errors = Array.isArray(result.data.errorsJson)
+				? JSON.stringify(result.data.errorsJson)
+				: "Unknown compile errors";
+			throw new Error(`Route ${routingCode} is not READY: ${errors}`);
+		}
 	}
 };
 
@@ -154,10 +157,23 @@ const seedTestUsers = async () => {
 
 	// Get line and stations for binding
 	const lineA = await prisma.line.findUnique({ where: { code: "LINE-A" } });
-	const stations = await prisma.station.findMany({
-		where: { lineId: lineA?.id },
-		take: 2,
-	});
+	const dipLineA = await prisma.line.findUnique({ where: { code: "LINE-DIP-A" } });
+
+	const lineAStations = lineA
+		? await prisma.station.findMany({
+				where: { lineId: lineA.id },
+				orderBy: [{ code: "asc" }],
+				take: 2,
+			})
+		: [];
+
+	const dipStations = dipLineA
+		? await prisma.station.findMany({
+				where: { lineId: dipLineA.id },
+				orderBy: [{ code: "asc" }],
+				take: 2,
+			})
+		: [];
 
 	for (const testUser of testUsers) {
 		// Check if user exists
@@ -216,21 +232,25 @@ const seedTestUsers = async () => {
 		}
 
 		// For leader and operator, bind to line/stations
-		if (testUser.roleCode === "leader" && lineA) {
-			await prisma.userLineBinding.upsert({
-				where: {
-					userId_lineId: { userId: user.id, lineId: lineA.id },
-				},
-				update: {},
-				create: {
-					userId: user.id,
-					lineId: lineA.id,
-				},
-			});
+		if (testUser.roleCode === "leader") {
+			for (const lineId of [lineA?.id, dipLineA?.id].filter((value): value is string =>
+				Boolean(value),
+			)) {
+				await prisma.userLineBinding.upsert({
+					where: {
+						userId_lineId: { userId: user.id, lineId },
+					},
+					update: {},
+					create: {
+						userId: user.id,
+						lineId,
+					},
+				});
+			}
 		}
 
-		if (testUser.roleCode === "operator" && stations.length > 0) {
-			for (const station of stations) {
+		if (testUser.roleCode === "operator") {
+			for (const station of [...lineAStations, ...dipStations]) {
 				await prisma.userStationBinding.upsert({
 					where: {
 						userId_stationId: { userId: user.id, stationId: station.id },
