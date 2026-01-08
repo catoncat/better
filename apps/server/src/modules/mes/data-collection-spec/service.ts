@@ -96,7 +96,16 @@ export const listDataCollectionSpecs = async (
 	const pageSize = Math.min(query.pageSize ?? 30, 100);
 
 	const where: Prisma.DataCollectionSpecWhereInput = {};
-	if (query.operationId) where.operationId = query.operationId;
+	if (query.operationCode) {
+		const operation = await db.operation.findUnique({
+			where: { code: query.operationCode },
+			select: { id: true },
+		});
+		if (!operation) {
+			return { items: [], total: 0, page, pageSize };
+		}
+		where.operationId = operation.id;
+	}
 	if (query.name) where.name = { contains: query.name };
 	if (query.isActive) where.isActive = query.isActive === "true";
 
@@ -153,7 +162,7 @@ export const createDataCollectionSpec = async (
 
 	return await db.$transaction(async (tx) => {
 		const operation = await tx.operation.findUnique({
-			where: { id: input.operationId },
+			where: { code: input.operationCode },
 			select: { id: true },
 		});
 		if (!operation) {
@@ -166,7 +175,7 @@ export const createDataCollectionSpec = async (
 		}
 
 		const existing = await tx.dataCollectionSpec.findFirst({
-			where: { operationId: input.operationId, name },
+			where: { operationId: operation.id, name },
 			select: { id: true },
 		});
 		if (existing) {
@@ -180,7 +189,7 @@ export const createDataCollectionSpec = async (
 
 		const spec = await tx.dataCollectionSpec.create({
 			data: {
-				operationId: input.operationId,
+				operationId: operation.id,
 				name,
 				itemType: input.itemType,
 				dataType: input.dataType,

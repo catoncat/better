@@ -44,7 +44,7 @@ export const dataCollectionSpecSchema = t.Object({
 });
 
 export const dataCollectionSpecCreateSchema = t.Object({
-	operationId: t.String({ minLength: 1 }),
+	operationCode: t.String({ minLength: 1 }),
 	name: t.String({ minLength: 1 }),
 	itemType: dataCollectionItemTypeSchema,
 	dataType: dataCollectionDataTypeSchema,
@@ -73,7 +73,7 @@ export const dataCollectionSpecUpdateSchema = t.Object({
 export const dataCollectionSpecListQuerySchema = t.Object({
 	page: t.Optional(t.Numeric({ minimum: 1, default: 1 })),
 	pageSize: t.Optional(t.Numeric({ minimum: 1, maximum: 100, default: 30 })),
-	operationId: t.Optional(t.String()),
+	operationCode: t.Optional(t.String()),
 	name: t.Optional(t.String()),
 	isActive: t.Optional(t.Union([t.Literal("true"), t.Literal("false")])),
 	sortBy: t.Optional(t.Union([t.Literal("updatedAt"), t.Literal("name"), t.Literal("createdAt")])),

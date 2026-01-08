@@ -71,7 +71,7 @@ export const dataCollectionSpecModule = new Elysia({
 			if (!result.success) {
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.SYSTEM_CONFIG,
-					entityId: body.operationId,
+					entityId: body.operationCode,
 					entityDisplay: body.name,
 					action: "DATA_SPEC_CREATE",
 					actor,
