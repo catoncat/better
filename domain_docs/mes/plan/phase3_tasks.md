@@ -87,14 +87,14 @@ P1（应该）：
     - [x] 3.2.1.3 Seed: DIP 最小主数据（line/stations/routing）与可执行路由 READY
     - [ ] 3.2.1.4 Seed: `db:seed` 产出可重复的验收默认数据（不依赖脚本内 upsert）
 
-- [~] 3.2.2 E2E 演示脚本覆盖“门禁 + 质量闭环 + 收尾 + 追溯”
+- [x] 3.2.2 E2E 演示脚本覆盖"门禁 + 质量闭环 + 收尾 + 追溯"
   - DoD：`apps/server/scripts/test-mes-flow.ts` 能走：WO→Run→Readiness→Loading→FAI→Authorize→TrackIn/Out→Defect/MRB/OQC→Closeout→Trace 校验
   - Touch points：`apps/server/scripts/test-mes-flow.ts`、`apps/server/src/modules/mes/*`
   - Subtasks:
     - [x] 3.2.2.1 Happy path（SMT）：Readiness + Loading + FAI + Authorize + Execution + Closeout
     - [x] 3.2.2.2 OQC：Closeout 触发后可完成（PASS）并让 Run 进入终态
     - [x] 3.2.2.3 Trace：校验 route + routeVersion + steps +（至少）上料/检验摘要可定位
-    - [ ] 3.2.2.4 Negative branch：至少覆盖一个失败分支（Loading mismatch / OQC FAIL / MRB）
+    - [x] 3.2.2.4 Negative branch：至少覆盖一个失败分支（Loading mismatch / OQC FAIL / MRB）
 
 - [~] 3.2.3 把演示脚本升级为“验收脚本”：可选择场景、可重复、可定位
   - DoD：脚本支持参数（例如只跑 SMT/只跑 DIP/只跑 OQC fail 分支），并输出结构化摘要（建议 JSON + 人类可读）

@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 
 dotenv.config({ path: path.resolve(import.meta.dirname, "../.env") });
 
+type Scenario = "happy" | "oqc-fail-mrb-release" | "oqc-fail-mrb-scrap";
+
 type CliOptions = {
 	apiUrl: string;
 	adminEmail: string;
@@ -17,6 +19,7 @@ type CliOptions = {
 	operatorId: string;
 	json: boolean;
 	jsonFile?: string;
+	scenario: Scenario;
 };
 
 type StepResult = {
@@ -39,12 +42,15 @@ type FlowSummary = {
 		lineCode: string;
 		routeCode: string;
 		productCode: string;
+		scenario?: Scenario;
 		woNo?: string;
 		runNo?: string;
 		sn?: string;
 		oqcSamplingRuleId?: string;
 		oqcId?: string;
 		faiId?: string;
+		mrbDecision?: string;
+		reworkRunNo?: string;
 	};
 	steps: StepResult[];
 	error?: { message: string };
@@ -135,11 +141,22 @@ const parseCliOptions = (): CliOptions => {
 				"  --email <email>        Admin email (default: SEED_ADMIN_EMAIL)",
 				"  --password <pwd>       Admin password (default: SEED_ADMIN_PASSWORD)",
 				"  --test-password <pwd>  Password for seeded test users (default: Test123!)",
+				"  --scenario <name>      Scenario to run (default: happy)",
+				"                         - happy: OQC PASS → Run COMPLETED",
+				"                         - oqc-fail-mrb-release: OQC FAIL → MRB RELEASE → Run COMPLETED",
+				"                         - oqc-fail-mrb-scrap: OQC FAIL → MRB SCRAP → Run SCRAPPED",
 				"  --json                 Print JSON summary to stdout",
 				"  --json-file <path>     Write JSON summary to file",
 			].join("\n"),
 		);
 		process.exit(0);
+	}
+
+	const scenarioArg = getArgValue("--scenario") ?? "happy";
+	const validScenarios: Scenario[] = ["happy", "oqc-fail-mrb-release", "oqc-fail-mrb-scrap"];
+	if (!validScenarios.includes(scenarioArg as Scenario)) {
+		console.error(`Invalid scenario: ${scenarioArg}. Valid: ${validScenarios.join(", ")}`);
+		process.exit(1);
 	}
 
 	return {
@@ -155,6 +172,7 @@ const parseCliOptions = (): CliOptions => {
 		operatorId: "OP-01",
 		json: args.includes("--json"),
 		jsonFile: getArgValue("--json-file"),
+		scenario: scenarioArg as Scenario,
 	};
 };
 
@@ -212,6 +230,7 @@ async function runTest(options: CliOptions) {
 			lineCode: options.lineCode,
 			routeCode: options.routeCode,
 			productCode: options.productCode,
+			scenario: options.scenario,
 		},
 		steps: [],
 	};
@@ -427,9 +446,13 @@ async function runTest(options: CliOptions) {
 			}, { actor: "leader" });
 		}
 
-		await runStep(summary, "Run: closeout (handle OQC if required)", async () => {
+		// Handle OQC based on scenario
+		const isFailScenario = options.scenario.startsWith("oqc-fail");
+
+		await runStep(summary, `Run: closeout (scenario: ${options.scenario})`, async () => {
 			const closeAttempt = await leader.post(`/runs/${runNo}/close`);
 			if (closeAttempt.res.ok && closeAttempt.data?.ok) {
+				// No OQC required, closeout succeeded directly
 				return closeAttempt.data.data;
 			}
 
@@ -441,6 +464,7 @@ async function runTest(options: CliOptions) {
 				});
 			}
 
+			// OQC is required - get the OQC task
 			const oqc = await quality.get(`/oqc/run/${runNo}`);
 			const oqcData = expectOk(oqc.res, oqc.data, "Get OQC by run");
 			if (!oqcData?.id) {
@@ -453,20 +477,64 @@ async function runTest(options: CliOptions) {
 			const started = await quality.post(`/oqc/${oqcId}/start`);
 			expectOk(started.res, started.data, "OQC start");
 
+			// Record inspection item (result depends on scenario)
+			const itemResult = isFailScenario ? "FAIL" : "PASS";
 			const item = await quality.post(`/oqc/${oqcId}/items`, {
 				unitSn: sn,
 				itemName: "OQC Visual",
-				result: "PASS",
+				result: itemResult,
+				defectCode: isFailScenario ? "DEF-001" : undefined,
+				remark: isFailScenario ? "Simulated defect for fail scenario" : undefined,
 			});
 			expectOk(item.res, item.data, "OQC record item");
 
-			const completed = await quality.post(`/oqc/${oqcId}/complete`, { decision: "PASS" });
-			expectOk(completed.res, completed.data, "OQC complete");
+			// Complete OQC with decision based on scenario
+			const decision = isFailScenario ? "FAIL" : "PASS";
+			const completePayload = isFailScenario
+				? { decision: "FAIL" as const, failedQty: 1, passedQty: 0 }
+				: { decision: "PASS" as const };
+			const completed = await quality.post(`/oqc/${oqcId}/complete`, completePayload);
+			expectOk(completed.res, completed.data, `OQC complete (${decision})`);
 
-			const closeFinal = await leader.post(`/runs/${runNo}/close`);
-			return expectOk(closeFinal.res, closeFinal.data, "Run closeout (final)");
+			if (!isFailScenario) {
+				// Happy path: closeout after OQC PASS
+				const closeFinal = await leader.post(`/runs/${runNo}/close`);
+				return expectOk(closeFinal.res, closeFinal.data, "Run closeout (final)");
+			}
+
+			// Fail scenario: Run should now be ON_HOLD
+			const runAfterOqc = await leader.get(`/runs/${runNo}`);
+			const runData = expectOk(runAfterOqc.res, runAfterOqc.data, "Get run after OQC FAIL");
+			if (runData.status !== "ON_HOLD") {
+				throw new ApiError(`Run status after OQC FAIL is ${runData.status}, expected ON_HOLD`);
+			}
+
+			return { oqcDecision: decision, runStatus: runData.status };
 		}, { actor: "leader/quality" });
 
+		// MRB decision for fail scenarios
+		if (isFailScenario) {
+			const mrbDecision = options.scenario === "oqc-fail-mrb-release" ? "RELEASE" : "SCRAP";
+			summary.context.mrbDecision = mrbDecision;
+
+			await runStep(summary, `MRB: decision ${mrbDecision}`, async () => {
+				const { res, data } = await quality.post(`/runs/${runNo}/mrb-decision`, {
+					decision: mrbDecision,
+					reason: `Acceptance test: ${mrbDecision} decision for scenario ${options.scenario}`,
+				});
+				const result = expectOk(res, data, `MRB ${mrbDecision}`);
+
+				// Verify final run status
+				const expectedStatus = mrbDecision === "RELEASE" ? "COMPLETED" : "SCRAPPED";
+				if (result.run?.status !== expectedStatus) {
+					throw new ApiError(`Run status after MRB ${mrbDecision} is ${result.run?.status}, expected ${expectedStatus}`);
+				}
+
+				return result;
+			}, { actor: "quality" });
+		}
+
+		// Trace verification (adjust expectations for fail scenarios)
 		await runStep(summary, "Trace: verify", async () => {
 			const { res, data } = await leader.get(`/trace/units/${sn}?mode=run`);
 			const trace = expectOk(res, data, "Trace get unit");
@@ -485,6 +553,14 @@ async function runTest(options: CliOptions) {
 			const stepCount = Array.isArray(trace.steps) ? trace.steps.length : 0;
 			if (stepCount !== 5) {
 				throw new ApiError(`Trace steps=${stepCount}, expected 5`);
+			}
+
+			// For fail scenarios, verify OQC result in trace if available
+			if (isFailScenario && trace.inspections) {
+				const oqcInspection = trace.inspections.find((i: any) => i.type === "OQC");
+				if (oqcInspection && oqcInspection.status !== "FAIL") {
+					throw new ApiError(`Trace OQC status=${oqcInspection.status}, expected FAIL for fail scenario`);
+				}
 			}
 
 			return trace;
@@ -527,7 +603,10 @@ async function main() {
 	const summary = await runTest(options);
 
 	console.log("MES Flow Acceptance Summary");
-	console.log(`ok=${summary.ok} runNo=${summary.context.runNo ?? "-"} woNo=${summary.context.woNo ?? "-"}`);
+	console.log(`scenario=${options.scenario} ok=${summary.ok} runNo=${summary.context.runNo ?? "-"} woNo=${summary.context.woNo ?? "-"}`);
+	if (summary.context.mrbDecision) {
+		console.log(`mrbDecision=${summary.context.mrbDecision}`);
+	}
 	for (const step of summary.steps) {
 		const status = step.ok ? "OK" : "FAIL";
 		const extra = step.ok ? "" : ` code=${step.error?.code ?? "-"} msg=${step.error?.message ?? "-"}`;
