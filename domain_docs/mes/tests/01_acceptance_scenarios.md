@@ -64,11 +64,11 @@
 
 **步骤**：
 1. **创建数据采集配置**：
-   - 调用 `POST /api/operations/{operationCode}/data-specs` 接口，配置采集规则。
+   - 调用 `POST /api/data-collection-specs` 接口，配置采集规则（按 `operationCode` 维度）。
    - 验证返回的数据采集配置成功。
 2. **采集数据**：
-   - 调用 `POST /api/data/collect` 接口，手动采集数据并绑定到指定的 `trackId`。
-   - 验证采集的数据是否正确绑定。
+   - 调用 `POST /api/stations/{stationCode}/track-out` 接口，在 body 的 `data` 字段里传入采集值（`specName` + `value*`）。
+   - 验证服务端对 `dataType` 与必填项的校验生效，且采集值被写入 `DataValue`（与 `trackId` 关联）。
 3. **追溯查询**：
    - 调用 `GET /api/trace/units/{sn}` 查询某个单件的追溯信息。
    - 验证返回的追溯数据是否与系统中已采集的数据一致。
