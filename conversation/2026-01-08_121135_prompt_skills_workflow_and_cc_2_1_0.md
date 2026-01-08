@@ -24,6 +24,11 @@ The repo uses `AGENTS.md` plus `.claude/skills/` and `.codex/skills/` to enforce
 - CLI settings: `language` response setting and `respectGitignore` for file picker behavior.
 - Security: fixes to avoid sensitive data leaks in debug logs.
 
+## When to use `context: fork` (selection heuristic)
+- Good fit: doc-heavy triage/planning skills with bounded outputs (tracks, checklists, decision logs).
+- Caution: implementation/debugging skills that require multi-turn continuity; keep these on the main thread until the fork pilot proves safe.
+- Pilot rule: start with `mes-triage` + `repo-dev-loop` (preflight-heavy), then expand only if the final response reliably includes file paths + next steps.
+
 ## External best practices (official + community)
 - Use hooks to enforce policy and safety checks (e.g., pre‑commit validation, block risky commands) with careful input sanitization and absolute paths.
 - Keep skills in project scope (`.claude/skills`) for team‑shared workflows; treat skills as executable dependencies and review them like code.
@@ -32,7 +37,7 @@ The repo uses `AGENTS.md` plus `.claude/skills/` and `.codex/skills/` to enforce
 
 # Improvement ideas for this repo (actionable)
 1. Enable skill hot‑reload as a workflow: update skill content frequently without restarting sessions, and formalize a short “skill change checklist” (update both `.claude/skills` and `.codex/skills` if duplicated).
-2. Move long‑running or verbose skills to `context: fork` to reduce main context bloat (e.g., `mes-implement`, `repo-dev-loop`), keeping the main thread focused on the user request.
+2. Pilot `context: fork` on read/plan-heavy skills first (e.g., `mes-triage`, `repo-dev-loop` preflight); keep `mes-implement` on the main thread until the pilot proves safe.
 3. Add agent‑specific hooks in skill frontmatter for enforcement (e.g., pre‑tool checks: block non‑`bun` commands, enforce `git status` preflight, or warn when plan/align docs are missing).
 4. Use `respectGitignore` to avoid accidental selection of generated artifacts in file pickers.
 5. Define a minimal “security hygiene” hook set (warn/block on `rm -rf`, editing `.env`, or committing secrets). Use `updatedInput` to auto‑rewrite safe alternatives when possible.
@@ -40,10 +45,10 @@ The repo uses `AGENTS.md` plus `.claude/skills/` and `.codex/skills/` to enforce
 7. Add a dedicated “docs‑sync” skill to enforce the MES documentation contract (plan/flow/align updates).
 
 ## Actionable checklist (start order)
-- Fork context first: switch `mes-implement` and `repo-dev-loop` to `context: fork`; confirm outputs still reach main thread.
-- Hook guardrails: add PreToolUse hook to warn/block non-`bun` commands and missing `git status` preflight.
+- Fork context pilot: switch `mes-triage` and `repo-dev-loop` to `context: fork`; keep `mes-implement` main-thread; confirm outputs still reach main thread.
+- Hook guardrails: add PreToolUse hook to warn/block non‑`bun` commands and missing `git status` preflight.
 - Secrets safety: add hook rules for `.env`, `credentials.*`, and `rm -rf` with `updatedInput` safe fallbacks.
-- Reduce skill drift: add a short checklist to keep `.claude/skills` and `.codex/skills` in sync, or decide to consolidate.
+- Reduce skill drift: consolidate via symlink (or a sync script if symlinks are not viable for all contributors).
 - File picker hygiene: enable `respectGitignore` to avoid generated artifacts.
 - Skill triggers: update CN/EN trigger keywords in `AGENTS.md` and skill frontmatter.
 
