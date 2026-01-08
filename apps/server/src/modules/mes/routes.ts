@@ -1,4 +1,5 @@
 import { Elysia } from "elysia";
+import { dataCollectionSpecModule } from "./data-collection-spec/routes";
 import { defectRoutes, reworkRoutes } from "./defect/routes";
 import { executionModule } from "./execution/routes";
 import { faiRoutes } from "./fai/routes";
@@ -14,7 +15,6 @@ import {
 import { mrbRoutes } from "./oqc/mrb-routes";
 import { oqcRoutes } from "./oqc/routes";
 import { samplingRuleRoutes } from "./oqc/sampling-rule-routes";
-import { dataCollectionSpecModule } from "./data-collection-spec/routes";
 import { readinessExceptionsModule, readinessModule } from "./readiness/routes";
 import { routingModule } from "./routing/routes";
 import { runModule } from "./run/routes";

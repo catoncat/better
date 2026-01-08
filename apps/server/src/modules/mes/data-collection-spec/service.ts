@@ -83,13 +83,15 @@ const buildOrderBy = (
 			return [{ name: direction }, { updatedAt: "desc" }, { id: "asc" }];
 		case "createdAt":
 			return [{ createdAt: direction }, { id: "asc" }];
-		case "updatedAt":
 		default:
 			return [{ updatedAt: direction }, { id: "asc" }];
 	}
 };
 
-export const listDataCollectionSpecs = async (db: PrismaClient, query: DataCollectionSpecListQuery) => {
+export const listDataCollectionSpecs = async (
+	db: PrismaClient,
+	query: DataCollectionSpecListQuery,
+) => {
 	const page = query.page ?? 1;
 	const pageSize = Math.min(query.pageSize ?? 30, 100);
 
