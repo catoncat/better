@@ -96,13 +96,13 @@ P1（应该）：
     - [x] 3.2.2.3 Trace：校验 route + routeVersion + steps +（至少）上料/检验摘要可定位
     - [x] 3.2.2.4 Negative branch：至少覆盖一个失败分支（Loading mismatch / OQC FAIL / MRB）
 
-- [~] 3.2.3 把演示脚本升级为“验收脚本”：可选择场景、可重复、可定位
+- [x] 3.2.3 把演示脚本升级为“验收脚本”：可选择场景、可重复、可定位
   - DoD：脚本支持参数（例如只跑 SMT/只跑 DIP/只跑 OQC fail 分支），并输出结构化摘要（建议 JSON + 人类可读）
   - Touch points：`apps/server/scripts/test-mes-flow.ts`
   - Subtasks:
     - [x] 3.2.3.1 CLI：场景选择（SMT/DIP + 分支）与输出选项
     - [x] 3.2.3.2 Summary：结构化结果（JSON）+ 人类可读步骤摘要（含错误码/步骤名）
-    - [ ] 3.2.3.3 Repeatable：同一场景可重复跑（数据隔离/幂等策略明确）
+    - [x] 3.2.3.3 Repeatable：同一场景可重复跑（数据隔离/幂等策略明确）
 
 - [ ] 3.2.4 外部集成“降级路径”纳入验收（不依赖外部系统在线）
   - DoD：脚本/清单明确如何用 MANUAL/waive 方式通过钢网/锡膏/设备等门禁；并能在 Trace 中看到来源标识

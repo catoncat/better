@@ -6,17 +6,26 @@ dotenv.config({ path: path.resolve(import.meta.dirname, "../.env") });
 
 type Scenario = "happy" | "oqc-fail-mrb-release" | "oqc-fail-mrb-scrap" | "readiness-waive";
 
+type Track = "smt" | "dip";
+type IdStrategy = "unique" | "reuse-wo";
+
 type CliOptions = {
 	apiUrl: string;
 	adminEmail: string;
 	adminPassword: string;
 	testPassword: string;
+	track: Track;
+	idStrategy: IdStrategy;
+	dataset: string;
+	withLoading: boolean;
 	lineCode: string;
 	routeCode: string;
 	productCode: string;
 	slotCode: string;
 	materialCode: string;
 	operatorId: string;
+	woNo?: string;
+	sn?: string;
 	json: boolean;
 	jsonFile?: string;
 	scenario: Scenario;
@@ -39,6 +48,10 @@ type FlowSummary = {
 	durationMs?: number;
 	context: {
 		apiUrl: string;
+		track?: Track;
+		idStrategy?: IdStrategy;
+		dataset?: string;
+		withLoading?: boolean;
 		lineCode: string;
 		routeCode: string;
 		productCode: string;
@@ -141,6 +154,21 @@ const parseCliOptions = (): CliOptions => {
 				"  --email <email>        Admin email (default: SEED_ADMIN_EMAIL)",
 				"  --password <pwd>       Admin password (default: SEED_ADMIN_PASSWORD)",
 				"  --test-password <pwd>  Password for seeded test users (default: Test123!)",
+				"  --track <smt|dip>      Process track (default: smt)",
+				"  --line-code <code>     Override line code (default by track)",
+				"  --route-code <code>    Override route code (default by track)",
+				"  --product-code <code>  Product code (default: P-1001)",
+				"  --slot-code <code>     Slot code for Loading verify (default: SLOT-01)",
+				"  --material-code <code> Material code for Loading verify (default: MAT-001)",
+				"  --operator-id <id>     Operator id for track-out/loading (default: OP-01)",
+				"  --with-loading         Force run loading verification steps",
+				"  --skip-loading         Skip loading verification steps",
+				"  --id-strategy <mode>   Repeatability strategy (default: reuse-wo)",
+				"                         - unique: unique WO/SN per run (data isolated, grows DB)",
+				"                         - reuse-wo: stable WO per (dataset,track,scenario); each run creates a new Run+SN",
+				"  --dataset <key>        Dataset key used in WO/SN (default: acceptance)",
+				"  --wo-no <woNo>         Override WO number (advanced)",
+				"  --sn <sn>              Override SN (advanced; must be globally unique)",
 				"  --scenario <name>      Scenario to run (default: happy)",
 				"                         - happy: OQC PASS → Run COMPLETED",
 				"                         - oqc-fail-mrb-release: OQC FAIL → MRB RELEASE → Run COMPLETED",
@@ -160,17 +188,48 @@ const parseCliOptions = (): CliOptions => {
 		process.exit(1);
 	}
 
+	const trackArg = (getArgValue("--track") ?? "smt").toLowerCase();
+	const track: Track = trackArg === "dip" ? "dip" : "smt";
+
+	const idStrategyArg = (getArgValue("--id-strategy") ?? "reuse-wo").toLowerCase();
+	const idStrategy: IdStrategy = idStrategyArg === "unique" ? "unique" : "reuse-wo";
+
+	const datasetRaw = getArgValue("--dataset") ?? "acceptance";
+	const dataset = datasetRaw.trim() || "acceptance";
+
+	const defaultLineCode = track === "dip" ? "LINE-DIP-A" : "LINE-A";
+	const defaultRouteCode = track === "dip" ? "PCBA-DIP-V1" : "PCBA-STD-V1";
+
+	const withLoadingFlag = args.includes("--with-loading");
+	const skipLoadingFlag = args.includes("--skip-loading");
+	const withLoading = withLoadingFlag ? true : skipLoadingFlag ? false : track !== "dip";
+
+	if (scenarioArg === "readiness-waive" && !withLoading) {
+		console.error("Scenario readiness-waive requires loading enabled (remove --skip-loading).");
+		process.exit(1);
+	}
+	if (scenarioArg === "readiness-waive" && track === "dip") {
+		console.error("Scenario readiness-waive is only supported on SMT track (track=smt).");
+		process.exit(1);
+	}
+
 	return {
 		apiUrl: getArgValue("--api-url") ?? apiUrl,
 		adminEmail: getArgValue("--email") ?? adminEmail,
 		adminPassword: getArgValue("--password") ?? adminPassword,
 		testPassword: getArgValue("--test-password") ?? testPassword,
-		lineCode: "LINE-A",
-		routeCode: "PCBA-STD-V1",
-		productCode: "P-1001",
-		slotCode: "SLOT-01",
-		materialCode: "MAT-001",
-		operatorId: "OP-01",
+		track,
+		idStrategy,
+		dataset,
+		withLoading,
+		lineCode: getArgValue("--line-code") ?? defaultLineCode,
+		routeCode: getArgValue("--route-code") ?? defaultRouteCode,
+		productCode: getArgValue("--product-code") ?? "P-1001",
+		slotCode: getArgValue("--slot-code") ?? "SLOT-01",
+		materialCode: getArgValue("--material-code") ?? "MAT-001",
+		operatorId: getArgValue("--operator-id") ?? "OP-01",
+		woNo: getArgValue("--wo-no"),
+		sn: getArgValue("--sn"),
 		json: args.includes("--json"),
 		jsonFile: getArgValue("--json-file"),
 		scenario: scenarioArg as Scenario,
@@ -228,6 +287,10 @@ async function runTest(options: CliOptions) {
 		startedAt: isoNow(),
 		context: {
 			apiUrl: options.apiUrl,
+			track: options.track,
+			idStrategy: options.idStrategy,
+			dataset: options.dataset,
+			withLoading: options.withLoading,
 			lineCode: options.lineCode,
 			routeCode: options.routeCode,
 			productCode: options.productCode,
@@ -246,8 +309,12 @@ async function runTest(options: CliOptions) {
 	const plannerEmail = "planner@example.com";
 	const leaderEmail = "leader@example.com";
 	const qualityEmail = "quality@example.com";
-	const woNo = `WO-TEST-${Date.now()}`;
-	const sn = `SN-TEST-${Date.now()}`;
+	const now = Date.now();
+	const key = `${options.dataset}-${options.track}-${options.scenario}`;
+	const woNo =
+		options.woNo ??
+		(options.idStrategy === "reuse-wo" ? `WO-${key}` : `WO-${key}-${now}`);
+	const sn = options.sn ?? `SN-${key}-${now}`;
 	let samplingRuleId: string | undefined;
 
 	summary.context.woNo = woNo;
@@ -309,7 +376,15 @@ async function runTest(options: CliOptions) {
 			const { res, data } = await planner.post(`/work-orders/${woNo}/release`, {
 				lineCode: options.lineCode,
 			});
-			return expectOk(res, data, "WO release");
+			if (res.ok && data?.ok) return data.data;
+			const code = data?.error?.code as string | undefined;
+			if (options.idStrategy === "reuse-wo" && code === "WORK_ORDER_NOT_RECEIVED") {
+				return { skipped: true, reason: "work order already released or in progress" };
+			}
+			throw new ApiError(`WO release failed: ${data?.error?.message ?? res.statusText}`, {
+				code,
+				status: res.status,
+			});
 		}, { actor: "planner" });
 
 		const runNo = await runStep(summary, "Run: create", async () => {
@@ -344,10 +419,16 @@ async function runTest(options: CliOptions) {
 		);
 		summary.context.oqcSamplingRuleId = samplingRuleId;
 
-		await runStep(summary, "Loading: load slot expectations", async () => {
-			const { res, data } = await leader.post(`/runs/${runNo}/loading/load-table`);
-			return expectOk(res, data, "Load slot table");
-		}, { actor: "leader" });
+		if (options.withLoading) {
+			await runStep(summary, "Loading: load slot expectations", async () => {
+				const { res, data } = await leader.post(`/runs/${runNo}/loading/load-table`);
+				return expectOk(res, data, "Load slot table");
+			}, { actor: "leader" });
+		} else {
+			await runStep(summary, "Loading: skipped (withLoading=false)", async () => {
+				return { skipped: true };
+			}, { actor: "leader" });
+		}
 
 		if (options.scenario === "readiness-waive") {
 			// Intentionally SKIP verify to cause Loading check failure (PENDING)
@@ -463,34 +544,36 @@ async function runTest(options: CliOptions) {
 			return summary;
 		}
 
-		await runStep(summary, "Loading: verify mismatch (expect FAIL)", async () => {
-			const { res, data } = await leader.post("/loading/verify", {
-				runNo,
-				slotCode: options.slotCode,
-				materialLotBarcode: `WRONG-MAT|LOT-${Date.now()}`,
-				operatorId: options.operatorId,
-			});
-			const record = expectOk(res, data, "Loading verify (mismatch)");
-			if (record.verifyResult === "PASS") {
-				throw new ApiError("Loading mismatch unexpectedly PASS");
-			}
-			return record;
-		}, { actor: "leader" });
+		if (options.withLoading) {
+			await runStep(summary, "Loading: verify mismatch (expect FAIL)", async () => {
+				const { res, data } = await leader.post("/loading/verify", {
+					runNo,
+					slotCode: options.slotCode,
+					materialLotBarcode: `WRONG-MAT|LOT-${Date.now()}`,
+					operatorId: options.operatorId,
+				});
+				const record = expectOk(res, data, "Loading verify (mismatch)");
+				if (record.verifyResult === "PASS") {
+					throw new ApiError("Loading mismatch unexpectedly PASS");
+				}
+				return record;
+			}, { actor: "leader" });
 
-		const lotNo = `LOT-${Date.now()}`;
-		await runStep(summary, "Loading: verify expected material (expect PASS)", async () => {
-			const { res, data } = await leader.post("/loading/verify", {
-				runNo,
-				slotCode: options.slotCode,
-				materialLotBarcode: `${options.materialCode}|${lotNo}`,
-				operatorId: options.operatorId,
-			});
-			const record = expectOk(res, data, "Loading verify (expected)");
-			if (record.verifyResult !== "PASS") {
-				throw new ApiError(`Loading expected material verifyResult=${record.verifyResult}, expected PASS`);
-			}
-			return record;
-		}, { actor: "leader" });
+			const lotNo = `LOT-${Date.now()}`;
+			await runStep(summary, "Loading: verify expected material (expect PASS)", async () => {
+				const { res, data } = await leader.post("/loading/verify", {
+					runNo,
+					slotCode: options.slotCode,
+					materialLotBarcode: `${options.materialCode}|${lotNo}`,
+					operatorId: options.operatorId,
+				});
+				const record = expectOk(res, data, "Loading verify (expected)");
+				if (record.verifyResult !== "PASS") {
+					throw new ApiError(`Loading expected material verifyResult=${record.verifyResult}, expected PASS`);
+				}
+				return record;
+			}, { actor: "leader" });
+		}
 
 		await runStep(summary, "Readiness: formal check (expect PASS)", async () => {
 			const { res, data } = await leader.post(`/runs/${runNo}/readiness/check`);
@@ -543,7 +626,10 @@ async function runTest(options: CliOptions) {
 			return expectOk(res, data, "Run authorize");
 		}, { actor: "leader" });
 
-		const stations = ["ST-PRINT-01", "ST-SPI-01", "ST-MOUNT-01", "ST-REFLOW-01", "ST-AOI-01"];
+		const stations =
+			options.track === "dip"
+				? ["ST-DIP-INS-01", "ST-DIP-WAVE-01", "ST-DIP-POST-01", "ST-DIP-TEST-01"]
+				: ["ST-PRINT-01", "ST-SPI-01", "ST-MOUNT-01", "ST-REFLOW-01", "ST-AOI-01"];
 		for (const stationCode of stations) {
 			await runStep(summary, `Execution: track-in ${stationCode}`, async () => {
 				const { res, data } = await leader.post(`/stations/${stationCode}/track-in`, { sn, woNo, runNo });
@@ -667,13 +753,13 @@ async function runTest(options: CliOptions) {
 			const passTracks = Array.isArray(trace.tracks)
 				? trace.tracks.filter((t: any) => t?.result === "PASS").length
 				: 0;
-			if (passTracks !== 5) {
-				throw new ApiError(`Trace PASS tracks=${passTracks}, expected 5`);
+			if (passTracks !== stations.length) {
+				throw new ApiError(`Trace PASS tracks=${passTracks}, expected ${stations.length}`);
 			}
 
 			const stepCount = Array.isArray(trace.steps) ? trace.steps.length : 0;
-			if (stepCount !== 5) {
-				throw new ApiError(`Trace steps=${stepCount}, expected 5`);
+			if (stepCount !== stations.length) {
+				throw new ApiError(`Trace steps=${stepCount}, expected ${stations.length}`);
 			}
 
 			// For fail scenarios, verify OQC result in trace if available
@@ -724,7 +810,9 @@ async function main() {
 	const summary = await runTest(options);
 
 	console.log("MES Flow Acceptance Summary");
-	console.log(`scenario=${options.scenario} ok=${summary.ok} runNo=${summary.context.runNo ?? "-"} woNo=${summary.context.woNo ?? "-"}`);
+	console.log(
+		`track=${options.track} scenario=${options.scenario} ok=${summary.ok} line=${options.lineCode} route=${options.routeCode} idStrategy=${options.idStrategy} dataset=${options.dataset} runNo=${summary.context.runNo ?? "-"} woNo=${summary.context.woNo ?? "-"}`,
+	);
 	if (summary.context.mrbDecision) {
 		console.log(`mrbDecision=${summary.context.mrbDecision}`);
 	}
