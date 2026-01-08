@@ -5,7 +5,6 @@ import { Loader2, Plus } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 import { Can } from "@/components/ability/can";
-import { LineSelect } from "@/components/select/line-select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/form-field-wrapper";
@@ -360,9 +359,11 @@ function LineBindingCard({ lines }: { lines: Line[] }) {
 				<div className="space-y-4">
 					<div className="grid gap-4 sm:grid-cols-3">
 						<div>
-							<label className="text-sm font-medium mb-2 block">选择产线</label>
+							<label htmlFor="line-select" className="text-sm font-medium mb-2 block">
+								选择产线
+							</label>
 							<Select value={selectedLineId} onValueChange={setSelectedLineId}>
-								<SelectTrigger>
+								<SelectTrigger id="line-select">
 									<SelectValue placeholder="选择产线" />
 								</SelectTrigger>
 								<SelectContent>
@@ -376,9 +377,12 @@ function LineBindingCard({ lines }: { lines: Line[] }) {
 						</div>
 
 						<div>
-							<label className="text-sm font-medium mb-2 block">钢网ID</label>
+							<label htmlFor="stencil-id" className="text-sm font-medium mb-2 block">
+								钢网ID
+							</label>
 							<div className="flex gap-2">
 								<Input
+									id="stencil-id"
 									placeholder="输入钢网ID"
 									value={stencilId}
 									onChange={(e) => setStencilId(e.target.value)}
@@ -399,9 +403,12 @@ function LineBindingCard({ lines }: { lines: Line[] }) {
 						</div>
 
 						<div>
-							<label className="text-sm font-medium mb-2 block">锡膏批次号</label>
+							<label htmlFor="solder-paste-lot" className="text-sm font-medium mb-2 block">
+								锡膏批次号
+							</label>
 							<div className="flex gap-2">
 								<Input
+									id="solder-paste-lot"
 									placeholder="输入锡膏批次号"
 									value={lotId}
 									onChange={(e) => setLotId(e.target.value)}

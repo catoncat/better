@@ -16,6 +16,19 @@ type SnapshotStep = {
 
 const toIso = (value: Date | null | undefined) => (value ? value.toISOString() : null);
 
+const resolveDataValue = (value: {
+	valueNumber?: number | null;
+	valueText?: string | null;
+	valueBoolean?: boolean | null;
+	valueJson?: Prisma.JsonValue | null;
+}) => {
+	if (value.valueNumber !== null && value.valueNumber !== undefined) return value.valueNumber;
+	if (value.valueText !== null && value.valueText !== undefined) return value.valueText;
+	if (value.valueBoolean !== null && value.valueBoolean !== undefined) return value.valueBoolean;
+	if (value.valueJson !== null && value.valueJson !== undefined) return value.valueJson;
+	return null;
+};
+
 const getSnapshotRoute = (snapshot: Prisma.JsonValue | null | undefined) => {
 	if (!snapshot || typeof snapshot !== "object") return null;
 	const record = snapshot as {
@@ -78,6 +91,7 @@ export const getUnitTrace = async (
 		dataValues: Array<{
 			stepNo: number | null;
 			name: string;
+			value: Prisma.JsonValue | string | number | boolean | null;
 			valueNumber: number | null;
 			valueText: string | null;
 			valueBoolean: boolean | null;
@@ -229,6 +243,7 @@ export const getUnitTrace = async (
 			dataValues: dataValues.map((value) => ({
 				stepNo: value.trackId ? (trackById.get(value.trackId)?.stepNo ?? null) : null,
 				name: value.spec.name,
+				value: resolveDataValue(value),
 				valueNumber: value.valueNumber ?? null,
 				valueText: value.valueText ?? null,
 				valueBoolean: value.valueBoolean ?? null,

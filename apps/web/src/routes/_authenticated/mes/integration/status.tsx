@@ -2,7 +2,7 @@ import { Permission } from "@better-app/db/permissions";
 import { createFileRoute } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
-import { AlertCircle, CheckCircle2, Clock, Loader2, RefreshCw, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, RefreshCw, XCircle } from "lucide-react";
 import { Can } from "@/components/ability/can";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

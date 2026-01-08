@@ -1,7 +1,7 @@
 # Development Plan & Milestones
 
-> **更新时间**: 2026-01-06
-> **状态**: M1 系列已完成，M2 进行中
+> **更新时间**: 2026-01-07
+> **状态**: M1~M2 已落地，M3 规划中（上线准备）
 
 ## 1. Milestone Overview
 
@@ -34,7 +34,7 @@ This document outlines the development milestones for the MES system, focusing o
 * **Features**: Role/permission model, user-role assignment, line/station bindings, permission-based navigation/actions, role management UI.
 * **Acceptance Criteria**: Permissions gate API and UI actions; data scope filters enforce line/station access; roles can be managed in UI.
 
-### M2: Quality Control and Authorization (IN_PROGRESS)
+### M2: Quality Control and Authorization (DONE, 2026-01-06)
 * **Goal**: Implement quality control checks, including FAI and batch authorization.
 * **Features**:
   - Line readiness checks + exception loop
@@ -59,14 +59,25 @@ This document outlines the development milestones for the MES system, focusing o
   * [x] FAI 首件检验 (2025-01-02): API + UI 已完成，Run 详情页可创建 FAI
   * [x] Defect & Disposition (2025-01-02): 缺陷记录、处置分配、返工任务 UI 已完成
   * [x] OQC Sampling: 核心链路与 UI 已完成
-  * [~] Final Confirmation: 执行中（closeout API + UI 已落地）
+  * [x] Final Confirmation: closeout API + UI 已落地
 
-### M3: Data Collection and Traceability
-* **Goal**: Implement data collection and traceability features.
-* **Features**: Data collection for key metrics, traceability for each unit and material used.
-* **Acceptance Criteria**: Traceability queries must return full production history, including defects and data values.
+### M3: Go-Live Readiness (PLANNED)
+* **Goal**: Make the system truly deployable and acceptable for production rollout (SMT/DIP), not just “spec-aligned”.
+* **Features**:
+  - E2E acceptance script + checklist (repeatable demo and regression)
+  - Deployment & ops runbooks (single-binary + SQLite, TLS, backup/restore, upgrade)
+  - Real-data validation in a staging/sandbox environment (ERP/TPM/WMS/SPI/AOI inbound smoke)
+  - Docs/training deliverables (role-based SOP)
+  - Data collection configuration (DataCollectionSpec CRUD + route binding UI)
+  - Go-live defaults: manual TrackIn/TrackOut; integrations support degraded/manual mode
+* **Acceptance Criteria**:
+  - A fresh environment can follow setup docs and run the full flow via UI and script.
+  - The demo/acceptance script can reliably verify gates (readiness/loading/FAI/OQC/MRB/closeout) and trace output (defects + data values).
+  - Deployment path is documented and repeatable.
+* **Plan**:
+  - `domain_docs/mes/plan/phase3_tasks.md`
 
-### M4: Ingest and Batch Processing
+### M4: Ingest and Batch Processing (POST GO-LIVE)
 * **Goal**: Extend the system to handle automated and batch processing scenarios.
 * **Features**: Automatic/BATCH/TEST event ingest, equipment integration for auto track-in/out, batch data collection.
 * **Acceptance Criteria**: System handles auto/batch/test events with consistent routing and data validation.

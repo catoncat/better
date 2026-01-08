@@ -4,7 +4,8 @@
 
 | 目的 | 文档 |
 |------|------|
-| 了解当前进度/待办 | `plan/phase2_tasks.md` |
+| 了解当前进度/待办（M2） | `plan/phase2_tasks.md` |
+| 了解当前进度/待办（M3） | `plan/phase3_tasks.md` |
 | 了解全局流程 | `spec/process/01_end_to_end_flows.md` |
 | 了解 SMT 流程 | `spec/process/03_smp_flows.md` |
 | 了解 DIP 流程 | `spec/process/04_dip_flows.md` |
