@@ -14,6 +14,7 @@ import {
 import { mrbRoutes } from "./oqc/mrb-routes";
 import { oqcRoutes } from "./oqc/routes";
 import { samplingRuleRoutes } from "./oqc/sampling-rule-routes";
+import { dataCollectionSpecModule } from "./data-collection-spec/routes";
 import { readinessExceptionsModule, readinessModule } from "./readiness/routes";
 import { routingModule } from "./routing/routes";
 import { runModule } from "./run/routes";
@@ -36,6 +37,7 @@ export const mesModule = new Elysia()
 	.use(runModule)
 	.use(readinessModule)
 	.use(readinessExceptionsModule)
+	.use(dataCollectionSpecModule)
 	.use(routingModule)
 	.use(executionModule)
 	.use(stationModule)
