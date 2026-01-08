@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 
 dotenv.config({ path: path.resolve(import.meta.dirname, "../.env") });
 
-type Scenario = "happy" | "oqc-fail-mrb-release" | "oqc-fail-mrb-scrap";
+type Scenario = "happy" | "oqc-fail-mrb-release" | "oqc-fail-mrb-scrap" | "readiness-waive";
 
 type CliOptions = {
 	apiUrl: string;
@@ -145,6 +145,7 @@ const parseCliOptions = (): CliOptions => {
 				"                         - happy: OQC PASS → Run COMPLETED",
 				"                         - oqc-fail-mrb-release: OQC FAIL → MRB RELEASE → Run COMPLETED",
 				"                         - oqc-fail-mrb-scrap: OQC FAIL → MRB SCRAP → Run SCRAPPED",
+				"                         - readiness-waive: Readiness FAIL (Loading) → Waive → Authorize PASS",
 				"  --json                 Print JSON summary to stdout",
 				"  --json-file <path>     Write JSON summary to file",
 			].join("\n"),
@@ -153,7 +154,7 @@ const parseCliOptions = (): CliOptions => {
 	}
 
 	const scenarioArg = getArgValue("--scenario") ?? "happy";
-	const validScenarios: Scenario[] = ["happy", "oqc-fail-mrb-release", "oqc-fail-mrb-scrap"];
+	const validScenarios: Scenario[] = ["happy", "oqc-fail-mrb-release", "oqc-fail-mrb-scrap", "readiness-waive"];
 	if (!validScenarios.includes(scenarioArg as Scenario)) {
 		console.error(`Invalid scenario: ${scenarioArg}. Valid: ${validScenarios.join(", ")}`);
 		process.exit(1);
@@ -347,6 +348,71 @@ async function runTest(options: CliOptions) {
 			const { res, data } = await leader.post(`/runs/${runNo}/loading/load-table`);
 			return expectOk(res, data, "Load slot table");
 		}, { actor: "leader" });
+
+		if (options.scenario === "readiness-waive") {
+			// Intentionally SKIP verify to cause Loading check failure (PENDING)
+			const check = await runStep(summary, "Readiness: formal check (expect FAIL)", async () => {
+				const { res, data } = await leader.post(`/runs/${runNo}/readiness/check`);
+				// Note: check API returns 200 even on FAIL, but data.status should be FAILED
+				const result = expectOk(res, data, "Readiness formal check");
+				if (result.status !== "FAILED") {
+					throw new ApiError(`Readiness status is ${result.status}, expected FAILED`);
+				}
+				return result;
+			}, { actor: "leader" });
+
+			const loadingItem = check.items.find((i: any) => i.itemType === "LOADING" && i.status === "FAILED");
+			if (!loadingItem) {
+				throw new ApiError("Readiness FAIL but no failed LOADING item found");
+			}
+
+			await runStep(summary, "Readiness: waive item", async () => {
+				const { res, data } = await leader.post(`/runs/${runNo}/readiness/items/${loadingItem.id}/waive`, {
+					reason: "Acceptance test waive",
+				});
+				return expectOk(res, data, "Waive item");
+			}, { actor: "leader" });
+
+			await runStep(summary, "Readiness: verify waived status (expect PASS)", async () => {
+				// Use GET /latest instead of POST /check to verify the WAIVER persists on the current check
+				const { res, data } = await leader.get(`/runs/${runNo}/readiness/latest?type=FORMAL`);
+				const result = expectOk(res, data, "Readiness latest check");
+				
+				if (result.status !== "PASSED") {
+					throw new ApiError(`Readiness status is ${result.status}, expected PASSED after waive`);
+				}
+
+				const waivedItem = result.items.find((i: any) => i.id === loadingItem.id);
+				if (!waivedItem || waivedItem.status !== "WAIVED") {
+					throw new ApiError("Item status is not WAIVED");
+				}
+				// Verify attribution
+				// The seed user "leader" has id from DB. We don't know the exact UUID here easily without fetching user,
+				// but we can check if it is not null.
+				if (!waivedItem.waivedBy) {
+					throw new ApiError("Item waivedBy is missing (attribution check failed)");
+				}
+
+				return result;
+			}, { actor: "leader" });
+
+			await runStep(summary, "Run: authorize (expect FAI error, confirming Readiness passed)", async () => {
+				const { res, data } = await leader.post(`/runs/${runNo}/authorize`, { action: "AUTHORIZE" });
+				// We expect FAI_NOT_PASSED. If it was READINESS_CHECK_FAILED, then our waive didn't work.
+				if (res.ok && data?.ok) {
+					throw new ApiError("Authorize unexpectedly succeeded (expected FAI_NOT_PASSED)");
+				}
+				const code = data?.error?.code;
+				if (code !== "FAI_NOT_PASSED") {
+					throw new ApiError(`Authorize failed with ${code}, expected FAI_NOT_PASSED (which implies Readiness passed)`);
+				}
+				return data?.error;
+			}, { actor: "leader" });
+
+			// End scenario early
+			summary.ok = true;
+			return summary;
+		}
 
 		await runStep(summary, "Loading: verify mismatch (expect FAIL)", async () => {
 			const { res, data } = await leader.post("/loading/verify", {
