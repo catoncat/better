@@ -1,6 +1,7 @@
 ---
 name: repo-dev-loop
 description: 'Repo-wide default development workflow for this repository. Use when the user asks to implement/build/fix/refactor/change code or docs (实现/开发/修复/重构/改代码/改文档). Enforces git-status preflight, worktree decision, task slicing, small-step commits, conversation sync notes, and bun-based verification (lint/typecheck) in the worktree being merged.'
+context: fork
 ---
 
 # Repo Dev Loop

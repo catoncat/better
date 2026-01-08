@@ -1,6 +1,7 @@
 ---
 name: mes-triage
 description: 'Repo-specific MES next-work triage workflow. Use when the user asks what to build next / next tasks / what remains / which milestone to do next for MES in this repo (e.g., "接下来开发什么/下一步做什么/还有什么没做"). Read domain_docs/mes/CONTEXT.md and domain_docs/mes/plan/*, then output 2-4 parallelizable tracks with 3-5 candidates total and ask the user to pick one. Do not modify code/docs/plan during triage unless explicitly asked (except the required conversation sync note).'
+context: fork
 ---
 
 # MES Triage
