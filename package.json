@@ -24,12 +24,16 @@
     "format": "biome format --write .",
     "dev:web": "bun run --filter web dev",
     "dev:server": "bun run --filter server dev",
+    "dev:server:acceptance": "DATABASE_URL=file:./data/acceptance.db PORT=3002 HOST=127.0.0.1 bun run --filter server dev",
     "db:push": "bun run --filter @better-app/db db:push",
     "db:studio": "bun run --filter @better-app/db db:studio",
     "db:generate": "bun run --filter @better-app/db db:generate",
     "db:migrate": "bun run --filter @better-app/db db:migrate",
     "db:deploy": "bun run --filter @better-app/db db:deploy",
-    "db:seed": "bun run --filter server db:seed"
+    "db:seed": "bun run --filter server db:seed",
+    "db:deploy:acceptance": "DATABASE_URL=file:./data/acceptance.db bun run db:deploy",
+    "db:seed:acceptance": "DATABASE_URL=file:./data/acceptance.db bun run db:seed",
+    "mes:acceptance": "bun scripts/mes-acceptance.ts"
   },
   "packageManager": "bun@1.3.1",
   "devDependencies": {
