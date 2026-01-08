@@ -504,12 +504,18 @@ async function runTest(options: CliOptions) {
 
 			// Fail scenario: Run should now be ON_HOLD
 			const runAfterOqc = await leader.get(`/runs/${runNo}`);
-			const runData = expectOk(runAfterOqc.res, runAfterOqc.data, "Get run after OQC FAIL");
-			if (runData.status !== "ON_HOLD") {
-				throw new ApiError(`Run status after OQC FAIL is ${runData.status}, expected ON_HOLD`);
+			// Note: GET /runs/:runNo returns { run: { status, ... }, ... } structure
+			if (!runAfterOqc.res.ok) {
+				throw new ApiError(`Get run after OQC FAIL failed: ${runAfterOqc.res.statusText}`, {
+					status: runAfterOqc.res.status,
+				});
+			}
+			const runStatus = runAfterOqc.data?.run?.status;
+			if (runStatus !== "ON_HOLD") {
+				throw new ApiError(`Run status after OQC FAIL is ${runStatus}, expected ON_HOLD`);
 			}
 
-			return { oqcDecision: decision, runStatus: runData.status };
+			return { oqcDecision: decision, runStatus };
 		}, { actor: "leader/quality" });
 
 		// MRB decision for fail scenarios
