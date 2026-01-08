@@ -73,6 +73,21 @@ export const traceUnitResponseSchema = t.Object({
 				isKeyPart: t.Boolean(),
 			}),
 		),
+		readiness: t.Union([
+			t.Null(),
+			t.Object({
+				status: t.String(),
+				checkedAt: t.String(),
+				waivedItems: t.Array(
+					t.Object({
+						itemType: t.String(),
+						itemKey: t.String(),
+						waivedBy: t.Union([t.String(), t.Null()]),
+						waiveReason: t.Union([t.String(), t.Null()]),
+					}),
+				),
+			}),
+		]),
 		snapshot: t.Any(),
 	}),
 });

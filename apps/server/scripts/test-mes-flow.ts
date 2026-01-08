@@ -409,6 +409,55 @@ async function runTest(options: CliOptions) {
 				return data?.error;
 			}, { actor: "leader" });
 
+			// Complete FAI to proceed to Trace check
+			await runStep(summary, "FAI: complete (PASS)", async () => {
+				const created = await quality.post(`/fai/run/${runNo}`, { sampleQty: 1 });
+				const fai = expectOk(created.res, created.data, "FAI create");
+				
+				const started = await quality.post(`/fai/${fai.id}/start`);
+				expectOk(started.res, started.data, "FAI start");
+
+				const item = await quality.post(`/fai/${fai.id}/items`, { itemName: "Visual", result: "PASS" });
+				expectOk(item.res, item.data, "FAI record item");
+
+				const completed = await quality.post(`/fai/${fai.id}/complete`, { decision: "PASS" });
+				return expectOk(completed.res, completed.data, "FAI complete");
+			}, { actor: "quality" });
+
+			await runStep(summary, "Run: authorize (expect PASS)", async () => {
+				const { res, data } = await leader.post(`/runs/${runNo}/authorize`, { action: "AUTHORIZE" });
+				return expectOk(res, data, "Run authorize");
+			}, { actor: "leader" });
+
+			// Track in to create unit
+			const unitSn = `SN-WAIVE-${Date.now()}`;
+			await runStep(summary, "Execution: track-in (create unit)", async () => {
+				const { res, data } = await leader.post(`/stations/ST-PRINT-01/track-in`, { sn: unitSn, woNo, runNo });
+				return expectOk(res, data, "Track-in");
+			}, { actor: "leader" });
+
+			await runStep(summary, "Trace: verify readiness attribution", async () => {
+				const { res, data } = await leader.get(`/trace/units/${unitSn}?mode=run`);
+				const trace = expectOk(res, data, "Trace get unit");
+
+				if (!trace.readiness) {
+					throw new ApiError("Trace missing readiness info");
+				}
+				if (trace.readiness.status !== "PASSED") {
+					throw new ApiError(`Trace readiness status is ${trace.readiness.status}, expected PASSED`);
+				}
+				
+				const waivedItem = trace.readiness.waivedItems?.find((i: any) => i.itemType === "LOADING");
+				if (!waivedItem) {
+					throw new ApiError("Trace readiness missing WAIVED item");
+				}
+				if (!waivedItem.waivedBy) {
+					throw new ApiError("Trace readiness missing waivedBy attribution");
+				}
+
+				return trace;
+			}, { actor: "leader" });
+
 			// End scenario early
 			summary.ok = true;
 			return summary;

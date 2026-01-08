@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "@better-app/db";
+import { ReadinessCheckType } from "@better-app/db";
 import type { ServiceResult } from "../../../types/service-result";
 
 type TraceMode = "run" | "latest";
@@ -111,6 +112,16 @@ export const getUnitTrace = async (
 			lotNo: string;
 			isKeyPart: boolean;
 		}>;
+		readiness: {
+			status: string;
+			checkedAt: string;
+			waivedItems: Array<{
+				itemType: string;
+				itemKey: string;
+				waivedBy: string | null;
+				waiveReason: string | null;
+			}>;
+		} | null;
 		snapshot: Record<string, unknown>;
 	}>
 > => {
@@ -205,6 +216,30 @@ export const getUnitTrace = async (
 		include: { materialLot: true },
 	});
 
+	let readiness = null;
+	if (unit.runId) {
+		const check = await db.readinessCheck.findFirst({
+			where: { runId: unit.runId, type: ReadinessCheckType.FORMAL },
+			orderBy: { checkedAt: "desc" },
+			include: { items: true },
+		});
+		if (check) {
+			const waivedItems = check.items
+				.filter((i) => i.status === "WAIVED")
+				.map((i) => ({
+					itemType: i.itemType,
+					itemKey: i.itemKey,
+					waivedBy: i.waivedBy,
+					waiveReason: i.waiveReason,
+				}));
+			readiness = {
+				status: check.status,
+				checkedAt: check.checkedAt.toISOString(),
+				waivedItems,
+			};
+		}
+	}
+
 	return {
 		success: true,
 		data: {
@@ -263,6 +298,7 @@ export const getUnitTrace = async (
 				lotNo: use.materialLot.lotNo,
 				isKeyPart: use.isKeyPart,
 			})),
+			readiness,
 			snapshot: {
 				material_trace: {},
 				process_info: {},
