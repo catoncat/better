@@ -94,6 +94,9 @@ P1（应该）：
     - [x] 3.2.2.1 Happy path（SMT）：Readiness + Loading + FAI + Authorize + Execution + Closeout
     - [x] 3.2.2.2 OQC：Closeout 触发后可完成（PASS）并让 Run 进入终态
     - [x] 3.2.2.3 Trace：校验 route + routeVersion + steps +（至少）上料/检验摘要可定位
+      - [x] Trace 响应包含 inspections 摘要（至少 type/status/id，可用于定位 FAI/OQC）
+      - [x] Trace 响应包含上料摘要（从 LoadingRecord 派生，至少 slotCode/materialCode/lotNo/loadedAt）
+      - [x] `apps/server/scripts/test-mes-flow.ts` 对 inspections/上料摘要做断言
     - [x] 3.2.2.4 Negative branch：至少覆盖一个失败分支（Loading mismatch / OQC FAIL / MRB）
 
 - [x] 3.2.3 把演示脚本升级为“验收脚本”：可选择场景、可重复、可定位

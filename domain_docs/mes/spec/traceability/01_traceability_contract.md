@@ -54,7 +54,9 @@ Suggested response sections:
 - Step list (from routeVersion snapshot)
 - Tracks (manual) and/or ingest events (auto/batch/test)
 - Data values
-- Materials (if implemented)
+- Inspections summary (run-level tasks; include enough fields to locate FAI/OQC by id/status)
+- Loading summary (run-level loading records; include enough fields to locate slot/material/lot and time)
+- Materials (per-unit consumption, if implemented)
 - Optional snapshot cache
 
 ---

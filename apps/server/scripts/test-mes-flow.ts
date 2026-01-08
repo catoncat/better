@@ -585,6 +585,17 @@ async function runTest(options: CliOptions) {
 				const { res, data } = await leader.get(`/trace/units/${unitSn}?mode=run`);
 				const trace = expectOk(res, data, "Trace get unit");
 
+				if (!Array.isArray(trace.inspections)) {
+					throw new ApiError("Trace missing inspections");
+				}
+				const faiInspection = trace.inspections.find((i: any) => i?.type === "FAI");
+				if (!faiInspection) {
+					throw new ApiError("Trace inspections missing FAI (cannot locate inspection summary)");
+				}
+				if (faiInspection.status !== "PASS") {
+					throw new ApiError(`Trace FAI status=${faiInspection.status}, expected PASS`);
+				}
+
 				if (!trace.readiness) {
 					throw new ApiError("Trace missing readiness info");
 				}
@@ -826,6 +837,33 @@ async function runTest(options: CliOptions) {
 				throw new ApiError(`Trace route.code=${trace.route?.code}, expected ${options.routeCode}`);
 			}
 
+			if (!Array.isArray(trace.inspections)) {
+				throw new ApiError("Trace missing inspections");
+			}
+			const faiInspection = trace.inspections.find((i: any) => i?.type === "FAI");
+			if (!faiInspection) {
+				throw new ApiError("Trace inspections missing FAI (cannot locate inspection summary)");
+			}
+			if (faiInspection.status !== "PASS") {
+				throw new ApiError(`Trace FAI status=${faiInspection.status}, expected PASS`);
+			}
+
+			if (options.withLoading) {
+				if (!Array.isArray(trace.loadingRecords)) {
+					throw new ApiError("Trace missing loadingRecords");
+				}
+				const slotRecords = trace.loadingRecords.filter((r: any) => r?.slotCode === options.slotCode);
+				if (slotRecords.length === 0) {
+					throw new ApiError(`Trace loadingRecords missing slotCode=${options.slotCode} (cannot locate loading summary)`);
+				}
+				const hasExpectedPass = slotRecords.some(
+					(r: any) => r?.materialCode === options.materialCode && r?.verifyResult === "PASS",
+				);
+				if (!hasExpectedPass) {
+					throw new ApiError(`Trace loadingRecords missing PASS for materialCode=${options.materialCode} at slotCode=${options.slotCode}`);
+				}
+			}
+
 			const passTracks = Array.isArray(trace.tracks)
 				? trace.tracks.filter((t: any) => t?.result === "PASS").length
 				: 0;
@@ -838,10 +876,13 @@ async function runTest(options: CliOptions) {
 				throw new ApiError(`Trace steps=${stepCount}, expected ${stations.length}`);
 			}
 
-			// For fail scenarios, verify OQC result in trace if available
-			if (isFailScenario && trace.inspections) {
-				const oqcInspection = trace.inspections.find((i: any) => i.type === "OQC");
-				if (oqcInspection && oqcInspection.status !== "FAIL") {
+			// For fail scenarios, verify OQC result in trace
+			if (isFailScenario) {
+				const oqcInspection = trace.inspections.find((i: any) => i?.type === "OQC");
+				if (!oqcInspection) {
+					throw new ApiError("Trace inspections missing OQC for fail scenario");
+				}
+				if (oqcInspection.status !== "FAIL") {
 					throw new ApiError(`Trace OQC status=${oqcInspection.status}, expected FAIL for fail scenario`);
 				}
 			}
