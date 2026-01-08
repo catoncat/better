@@ -60,7 +60,16 @@ export async function checkEquipment(db: PrismaClient, run: Run): Promise<CheckI
 					where: { equipmentCode: station.code },
 				});
 
-				if (!equipment) continue;
+				if (!equipment) {
+					results.push({
+						itemType: ReadinessItemType.EQUIPMENT,
+						itemKey: station.code,
+						status: ReadinessItemStatus.FAILED,
+						failReason: `设备 ${station.code} 无 TPM 主数据`,
+						evidenceJson: { stationCode: station.code, sourceSystem: "TPM" },
+					});
+					continue;
+				}
 
 				if (equipment.status !== "normal") {
 					results.push({
@@ -99,6 +108,7 @@ export async function checkEquipment(db: PrismaClient, run: Run): Promise<CheckI
 					itemType: ReadinessItemType.EQUIPMENT,
 					itemKey: equipment.equipmentCode,
 					status: ReadinessItemStatus.PASSED,
+					evidenceJson: { stationCode: equipment.equipmentCode, sourceSystem: "TPM" },
 				});
 			}
 
@@ -272,6 +282,8 @@ export async function checkStencil(db: PrismaClient, run: Run): Promise<CheckIte
 						evidenceJson: {
 							stencilId: currentBinding.stencilId,
 							status: latestStatus.status,
+							source: latestStatus.source,
+							operatorId: latestStatus.operatorId,
 							tensionValue: latestStatus.tensionValue,
 							lastCleanedAt: latestStatus.lastCleanedAt?.toISOString(),
 						},
@@ -287,6 +299,8 @@ export async function checkStencil(db: PrismaClient, run: Run): Promise<CheckIte
 					evidenceJson: {
 						stencilId: currentBinding.stencilId,
 						status: latestStatus.status,
+						source: latestStatus.source,
+						operatorId: latestStatus.operatorId,
 						tensionValue: latestStatus.tensionValue,
 					},
 				},
@@ -351,6 +365,8 @@ export async function checkSolderPaste(db: PrismaClient, run: Run): Promise<Chec
 						evidenceJson: {
 							lotId: currentBinding.lotId,
 							status: latestStatus.status,
+							source: latestStatus.source,
+							operatorId: latestStatus.operatorId,
 							expiresAt: latestStatus.expiresAt?.toISOString(),
 							thawedAt: latestStatus.thawedAt?.toISOString(),
 							stirredAt: latestStatus.stirredAt?.toISOString(),
@@ -367,6 +383,8 @@ export async function checkSolderPaste(db: PrismaClient, run: Run): Promise<Chec
 					evidenceJson: {
 						lotId: currentBinding.lotId,
 						status: latestStatus.status,
+						source: latestStatus.source,
+						operatorId: latestStatus.operatorId,
 					},
 				},
 			];

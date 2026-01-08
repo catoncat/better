@@ -115,11 +115,16 @@ export const getUnitTrace = async (
 		readiness: {
 			status: string;
 			checkedAt: string;
+			checkedBy: string | null;
 			waivedItems: Array<{
 				itemType: string;
 				itemKey: string;
+				failReason: string | null;
+				evidenceJson: Prisma.JsonValue | null;
+				waivedAt: string | null;
 				waivedBy: string | null;
 				waiveReason: string | null;
+				source: "WAIVE";
 			}>;
 		} | null;
 		snapshot: Record<string, unknown>;
@@ -229,12 +234,17 @@ export const getUnitTrace = async (
 				.map((i) => ({
 					itemType: i.itemType,
 					itemKey: i.itemKey,
+					failReason: i.failReason ?? null,
+					evidenceJson: i.evidenceJson,
+					waivedAt: toIso(i.waivedAt),
 					waivedBy: i.waivedBy,
 					waiveReason: i.waiveReason,
+					source: "WAIVE" as const,
 				}));
 			readiness = {
 				status: check.status,
 				checkedAt: check.checkedAt.toISOString(),
+				checkedBy: check.checkedBy ?? null,
 				waivedItems,
 			};
 		}

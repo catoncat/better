@@ -78,12 +78,17 @@ export const traceUnitResponseSchema = t.Object({
 			t.Object({
 				status: t.String(),
 				checkedAt: t.String(),
+				checkedBy: t.Union([t.String(), t.Null()]),
 				waivedItems: t.Array(
 					t.Object({
 						itemType: t.String(),
 						itemKey: t.String(),
+						failReason: t.Union([t.String(), t.Null()]),
+						evidenceJson: t.Union([t.Any(), t.Null()]),
+						waivedAt: t.Union([t.String(), t.Null()]),
 						waivedBy: t.Union([t.String(), t.Null()]),
 						waiveReason: t.Union([t.String(), t.Null()]),
+						source: t.Literal("WAIVE"),
 					}),
 				),
 			}),
