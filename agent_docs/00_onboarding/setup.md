@@ -17,7 +17,9 @@ bun run db:seed
 
 bun run dev
 ```
-`db:seed` includes MES demo master data and a READY executable route version.
+`db:seed` resets the SQLite DB (local dev default) and seeds MES demo master data + a READY executable route version + demo WO/Run/Units.
+
+Safety: `db:seed` refuses to reset a DB outside `./data/` unless `SEED_ALLOW_UNSAFE_RESET=true` is set.
 
 ### Common Commands
 - Web only: `bun run dev:web`

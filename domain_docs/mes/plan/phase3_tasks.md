@@ -78,14 +78,14 @@ P1（应该）：
 
 ### 3.2 Track B — E2E Demo & Seed Hardening（P0）
 
-- [~] 3.2.1 Seed 覆盖 SMT + DIP 最小主数据与可执行路由版本（READY）
+- [x] 3.2.1 Seed 覆盖 SMT + DIP 最小主数据与可执行路由版本（READY）
   - DoD：`bun run db:seed` 后可直接创建 Run、执行门禁、跑通 execution，无需手工补表
   - Touch points：`apps/server/scripts/seed.ts`、`apps/server/scripts/seed-mes.ts`
   - Subtasks:
     - [x] 3.2.1.1 Seed: 产线默认 Readiness 开关（最小集：ROUTE + LOADING）
     - [x] 3.2.1.2 Seed: 上料配置（`FeederSlot` + `SlotMaterialMapping`）覆盖 demo 产品
     - [x] 3.2.1.3 Seed: DIP 最小主数据（line/stations/routing）与可执行路由 READY
-    - [ ] 3.2.1.4 Seed: `db:seed` 产出可重复的验收默认数据（不依赖脚本内 upsert）
+    - [x] 3.2.1.4 Seed: `db:seed` 产出可重复的验收默认数据（不依赖脚本内 upsert）
 
 - [x] 3.2.2 E2E 演示脚本覆盖"门禁 + 质量闭环 + 收尾 + 追溯"
   - DoD：`apps/server/scripts/test-mes-flow.ts` 能走：WO→Run→Readiness→Loading→FAI→Authorize→TrackIn/Out→Defect/MRB/OQC→Closeout→Trace 校验
