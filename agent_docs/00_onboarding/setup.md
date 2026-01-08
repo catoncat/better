@@ -21,6 +21,15 @@ bun run dev
 
 Safety: `db:seed` refuses to reset a DB outside `./data/` unless `SEED_ALLOW_UNSAFE_RESET=true` is set.
 
+## Safe Acceptance DB (Recommended for Demos/Tests)
+Use a dedicated SQLite file so seeds/acceptance scripts never touch your main DB.
+
+- Create/update schema: `bun run db:deploy:acceptance`
+- Seed acceptance dataset: `bun run db:seed:acceptance`
+- Start server on `127.0.0.1:3002`: `bun run dev:server:acceptance`
+- One-command runner (deploy → seed → start server → run flow → shutdown):
+  - `bun run mes:acceptance -- --scenario readiness-waive --track smt --json`
+
 ### Common Commands
 - Web only: `bun run dev:web`
 - Server only: `bun run dev:server`
