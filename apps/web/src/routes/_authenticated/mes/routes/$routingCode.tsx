@@ -1,9 +1,11 @@
 import { Permission } from "@better-app/db/permissions";
 import { useForm } from "@tanstack/react-form";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { Edit2, PlusCircle, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import * as z from "zod";
 import { Can } from "@/components/ability/can";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -28,6 +31,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
 	Table,
 	TableBody,
@@ -37,6 +41,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAbility } from "@/hooks/use-ability";
 import {
 	type ExecutionConfig,
@@ -48,6 +53,7 @@ import { useCompileRouteVersion } from "@/hooks/use-route-versions";
 import { useRouteDetail } from "@/hooks/use-routes";
 import { useStations } from "@/hooks/use-station-execution";
 import { useStationGroups } from "@/hooks/use-station-groups";
+import { client, unwrap } from "@/lib/eden";
 
 export const Route = createFileRoute("/_authenticated/mes/routes/$routingCode")({
 	component: RouteDetailPage,
@@ -133,6 +139,7 @@ type StationOption = {
 
 function RouteDetailPage() {
 	const { routingCode } = useParams({ from: "/_authenticated/mes/routes/$routingCode" });
+	const queryClient = useQueryClient();
 	const { data: routeDetail, isLoading, refetch } = useRouteDetail(routingCode);
 	const { data: configs, isLoading: configsLoading } = useExecutionConfigs(routingCode);
 	const { data: stationList } = useStations();
@@ -141,8 +148,10 @@ function RouteDetailPage() {
 
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editingConfig, setEditingConfig] = useState<ExecutionConfig | null>(null);
+	const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
 
 	const steps = routeDetail?.steps ?? [];
+	const executionConfigs = configs ?? [];
 	const stationOptions: StationOption[] =
 		stationList?.items.map((item) => ({
 			id: item.id,
@@ -211,6 +220,128 @@ function RouteDetailPage() {
 	const sourceSystem = routeDetail?.route.sourceSystem;
 	const isErpRoute = sourceSystem === "ERP";
 
+	const executionSemanticsStatus = useMemo(() => {
+		const updatedAtMs = (config: ExecutionConfig) => {
+			const ms = Date.parse(String(config.updatedAt));
+			return Number.isFinite(ms) ? ms : 0;
+		};
+
+		const pickLatest = (items: ExecutionConfig[]) => {
+			if (items.length === 0) return undefined;
+			return items.reduce((latest, item) =>
+				updatedAtMs(item) > updatedAtMs(latest) ? item : latest,
+			);
+		};
+
+		const routeConfigs = executionConfigs.filter(
+			(config) =>
+				Boolean(config.routingId) &&
+				!config.routingStepId &&
+				!config.sourceStepKey &&
+				!config.operationId,
+		);
+		const latestRouteConfig = pickLatest(routeConfigs);
+
+		const missingConstraintStepNos: number[] = [];
+		for (const step of steps) {
+			const stepConfigs = executionConfigs.filter(
+				(config) => config.routingStep?.stepNo === step.stepNo,
+			);
+			const sourceConfigs = step.sourceStepKey
+				? executionConfigs.filter((config) => config.sourceStepKey === step.sourceStepKey)
+				: [];
+			const operationConfigs = executionConfigs.filter(
+				(config) => config.operation?.code === step.operationCode,
+			);
+
+			const latestStepConfig = pickLatest([...stepConfigs, ...sourceConfigs]);
+			const latestOperationConfig = pickLatest(operationConfigs);
+
+			const stationGroupMarker =
+				latestStepConfig?.stationGroup?.code ??
+				(latestStepConfig?.stationGroupId ? "__HAS__" : undefined) ??
+				latestOperationConfig?.stationGroup?.code ??
+				(latestOperationConfig?.stationGroupId ? "__HAS__" : undefined) ??
+				latestRouteConfig?.stationGroup?.code ??
+				(latestRouteConfig?.stationGroupId ? "__HAS__" : undefined) ??
+				step.stationGroupCode ??
+				null;
+
+			const allowedStationIdsRaw =
+				latestStepConfig?.allowedStationIds ??
+				latestOperationConfig?.allowedStationIds ??
+				latestRouteConfig?.allowedStationIds ??
+				null;
+			const allowedStationIds = normalizeStringArray(allowedStationIdsRaw);
+
+			if (!stationGroupMarker && allowedStationIds.length === 0) {
+				missingConstraintStepNos.push(step.stepNo);
+			}
+		}
+
+		const stepLabel =
+			missingConstraintStepNos.length > 0
+				? missingConstraintStepNos.map((no) => `Step ${no}`).join(", ")
+				: null;
+
+		return {
+			isReady: missingConstraintStepNos.length === 0,
+			missingConstraintStepNos,
+			stepLabel,
+		};
+	}, [executionConfigs, steps]);
+
+	const handleCompile = async () => {
+		if (executionSemanticsStatus.missingConstraintStepNos.length > 0) {
+			toast.warning("执行语义未就绪", {
+				description: `${executionSemanticsStatus.stepLabel ?? ""} 缺少站点组/允许站点，编译可能生成 INVALID 版本。`,
+			});
+		}
+		try {
+			await compileRoute(routingCode);
+		} catch {
+			// handled by mutation onError toast
+		}
+	};
+
+	const handleBulkApplyStationGroup = async (stationGroupCode: string) => {
+		const missingStepNos = executionSemanticsStatus.missingConstraintStepNos;
+		if (!stationGroupCode || missingStepNos.length === 0) return;
+
+		const failures: Array<{ stepNo: number; message: string }> = [];
+
+		for (const stepNo of missingStepNos) {
+			try {
+				const response = await client.api.routes({ routingCode })["execution-config"].post({
+					scopeType: "STEP",
+					stepNo,
+					stationGroupCode,
+				});
+				unwrap(response);
+			} catch (error) {
+				failures.push({
+					stepNo,
+					message: error instanceof Error ? error.message : "未知错误",
+				});
+			}
+		}
+
+		queryClient.invalidateQueries({ queryKey: ["mes", "execution-configs", routingCode] });
+
+		if (failures.length === 0) {
+			toast.success("站点组已批量配置", {
+				description: `已为 ${missingStepNos.length} 个步骤创建执行配置`,
+			});
+			setBulkDialogOpen(false);
+			return;
+		}
+
+		const first = failures[0];
+		toast.error("批量配置部分失败", {
+			description: `Step ${first.stepNo}: ${first.message}`,
+		});
+	};
+
 	if (isLoading) {
 		return <div className="text-sm text-muted-foreground">加载路由详情中...</div>;
 	}
@@ -227,12 +358,38 @@ function RouteDetailPage() {
 					<p className="text-muted-foreground">查看工艺路线步骤并维护执行语义配置。</p>
 				</div>
 				<div className="flex flex-wrap gap-2">
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Badge
+								variant={executionSemanticsStatus.isReady ? "secondary" : "outline"}
+								className={
+									executionSemanticsStatus.isReady
+										? undefined
+										: "border-amber-200 bg-amber-50 text-amber-700"
+								}
+							>
+								{executionSemanticsStatus.isReady
+									? "执行语义 READY"
+									: `执行语义缺失 ${executionSemanticsStatus.missingConstraintStepNos.length}`}
+							</Badge>
+						</TooltipTrigger>
+						<TooltipContent sideOffset={6}>
+							{executionSemanticsStatus.isReady ? (
+								<span>可直接编译生成 READY 版本。</span>
+							) : (
+								<span>
+									{executionSemanticsStatus.stepLabel ?? "部分步骤"} 缺少站点组/允许站点，编译会得到
+									INVALID。
+								</span>
+							)}
+						</TooltipContent>
+					</Tooltip>
 					<Button variant="secondary" onClick={() => refetch()}>
 						<RefreshCw className="mr-2 h-4 w-4" />
 						刷新
 					</Button>
 					<Can permissions={Permission.ROUTE_COMPILE}>
-						<Button onClick={() => compileRoute(routingCode)} disabled={isCompiling}>
+						<Button onClick={handleCompile} disabled={isCompiling}>
 							{isCompiling ? "编译中..." : "编译路由"}
 						</Button>
 					</Can>
@@ -242,6 +399,31 @@ function RouteDetailPage() {
 			{isErpRoute && (
 				<div className="rounded-md border border-border bg-card p-4 text-sm text-muted-foreground">
 					该路由来自 ERP，步骤顺序只读；可在下方配置执行语义。
+				</div>
+			)}
+
+			{executionSemanticsStatus.missingConstraintStepNos.length > 0 && (
+				<div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+					<div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+						<div className="space-y-1">
+							<p className="font-medium">此路由尚未配置完整执行语义</p>
+							<p className="text-amber-900/80">
+								{executionSemanticsStatus.stepLabel ?? ""} 缺少站点组/允许站点，否则编译会得到
+								INVALID。
+							</p>
+						</div>
+						<Can permissions={Permission.ROUTE_CONFIGURE}>
+							<Button
+								size="sm"
+								variant="outline"
+								className="border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
+								onClick={() => setBulkDialogOpen(true)}
+								disabled={stationGroupOptions.length === 0}
+							>
+								快速为缺失步骤配置站点组
+							</Button>
+						</Can>
+					</div>
 				</div>
 			)}
 
@@ -377,7 +559,7 @@ function RouteDetailPage() {
 									const scopeLabel = config.routingStepId
 										? `Step ${config.routingStep?.stepNo ?? "-"}`
 										: config.sourceStepKey
-											? `Source ${config.sourceStepKey}`
+											? `来源步骤 ${config.sourceStepKey}`
 											: config.operationId
 												? `工序 ${config.operation?.code ?? "-"}`
 												: "路由";
@@ -421,7 +603,9 @@ function RouteDetailPage() {
 							) : (
 								<TableRow>
 									<TableCell colSpan={7} className="text-center text-muted-foreground">
-										暂无配置
+										{executionSemanticsStatus.missingConstraintStepNos.length > 0
+											? "暂无配置（缺少站点组/允许站点，编译会得到 INVALID）"
+											: "暂无配置"}
 									</TableCell>
 								</TableRow>
 							)}
@@ -441,7 +625,97 @@ function RouteDetailPage() {
 				stationGroupOptions={stationGroupOptions}
 				stations={stationOptions}
 			/>
+
+			<BulkStationGroupDialog
+				open={bulkDialogOpen}
+				onOpenChange={setBulkDialogOpen}
+				stationGroupOptions={stationGroupOptions}
+				missingStepNos={executionSemanticsStatus.missingConstraintStepNos}
+				onConfirm={handleBulkApplyStationGroup}
+			/>
 		</div>
+	);
+}
+
+function BulkStationGroupDialog({
+	open,
+	onOpenChange,
+	stationGroupOptions,
+	missingStepNos,
+	onConfirm,
+}: {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	stationGroupOptions: Array<{ value: string; label: string }>;
+	missingStepNos: number[];
+	onConfirm: (stationGroupCode: string) => Promise<void>;
+}) {
+	const [stationGroupCode, setStationGroupCode] = useState("");
+	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	useEffect(() => {
+		if (!open) {
+			setStationGroupCode("");
+			setIsSubmitting(false);
+		}
+	}, [open]);
+
+	const missingLabel =
+		missingStepNos.length > 0 ? missingStepNos.map((no) => `Step ${no}`).join(", ") : "无";
+
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
+				<DialogHeader className="shrink-0">
+					<DialogTitle>快速配置站点组</DialogTitle>
+					<DialogDescription>
+						为缺少站点约束的步骤批量创建 STEP 级执行配置：{missingLabel}
+					</DialogDescription>
+				</DialogHeader>
+
+				<div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-4">
+					<div className="space-y-2">
+						<p className="text-sm font-medium">站点组</p>
+						<Combobox
+							options={stationGroupOptions}
+							value={stationGroupCode}
+							onValueChange={setStationGroupCode}
+							placeholder="选择站点组"
+							searchPlaceholder="搜索站点组"
+							emptyText="未找到站点组"
+						/>
+					</div>
+				</div>
+
+				<DialogFooter className="shrink-0 border-t border-border pt-4">
+					<Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+						取消
+					</Button>
+					<Button
+						onClick={async () => {
+							if (!stationGroupCode) {
+								toast.error("请选择站点组");
+								return;
+							}
+							if (missingStepNos.length === 0) {
+								toast.message("没有需要配置的步骤");
+								onOpenChange(false);
+								return;
+							}
+							setIsSubmitting(true);
+							try {
+								await onConfirm(stationGroupCode);
+							} finally {
+								setIsSubmitting(false);
+							}
+						}}
+						disabled={!stationGroupCode || isSubmitting || missingStepNos.length === 0}
+					>
+						{isSubmitting ? "配置中..." : "确认配置"}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	);
 }
 
@@ -470,6 +744,7 @@ function ExecutionConfigDialog({
 	const isEdit = Boolean(editingConfig);
 	const createMutation = useCreateExecutionConfig(routingCode);
 	const updateMutation = useUpdateExecutionConfig(routingCode, editingConfig?.id ?? "");
+	const [showAdvancedScope, setShowAdvancedScope] = useState(false);
 
 	const resolvedScopeType = useMemo(() => {
 		if (editingConfig?.routingStepId) return "STEP";
@@ -569,6 +844,7 @@ function ExecutionConfigDialog({
 
 	useEffect(() => {
 		if (open && !editingConfig) {
+			setShowAdvancedScope(false);
 			form.reset({
 				scopeType: "ROUTE",
 				stepNo: "",
@@ -586,6 +862,17 @@ function ExecutionConfigDialog({
 		}
 	}, [editingConfig, form, open]);
 
+	useEffect(() => {
+		if (isEdit) return;
+		if (showAdvancedScope) return;
+		const current = form.state.values.scopeType;
+		if (current === "OPERATION" || current === "SOURCE_STEP") {
+			form.setFieldValue("scopeType", "STEP");
+			form.setFieldValue("operationCode", "");
+			form.setFieldValue("sourceStepKey", "");
+		}
+	}, [form, isEdit, showAdvancedScope]);
+
 	const stepOptionsForSelect = stepOptions.map((option) => ({
 		value: option.value,
 		label: option.label,
@@ -593,8 +880,8 @@ function ExecutionConfigDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-3xl">
-				<DialogHeader>
+			<DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+				<DialogHeader className="shrink-0">
 					<DialogTitle>{isEdit ? "编辑执行配置" : "新增执行配置"}</DialogTitle>
 					<DialogDescription>定义站点类型、站点组以及采集项等规则。</DialogDescription>
 				</DialogHeader>
@@ -604,237 +891,281 @@ function ExecutionConfigDialog({
 						e.stopPropagation();
 						form.handleSubmit();
 					}}
-					className="space-y-4"
+					className="flex flex-col min-h-0 gap-4"
 				>
-					<div className="grid gap-4 md:grid-cols-2">
-						<Field form={form} name="scopeType" label="配置范围">
-							{(field) => (
-								<Select
-									value={field.state.value}
-									onValueChange={(value) =>
-										field.handleChange(value as ConfigFormValues["scopeType"])
-									}
-									disabled={isEdit}
-								>
-									<SelectTrigger>
-										<SelectValue placeholder="选择范围" />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="ROUTE">整条路由</SelectItem>
-										<SelectItem value="OPERATION">工序</SelectItem>
-										<SelectItem value="STEP">步骤</SelectItem>
-										<SelectItem value="SOURCE_STEP">来源步骤</SelectItem>
-									</SelectContent>
-								</Select>
-							)}
-						</Field>
-
-						<form.Subscribe selector={(state) => state.values.scopeType}>
-							{(scopeType) => (
-								<>
-									{scopeType === "STEP" && (
-										<Field form={form} name="stepNo" label="步骤">
-											{(field) => (
-												<Select value={field.state.value || ""} onValueChange={field.handleChange}>
-													<SelectTrigger>
-														<SelectValue placeholder="选择步骤" />
-													</SelectTrigger>
-													<SelectContent>
-														{stepOptionsForSelect.map((option) => (
-															<SelectItem key={option.value} value={option.value}>
-																{option.label}
-															</SelectItem>
-														))}
-													</SelectContent>
-												</Select>
+					<div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-4">
+						<div className="grid gap-4 md:grid-cols-2">
+							<Field
+								form={form}
+								name="scopeType"
+								label="配置范围"
+								description="推荐：全局默认 + 按步骤覆盖；工序/来源步骤为高级选项。"
+							>
+								{(field) => (
+									<Select
+										value={field.state.value}
+										onValueChange={(value) =>
+											field.handleChange(value as ConfigFormValues["scopeType"])
+										}
+										disabled={isEdit}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="选择范围" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="ROUTE">全局默认（整条路由）</SelectItem>
+											<SelectItem value="STEP">按步骤覆盖</SelectItem>
+											{(showAdvancedScope || isEdit) && (
+												<>
+													<SelectItem value="OPERATION">高级：按工序（跨路由）</SelectItem>
+													<SelectItem value="SOURCE_STEP">
+														高级：按来源步骤（与步骤等效）
+													</SelectItem>
+												</>
 											)}
-										</Field>
-									)}
-
-									{scopeType === "SOURCE_STEP" && (
-										<Field form={form} name="sourceStepKey" label="来源步骤">
-											{(field) => (
-												<Select value={field.state.value || ""} onValueChange={field.handleChange}>
-													<SelectTrigger>
-														<SelectValue placeholder="选择来源步骤" />
-													</SelectTrigger>
-													<SelectContent>
-														{sourceStepOptions.map((option) => (
-															<SelectItem key={option.value} value={option.value}>
-																{option.label}
-															</SelectItem>
-														))}
-													</SelectContent>
-												</Select>
-											)}
-										</Field>
-									)}
-
-									{scopeType === "OPERATION" && (
-										<Field form={form} name="operationCode" label="工序">
-											{(field) => (
-												<Select value={field.state.value || ""} onValueChange={field.handleChange}>
-													<SelectTrigger>
-														<SelectValue placeholder="选择工序" />
-													</SelectTrigger>
-													<SelectContent>
-														{operationOptions.map((option) => (
-															<SelectItem key={option.value} value={option.value}>
-																{option.label}
-															</SelectItem>
-														))}
-													</SelectContent>
-												</Select>
-											)}
-										</Field>
-									)}
-								</>
-							)}
-						</form.Subscribe>
-
-						<Field form={form} name="stationType" label="站点类型">
-							{(field) => (
-								<Select
-									value={field.state.value || ""}
-									onValueChange={(value) =>
-										field.handleChange(value as ConfigFormValues["stationType"])
-									}
-								>
-									<SelectTrigger>
-										<SelectValue placeholder="选择站点类型" />
-									</SelectTrigger>
-									<SelectContent>
-										{stationTypeOptions.map((option) => (
-											<SelectItem key={option.value} value={option.value}>
-												{option.label}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							)}
-						</Field>
-
-						<Field form={form} name="stationGroupCode" label="站点组">
-							{(field) => (
-								<Combobox
-									options={[{ value: "__NONE__", label: "不指定站点组" }, ...stationGroupOptions]}
-									value={field.state.value || ""}
-									onValueChange={field.handleChange}
-									placeholder="选择站点组"
-									searchPlaceholder="搜索站点组"
-									emptyText="未找到站点组"
-								/>
-							)}
-						</Field>
-					</div>
-
-					<Field form={form} name="allowedStationIds" label="允许站点">
-						{(field) => (
-							<div className="max-h-48 overflow-auto rounded-md border border-border p-3 space-y-2">
-								{stations.length === 0 ? (
-									<div className="text-sm text-muted-foreground">暂无工位数据</div>
-								) : (
-									stations.map((station) => {
-										const checked = (field.state.value ?? []).includes(station.id);
-										const checkboxId = `station-${station.id}`;
-										return (
-											<div key={station.id} className="flex items-center gap-2 text-sm">
-												<Checkbox
-													id={checkboxId}
-													checked={checked}
-													onCheckedChange={(value) => {
-														const next = new Set(field.state.value ?? []);
-														if (value) {
-															next.add(station.id);
-														} else {
-															next.delete(station.id);
-														}
-														field.handleChange(Array.from(next));
-													}}
-												/>
-												<label htmlFor={checkboxId} className="cursor-pointer">
-													{station.code} · {station.name}
-												</label>
-											</div>
-										);
-									})
+										</SelectContent>
+									</Select>
 								)}
-							</div>
-						)}
-					</Field>
+							</Field>
 
-					<div className="grid gap-4 md:grid-cols-2">
-						<Field form={form} name="requiresFAI" label="需要首件">
+							<form.Subscribe selector={(state) => state.values.scopeType}>
+								{(scopeType) => (
+									<>
+										{scopeType === "STEP" && (
+											<Field form={form} name="stepNo" label="步骤">
+												{(field) => (
+													<Select
+														value={field.state.value || ""}
+														onValueChange={field.handleChange}
+													>
+														<SelectTrigger>
+															<SelectValue placeholder="选择步骤" />
+														</SelectTrigger>
+														<SelectContent>
+															{stepOptionsForSelect.map((option) => (
+																<SelectItem key={option.value} value={option.value}>
+																	{option.label}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+												)}
+											</Field>
+										)}
+
+										{(showAdvancedScope || isEdit) && scopeType === "SOURCE_STEP" && (
+											<Field
+												form={form}
+												name="sourceStepKey"
+												label="来源步骤"
+												description="高级：按 sourceStepKey 匹配，用于 ERP 更新后保持配置。"
+											>
+												{(field) => (
+													<Select
+														value={field.state.value || ""}
+														onValueChange={field.handleChange}
+													>
+														<SelectTrigger>
+															<SelectValue placeholder="选择来源步骤" />
+														</SelectTrigger>
+														<SelectContent>
+															{sourceStepOptions.map((option) => (
+																<SelectItem key={option.value} value={option.value}>
+																	{option.label}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+												)}
+											</Field>
+										)}
+
+										{(showAdvancedScope || isEdit) && scopeType === "OPERATION" && (
+											<Field
+												form={form}
+												name="operationCode"
+												label="工序"
+												description="高级：跨路由共享（谨慎使用）。"
+											>
+												{(field) => (
+													<Select
+														value={field.state.value || ""}
+														onValueChange={field.handleChange}
+													>
+														<SelectTrigger>
+															<SelectValue placeholder="选择工序" />
+														</SelectTrigger>
+														<SelectContent>
+															{operationOptions.map((option) => (
+																<SelectItem key={option.value} value={option.value}>
+																	{option.label}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+												)}
+											</Field>
+										)}
+									</>
+								)}
+							</form.Subscribe>
+
+							{!isEdit && (
+								<div className="grid gap-1.5 md:col-span-2">
+									<Label className="min-h-[20px] flex items-center">高级作用域</Label>
+									<div className="flex items-center justify-between rounded-md border border-border p-3">
+										<span className="text-sm text-muted-foreground">
+											显示工序/来源步骤（一般不需要）
+										</span>
+										<Switch checked={showAdvancedScope} onCheckedChange={setShowAdvancedScope} />
+									</div>
+								</div>
+							)}
+
+							<Field form={form} name="stationType" label="站点类型">
+								{(field) => (
+									<Select
+										value={field.state.value || ""}
+										onValueChange={(value) =>
+											field.handleChange(value as ConfigFormValues["stationType"])
+										}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="选择站点类型" />
+										</SelectTrigger>
+										<SelectContent>
+											{stationTypeOptions.map((option) => (
+												<SelectItem key={option.value} value={option.value}>
+													{option.label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								)}
+							</Field>
+
+							<Field form={form} name="stationGroupCode" label="站点组">
+								{(field) => (
+									<Combobox
+										options={[{ value: "__NONE__", label: "不指定站点组" }, ...stationGroupOptions]}
+										value={field.state.value || ""}
+										onValueChange={field.handleChange}
+										placeholder="选择站点组"
+										searchPlaceholder="搜索站点组"
+										emptyText="未找到站点组"
+									/>
+								)}
+							</Field>
+						</div>
+
+						<Field form={form} name="allowedStationIds" label="允许站点">
 							{(field) => (
-								<Select
-									value={field.state.value ? "true" : "false"}
-									onValueChange={(value) => field.handleChange(value === "true")}
-								>
-									<SelectTrigger>
-										<SelectValue placeholder="选择" />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="false">否</SelectItem>
-										<SelectItem value="true">是</SelectItem>
-									</SelectContent>
-								</Select>
+								<div className="max-h-48 overflow-auto rounded-md border border-border p-3 space-y-2">
+									{stations.length === 0 ? (
+										<div className="text-sm text-muted-foreground">暂无工位数据</div>
+									) : (
+										stations.map((station) => {
+											const checked = (field.state.value ?? []).includes(station.id);
+											const checkboxId = `station-${station.id}`;
+											return (
+												<div key={station.id} className="flex items-center gap-2 text-sm">
+													<Checkbox
+														id={checkboxId}
+														checked={checked}
+														onCheckedChange={(value) => {
+															const next = new Set(field.state.value ?? []);
+															if (value) {
+																next.add(station.id);
+															} else {
+																next.delete(station.id);
+															}
+															field.handleChange(Array.from(next));
+														}}
+													/>
+													<label htmlFor={checkboxId} className="cursor-pointer">
+														{station.code} · {station.name}
+													</label>
+												</div>
+											);
+										})
+									)}
+								</div>
 							)}
 						</Field>
-						<Field form={form} name="requiresAuthorization" label="需要授权">
-							{(field) => (
-								<Select
-									value={field.state.value ? "true" : "false"}
-									onValueChange={(value) => field.handleChange(value === "true")}
-								>
-									<SelectTrigger>
-										<SelectValue placeholder="选择" />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="false">否</SelectItem>
-										<SelectItem value="true">是</SelectItem>
-									</SelectContent>
-								</Select>
-							)}
-						</Field>
-					</div>
 
-					<Field form={form} name="dataSpecIdsText" label="采集项标识">
-						{(field) => (
-							<Input
-								placeholder="多个用逗号分隔，例如 TEMP,POWER"
-								value={field.state.value}
-								onBlur={field.handleBlur}
-								onChange={(e) => field.handleChange(e.target.value)}
-							/>
-						)}
-					</Field>
+						<div className="grid gap-4 md:grid-cols-2">
+							<Field form={form} name="requiresFAI" label="需要首件">
+								{(field) => (
+									<Select
+										value={field.state.value ? "true" : "false"}
+										onValueChange={(value) => field.handleChange(value === "true")}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="选择" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="false">否</SelectItem>
+											<SelectItem value="true">是</SelectItem>
+										</SelectContent>
+									</Select>
+								)}
+							</Field>
+							<Field form={form} name="requiresAuthorization" label="需要授权">
+								{(field) => (
+									<Select
+										value={field.state.value ? "true" : "false"}
+										onValueChange={(value) => field.handleChange(value === "true")}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="选择" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="false">否</SelectItem>
+											<SelectItem value="true">是</SelectItem>
+										</SelectContent>
+									</Select>
+								)}
+							</Field>
+						</div>
 
-					<div className="grid gap-4 md:grid-cols-2">
-						<Field form={form} name="ingestMappingText" label="采集映射 (JSON)">
+						<Field form={form} name="dataSpecIdsText" label="采集项标识">
 							{(field) => (
-								<Textarea
-									placeholder='例如 {"serial":"SN","result":"PASS"}'
-									rows={6}
+								<Input
+									placeholder="多个用逗号分隔，例如 TEMP,POWER"
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
 							)}
 						</Field>
-						<Field form={form} name="metaText" label="扩展信息 (JSON)">
-							{(field) => (
-								<Textarea
-									placeholder='例如 {"note":"..."}'
-									rows={6}
-									value={field.state.value}
-									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
-								/>
-							)}
-						</Field>
+
+						<div className="grid gap-4 md:grid-cols-2">
+							<Field form={form} name="ingestMappingText" label="采集映射 (JSON)">
+								{(field) => (
+									<Textarea
+										placeholder='例如 {"serial":"SN","result":"PASS"}'
+										rows={6}
+										value={field.state.value}
+										onBlur={field.handleBlur}
+										onChange={(e) => field.handleChange(e.target.value)}
+									/>
+								)}
+							</Field>
+							<Field form={form} name="metaText" label="扩展信息 (JSON)">
+								{(field) => (
+									<Textarea
+										placeholder='例如 {"note":"..."}'
+										rows={6}
+										value={field.state.value}
+										onBlur={field.handleBlur}
+										onChange={(e) => field.handleChange(e.target.value)}
+									/>
+								)}
+							</Field>
+						</div>
 					</div>
 
-					<DialogFooter>
+					<DialogFooter className="shrink-0 border-t border-border pt-4">
 						<Button
 							type="submit"
 							disabled={

@@ -35,7 +35,11 @@ function RouteVersionsPage() {
 
 	const handleCompile = async () => {
 		if (!routingCode) return;
-		await compileRoute(routingCode);
+		try {
+			await compileRoute(routingCode);
+		} catch {
+			// handled by mutation onError toast
+		}
 	};
 
 	const formatErrors = (errors: RouteVersion["errorsJson"]) => {
