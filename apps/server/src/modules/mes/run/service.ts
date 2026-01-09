@@ -466,7 +466,18 @@ export const generateUnits = async (
 		try {
 			const run = await db.run.findUnique({
 				where: { runNo },
-				include: { workOrder: true },
+				include: {
+					workOrder: true,
+					routeVersion: {
+						include: {
+							routing: {
+								include: {
+									steps: { orderBy: { stepNo: "asc" }, take: 1 },
+								},
+							},
+						},
+					},
+				},
 			});
 
 			if (!run) {
@@ -509,13 +520,16 @@ export const generateUnits = async (
 			// Generate SN prefix based on run number or custom prefix
 			const snPrefix = data.snPrefix || `SN-${runNo}-`;
 
+			// Get first step number from routing
+			const firstStepNo = run.routeVersion?.routing?.steps?.[0]?.stepNo ?? 1;
+
 			// Create units in batch
 			const unitsData = Array.from({ length: data.quantity }, (_, i) => ({
 				runId: run.id,
 				woId: run.workOrder.id,
 				sn: `${snPrefix}${String(i + 1).padStart(4, "0")}`,
 				status: UnitStatus.QUEUED,
-				currentStepNo: 0,
+				currentStepNo: firstStepNo,
 			}));
 
 			await db.unit.createMany({ data: unitsData });
