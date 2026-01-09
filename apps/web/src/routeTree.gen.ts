@@ -28,13 +28,13 @@ import { Route as AuthenticatedMesRouteVersionsRouteImport } from './routes/_aut
 import { Route as AuthenticatedMesReworkTasksRouteImport } from './routes/_authenticated/mes/rework-tasks'
 import { Route as AuthenticatedMesReadinessExceptionsRouteImport } from './routes/_authenticated/mes/readiness-exceptions'
 import { Route as AuthenticatedMesReadinessConfigRouteImport } from './routes/_authenticated/mes/readiness-config'
-import { Route as AuthenticatedMesOqcRouteImport } from './routes/_authenticated/mes/oqc'
 import { Route as AuthenticatedMesFaiRouteImport } from './routes/_authenticated/mes/fai'
 import { Route as AuthenticatedMesExecutionRouteImport } from './routes/_authenticated/mes/execution'
 import { Route as AuthenticatedMesDefectsRouteImport } from './routes/_authenticated/mes/defects'
 import { Route as AuthenticatedMesWorkCentersIndexRouteImport } from './routes/_authenticated/mes/work-centers/index'
 import { Route as AuthenticatedMesRunsIndexRouteImport } from './routes/_authenticated/mes/runs/index'
 import { Route as AuthenticatedMesRoutesIndexRouteImport } from './routes/_authenticated/mes/routes/index'
+import { Route as AuthenticatedMesOqcIndexRouteImport } from './routes/_authenticated/mes/oqc/index'
 import { Route as AuthenticatedMesMaterialsIndexRouteImport } from './routes/_authenticated/mes/materials/index'
 import { Route as AuthenticatedMesLoadingIndexRouteImport } from './routes/_authenticated/mes/loading/index'
 import { Route as AuthenticatedMesBomsIndexRouteImport } from './routes/_authenticated/mes/boms/index'
@@ -151,11 +151,6 @@ const AuthenticatedMesReadinessConfigRoute =
     path: '/mes/readiness-config',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedMesOqcRoute = AuthenticatedMesOqcRouteImport.update({
-  id: '/mes/oqc',
-  path: '/mes/oqc',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedMesFaiRoute = AuthenticatedMesFaiRouteImport.update({
   id: '/mes/fai',
   path: '/mes/fai',
@@ -190,6 +185,12 @@ const AuthenticatedMesRoutesIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedMesRoutesRoute,
   } as any)
+const AuthenticatedMesOqcIndexRoute =
+  AuthenticatedMesOqcIndexRouteImport.update({
+    id: '/mes/oqc/',
+    path: '/mes/oqc/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMesMaterialsIndexRoute =
   AuthenticatedMesMaterialsIndexRouteImport.update({
     id: '/mes/materials/',
@@ -222,9 +223,9 @@ const AuthenticatedMesRoutesRoutingCodeRoute =
   } as any)
 const AuthenticatedMesOqcRulesRoute =
   AuthenticatedMesOqcRulesRouteImport.update({
-    id: '/rules',
-    path: '/rules',
-    getParentRoute: () => AuthenticatedMesOqcRoute,
+    id: '/mes/oqc/rules',
+    path: '/mes/oqc/rules',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedMesLoadingSlotConfigRoute =
   AuthenticatedMesLoadingSlotConfigRouteImport.update({
@@ -253,7 +254,6 @@ export interface FileRoutesByFullPath {
   '/mes/defects': typeof AuthenticatedMesDefectsRoute
   '/mes/execution': typeof AuthenticatedMesExecutionRoute
   '/mes/fai': typeof AuthenticatedMesFaiRoute
-  '/mes/oqc': typeof AuthenticatedMesOqcRouteWithChildren
   '/mes/readiness-config': typeof AuthenticatedMesReadinessConfigRoute
   '/mes/readiness-exceptions': typeof AuthenticatedMesReadinessExceptionsRoute
   '/mes/rework-tasks': typeof AuthenticatedMesReworkTasksRoute
@@ -277,6 +277,7 @@ export interface FileRoutesByFullPath {
   '/mes/boms': typeof AuthenticatedMesBomsIndexRoute
   '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
   '/mes/materials': typeof AuthenticatedMesMaterialsIndexRoute
+  '/mes/oqc': typeof AuthenticatedMesOqcIndexRoute
   '/mes/routes/': typeof AuthenticatedMesRoutesIndexRoute
   '/mes/runs': typeof AuthenticatedMesRunsIndexRoute
   '/mes/work-centers': typeof AuthenticatedMesWorkCentersIndexRoute
@@ -289,7 +290,6 @@ export interface FileRoutesByTo {
   '/mes/defects': typeof AuthenticatedMesDefectsRoute
   '/mes/execution': typeof AuthenticatedMesExecutionRoute
   '/mes/fai': typeof AuthenticatedMesFaiRoute
-  '/mes/oqc': typeof AuthenticatedMesOqcRouteWithChildren
   '/mes/readiness-config': typeof AuthenticatedMesReadinessConfigRoute
   '/mes/readiness-exceptions': typeof AuthenticatedMesReadinessExceptionsRoute
   '/mes/rework-tasks': typeof AuthenticatedMesReworkTasksRoute
@@ -312,6 +312,7 @@ export interface FileRoutesByTo {
   '/mes/boms': typeof AuthenticatedMesBomsIndexRoute
   '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
   '/mes/materials': typeof AuthenticatedMesMaterialsIndexRoute
+  '/mes/oqc': typeof AuthenticatedMesOqcIndexRoute
   '/mes/routes': typeof AuthenticatedMesRoutesIndexRoute
   '/mes/runs': typeof AuthenticatedMesRunsIndexRoute
   '/mes/work-centers': typeof AuthenticatedMesWorkCentersIndexRoute
@@ -326,7 +327,6 @@ export interface FileRoutesById {
   '/_authenticated/mes/defects': typeof AuthenticatedMesDefectsRoute
   '/_authenticated/mes/execution': typeof AuthenticatedMesExecutionRoute
   '/_authenticated/mes/fai': typeof AuthenticatedMesFaiRoute
-  '/_authenticated/mes/oqc': typeof AuthenticatedMesOqcRouteWithChildren
   '/_authenticated/mes/readiness-config': typeof AuthenticatedMesReadinessConfigRoute
   '/_authenticated/mes/readiness-exceptions': typeof AuthenticatedMesReadinessExceptionsRoute
   '/_authenticated/mes/rework-tasks': typeof AuthenticatedMesReworkTasksRoute
@@ -350,6 +350,7 @@ export interface FileRoutesById {
   '/_authenticated/mes/boms/': typeof AuthenticatedMesBomsIndexRoute
   '/_authenticated/mes/loading/': typeof AuthenticatedMesLoadingIndexRoute
   '/_authenticated/mes/materials/': typeof AuthenticatedMesMaterialsIndexRoute
+  '/_authenticated/mes/oqc/': typeof AuthenticatedMesOqcIndexRoute
   '/_authenticated/mes/routes/': typeof AuthenticatedMesRoutesIndexRoute
   '/_authenticated/mes/runs/': typeof AuthenticatedMesRunsIndexRoute
   '/_authenticated/mes/work-centers/': typeof AuthenticatedMesWorkCentersIndexRoute
@@ -364,7 +365,6 @@ export interface FileRouteTypes {
     | '/mes/defects'
     | '/mes/execution'
     | '/mes/fai'
-    | '/mes/oqc'
     | '/mes/readiness-config'
     | '/mes/readiness-exceptions'
     | '/mes/rework-tasks'
@@ -388,6 +388,7 @@ export interface FileRouteTypes {
     | '/mes/boms'
     | '/mes/loading'
     | '/mes/materials'
+    | '/mes/oqc'
     | '/mes/routes/'
     | '/mes/runs'
     | '/mes/work-centers'
@@ -400,7 +401,6 @@ export interface FileRouteTypes {
     | '/mes/defects'
     | '/mes/execution'
     | '/mes/fai'
-    | '/mes/oqc'
     | '/mes/readiness-config'
     | '/mes/readiness-exceptions'
     | '/mes/rework-tasks'
@@ -423,6 +423,7 @@ export interface FileRouteTypes {
     | '/mes/boms'
     | '/mes/loading'
     | '/mes/materials'
+    | '/mes/oqc'
     | '/mes/routes'
     | '/mes/runs'
     | '/mes/work-centers'
@@ -436,7 +437,6 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/defects'
     | '/_authenticated/mes/execution'
     | '/_authenticated/mes/fai'
-    | '/_authenticated/mes/oqc'
     | '/_authenticated/mes/readiness-config'
     | '/_authenticated/mes/readiness-exceptions'
     | '/_authenticated/mes/rework-tasks'
@@ -460,6 +460,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/boms/'
     | '/_authenticated/mes/loading/'
     | '/_authenticated/mes/materials/'
+    | '/_authenticated/mes/oqc/'
     | '/_authenticated/mes/routes/'
     | '/_authenticated/mes/runs/'
     | '/_authenticated/mes/work-centers/'
@@ -605,13 +606,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesReadinessConfigRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/mes/oqc': {
-      id: '/_authenticated/mes/oqc'
-      path: '/mes/oqc'
-      fullPath: '/mes/oqc'
-      preLoaderRoute: typeof AuthenticatedMesOqcRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/mes/fai': {
       id: '/_authenticated/mes/fai'
       path: '/mes/fai'
@@ -654,6 +648,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesRoutesIndexRouteImport
       parentRoute: typeof AuthenticatedMesRoutesRoute
     }
+    '/_authenticated/mes/oqc/': {
+      id: '/_authenticated/mes/oqc/'
+      path: '/mes/oqc'
+      fullPath: '/mes/oqc'
+      preLoaderRoute: typeof AuthenticatedMesOqcIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/mes/materials/': {
       id: '/_authenticated/mes/materials/'
       path: '/mes/materials'
@@ -691,10 +692,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/mes/oqc/rules': {
       id: '/_authenticated/mes/oqc/rules'
-      path: '/rules'
+      path: '/mes/oqc/rules'
       fullPath: '/mes/oqc/rules'
       preLoaderRoute: typeof AuthenticatedMesOqcRulesRouteImport
-      parentRoute: typeof AuthenticatedMesOqcRoute
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/loading/slot-config': {
       id: '/_authenticated/mes/loading/slot-config'
@@ -720,17 +721,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthenticatedMesOqcRouteChildren {
-  AuthenticatedMesOqcRulesRoute: typeof AuthenticatedMesOqcRulesRoute
-}
-
-const AuthenticatedMesOqcRouteChildren: AuthenticatedMesOqcRouteChildren = {
-  AuthenticatedMesOqcRulesRoute: AuthenticatedMesOqcRulesRoute,
-}
-
-const AuthenticatedMesOqcRouteWithChildren =
-  AuthenticatedMesOqcRoute._addFileChildren(AuthenticatedMesOqcRouteChildren)
-
 interface AuthenticatedMesRoutesRouteChildren {
   AuthenticatedMesRoutesRoutingCodeRoute: typeof AuthenticatedMesRoutesRoutingCodeRoute
   AuthenticatedMesRoutesIndexRoute: typeof AuthenticatedMesRoutesIndexRoute
@@ -755,7 +745,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesDefectsRoute: typeof AuthenticatedMesDefectsRoute
   AuthenticatedMesExecutionRoute: typeof AuthenticatedMesExecutionRoute
   AuthenticatedMesFaiRoute: typeof AuthenticatedMesFaiRoute
-  AuthenticatedMesOqcRoute: typeof AuthenticatedMesOqcRouteWithChildren
   AuthenticatedMesReadinessConfigRoute: typeof AuthenticatedMesReadinessConfigRoute
   AuthenticatedMesReadinessExceptionsRoute: typeof AuthenticatedMesReadinessExceptionsRoute
   AuthenticatedMesReworkTasksRoute: typeof AuthenticatedMesReworkTasksRoute
@@ -773,10 +762,12 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesIntegrationManualEntryRoute: typeof AuthenticatedMesIntegrationManualEntryRoute
   AuthenticatedMesIntegrationStatusRoute: typeof AuthenticatedMesIntegrationStatusRoute
   AuthenticatedMesLoadingSlotConfigRoute: typeof AuthenticatedMesLoadingSlotConfigRoute
+  AuthenticatedMesOqcRulesRoute: typeof AuthenticatedMesOqcRulesRoute
   AuthenticatedMesRunsRunNoRoute: typeof AuthenticatedMesRunsRunNoRoute
   AuthenticatedMesBomsIndexRoute: typeof AuthenticatedMesBomsIndexRoute
   AuthenticatedMesLoadingIndexRoute: typeof AuthenticatedMesLoadingIndexRoute
   AuthenticatedMesMaterialsIndexRoute: typeof AuthenticatedMesMaterialsIndexRoute
+  AuthenticatedMesOqcIndexRoute: typeof AuthenticatedMesOqcIndexRoute
   AuthenticatedMesRunsIndexRoute: typeof AuthenticatedMesRunsIndexRoute
   AuthenticatedMesWorkCentersIndexRoute: typeof AuthenticatedMesWorkCentersIndexRoute
 }
@@ -788,7 +779,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMesDefectsRoute: AuthenticatedMesDefectsRoute,
   AuthenticatedMesExecutionRoute: AuthenticatedMesExecutionRoute,
   AuthenticatedMesFaiRoute: AuthenticatedMesFaiRoute,
-  AuthenticatedMesOqcRoute: AuthenticatedMesOqcRouteWithChildren,
   AuthenticatedMesReadinessConfigRoute: AuthenticatedMesReadinessConfigRoute,
   AuthenticatedMesReadinessExceptionsRoute:
     AuthenticatedMesReadinessExceptionsRoute,
@@ -812,10 +802,12 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedMesIntegrationStatusRoute,
   AuthenticatedMesLoadingSlotConfigRoute:
     AuthenticatedMesLoadingSlotConfigRoute,
+  AuthenticatedMesOqcRulesRoute: AuthenticatedMesOqcRulesRoute,
   AuthenticatedMesRunsRunNoRoute: AuthenticatedMesRunsRunNoRoute,
   AuthenticatedMesBomsIndexRoute: AuthenticatedMesBomsIndexRoute,
   AuthenticatedMesLoadingIndexRoute: AuthenticatedMesLoadingIndexRoute,
   AuthenticatedMesMaterialsIndexRoute: AuthenticatedMesMaterialsIndexRoute,
+  AuthenticatedMesOqcIndexRoute: AuthenticatedMesOqcIndexRoute,
   AuthenticatedMesRunsIndexRoute: AuthenticatedMesRunsIndexRoute,
   AuthenticatedMesWorkCentersIndexRoute: AuthenticatedMesWorkCentersIndexRoute,
 }

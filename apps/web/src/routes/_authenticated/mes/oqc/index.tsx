@@ -1,5 +1,5 @@
 import { Permission } from "@better-app/db/permissions";
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
@@ -14,10 +14,10 @@ import {
 } from "@/hooks/use-oqc";
 import { useQueryPresets } from "@/hooks/use-query-presets";
 import { INSPECTION_STATUS_MAP } from "@/lib/constants";
-import { OqcCard } from "./-components/oqc-card";
-import { type OqcTableMeta, oqcColumns } from "./-components/oqc-columns";
-import { OqcCompleteDialog, type OqcCompleteFormValues } from "./-components/oqc-complete-dialog";
-import { OqcRecordDialog, type OqcRecordFormValues } from "./-components/oqc-record-dialog";
+import { OqcCard } from "../-components/oqc-card";
+import { type OqcTableMeta, oqcColumns } from "../-components/oqc-columns";
+import { OqcCompleteDialog, type OqcCompleteFormValues } from "../-components/oqc-complete-dialog";
+import { OqcRecordDialog, type OqcRecordFormValues } from "../-components/oqc-record-dialog";
 
 interface OqcFilters {
 	runNo: string;
@@ -31,7 +31,7 @@ interface OqcSearchParams {
 	pageSize?: number;
 }
 
-export const Route = createFileRoute("/_authenticated/mes/oqc")({
+export const Route = createFileRoute("/_authenticated/mes/oqc/")({
 	validateSearch: (search: Record<string, unknown>): OqcSearchParams => ({
 		runNo: (search.runNo as string) || undefined,
 		status: (search.status as string) || undefined,
@@ -44,7 +44,7 @@ export const Route = createFileRoute("/_authenticated/mes/oqc")({
 function OqcPage() {
 	const viewPreferencesKey = "oqc";
 	const navigate = useNavigate();
-	const searchParams = useSearch({ from: "/_authenticated/mes/oqc" });
+	const searchParams = Route.useSearch();
 	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
 
 	const [selectedOqcId, setSelectedOqcId] = useState<string | null>(null);
