@@ -69,33 +69,6 @@ const getKingdeeSession = async (): Promise<
 	return { success: true, data: { config: configResult.data, cookie: loginResult.data.cookie } };
 };
 
-const fetchKingdeeRows = async (
-	session: { config: KingdeeConfig; cookie: string },
-	formId: string,
-	fieldKeys: string,
-	filterString: string,
-): Promise<ServiceResult<unknown[]>> => {
-	const pageSize = 200;
-	let startRow = 0;
-	const rows: unknown[] = [];
-
-	for (;;) {
-		const result = await kingdeeExecuteBillQuery(session.config, session.cookie, {
-			formId,
-			fieldKeys,
-			filterString,
-			startRow,
-			limit: pageSize,
-		});
-		if (!result.success) return result;
-		rows.push(...result.data);
-		if (result.data.length < pageSize) break;
-		startRow += pageSize;
-	}
-
-	return { success: true, data: rows };
-};
-
 // ==========================================
 // Normalize
 // ==========================================
@@ -163,6 +136,8 @@ export const pullBoms = async (
 ): Promise<ServiceResult<PullResult<ErpBomItem>>> => {
 	const config = getErpMasterConfig();
 	const since = cursor.since ?? null;
+	const startRow = cursor.startRow ?? 0;
+	const limit = cursor.limit ?? 200;
 
 	const sessionResult = await getKingdeeSession();
 	if (!sessionResult.success) {
@@ -178,22 +153,30 @@ export const pullBoms = async (
 		return sessionResult;
 	}
 
-	const filterString = buildSinceFilter("FModifyDate", since);
-	const rowsResult = await fetchKingdeeRows(
-		sessionResult.data,
-		config.formIds.bom,
-		BOM_FIELDS.join(","),
-		filterString,
+	const queryResult = await kingdeeExecuteBillQuery(
+		sessionResult.data.config,
+		sessionResult.data.cookie,
+		{
+			formId: config.formIds.bom,
+			fieldKeys: BOM_FIELDS.join(","),
+			filterString: buildSinceFilter("FModifyDate", since),
+			startRow,
+			limit,
+		},
 	);
-	if (!rowsResult.success) return rowsResult;
+	if (!queryResult.success) return queryResult;
 
-	const items = normalizeBoms(rowsResult.data);
+	const items = normalizeBoms(queryResult.data);
+	const hasMore = queryResult.data.length >= limit;
 
 	return {
 		success: true,
 		data: {
 			items,
-			cursor: { hasMore: false },
+			cursor: {
+				hasMore,
+				nextStartRow: hasMore ? startRow + limit : undefined,
+			},
 		},
 	};
 };

@@ -42,6 +42,13 @@ const syncApiMap: SyncApiMap = {
 	"TPM:MAINTENANCE_TASK": tpmMaintenanceTaskSyncApi,
 };
 
+const getCursorHasMore = (value: unknown): boolean => {
+	if (!value || typeof value !== "object") return false;
+	const cursor = (value as { cursor?: unknown }).cursor;
+	if (!cursor || typeof cursor !== "object") return false;
+	return (cursor as { hasMore?: unknown }).hasMore === true;
+};
+
 export function useIntegrationStatus() {
 	return useQuery({
 		queryKey: ["mes", "integration-status"],
@@ -70,11 +77,22 @@ export function useTriggerIntegrationSync() {
 			if (!api) {
 				throw new Error("未找到对应的同步任务");
 			}
-			const response = await api.post();
-			return unwrap(response);
+
+			let pageCount = 0;
+			let result: unknown = null;
+			do {
+				if (pageCount >= 500) {
+					throw new Error("同步分页次数过多，请稍后重试或使用 Cron 同步");
+				}
+				const response = await api.post();
+				result = unwrap(response);
+				pageCount += 1;
+			} while (getCursorHasMore(result));
+
+			return result;
 		},
 		onSuccess: () => {
-			toast.success("同步已触发");
+			toast.success("同步完成");
 			queryClient.invalidateQueries({ queryKey: ["mes", "integration-status"] });
 		},
 		onError: (error: Error) => {

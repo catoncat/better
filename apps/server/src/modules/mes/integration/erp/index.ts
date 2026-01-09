@@ -68,9 +68,9 @@ const bomsSyncPipeline = createSyncPipeline<unknown, ErpBomItem>({
 
 export const syncErpBoms = async (
 	db: PrismaClient,
-	options: { since?: string },
+	options: { since?: string; limit?: number },
 ): Promise<ServiceResult<SyncResult<ErpBomItem>>> => {
-	return bomsSyncPipeline(db, options);
+	return bomsSyncPipeline(db, { ...options, limit: options.limit ?? 50 });
 };
 
 // ==========================================
