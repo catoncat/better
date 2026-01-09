@@ -71,6 +71,10 @@ P1（应该）：
 - [x] 3.1.2 修正文档 drift：验收用例与当前 API/实现一致（尤其 Data Collection/Trace 部分）
   - DoD：`domain_docs/mes/tests/01_acceptance_scenarios.md` 不再引用不存在的 API；每个场景能指向"实际脚本/页面/API"
   - Touch points：`domain_docs/mes/tests/01_acceptance_scenarios.md`、`apps/server/src/modules/mes/trace/*`、`apps/web/src/routes/_authenticated/mes/*`
+  - As-built（实现入口）：
+    - 验收用例：`domain_docs/mes/tests/01_acceptance_scenarios.md`
+    - Trace API：`apps/server/src/modules/mes/trace/routes.ts`、`apps/server/src/modules/mes/trace/service.ts`
+    - Data Collection 写入/校验：`apps/server/src/modules/mes/execution/service.ts`（TrackOut `data[]` + specName 校验与写入 DataValue）
 
 - [ ] 3.1.3 清理过期差距报告与重复规范（避免团队误判进度）
   - DoD：对 `issues/*alignment_report*` 与相关文档标注“已过期/已修复”或更新为 as-built 快照
@@ -83,36 +87,62 @@ P1（应该）：
   - Touch points：`apps/server/scripts/seed.ts`、`apps/server/scripts/seed-mes.ts`
   - Subtasks:
     - [x] 3.2.1.1 Seed: 产线默认 Readiness 开关（最小集：ROUTE + LOADING）
+      - As-built（实现入口）：`apps/server/scripts/seed.ts`（Line.meta.readinessChecks.enabled）
     - [x] 3.2.1.2 Seed: 上料配置（`FeederSlot` + `SlotMaterialMapping`）覆盖 demo 产品
+      - As-built（实现入口）：`apps/server/scripts/seed.ts`（FeederSlot + SlotMaterialMapping）
     - [x] 3.2.1.3 Seed: DIP 最小主数据（line/stations/routing）与可执行路由 READY
+      - As-built（实现入口）：`apps/server/scripts/seed.ts`（LINE-DIP-A + PCBA-DIP-V1 + ensureDefaultRouteVersions）
     - [x] 3.2.1.4 Seed: `db:seed` 产出可重复的验收默认数据（不依赖脚本内 upsert）
+      - As-built（实现入口）：`apps/server/scripts/seed.ts`（resetAllTables + seedDemoBusinessData + 安全 reset 校验）
+  - As-built（实现入口）：
+    - 入口命令：`apps/server/package.json`（`db:seed`）
+    - Seed 主入口：`apps/server/scripts/seed.ts`
 
 - [x] 3.2.2 E2E 演示脚本覆盖"门禁 + 质量闭环 + 收尾 + 追溯"
   - DoD：`apps/server/scripts/test-mes-flow.ts` 能走：WO→Run→Readiness→Loading→FAI→Authorize→TrackIn/Out→Defect/MRB/OQC→Closeout→Trace 校验
   - Touch points：`apps/server/scripts/test-mes-flow.ts`、`apps/server/src/modules/mes/*`
   - Subtasks:
     - [x] 3.2.2.1 Happy path（SMT）：Readiness + Loading + FAI + Authorize + Execution + Closeout
+      - As-built（实现入口）：`apps/server/scripts/test-mes-flow.ts`（happy）
     - [x] 3.2.2.2 OQC：Closeout 触发后可完成（PASS）并让 Run 进入终态
+      - As-built（实现入口）：`apps/server/src/modules/mes/oqc/service.ts`（OQC PASS→Run COMPLETED）、`apps/server/src/modules/mes/run/service.ts`（closeout gate）
     - [x] 3.2.2.3 Trace：校验 route + routeVersion + steps +（至少）上料/检验摘要可定位
       - [x] Trace 响应包含 inspections 摘要（至少 type/status/id，可用于定位 FAI/OQC）
+        - As-built（实现入口）：`apps/server/src/modules/mes/trace/schema.ts`（`inspections[]`）、`apps/server/src/modules/mes/trace/service.ts`
       - [x] Trace 响应包含上料摘要（从 LoadingRecord 派生，至少 slotCode/materialCode/lotNo/loadedAt）
+        - As-built（实现入口）：`apps/server/src/modules/mes/trace/schema.ts`（`loadingRecords[]`）、`apps/server/src/modules/mes/trace/service.ts`
       - [x] `apps/server/scripts/test-mes-flow.ts` 对 inspections/上料摘要做断言
+        - As-built（实现入口）：`apps/server/scripts/test-mes-flow.ts`（Trace 断言：inspections + loadingRecords）
     - [x] 3.2.2.4 Negative branch：至少覆盖一个失败分支（Loading mismatch / OQC FAIL / MRB）
+      - As-built（实现入口）：`apps/server/scripts/test-mes-flow.ts`（Loading mismatch + oqc-fail-*）
+  - As-built（实现入口）：
+    - 验收脚本：`apps/server/scripts/test-mes-flow.ts`
+    - Trace：`apps/server/src/modules/mes/trace/routes.ts`、`apps/server/src/modules/mes/trace/service.ts`
 
 - [x] 3.2.3 把演示脚本升级为“验收脚本”：可选择场景、可重复、可定位
   - DoD：脚本支持参数（例如只跑 SMT/只跑 DIP/只跑 OQC fail 分支），并输出结构化摘要（建议 JSON + 人类可读）
   - Touch points：`apps/server/scripts/test-mes-flow.ts`
   - Subtasks:
     - [x] 3.2.3.1 CLI：场景选择（SMT/DIP + 分支）与输出选项
+      - As-built（实现入口）：`apps/server/scripts/test-mes-flow.ts`（CLI 解析：track/scenario/json/json-file）
     - [x] 3.2.3.2 Summary：结构化结果（JSON）+ 人类可读步骤摘要（含错误码/步骤名）
+      - As-built（实现入口）：`apps/server/scripts/test-mes-flow.ts`（FlowSummary/StepResult + 输出）
     - [x] 3.2.3.3 Repeatable：同一场景可重复跑（数据隔离/幂等策略明确）
+      - As-built（实现入口）：`apps/server/scripts/test-mes-flow.ts`（`--id-strategy`/`--dataset` + WO/SN 生成策略）
+  - As-built（实现入口）：
+    - 验收脚本：`apps/server/scripts/test-mes-flow.ts`
 
 - [x] 3.2.4 外部集成“降级路径”纳入验收（不依赖外部系统在线）
   - DoD：脚本/清单明确如何用 MANUAL/waive 方式通过钢网/锡膏/设备等门禁；并能在 Trace 中看到来源标识
   - Touch points：`apps/server/scripts/test-mes-flow.ts`、`apps/server/src/modules/mes/integration/*`、`apps/server/src/modules/mes/readiness/*`
   - Subtasks:
     - [x] 3.2.4.1 Readiness: 演示 waive/降级路径（不依赖外部系统在线）
+      - As-built（实现入口）：`apps/server/scripts/test-mes-flow.ts`（readiness-waive：enable gates + waive）
     - [x] 3.2.4.2 Trace: 降级/豁免来源在 Trace 中可追溯（source/actor/reason）
+      - As-built（实现入口）：`apps/server/src/modules/mes/trace/schema.ts`、`apps/server/src/modules/mes/trace/service.ts`（readiness.waivedItems）
+  - As-built（实现入口）：
+    - 验收脚本：`apps/server/scripts/test-mes-flow.ts`（readiness-waive）
+    - Readiness：`apps/server/src/modules/mes/readiness/routes.ts`、`apps/server/src/modules/mes/readiness/service.ts`
 
 ### 3.3 Track C — Ops & Deployment Readiness（P0）
 
@@ -155,9 +185,15 @@ P1（应该）：
   - Touch points：`packages/db/prisma/schema/schema.prisma`、`apps/server/src/modules/mes/*`（新增模块）
   - Subtasks:
     - [x] 3.5.1.1 Schema: `DataCollectionSpec` 模型与必要索引/关系
+      - As-built（实现入口）：`packages/db/prisma/schema/schema.prisma`（model DataCollectionSpec + index/unique）
     - [x] 3.5.1.2 Server: CRUD routes + schemas + service（含 filter/sort/pagination）
+      - As-built（实现入口）：`apps/server/src/modules/mes/data-collection-spec/routes.ts`、`apps/server/src/modules/mes/data-collection-spec/schema.ts`、`apps/server/src/modules/mes/data-collection-spec/service.ts`
     - [x] 3.5.1.3 RBAC/Audit: 权限常量 + 默认角色 + 审计事件
+      - As-built（实现入口）：`packages/db/src/permissions/permissions.ts`、`packages/db/src/permissions/preset-roles.ts`、`apps/server/src/modules/mes/data-collection-spec/routes.ts`（recordAuditEvent）
     - [x] 3.5.1.4 Types: Eden types 回填与 API 客户端可用
+      - As-built（实现入口）：`apps/server/src/index.ts`（export type App）、`apps/web/src/lib/eden.ts`（treaty uses ServerApp routes）
+  - As-built（实现入口）：
+    - 模块挂载：`apps/server/src/modules/mes/routes.ts`（use dataCollectionSpecModule）
 
 - [ ] 3.5.2 Web: 采集项管理页（列表 + 新增/编辑对话框）
   - DoD：工程师可自助配置采集项（name/type/method/spec/alarm/isRequired/isActive）；可快速检索
