@@ -13,18 +13,11 @@ export const routeListQuerySchema = t.Object({
 	sourceSystem: t.Optional(t.String()),
 });
 
-const scopeTypeSchema = t.Union([
-	t.Literal("ROUTE"),
-	t.Literal("OPERATION"),
-	t.Literal("STEP"),
-	t.Literal("SOURCE_STEP"),
-]);
+const scopeTypeSchema = t.Union([t.Literal("ROUTE"), t.Literal("STEP")]);
 
 export const executionConfigCreateSchema = t.Object({
 	scopeType: scopeTypeSchema,
 	stepNo: t.Optional(t.Number()),
-	sourceStepKey: t.Optional(t.String()),
-	operationCode: t.Optional(t.String()),
 	stationType: t.Optional(t.Enum(StationType)),
 	stationGroupCode: t.Optional(t.Union([t.String(), t.Null()])),
 	allowedStationIds: t.Optional(t.Union([t.Array(t.String()), t.Null()])),

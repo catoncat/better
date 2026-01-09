@@ -89,12 +89,8 @@ const validateScope = (input: ExecutionConfigCreateInput) => {
 	switch (input.scopeType) {
 		case "ROUTE":
 			return null;
-		case "OPERATION":
-			return input.operationCode ? null : "OPERATION_CODE_REQUIRED";
 		case "STEP":
 			return input.stepNo === undefined ? "STEP_NO_REQUIRED" : null;
-		case "SOURCE_STEP":
-			return input.sourceStepKey ? null : "SOURCE_STEP_KEY_REQUIRED";
 		default:
 			return "SCOPE_TYPE_INVALID";
 	}
@@ -128,14 +124,12 @@ export const listExecutionConfigs = async (
 	}
 
 	const stepIds = routing.steps.map((step) => step.id);
-	const operationIds = routing.steps.map((step) => step.operationId);
 	const sourceStepKeys = routing.steps
 		.map((step) => step.sourceStepKey)
 		.filter((value): value is string => Boolean(value));
 
 	const filters: Prisma.RouteExecutionConfigWhereInput[] = [{ routingId: routing.id }];
 	if (stepIds.length > 0) filters.push({ routingStepId: { in: stepIds } });
-	if (operationIds.length > 0) filters.push({ operationId: { in: operationIds } });
 	if (sourceStepKeys.length > 0) filters.push({ sourceStepKey: { in: sourceStepKeys } });
 
 	const items = await db.routeExecutionConfig.findMany({
@@ -179,7 +173,6 @@ export const createExecutionConfig = async (
 
 	let routingStepId: string | undefined;
 	let sourceStepKey: string | undefined | null;
-	let operationId: string | undefined;
 
 	if (input.scopeType === "STEP") {
 		const step = routing.steps.find((item) => item.stepNo === input.stepNo);
@@ -193,41 +186,6 @@ export const createExecutionConfig = async (
 		}
 		routingStepId = step.id;
 		sourceStepKey = step.sourceStepKey ?? null;
-	}
-
-	if (input.scopeType === "SOURCE_STEP") {
-		const step = routing.steps.find((item) => item.sourceStepKey === input.sourceStepKey);
-		if (!step) {
-			return {
-				success: false,
-				code: "ROUTE_STEP_NOT_FOUND",
-				message: "Routing step not found",
-				status: 404,
-			};
-		}
-		routingStepId = step.id;
-		sourceStepKey = step.sourceStepKey ?? input.sourceStepKey ?? null;
-	}
-
-	if (input.scopeType === "OPERATION") {
-		if (!input.operationCode) {
-			return {
-				success: false,
-				code: "OPERATION_CODE_REQUIRED",
-				message: "Operation code is required",
-				status: 400,
-			};
-		}
-		const operation = await db.operation.findUnique({ where: { code: input.operationCode } });
-		if (!operation) {
-			return {
-				success: false,
-				code: "OPERATION_NOT_FOUND",
-				message: "Operation not found",
-				status: 404,
-			};
-		}
-		operationId = operation.id;
 	}
 
 	const stationGroupResult = await resolveStationGroupId(db, input.stationGroupCode);
@@ -244,8 +202,7 @@ export const createExecutionConfig = async (
 		data: {
 			routingId: input.scopeType === "ROUTE" ? routing.id : undefined,
 			routingStepId,
-			sourceStepKey: sourceStepKey ?? input.sourceStepKey ?? undefined,
-			operationId,
+			sourceStepKey: sourceStepKey ?? undefined,
 			stationType: input.stationType,
 			stationGroupId: stationGroupResult.id,
 			allowedStationIds: toOptionalJsonValue(input.allowedStationIds),
@@ -381,14 +338,12 @@ export const compileRouteExecution = async (
 	}
 
 	const stepIds = routing.steps.map((step) => step.id);
-	const operationIds = routing.steps.map((step) => step.operationId);
 	const sourceStepKeys = routing.steps
 		.map((step) => step.sourceStepKey)
 		.filter((value): value is string => Boolean(value));
 
 	const configFilters: Prisma.RouteExecutionConfigWhereInput[] = [{ routingId: routing.id }];
 	if (stepIds.length > 0) configFilters.push({ routingStepId: { in: stepIds } });
-	if (operationIds.length > 0) configFilters.push({ operationId: { in: operationIds } });
 	if (sourceStepKeys.length > 0) configFilters.push({ sourceStepKey: { in: sourceStepKeys } });
 
 	const configs = await db.routeExecutionConfig.findMany({
@@ -407,7 +362,6 @@ export const compileRouteExecution = async (
 
 	const configsByStepId = new Map<string, ExecutionConfig[]>();
 	const configsBySourceStepKey = new Map<string, ExecutionConfig[]>();
-	const configsByOperationId = new Map<string, ExecutionConfig[]>();
 	const routeConfigs = configs.filter((config) => config.routingId === routing.id);
 
 	for (const config of configs) {
@@ -421,11 +375,6 @@ export const compileRouteExecution = async (
 			list.push(config);
 			configsBySourceStepKey.set(config.sourceStepKey, list);
 		}
-		if (config.operationId) {
-			const list = configsByOperationId.get(config.operationId) ?? [];
-			list.push(config);
-			configsByOperationId.set(config.operationId, list);
-		}
 	}
 
 	for (const step of steps) {
@@ -434,46 +383,21 @@ export const compileRouteExecution = async (
 		const sourceConfigs = step.sourceStepKey
 			? (configsBySourceStepKey.get(step.sourceStepKey) ?? [])
 			: [];
-		const operationConfigs = configsByOperationId.get(step.operationId) ?? [];
 
 		const stepConfig = pickLatest([...stepConfigs, ...sourceConfigs]);
-		const operationConfig = pickLatest(operationConfigs);
 		const routeConfig = pickLatest(routeConfigs);
 
-		const stationType =
-			stepConfig?.stationType ??
-			operationConfig?.stationType ??
-			routeConfig?.stationType ??
-			step.stationType;
+		const stationType = stepConfig?.stationType ?? routeConfig?.stationType ?? step.stationType;
 		const stationGroupId =
-			stepConfig?.stationGroupId ??
-			operationConfig?.stationGroupId ??
-			routeConfig?.stationGroupId ??
-			step.stationGroupId ??
-			null;
+			stepConfig?.stationGroupId ?? routeConfig?.stationGroupId ?? step.stationGroupId ?? null;
 		const allowedStationIds =
-			stepConfig?.allowedStationIds ??
-			operationConfig?.allowedStationIds ??
-			routeConfig?.allowedStationIds ??
-			null;
+			stepConfig?.allowedStationIds ?? routeConfig?.allowedStationIds ?? null;
 		const requiresFAI =
-			stepConfig?.requiresFAI ??
-			operationConfig?.requiresFAI ??
-			routeConfig?.requiresFAI ??
-			step.requiresFAI ??
-			false;
+			stepConfig?.requiresFAI ?? routeConfig?.requiresFAI ?? step.requiresFAI ?? false;
 		const requiresAuthorization =
-			stepConfig?.requiresAuthorization ??
-			operationConfig?.requiresAuthorization ??
-			routeConfig?.requiresAuthorization ??
-			false;
-		const dataSpecIds =
-			stepConfig?.dataSpecIds ?? operationConfig?.dataSpecIds ?? routeConfig?.dataSpecIds ?? null;
-		const ingestMapping =
-			stepConfig?.ingestMapping ??
-			operationConfig?.ingestMapping ??
-			routeConfig?.ingestMapping ??
-			null;
+			stepConfig?.requiresAuthorization ?? routeConfig?.requiresAuthorization ?? false;
+		const dataSpecIds = stepConfig?.dataSpecIds ?? routeConfig?.dataSpecIds ?? null;
+		const ingestMapping = stepConfig?.ingestMapping ?? routeConfig?.ingestMapping ?? null;
 
 		if (!stationType) {
 			errors.push({

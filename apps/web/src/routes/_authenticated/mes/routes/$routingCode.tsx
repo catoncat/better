@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -31,7 +30,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import {
 	Table,
 	TableBody,
@@ -70,10 +68,8 @@ const stationTypeEnum = z.enum(["AUTO", "BATCH", "MANUAL", "TEST"]);
 
 const configSchema = z
 	.object({
-		scopeType: z.enum(["ROUTE", "OPERATION", "STEP", "SOURCE_STEP"]),
+		scopeType: z.enum(["ROUTE", "STEP"]),
 		stepNo: z.string().optional(),
-		sourceStepKey: z.string().optional(),
-		operationCode: z.string().optional(),
 		stationType: z.union([stationTypeEnum, z.literal("")]).optional(),
 		stationGroupCode: z.string().optional(),
 		allowedStationIds: z.array(z.string()).optional(),
@@ -86,20 +82,6 @@ const configSchema = z
 	.superRefine((data, ctx) => {
 		if (data.scopeType === "STEP" && !data.stepNo) {
 			ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["stepNo"], message: "请选择步骤" });
-		}
-		if (data.scopeType === "SOURCE_STEP" && !data.sourceStepKey) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["sourceStepKey"],
-				message: "请选择来源步骤",
-			});
-		}
-		if (data.scopeType === "OPERATION" && !data.operationCode) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["operationCode"],
-				message: "请选择工序",
-			});
 		}
 
 		const ingestMappingText = data.ingestMappingText?.trim();
@@ -173,19 +155,6 @@ function RouteDetailPage() {
 		return map;
 	}, [stationOptions]);
 
-	const operationOptions = useMemo(() => {
-		const map = new Map<string, string>();
-		steps.forEach((step) => {
-			if (!map.has(step.operationCode)) {
-				map.set(step.operationCode, step.operationName);
-			}
-		});
-		return Array.from(map.entries()).map(([code, name]) => ({
-			value: code,
-			label: `${code} · ${name}`,
-		}));
-	}, [steps]);
-
 	const stepOptions = useMemo(
 		() =>
 			steps.map((step) => ({
@@ -194,17 +163,6 @@ function RouteDetailPage() {
 				sourceStepKey: step.sourceStepKey,
 			})),
 		[steps],
-	);
-
-	const sourceStepOptions = useMemo(
-		() =>
-			stepOptions
-				.filter((step) => step.sourceStepKey)
-				.map((step) => ({
-					value: step.sourceStepKey as string,
-					label: `${step.label} · ${step.sourceStepKey}`,
-				})),
-		[stepOptions],
 	);
 
 	const handleOpenCreate = () => {
@@ -250,28 +208,19 @@ function RouteDetailPage() {
 			const sourceConfigs = step.sourceStepKey
 				? executionConfigs.filter((config) => config.sourceStepKey === step.sourceStepKey)
 				: [];
-			const operationConfigs = executionConfigs.filter(
-				(config) => config.operation?.code === step.operationCode,
-			);
 
 			const latestStepConfig = pickLatest([...stepConfigs, ...sourceConfigs]);
-			const latestOperationConfig = pickLatest(operationConfigs);
 
 			const stationGroupMarker =
 				latestStepConfig?.stationGroup?.code ??
 				(latestStepConfig?.stationGroupId ? "__HAS__" : undefined) ??
-				latestOperationConfig?.stationGroup?.code ??
-				(latestOperationConfig?.stationGroupId ? "__HAS__" : undefined) ??
 				latestRouteConfig?.stationGroup?.code ??
 				(latestRouteConfig?.stationGroupId ? "__HAS__" : undefined) ??
 				step.stationGroupCode ??
 				null;
 
 			const allowedStationIdsRaw =
-				latestStepConfig?.allowedStationIds ??
-				latestOperationConfig?.allowedStationIds ??
-				latestRouteConfig?.allowedStationIds ??
-				null;
+				latestStepConfig?.allowedStationIds ?? latestRouteConfig?.allowedStationIds ?? null;
 			const allowedStationIds = normalizeStringArray(allowedStationIdsRaw);
 
 			if (!stationGroupMarker && allowedStationIds.length === 0) {
@@ -556,13 +505,16 @@ function RouteDetailPage() {
 								</TableRow>
 							) : configs && configs.length > 0 ? (
 								configs.map((config) => {
-									const scopeLabel = config.routingStepId
-										? `Step ${config.routingStep?.stepNo ?? "-"}`
-										: config.sourceStepKey
-											? `来源步骤 ${config.sourceStepKey}`
-											: config.operationId
-												? `工序 ${config.operation?.code ?? "-"}`
-												: "路由";
+									const matchedStepNo =
+										config.routingStep?.stepNo ??
+										(config.sourceStepKey
+											? steps.find((step) => step.sourceStepKey === config.sourceStepKey)?.stepNo
+											: undefined);
+									const scopeLabel = config.routingId
+										? "全局默认"
+										: matchedStepNo
+											? `Step ${matchedStepNo}`
+											: "未知范围";
 									const allowedIds = normalizeStringArray(config.allowedStationIds);
 									const allowedLabels = allowedIds
 										.map((id) => stationById.get(id)?.code)
@@ -620,8 +572,6 @@ function RouteDetailPage() {
 				editingConfig={editingConfig}
 				routingCode={routingCode}
 				stepOptions={stepOptions}
-				sourceStepOptions={sourceStepOptions}
-				operationOptions={operationOptions}
 				stationGroupOptions={stationGroupOptions}
 				stations={stationOptions}
 			/>
@@ -725,8 +675,6 @@ function ExecutionConfigDialog({
 	editingConfig,
 	routingCode,
 	stepOptions,
-	sourceStepOptions,
-	operationOptions,
 	stationGroupOptions,
 	stations,
 }: {
@@ -735,8 +683,6 @@ function ExecutionConfigDialog({
 	editingConfig: ExecutionConfig | null;
 	routingCode: string;
 	stepOptions: Array<{ value: string; label: string; sourceStepKey: string | null }>;
-	sourceStepOptions: Array<{ value: string; label: string }>;
-	operationOptions: Array<{ value: string; label: string }>;
 	stationGroupOptions: Array<{ value: string; label: string }>;
 	stations: StationOption[];
 }) {
@@ -744,12 +690,9 @@ function ExecutionConfigDialog({
 	const isEdit = Boolean(editingConfig);
 	const createMutation = useCreateExecutionConfig(routingCode);
 	const updateMutation = useUpdateExecutionConfig(routingCode, editingConfig?.id ?? "");
-	const [showAdvancedScope, setShowAdvancedScope] = useState(false);
 
 	const resolvedScopeType = useMemo(() => {
-		if (editingConfig?.routingStepId) return "STEP";
-		if (editingConfig?.sourceStepKey) return "SOURCE_STEP";
-		if (editingConfig?.operationId) return "OPERATION";
+		if (editingConfig?.routingStepId || editingConfig?.sourceStepKey) return "STEP";
 		return "ROUTE";
 	}, [editingConfig]);
 
@@ -759,8 +702,6 @@ function ExecutionConfigDialog({
 	const defaultValues: ConfigFormValues = {
 		scopeType: resolvedScopeType,
 		stepNo: editingConfig?.routingStep?.stepNo ? String(editingConfig.routingStep.stepNo) : "",
-		sourceStepKey: editingConfig?.sourceStepKey ?? "",
-		operationCode: editingConfig?.operation?.code ?? "",
 		stationType: editingConfig?.stationType ?? "",
 		stationGroupCode: stationGroupCode ?? "",
 		allowedStationIds: normalizeStringArray(editingConfig?.allowedStationIds ?? null),
@@ -808,8 +749,6 @@ function ExecutionConfigDialog({
 			await createMutation.mutateAsync({
 				scopeType: values.scopeType,
 				stepNo: values.stepNo ? Number(values.stepNo) : undefined,
-				sourceStepKey: values.sourceStepKey || undefined,
-				operationCode: values.operationCode || undefined,
 				stationType,
 				stationGroupCode,
 				allowedStationIds: values.allowedStationIds?.length ? values.allowedStationIds : null,
@@ -827,8 +766,6 @@ function ExecutionConfigDialog({
 		form.reset({
 			scopeType: resolvedScopeType,
 			stepNo: editingConfig?.routingStep?.stepNo ? String(editingConfig.routingStep.stepNo) : "",
-			sourceStepKey: editingConfig?.sourceStepKey ?? "",
-			operationCode: editingConfig?.operation?.code ?? "",
 			stationType: editingConfig?.stationType ?? "",
 			stationGroupCode: stationGroupCode ?? "",
 			allowedStationIds: normalizeStringArray(editingConfig?.allowedStationIds ?? null),
@@ -844,12 +781,9 @@ function ExecutionConfigDialog({
 
 	useEffect(() => {
 		if (open && !editingConfig) {
-			setShowAdvancedScope(false);
 			form.reset({
 				scopeType: "ROUTE",
 				stepNo: "",
-				sourceStepKey: "",
-				operationCode: "",
 				stationType: "",
 				stationGroupCode: "",
 				allowedStationIds: [],
@@ -861,17 +795,6 @@ function ExecutionConfigDialog({
 			});
 		}
 	}, [editingConfig, form, open]);
-
-	useEffect(() => {
-		if (isEdit) return;
-		if (showAdvancedScope) return;
-		const current = form.state.values.scopeType;
-		if (current === "OPERATION" || current === "SOURCE_STEP") {
-			form.setFieldValue("scopeType", "STEP");
-			form.setFieldValue("operationCode", "");
-			form.setFieldValue("sourceStepKey", "");
-		}
-	}, [form, isEdit, showAdvancedScope]);
 
 	const stepOptionsForSelect = stepOptions.map((option) => ({
 		value: option.value,
@@ -899,7 +822,7 @@ function ExecutionConfigDialog({
 								form={form}
 								name="scopeType"
 								label="配置范围"
-								description="推荐：全局默认 + 按步骤覆盖；工序/来源步骤为高级选项。"
+								description="推荐：全局默认 + 按步骤覆盖。"
 							>
 								{(field) => (
 									<Select
@@ -915,14 +838,6 @@ function ExecutionConfigDialog({
 										<SelectContent>
 											<SelectItem value="ROUTE">全局默认（整条路由）</SelectItem>
 											<SelectItem value="STEP">按步骤覆盖</SelectItem>
-											{(showAdvancedScope || isEdit) && (
-												<>
-													<SelectItem value="OPERATION">高级：按工序（跨路由）</SelectItem>
-													<SelectItem value="SOURCE_STEP">
-														高级：按来源步骤（与步骤等效）
-													</SelectItem>
-												</>
-											)}
 										</SelectContent>
 									</Select>
 								)}
@@ -937,6 +852,7 @@ function ExecutionConfigDialog({
 													<Select
 														value={field.state.value || ""}
 														onValueChange={field.handleChange}
+														disabled={isEdit}
 													>
 														<SelectTrigger>
 															<SelectValue placeholder="选择步骤" />
@@ -952,75 +868,9 @@ function ExecutionConfigDialog({
 												)}
 											</Field>
 										)}
-
-										{(showAdvancedScope || isEdit) && scopeType === "SOURCE_STEP" && (
-											<Field
-												form={form}
-												name="sourceStepKey"
-												label="来源步骤"
-												description="高级：按 sourceStepKey 匹配，用于 ERP 更新后保持配置。"
-											>
-												{(field) => (
-													<Select
-														value={field.state.value || ""}
-														onValueChange={field.handleChange}
-													>
-														<SelectTrigger>
-															<SelectValue placeholder="选择来源步骤" />
-														</SelectTrigger>
-														<SelectContent>
-															{sourceStepOptions.map((option) => (
-																<SelectItem key={option.value} value={option.value}>
-																	{option.label}
-																</SelectItem>
-															))}
-														</SelectContent>
-													</Select>
-												)}
-											</Field>
-										)}
-
-										{(showAdvancedScope || isEdit) && scopeType === "OPERATION" && (
-											<Field
-												form={form}
-												name="operationCode"
-												label="工序"
-												description="高级：跨路由共享（谨慎使用）。"
-											>
-												{(field) => (
-													<Select
-														value={field.state.value || ""}
-														onValueChange={field.handleChange}
-													>
-														<SelectTrigger>
-															<SelectValue placeholder="选择工序" />
-														</SelectTrigger>
-														<SelectContent>
-															{operationOptions.map((option) => (
-																<SelectItem key={option.value} value={option.value}>
-																	{option.label}
-																</SelectItem>
-															))}
-														</SelectContent>
-													</Select>
-												)}
-											</Field>
-										)}
 									</>
 								)}
 							</form.Subscribe>
-
-							{!isEdit && (
-								<div className="grid gap-1.5 md:col-span-2">
-									<Label className="min-h-[20px] flex items-center">高级作用域</Label>
-									<div className="flex items-center justify-between rounded-md border border-border p-3">
-										<span className="text-sm text-muted-foreground">
-											显示工序/来源步骤（一般不需要）
-										</span>
-										<Switch checked={showAdvancedScope} onCheckedChange={setShowAdvancedScope} />
-									</div>
-								</div>
-							)}
 
 							<Field form={form} name="stationType" label="站点类型">
 								{(field) => (
