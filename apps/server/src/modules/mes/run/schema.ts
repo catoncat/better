@@ -29,6 +29,19 @@ export const runListQuerySchema = t.Object({
 	lineCode: t.Optional(t.String()),
 });
 
+export const generateUnitsSchema = t.Object({
+	quantity: t.Number({ minimum: 1, maximum: 10000 }),
+	snPrefix: t.Optional(t.String()),
+});
+
+export const generateUnitsResponseSchema = t.Object({
+	ok: t.Boolean(),
+	data: t.Object({
+		generated: t.Number(),
+		units: t.Array(t.Object({ sn: t.String(), status: t.String() })),
+	}),
+});
+
 export const runDetailResponseSchema = t.Object({
 	run: t.Object({
 		id: t.String(),

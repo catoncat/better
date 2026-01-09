@@ -15,8 +15,10 @@ import {
 	runErrorResponseSchema,
 	runListQuerySchema,
 	runResponseSchema,
+	generateUnitsSchema,
+	generateUnitsResponseSchema,
 } from "./schema";
-import { authorizeRun, closeRun, getRunDetail, listRuns } from "./service";
+import { authorizeRun, closeRun, getRunDetail, listRuns, generateUnits } from "./service";
 
 export const runModule = new Elysia({
 	prefix: "/runs",
@@ -202,5 +204,28 @@ export const runModule = new Elysia({
 				409: runErrorResponseSchema,
 			},
 			detail: { tags: ["MES - Runs"], summary: "Run closeout" },
+		},
+	)
+	.post(
+		"/:runNo/generate-units",
+		async ({ db, params, body, set }) => {
+			const result = await generateUnits(db, params.runNo, body);
+			if (!result.success) {
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.RUN_AUTHORIZE,
+			params: t.Object({ runNo: t.String() }),
+			body: generateUnitsSchema,
+			response: {
+				200: generateUnitsResponseSchema,
+				400: runErrorResponseSchema,
+				404: runErrorResponseSchema,
+			},
+			detail: { tags: ["MES - Runs"], summary: "Generate units for a run" },
 		},
 	);

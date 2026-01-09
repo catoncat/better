@@ -81,18 +81,16 @@ export function useCreateRun() {
 
 	return useMutation({
 		mutationFn: async ({ woNo, ...body }: RunCreateInput & { woNo: string }) => {
-			const { data, error } = await client.api["work-orders"]({ woNo }).runs.post(body);
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "创建批次失败");
-			}
-
-			return data;
+			const response = await client.api["work-orders"]({ woNo }).runs.post(body);
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			toast.success("生产批次已创建");
 			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
+		},
+		onError: (error: Error) => {
+			toast.error(error.message);
 		},
 	});
 }
@@ -134,6 +132,36 @@ export function useCloseRun() {
 			if (error instanceof ApiError && error.code === "OQC_REQUIRED") {
 				queryClient.invalidateQueries({ queryKey: ["mes", "oqc", "run", runNo] });
 			}
+			toast.error(error.message);
+		},
+	});
+}
+
+export function useGenerateUnits() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({
+			runNo,
+			quantity,
+			snPrefix,
+		}: {
+			runNo: string;
+			quantity: number;
+			snPrefix?: string;
+		}) => {
+			const response = await client.api.runs({ runNo })["generate-units"].post({
+				quantity,
+				snPrefix,
+			});
+			return unwrap(response);
+		},
+		onSuccess: (_data, { runNo }) => {
+			toast.success(`已生成 ${_data.generated} 个单件`);
+			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
+			queryClient.invalidateQueries({ queryKey: ["mes", "run-detail", runNo] });
+		},
+		onError: (error: Error) => {
 			toast.error(error.message);
 		},
 	});

@@ -6,10 +6,11 @@ import { parseSortOrderBy } from "../../../utils/sort";
 import { checkFaiGate } from "../fai/service";
 import { checkAndTriggerOqc } from "../oqc/trigger-service";
 import { canAuthorize as checkReadiness } from "../readiness/service";
-import type { runAuthorizeSchema, runListQuerySchema } from "./schema";
+import type { runAuthorizeSchema, runListQuerySchema, generateUnitsSchema } from "./schema";
 
 type RunAuthorizeInput = Static<typeof runAuthorizeSchema>;
 type RunListQuery = Static<typeof runListQuerySchema>;
+type GenerateUnitsInput = Static<typeof generateUnitsSchema>;
 type RunRecord = Prisma.RunGetPayload<Prisma.RunDefaultArgs>;
 
 const tracer = trace.getTracer("mes");
@@ -445,4 +446,102 @@ export const archiveRun = async (
 		message: "Run archiving is not yet implemented",
 		status: 501,
 	};
+};
+
+/**
+ * Generate units for a Run.
+ * Creates unit records with auto-generated SNs based on the run number.
+ */
+export const generateUnits = async (
+	db: PrismaClient,
+	runNo: string,
+	data: GenerateUnitsInput,
+): Promise<ServiceResult<{ generated: number; units: Array<{ sn: string; status: string }> }>> => {
+	return tracer.startActiveSpan("mes.runs.generateUnits", async (span) => {
+		setSpanAttributes(span, {
+			"mes.run.run_no": runNo,
+			"mes.run.quantity": data.quantity,
+		});
+
+		try {
+			const run = await db.run.findUnique({
+				where: { runNo },
+				include: { workOrder: true },
+			});
+
+			if (!run) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "RUN_NOT_FOUND");
+				return {
+					success: false as const,
+					code: "RUN_NOT_FOUND",
+					message: "Run not found",
+					status: 404,
+				};
+			}
+
+			// Check if run is in a valid state for unit generation
+			const allowedStatuses: RunStatus[] = [RunStatus.PREP, RunStatus.AUTHORIZED];
+			if (!allowedStatuses.includes(run.status)) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "INVALID_RUN_STATUS");
+				return {
+					success: false as const,
+					code: "INVALID_RUN_STATUS",
+					message: `Cannot generate units for run in status ${run.status}. Allowed: ${allowedStatuses.join(", ")}`,
+					status: 400,
+				};
+			}
+
+			// Check existing unit count
+			const existingCount = await db.unit.count({ where: { runId: run.id } });
+			if (existingCount > 0) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "UNITS_ALREADY_EXIST");
+				return {
+					success: false as const,
+					code: "UNITS_ALREADY_EXIST",
+					message: `Run already has ${existingCount} units. Delete existing units first or use a different run.`,
+					status: 400,
+				};
+			}
+
+			// Generate SN prefix based on run number or custom prefix
+			const snPrefix = data.snPrefix || `SN-${runNo}-`;
+
+			// Create units in batch
+			const unitsData = Array.from({ length: data.quantity }, (_, i) => ({
+				runId: run.id,
+				woId: run.workOrder.id,
+				sn: `${snPrefix}${String(i + 1).padStart(4, "0")}`,
+				status: UnitStatus.QUEUED,
+				currentStepNo: 0,
+			}));
+
+			await db.unit.createMany({ data: unitsData });
+
+			// Fetch created units for response
+			const createdUnits = await db.unit.findMany({
+				where: { runId: run.id },
+				select: { sn: true, status: true },
+				orderBy: { sn: "asc" },
+			});
+
+			span.setAttribute("mes.units.generated", createdUnits.length);
+
+			return {
+				success: true as const,
+				data: {
+					generated: createdUnits.length,
+					units: createdUnits,
+				},
+			};
+		} catch (error) {
+			span.recordException(error as Error);
+			span.setStatus({ code: SpanStatusCode.ERROR });
+			throw error;
+		} finally {
+			span.end();
+		}
+	});
 };

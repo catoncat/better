@@ -45,7 +45,7 @@ import {
 	useReadinessLatest,
 	useWaiveItem,
 } from "@/hooks/use-readiness";
-import { useCloseRun, useRunDetail } from "@/hooks/use-runs";
+import { useCloseRun, useRunDetail, useGenerateUnits } from "@/hooks/use-runs";
 import { INSPECTION_STATUS_MAP, READINESS_ITEM_TYPE_MAP } from "@/lib/constants";
 import { CloseoutDialog } from "@/routes/_authenticated/mes/-components/closeout-dialog";
 import {
@@ -61,6 +61,7 @@ function RunDetailPage() {
 	const { runNo } = Route.useParams();
 	const { data, isLoading, refetch, isFetching } = useRunDetail(runNo);
 	const closeRun = useCloseRun();
+	const generateUnits = useGenerateUnits();
 	const {
 		data: readinessData,
 		isLoading: readinessLoading,
@@ -91,6 +92,10 @@ function RunDetailPage() {
 	// MRB dialog state
 	const [mrbDialogOpen, setMrbDialogOpen] = useState(false);
 	const [closeoutDialogOpen, setCloseoutDialogOpen] = useState(false);
+
+	// Generate units dialog state
+	const [generateUnitsDialogOpen, setGenerateUnitsDialogOpen] = useState(false);
+	const [generateUnitsQty, setGenerateUnitsQty] = useState(10);
 
 	const formatTime = (value?: string | Date | null) => {
 		if (!value) return "-";
@@ -322,7 +327,19 @@ function RunDetailPage() {
 					</CardHeader>
 					<CardContent>
 						<p className="text-2xl font-bold">{data.unitStats.total}</p>
-						<p className="text-xs text-muted-foreground">完成率: {progressPercent}%</p>
+						{data.unitStats.total === 0 && (data.run.status === "PREP" || data.run.status === "AUTHORIZED") ? (
+							<Button
+								variant="outline"
+								size="sm"
+								className="mt-2"
+								onClick={() => setGenerateUnitsDialogOpen(true)}
+							>
+								<Plus className="mr-1 h-3 w-3" />
+								生成单件
+							</Button>
+						) : (
+							<p className="text-xs text-muted-foreground">完成率: {progressPercent}%</p>
+						)}
 					</CardContent>
 				</Card>
 				<Card>
@@ -797,6 +814,49 @@ function RunDetailPage() {
 						<Button onClick={handleCreateFai} disabled={faiSampleQty < 1 || createFai.isPending}>
 							{createFai.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							创建
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* Generate Units Dialog */}
+			<Dialog open={generateUnitsDialogOpen} onOpenChange={setGenerateUnitsDialogOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>生成单件</DialogTitle>
+						<DialogDescription>为批次 {runNo} 生成单件序列号</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4 py-4">
+						<div className="space-y-2">
+							<Label htmlFor="generateUnitsQty">生成数量</Label>
+							<Input
+								id="generateUnitsQty"
+								type="number"
+								min={1}
+								max={10000}
+								value={generateUnitsQty}
+								onChange={(e) => setGenerateUnitsQty(Number.parseInt(e.target.value, 10) || 1)}
+								placeholder="输入生成数量"
+							/>
+							<p className="text-xs text-muted-foreground">
+								将生成 {generateUnitsQty} 个单件，SN 格式: SN-{runNo}-0001 ~ SN-{runNo}-{String(generateUnitsQty).padStart(4, "0")}
+							</p>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setGenerateUnitsDialogOpen(false)}>
+							取消
+						</Button>
+						<Button
+							onClick={async () => {
+								await generateUnits.mutateAsync({ runNo, quantity: generateUnitsQty });
+								setGenerateUnitsDialogOpen(false);
+								refetch();
+							}}
+							disabled={generateUnitsQty < 1 || generateUnits.isPending}
+						>
+							{generateUnits.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+							生成
 						</Button>
 					</DialogFooter>
 				</DialogContent>
