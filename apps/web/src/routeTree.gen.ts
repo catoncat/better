@@ -32,9 +32,12 @@ import { Route as AuthenticatedMesOqcRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedMesFaiRouteImport } from './routes/_authenticated/mes/fai'
 import { Route as AuthenticatedMesExecutionRouteImport } from './routes/_authenticated/mes/execution'
 import { Route as AuthenticatedMesDefectsRouteImport } from './routes/_authenticated/mes/defects'
+import { Route as AuthenticatedMesWorkCentersIndexRouteImport } from './routes/_authenticated/mes/work-centers/index'
 import { Route as AuthenticatedMesRunsIndexRouteImport } from './routes/_authenticated/mes/runs/index'
 import { Route as AuthenticatedMesRoutesIndexRouteImport } from './routes/_authenticated/mes/routes/index'
+import { Route as AuthenticatedMesMaterialsIndexRouteImport } from './routes/_authenticated/mes/materials/index'
 import { Route as AuthenticatedMesLoadingIndexRouteImport } from './routes/_authenticated/mes/loading/index'
+import { Route as AuthenticatedMesBomsIndexRouteImport } from './routes/_authenticated/mes/boms/index'
 import { Route as AuthenticatedMesRunsRunNoRouteImport } from './routes/_authenticated/mes/runs/$runNo'
 import { Route as AuthenticatedMesRoutesRoutingCodeRouteImport } from './routes/_authenticated/mes/routes/$routingCode'
 import { Route as AuthenticatedMesOqcRulesRouteImport } from './routes/_authenticated/mes/oqc/rules'
@@ -169,6 +172,12 @@ const AuthenticatedMesDefectsRoute = AuthenticatedMesDefectsRouteImport.update({
   path: '/mes/defects',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedMesWorkCentersIndexRoute =
+  AuthenticatedMesWorkCentersIndexRouteImport.update({
+    id: '/mes/work-centers/',
+    path: '/mes/work-centers/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMesRunsIndexRoute =
   AuthenticatedMesRunsIndexRouteImport.update({
     id: '/mes/runs/',
@@ -181,10 +190,22 @@ const AuthenticatedMesRoutesIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedMesRoutesRoute,
   } as any)
+const AuthenticatedMesMaterialsIndexRoute =
+  AuthenticatedMesMaterialsIndexRouteImport.update({
+    id: '/mes/materials/',
+    path: '/mes/materials/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMesLoadingIndexRoute =
   AuthenticatedMesLoadingIndexRouteImport.update({
     id: '/mes/loading/',
     path: '/mes/loading/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMesBomsIndexRoute =
+  AuthenticatedMesBomsIndexRouteImport.update({
+    id: '/mes/boms/',
+    path: '/mes/boms/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedMesRunsRunNoRoute =
@@ -253,9 +274,12 @@ export interface FileRoutesByFullPath {
   '/mes/oqc/rules': typeof AuthenticatedMesOqcRulesRoute
   '/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
   '/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
+  '/mes/boms': typeof AuthenticatedMesBomsIndexRoute
   '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
+  '/mes/materials': typeof AuthenticatedMesMaterialsIndexRoute
   '/mes/routes/': typeof AuthenticatedMesRoutesIndexRoute
   '/mes/runs': typeof AuthenticatedMesRunsIndexRoute
+  '/mes/work-centers': typeof AuthenticatedMesWorkCentersIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -285,9 +309,12 @@ export interface FileRoutesByTo {
   '/mes/oqc/rules': typeof AuthenticatedMesOqcRulesRoute
   '/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
   '/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
+  '/mes/boms': typeof AuthenticatedMesBomsIndexRoute
   '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
+  '/mes/materials': typeof AuthenticatedMesMaterialsIndexRoute
   '/mes/routes': typeof AuthenticatedMesRoutesIndexRoute
   '/mes/runs': typeof AuthenticatedMesRunsIndexRoute
+  '/mes/work-centers': typeof AuthenticatedMesWorkCentersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -320,9 +347,12 @@ export interface FileRoutesById {
   '/_authenticated/mes/oqc/rules': typeof AuthenticatedMesOqcRulesRoute
   '/_authenticated/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
   '/_authenticated/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
+  '/_authenticated/mes/boms/': typeof AuthenticatedMesBomsIndexRoute
   '/_authenticated/mes/loading/': typeof AuthenticatedMesLoadingIndexRoute
+  '/_authenticated/mes/materials/': typeof AuthenticatedMesMaterialsIndexRoute
   '/_authenticated/mes/routes/': typeof AuthenticatedMesRoutesIndexRoute
   '/_authenticated/mes/runs/': typeof AuthenticatedMesRunsIndexRoute
+  '/_authenticated/mes/work-centers/': typeof AuthenticatedMesWorkCentersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -355,9 +385,12 @@ export interface FileRouteTypes {
     | '/mes/oqc/rules'
     | '/mes/routes/$routingCode'
     | '/mes/runs/$runNo'
+    | '/mes/boms'
     | '/mes/loading'
+    | '/mes/materials'
     | '/mes/routes/'
     | '/mes/runs'
+    | '/mes/work-centers'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -387,9 +420,12 @@ export interface FileRouteTypes {
     | '/mes/oqc/rules'
     | '/mes/routes/$routingCode'
     | '/mes/runs/$runNo'
+    | '/mes/boms'
     | '/mes/loading'
+    | '/mes/materials'
     | '/mes/routes'
     | '/mes/runs'
+    | '/mes/work-centers'
   id:
     | '__root__'
     | '/_authenticated'
@@ -421,9 +457,12 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/oqc/rules'
     | '/_authenticated/mes/routes/$routingCode'
     | '/_authenticated/mes/runs/$runNo'
+    | '/_authenticated/mes/boms/'
     | '/_authenticated/mes/loading/'
+    | '/_authenticated/mes/materials/'
     | '/_authenticated/mes/routes/'
     | '/_authenticated/mes/runs/'
+    | '/_authenticated/mes/work-centers/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -594,6 +633,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesDefectsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/mes/work-centers/': {
+      id: '/_authenticated/mes/work-centers/'
+      path: '/mes/work-centers'
+      fullPath: '/mes/work-centers'
+      preLoaderRoute: typeof AuthenticatedMesWorkCentersIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/mes/runs/': {
       id: '/_authenticated/mes/runs/'
       path: '/mes/runs'
@@ -608,11 +654,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesRoutesIndexRouteImport
       parentRoute: typeof AuthenticatedMesRoutesRoute
     }
+    '/_authenticated/mes/materials/': {
+      id: '/_authenticated/mes/materials/'
+      path: '/mes/materials'
+      fullPath: '/mes/materials'
+      preLoaderRoute: typeof AuthenticatedMesMaterialsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/mes/loading/': {
       id: '/_authenticated/mes/loading/'
       path: '/mes/loading'
       fullPath: '/mes/loading'
       preLoaderRoute: typeof AuthenticatedMesLoadingIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/mes/boms/': {
+      id: '/_authenticated/mes/boms/'
+      path: '/mes/boms'
+      fullPath: '/mes/boms'
+      preLoaderRoute: typeof AuthenticatedMesBomsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/runs/$runNo': {
@@ -714,8 +774,11 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesIntegrationStatusRoute: typeof AuthenticatedMesIntegrationStatusRoute
   AuthenticatedMesLoadingSlotConfigRoute: typeof AuthenticatedMesLoadingSlotConfigRoute
   AuthenticatedMesRunsRunNoRoute: typeof AuthenticatedMesRunsRunNoRoute
+  AuthenticatedMesBomsIndexRoute: typeof AuthenticatedMesBomsIndexRoute
   AuthenticatedMesLoadingIndexRoute: typeof AuthenticatedMesLoadingIndexRoute
+  AuthenticatedMesMaterialsIndexRoute: typeof AuthenticatedMesMaterialsIndexRoute
   AuthenticatedMesRunsIndexRoute: typeof AuthenticatedMesRunsIndexRoute
+  AuthenticatedMesWorkCentersIndexRoute: typeof AuthenticatedMesWorkCentersIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -750,8 +813,11 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMesLoadingSlotConfigRoute:
     AuthenticatedMesLoadingSlotConfigRoute,
   AuthenticatedMesRunsRunNoRoute: AuthenticatedMesRunsRunNoRoute,
+  AuthenticatedMesBomsIndexRoute: AuthenticatedMesBomsIndexRoute,
   AuthenticatedMesLoadingIndexRoute: AuthenticatedMesLoadingIndexRoute,
+  AuthenticatedMesMaterialsIndexRoute: AuthenticatedMesMaterialsIndexRoute,
   AuthenticatedMesRunsIndexRoute: AuthenticatedMesRunsIndexRoute,
+  AuthenticatedMesWorkCentersIndexRoute: AuthenticatedMesWorkCentersIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

@@ -81,6 +81,21 @@ export const navMain: NavItem[] = [
 				permissions: [Permission.ROUTE_READ],
 			},
 			{
+				title: "物料主数据",
+				url: "/mes/materials",
+				permissions: [Permission.ROUTE_READ],
+			},
+			{
+				title: "BOM",
+				url: "/mes/boms",
+				permissions: [Permission.ROUTE_READ],
+			},
+			{
+				title: "工作中心",
+				url: "/mes/work-centers",
+				permissions: [Permission.ROUTE_READ],
+			},
+			{
 				title: "追溯查询",
 				url: "/mes/trace",
 				permissions: [Permission.TRACE_READ],

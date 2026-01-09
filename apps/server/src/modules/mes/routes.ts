@@ -12,6 +12,7 @@ import {
 	runLoadingModule,
 	slotMappingModule,
 } from "./loading/routes";
+import { masterDataModule } from "./master-data/routes";
 import { mrbRoutes } from "./oqc/mrb-routes";
 import { oqcRoutes } from "./oqc/routes";
 import { samplingRuleRoutes } from "./oqc/sampling-rule-routes";
@@ -27,6 +28,7 @@ export const mesModule = new Elysia()
 		detail: { tags: ["MES - Health"] },
 	})
 	.use(integrationModule)
+	.use(masterDataModule)
 	.use(loadingModule)
 	.use(runLoadingModule)
 	.use(lineLoadingModule)
