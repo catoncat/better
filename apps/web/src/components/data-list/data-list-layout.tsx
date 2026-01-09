@@ -344,7 +344,7 @@ export function DataListLayout<TData, TValue>({
 	const showLoadingOverlay = hasRows && (isFetching || isLoading);
 
 	return (
-		<div className={cn("space-y-4", className)}>
+		<div className={cn("flex flex-col gap-4 w-full min-w-0", className)}>
 			{header}
 			{queryPresetBarProps && <QueryPresetBar {...queryPresetBarProps} />}
 			{mergedFilterToolbarProps && (
@@ -357,7 +357,7 @@ export function DataListLayout<TData, TValue>({
 			{error ? (
 				error
 			) : effectiveTable ? (
-				<div className="relative">
+				<div className="relative w-full min-w-0">
 					<DataListView table={effectiveTable} columns={columns} {...mergedDataListViewProps} />
 					{showLoadingOverlay && (
 						<div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] pointer-events-none">
