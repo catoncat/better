@@ -45,7 +45,7 @@ import {
 	useReadinessLatest,
 	useWaiveItem,
 } from "@/hooks/use-readiness";
-import { useCloseRun, useGenerateUnits, useRunDetail } from "@/hooks/use-runs";
+import { useAuthorizeRun, useCloseRun, useGenerateUnits, useRunDetail } from "@/hooks/use-runs";
 import { INSPECTION_STATUS_MAP, READINESS_ITEM_TYPE_MAP } from "@/lib/constants";
 import { CloseoutDialog } from "@/routes/_authenticated/mes/-components/closeout-dialog";
 import {
@@ -60,6 +60,7 @@ export const Route = createFileRoute("/_authenticated/mes/runs/$runNo")({
 function RunDetailPage() {
 	const { runNo } = Route.useParams();
 	const { data, isLoading, refetch, isFetching } = useRunDetail(runNo);
+	const authorizeRun = useAuthorizeRun();
 	const closeRun = useCloseRun();
 	const generateUnits = useGenerateUnits();
 	const {
@@ -233,6 +234,15 @@ function RunDetailPage() {
 		await mrbDecision.mutateAsync({ runNo, data: values });
 	};
 
+	const handleAuthorize = async (action: "AUTHORIZE" | "REVOKE") => {
+		try {
+			await authorizeRun.mutateAsync({ runNo, action });
+			refetch();
+		} catch {
+			// Toast handled in mutation onError
+		}
+	};
+
 	const handleCloseoutConfirm = async () => {
 		try {
 			await closeRun.mutateAsync({ runNo });
@@ -292,6 +302,27 @@ function RunDetailPage() {
 					</div>
 				</div>
 				<div className="flex items-center gap-2">
+					{data.run.status === "PREP" && (
+						<Can permissions={Permission.RUN_AUTHORIZE}>
+							<Button size="sm" onClick={() => handleAuthorize("AUTHORIZE")} disabled={authorizeRun.isPending}>
+								<CheckCircle2 className="mr-2 h-4 w-4" />
+								授权生产
+							</Button>
+						</Can>
+					)}
+					{data.run.status === "AUTHORIZED" && (
+						<Can permissions={Permission.RUN_AUTHORIZE}>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => handleAuthorize("REVOKE")}
+								disabled={authorizeRun.isPending}
+							>
+								<XCircle className="mr-2 h-4 w-4" />
+								撤销授权
+							</Button>
+						</Can>
+					)}
 					{data.run.status === "IN_PROGRESS" && (
 						<Can permissions={Permission.RUN_CLOSE}>
 							<Button

@@ -108,9 +108,13 @@ export function useAuthorizeRun() {
 
 			return data;
 		},
-		onSuccess: () => {
+		onSuccess: (_data, { runNo }) => {
 			toast.success("授权状态已更新");
 			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
+			queryClient.invalidateQueries({ queryKey: ["mes", "run-detail", runNo] });
+		},
+		onError: (error: Error) => {
+			toast.error(error.message);
 		},
 	});
 }
