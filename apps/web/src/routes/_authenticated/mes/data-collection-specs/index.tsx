@@ -2,7 +2,6 @@ import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { Can } from "@/components/ability/can";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,7 @@ import { useOperationList } from "@/hooks/use-operations";
 import { useQueryPresets } from "@/hooks/use-query-presets";
 import { DCSpecCard } from "./-components/card";
 import { type DCSpecTableMeta, dcSpecColumns } from "./-components/columns";
+import { SpecDialog } from "./-components/spec-dialog";
 
 interface DCSpecFilters {
 	search: string;
@@ -52,9 +52,9 @@ function DataCollectionSpecsPage() {
 	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
 	const { mutateAsync: updateSpec } = useUpdateDataCollectionSpec();
 
-	// Dialog state (to be implemented in Slice 4)
-	const [_editingSpec, setEditingSpec] = useState<DataCollectionSpec | null>(null);
-	const [_isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+	// Dialog state
+	const [editingSpec, setEditingSpec] = useState<DataCollectionSpec | null>(null);
+	const [isDialogOpen, setIsDialogOpen] = useState(false);
 
 	// Fetch operations for filter dropdown
 	const { data: operationsData } = useOperationList({ pageSize: 100 });
@@ -226,8 +226,7 @@ function DataCollectionSpecsPage() {
 	// Action handlers
 	const handleEdit = useCallback((spec: DataCollectionSpec) => {
 		setEditingSpec(spec);
-		// TODO: Open dialog in Slice 4
-		toast.info(`编辑: ${spec.name} (对话框待实现)`);
+		setIsDialogOpen(true);
 	}, []);
 
 	const handleToggleActive = useCallback(
@@ -245,9 +244,15 @@ function DataCollectionSpecsPage() {
 	);
 
 	const handleCreate = useCallback(() => {
-		setIsCreateDialogOpen(true);
-		// TODO: Open dialog in Slice 4
-		toast.info("新建采集项 (对话框待实现)");
+		setEditingSpec(null);
+		setIsDialogOpen(true);
+	}, []);
+
+	const handleDialogClose = useCallback((open: boolean) => {
+		setIsDialogOpen(open);
+		if (!open) {
+			setEditingSpec(null);
+		}
 	}, []);
 
 	const tableMeta: DCSpecTableMeta = {
@@ -256,80 +261,84 @@ function DataCollectionSpecsPage() {
 	};
 
 	return (
-		<DataListLayout
-			mode="server"
-			data={data?.items || []}
-			columns={dcSpecColumns}
-			initialSorting={initialSorting}
-			onSortingChange={handleSortingChange}
-			pageCount={data?.total ? Math.ceil(data.total / pageSize) : 1}
-			onPaginationChange={handlePaginationChange}
-			initialPageIndex={(searchParams.page || 1) - 1}
-			initialPageSize={searchParams.pageSize || 30}
-			locationSearch={locationSearch}
-			isLoading={isLoading}
-			tableMeta={tableMeta}
-			header={
-				<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-					<div>
-						<h1 className="text-2xl font-bold tracking-tight">采集项管理</h1>
-						<p className="text-muted-foreground">配置生产过程中的数据采集规格</p>
+		<>
+			<DataListLayout
+				mode="server"
+				data={data?.items || []}
+				columns={dcSpecColumns}
+				initialSorting={initialSorting}
+				onSortingChange={handleSortingChange}
+				pageCount={data?.total ? Math.ceil(data.total / pageSize) : 1}
+				onPaginationChange={handlePaginationChange}
+				initialPageIndex={(searchParams.page || 1) - 1}
+				initialPageSize={searchParams.pageSize || 30}
+				locationSearch={locationSearch}
+				isLoading={isLoading}
+				tableMeta={tableMeta}
+				header={
+					<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+						<div>
+							<h1 className="text-2xl font-bold tracking-tight">采集项管理</h1>
+							<p className="text-muted-foreground">配置生产过程中的数据采集规格</p>
+						</div>
+						<Can permissions={Permission.DATA_SPEC_CONFIG}>
+							<Button onClick={handleCreate}>
+								<Plus className="mr-2 h-4 w-4" />
+								新建采集项
+							</Button>
+						</Can>
 					</div>
-					<Can permissions={Permission.DATA_SPEC_CONFIG}>
-						<Button onClick={handleCreate}>
-							<Plus className="mr-2 h-4 w-4" />
-							新建采集项
-						</Button>
-					</Can>
-				</div>
-			}
-			queryPresetBarProps={{
-				systemPresets,
-				userPresets,
-				matchedPresetId: currentActivePresetId,
-				onApplyPreset: handleApplyPreset,
-				onSavePreset: (name) => savePreset(name, filters),
-				onDeletePreset: deletePreset,
-				onRenamePreset: renamePreset,
-			}}
-			filterToolbarProps={{
-				fields: [
-					{
-						key: "search",
-						type: "search",
-						placeholder: "搜索采集项名称...",
-					},
-					{
-						key: "operationCode",
-						type: "select",
-						label: "工序",
-						placeholder: "选择工序",
-						options: operationOptions,
-						width: "w-[200px]",
-					},
-					{
-						key: "isActive",
-						type: "select",
-						label: "状态",
-						options: [
-							{ label: "启用", value: "true" },
-							{ label: "停用", value: "false" },
-						],
-					},
-				],
-				filters,
-				onFilterChange: setFilter,
-				onFiltersChange: setFilters,
-				onReset: resetFilters,
-				isFiltered,
-				viewPreferencesKey,
-			}}
-			dataListViewProps={{
-				viewPreferencesKey,
-				renderCard: (item: DataCollectionSpec) => (
-					<DCSpecCard spec={item} onEdit={handleEdit} onToggleActive={handleToggleActive} />
-				),
-			}}
-		/>
+				}
+				queryPresetBarProps={{
+					systemPresets,
+					userPresets,
+					matchedPresetId: currentActivePresetId,
+					onApplyPreset: handleApplyPreset,
+					onSavePreset: (name) => savePreset(name, filters),
+					onDeletePreset: deletePreset,
+					onRenamePreset: renamePreset,
+				}}
+				filterToolbarProps={{
+					fields: [
+						{
+							key: "search",
+							type: "search",
+							placeholder: "搜索采集项名称...",
+						},
+						{
+							key: "operationCode",
+							type: "select",
+							label: "工序",
+							placeholder: "选择工序",
+							options: operationOptions,
+							width: "w-[200px]",
+						},
+						{
+							key: "isActive",
+							type: "select",
+							label: "状态",
+							options: [
+								{ label: "启用", value: "true" },
+								{ label: "停用", value: "false" },
+							],
+						},
+					],
+					filters,
+					onFilterChange: setFilter,
+					onFiltersChange: setFilters,
+					onReset: resetFilters,
+					isFiltered,
+					viewPreferencesKey,
+				}}
+				dataListViewProps={{
+					viewPreferencesKey,
+					renderCard: (item: DataCollectionSpec) => (
+						<DCSpecCard spec={item} onEdit={handleEdit} onToggleActive={handleToggleActive} />
+					),
+				}}
+			/>
+
+			<SpecDialog open={isDialogOpen} onOpenChange={handleDialogClose} spec={editingSpec} />
+		</>
 	);
 }
