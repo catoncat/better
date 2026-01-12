@@ -190,12 +190,12 @@ P1（应该）：
   - DoD：每个角色给出“入口→关键操作→常见异常→自助排查”；与现有权限/页面一致
   - Touch points：`user_docs/`、`apps/web/src/routes/_authenticated/mes/*`
 
-- [~] 3.4.2 上线演示脚本（现场演示顺序 + 讲解点）
+- [x] 3.4.2 上线演示脚本（现场演示顺序 + 讲解点）
   - DoD：形成 10~20 分钟可讲完的演示路线（包含失败分支示例与追溯展示）
   - Touch points：`user_docs/`、`domain_docs/mes/tests/01_acceptance_scenarios.md`
   - Subtasks:
     - [x] 3.4.2.1 Demo Guide: SMT 全流程（按 `spec/process/01_end_to_end_flows.md` + `03_smp_flows.md` 走完）
-    - [ ] 3.4.2.2 Demo Guide: DIP 全流程（按 `spec/process/01_end_to_end_flows.md` + `04_dip_flows.md` 走完）
+    - [x] 3.4.2.2 Demo Guide: DIP 全流程（按 `spec/process/01_end_to_end_flows.md` + `04_dip_flows.md` 走完）
     - [x] 3.4.2.3 Demo Guide: 失败分支示例（readiness fail/waive, NG/处置, OQC fail/MRB）
 
 - [ ] 3.4.3 体验优化清单（仅收敛到 P1 阻断项）
