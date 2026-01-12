@@ -2,6 +2,18 @@
 
 ---
 
+## 0. 流程对照（必读）
+
+本指南用于“按规范走完一次流程”，验证当前实现的交互链路是否闭环：
+
+- 端到端闭环：`domain_docs/mes/spec/process/01_end_to_end_flows.md`
+- SMT 流程：`domain_docs/mes/spec/process/03_smp_flows.md`
+- DIP 流程：`domain_docs/mes/spec/process/04_dip_flows.md`
+
+> 反馈里提到的“产前检查”对应系统中的 **Readiness（就绪检查）**，入口在 Run 详情页 `/mes/runs/{runNo}`。
+
+---
+
 ## 一、项目进度概览
 
 ### 已完成里程碑
@@ -10,163 +22,276 @@
 |--------|----------|----------|
 | **M1** | 2025-12-27 | 生产执行闭环：工单 → 批次 → 过站 → 追溯 |
 | **M1.5-M1.8** | 2025-12-27 | ERP 集成、RBAC 权限、演示就绪 |
-| **M2** | 2026-01-06 | 质量控制闭环：FAI、OQC、MRB、返修 |
+| **M2** | 2026-01-06 | 质量控制闭环：Readiness、上料防错、FAI、缺陷处置、OQC、MRB、返修 |
 
-### 当前进度 (M3 进行中)
+### 当前进度（M3 进行中）
 
-- 上线准备：验收脚本、部署文档、数据采集配置
-- 预计本周完成
+- 上线准备：验收脚本、部署文档、数据采集配置、操作手册
 
 ### 核心能力一览
 
-1. **SMT + DIP 双产线支持** - 覆盖贴片和插件全流程
-2. **完整质量门禁** - 就绪检查 → 上料防错 → FAI → OQC → MRB
-3. **全流程可追溯** - 单件级追溯，问题快速定位
-4. **角色权限隔离** - 6 种角色，细粒度权限控制
+1. **SMT + DIP 双产线支持**：覆盖贴片与插件基本闭环
+2. **质量门禁闭环**：Readiness（产前检查）→ 上料防错 → FAI → OQC → MRB
+3. **全流程可追溯**：单件级追溯（路由版本快照 + 过站 + 检验 + 不良处置）
+4. **角色权限隔离**：6 种角色 + 细粒度权限点
 
 ---
 
-## 二、端到端流程演示（12 分钟）
+## 二、SMT 全流程演示（推荐：跑完一次闭环）
 
-### 阶段 1：计划排产（4 分钟）
+> 目标：用同一个 SMT Run 跑通 “准备 → 试产 → 授权 → 批量执行 → 收尾 → OQC/MRB → 完工 → 追溯”。
+
+### 2.0 演示前检查清单
+
+- [ ] 运行 `bun run db:seed` 重置数据库
+- [ ] 运行 `bun apps/server/scripts/seed-demo.ts` 创建演示数据
+- [ ] 启动服务 `bun run dev`
+- [ ] 打开浏览器访问 http://localhost:3001
+
+建议提前打开页面标签：
+
+- 工单管理：`/mes/work-orders`
+- 批次管理：`/mes/runs`
+- 上料防错：`/mes/loading`
+- 工位执行：`/mes/execution`
+- 首件检验：`/mes/fai`
+- 缺陷管理：`/mes/defects`
+- 追溯查询：`/mes/trace`
+- OQC：`/mes/oqc`
+
+---
+
+### 2.1 工单下发与创建 Run（WO=RECEIVED → RELEASED → Run=PREP）
 
 #### 页面：工单管理 `/mes/work-orders`
 
-**展示要点：**
-- 工单列表显示不同状态（待分配 / 已下发 / 执行中 / 已完成）
-- 筛选器快速定位目标工单
-- ERP 同步按钮（演示数据已自动同步）
-
 **操作演示：**
-1. 点击一个 `RECEIVED` 状态的工单（如 `WO-MGMT-SMT-QUEUE`）
-2. 点击「下发」按钮
-3. 选择目标产线
-4. 演示状态变为 `RELEASED`
-
-**讲解话术：**
-> "工单从 ERP 系统自动同步过来，计划员可以一键下发到产线。下发后系统自动绑定路由和工序配置。"
+1. 选择一个 `RECEIVED` 的 SMT 工单（例如 `WO-MGMT-SMT-QUEUE`）
+2. 点击「下发」选择 SMT 产线（例如 `LINE-A`）→ 工单变为 `RELEASED`
+3. 点击「创建批次」创建 Run（Run= `PREP`）并跳转到 `/mes/runs/{runNo}`
 
 ---
 
-#### 页面：批次管理 `/mes/runs`
-
-**展示要点：**
-- 批次列表显示不同状态（PREP / AUTHORIZED / IN_PROGRESS / ON_HOLD / COMPLETED）
-- 批次与工单的关联关系
-- 产线分组显示
-
-**操作演示：**
-1. 点击 `RUN-MGMT-SMT-EXEC`（执行中）
-2. 进入批次详情页
-
-**讲解话术：**
-> "每个工单可以拆分为多个批次进行生产。批次详情页是车间组长的主操作界面。"
-
----
-
-### 阶段 2：生产准备与质量门禁（4 分钟）
+### 2.2 产前检查（Readiness / 就绪检查）
 
 #### 页面：批次详情 `/mes/runs/{runNo}`
 
-**展示要点：**
-- 就绪检查卡片（路由、上料、设备、钢网、锡膏）
-- FAI 首件检验区域
-- 授权按钮（需 FAI 通过才能启用）
-
 **操作演示：**
-1. 展示 `RUN-MGMT-SMT-PREP`（准备中）- 就绪检查待执行
-2. 展示 `RUN-MGMT-SMT-AUTH`（已授权）- FAI 已通过，可以生产
-
-**讲解话术：**
-> "批次必须通过就绪检查和首件检验才能授权生产。这确保了生产前的准备工作到位，降低批量不良风险。"
+1. 在 Readiness 卡片点击「正式检查」
+2. 若失败：
+   - 直接对失败项点击「豁免」并填写原因（演示降级路径），或
+   - 使用 `/mes/integration/manual-entry` 完成钢网/锡膏绑定与手动状态录入（演示“外部系统不可用时”路径）
+3. 最终目标：Readiness 状态为 `PASSED`
 
 ---
 
-#### 页面：首件检验 `/mes/fai`
+### 2.3 上料防错（Loading Verify）
 
-**展示要点：**
-- FAI 任务列表
-- 不同状态的 FAI（PENDING / PASS / FAIL）
+#### 页面：上料防错 `/mes/loading`
 
 **操作演示：**
-1. 点击一个已完成的 FAI 查看详情
-2. 展示检验项目和结果
-
-**讲解话术：**
-> "首件检验是质量的第一道门禁。检验员确认首件合格后，批次才能正式投产。"
+1. 输入 Run 号 → 点击确定
+2. 若提示“尚未加载站位期望”，点击「加载站位表」
+3. 使用扫码面板按站位完成上料验证（出现 `PASS`）
+4. 回到 Run 详情页再次点击「正式检查」，确认 LOADING 项通过
 
 ---
 
-### 阶段 3：执行与追溯（4 分钟）
+### 2.4 FAI（首件检验）+ 授权前试产过站（关键补齐点）
+
+> 规范要求顺序：创建 FAI → 首件生产(试产) → 判定 → Run 授权（见 `03_smp_flows.md`）。
+
+#### 页面：Run 详情 `/mes/runs/{runNo}` + FAI `/mes/fai` + 执行 `/mes/execution`
+
+**操作演示：**
+1. 在 Run 详情页点击「创建 FAI」
+2. 进入 `/mes/fai`，找到该 Run 的 FAI，点击「开始」（进入 `INSPECTING`）
+3. 进入 `/mes/execution`，选择首工位（SMT 示例：`ST-PRINT-01`），对同一 SN 执行一次：
+   - Track In（进站）
+   - Track Out（出站，PASS）
+4. 回到 `/mes/fai` 记录检验项（建议填写 `unitSn`）并「完成」为 `PASS`
+
+**注意：**
+- 当前实现里，**授权前试产只允许首工序**；若在 Run=PREP 时操作非首工位会返回 `FAI_TRIAL_STEP_NOT_ALLOWED`。
+
+---
+
+### 2.5 Run 授权（Run=AUTHORIZED）
+
+#### 页面：Run 详情 `/mes/runs/{runNo}`（或 Run 列表 `/mes/runs`）
+
+**操作演示：**
+1. 点击「授权生产」
+2. 若失败：按错误码回到 Readiness / FAI 修复后重试（常见：`READINESS_CHECK_FAILED`、`FAI_NOT_PASSED`）
+
+---
+
+### 2.6 批量执行（Run=IN_PROGRESS）+ 不良处置（可选）
 
 #### 页面：工位执行 `/mes/execution`
 
-**展示要点：**
-- 当前工位在站单件列表
-- 进站/出站操作区
-- 工序进度可视化
+**操作演示（PASS 主线）：**
+1. 依次选择工位并完成 TrackIn/TrackOut（PASS）直到末工序，Unit 进入 `DONE`
+   - SMT 示例：`ST-SPI-01` → `ST-MOUNT-01` → `ST-REFLOW-01` → `ST-AOI-01`
 
-**讲解话术：**
-> "操作员在工位扫描单件进站，完成工序后扫描出站。系统自动记录时间、操作员、工位信息。"
+**操作演示（FAIL 分支，可选）：**
+1. 在某一步 TrackOut 选择 `FAIL`（会自动创建缺陷）
+2. 进入 `/mes/defects` 对缺陷处置：`REWORK` / `SCRAP` / `HOLD`
+3. 若 `REWORK`：在 `/mes/rework-tasks` 查看返修任务并继续执行
 
 ---
 
-#### 页面：追溯查询 `/mes/trace`
+### 2.7 Run 收尾 + OQC/MRB 闭环（Run 进入终态）
 
-**展示要点：**
-- 输入 SN 查询完整生产履历
-- 路由版本快照
-- 各工序过站记录
-- 检验记录和结果
+#### 页面：Run 详情 `/mes/runs/{runNo}` + OQC `/mes/oqc`
 
 **操作演示：**
-1. 输入 `SN-MGMT-DONE-0001`
-2. 展示完整追溯信息
-
-**讲解话术：**
-> "这是系统的核心价值之一 —— 全流程可追溯。任何一个产品出问题，我们可以追溯到它经过了哪些工序、谁操作的、用了什么物料、检验结果如何。"
+1. 在 Run 详情页点击「收尾」
+2. 若提示需要 OQC：进入 `/mes/oqc` 找到该 Run 的任务并完成（PASS/FAIL）
+3. 若 OQC 失败：Run 进入 `ON_HOLD`，在 Run 详情页点击「MRB 决策」选择：
+   - 放行 → `COMPLETED`
+   - 返修 → `CLOSED_REWORK`（创建返修 Run）
+   - 报废 → `SCRAPPED`
 
 ---
 
-#### 页面：OQC 抽检 `/mes/oqc`
+### 2.8 工单收尾 + 追溯验证
 
-**展示要点：**
-- OQC 任务列表
-- PASS / FAIL 不同结果
-- ON_HOLD 状态的批次（等待 MRB）
+#### 页面：工单管理 `/mes/work-orders` + 追溯 `/mes/trace`
 
 **操作演示：**
-1. 点击一个 `FAIL` 状态的 OQC（对应 `RUN-MGMT-SMT-HOLD`）
-2. 说明批次已锁定，等待 MRB 评审
-
-**讲解话术：**
-> "OQC 是出货前的最后一道质量关卡。如果抽检不合格，批次自动锁定，需要质量评审（MRB）决定是返修还是报废。"
+1. 回到 `/mes/work-orders` 对该工单执行「收尾」→ WO 进入 `COMPLETED`
+2. 进入 `/mes/trace` 输入刚生产的 SN，确认可看到：
+   - 路由版本快照
+   - 过站记录（每步 TrackIn/Out）
+   - FAI / OQC
+   - 缺陷处置（如有）
 
 ---
 
-## 三、系统亮点总结（5 分钟）
+## 三、失败分支示例（建议演示 1~2 个）
+
+### 3.1 Readiness 不通过 → 豁免/修复 → 再授权
+
+1. Run 详情页点击「正式检查」出现失败项（例如钢网/锡膏/上料）
+2. `/mes/integration/manual-entry` 做绑定与状态录入，或直接「豁免」
+3. Readiness 通过后再次「授权生产」
+
+### 3.2 执行报不良 → 缺陷处置 → 返修回流
+
+1. `/mes/execution` TrackOut 选择 `FAIL`
+2. `/mes/defects` 处置为 `REWORK` 并选择回流工序
+3. `/mes/rework-tasks` 查看返修任务并继续生产
+
+### 3.3 OQC FAIL → Run ON_HOLD → MRB 决策
+
+1. Run 收尾触发 OQC → `/mes/oqc` 完成 `FAIL`
+2. Run 进入 `ON_HOLD` → Run 详情页「MRB 决策」选择放行/返修/报废
+
+---
+
+## 四、DIP 流程演示（可选）
+
+> 目标：按 `domain_docs/mes/spec/process/04_dip_flows.md` 的闭环顺序，走完 DIP 的 “准备→（可选 FAI）→授权→执行→收尾→OQC/MRB→追溯”。
+
+### 4.0 前置说明（DIP 的“工序粒度”）
+
+- 系统执行侧是通用的：只要 ERP 路由里存在对应工序（Operation）且产线有对应工位（Station），执行页面就能按步骤 TrackIn/TrackOut。
+- DIP 规范里包含 IPQC 节点（后焊/测试段首件），当前系统 **未实现独立 IPQC 模块**，不作为 Run 授权门禁（规范备注也写明当前未实现 IPQC）。
+
+### 4.1 创建 DIP 工单与 Run（推荐：完整闭环）
+
+#### 页面：工单管理 `/mes/work-orders`
+
+**操作演示：**
+1. 点击「接收外部工单」
+2. 填入以下示例（可按需调整）：
+   - 工单号：`WO-DEMO-DIP-{时间戳}`
+   - 产品编码：`P-2001`
+   - 计划数量：`5`
+   - 路由编码：`PCBA-DIP-V1`
+   - 物料状态：建议选「全部领料」
+3. 接收后，选择该工单点击「下发」→ 选择 DIP 产线（示例：`LINE-DIP-A`）
+4. 点击「创建批次」创建 Run（Run= `PREP`）并进入 `/mes/runs/{runNo}`
+
+### 4.2 Readiness（产前检查）
+
+#### 页面：批次详情 `/mes/runs/{runNo}`
+
+**操作演示：**
+1. 在 Readiness 卡片点击「正式检查」直到通过（`PASSED`）
+2. 若失败：按需走「豁免」或通过 `/mes/integration/manual-entry` 做外部状态的手动录入/绑定
+
+### 4.3 FAI（可选）+ 授权前试产过站
+
+#### 页面：Run 详情 `/mes/runs/{runNo}` + `/mes/fai` + `/mes/execution`
+
+**操作演示：**
+1. 若 Run 详情页显示需要 FAI：
+   - 点击「创建 FAI」
+   - 在 `/mes/fai` 对该 FAI 点击「开始」（进入 `INSPECTING`）
+2. 授权前试产（Run=PREP）：进入 `/mes/execution` 选择 DIP 首工位并完成一次 PASS：
+   - 推荐示例首工位：`ST-DIP-INS-01`
+3. 回到 `/mes/fai` 记录检验项并「完成」为 `PASS`
+
+**注意：**
+- 授权前试产只允许首工序；若在 Run=PREP 时操作非首工位会返回 `FAI_TRIAL_STEP_NOT_ALLOWED`。
+
+### 4.4 Run 授权（Run=AUTHORIZED）
+
+#### 页面：Run 详情 `/mes/runs/{runNo}`（或 Run 列表 `/mes/runs`）
+
+**操作演示：**
+1. 点击「授权生产」
+2. 若失败：按错误码回到 Readiness / FAI 修复后重试（常见：`READINESS_CHECK_FAILED`、`FAI_NOT_PASSED`）
+
+### 4.5 执行（Run=IN_PROGRESS）
+
+#### 页面：工位执行 `/mes/execution`
+
+**操作演示：**
+1. 依次选择工位并完成 TrackIn/TrackOut（PASS）直到末工序，Unit 进入 `DONE`
+2. 推荐工位示例（种子数据默认 4 站）：
+   - `ST-DIP-INS-01` → `ST-DIP-WAVE-01` → `ST-DIP-POST-01` → `ST-DIP-TEST-01`
+3. 若你的 ERP 路由拆得更细（例如插件/后焊/外观/测试分段多工序），按路由步骤顺序继续 TrackIn/TrackOut 即可
+
+### 4.6 Run 收尾 + OQC/MRB 闭环
+
+#### 页面：Run 详情 `/mes/runs/{runNo}` + OQC `/mes/oqc`
+
+**操作演示：**
+1. 在 Run 详情页点击「收尾」
+2. 若需要 OQC：进入 `/mes/oqc` 完成任务（PASS/FAIL）
+3. 若 OQC 失败：Run 进入 `ON_HOLD`，在 Run 详情页点击「MRB 决策」选择放行/返修/报废
+
+### 4.7 工单收尾 + 追溯验证
+
+#### 页面：`/mes/work-orders` + `/mes/trace`
+
+**操作演示：**
+1. 工单收尾：在 `/mes/work-orders` 对工单执行「收尾」→ WO 进入 `COMPLETED`
+2. 追溯验证：在 `/mes/trace` 输入 DIP 的 SN，确认可看到路由版本快照、过站、FAI/OQC（如有）
+
+---
+
+## 五、系统亮点总结
 
 ### 业务价值
 
 | 价值维度 | 说明 |
 |----------|------|
-| **生产可控** | 全流程状态可视，异常实时预警 |
+| **生产可控** | 全流程状态可视，异常可追踪 |
 | **质量可追** | 单件级追溯，问题快速定位 |
-| **风险可降** | 多级门禁（就绪/FAI/OQC/MRB），防呆防错 |
+| **风险可降** | 多级门禁（Readiness/上料/FAI/OQC/MRB），防呆防错 |
 | **集成可靠** | 支持降级模式，不依赖外部系统 100% 在线 |
 
 ### 技术亮点
 
-1. **现代化技术栈** - React 19 + TypeScript + Bun，开发效率高
-2. **单机可部署** - 无需复杂的分布式架构，SQLite + 单可执行文件
-3. **RBAC 权限** - 6 种角色，40+ 权限点，细粒度控制
-4. **完整审计日志** - 所有操作可追溯
-5. **双产线支持** - SMT 和 DIP 工艺流程完整覆盖
-
-### 下一步计划
-
-- **M3（本周）**: 上线准备 —— 验收脚本、部署文档、操作手册
-- **M4（后续）**: 自动化执行 —— 设备对接、批量数据采集、自动过站
+1. **现代化技术栈**：React + TypeScript + Bun
+2. **单机可部署**：SQLite + 单可执行文件
+3. **RBAC 权限**：细粒度权限控制 + 角色预设
+4. **完整审计日志**：关键操作可追溯
+5. **双产线支持**：SMT / DIP 路线可配置
 
 ---
 
@@ -180,31 +305,21 @@
 | 计划员 | planner@example.com | Test123! | 工单管理、批次派发 |
 | 工艺工程师 | engineer@example.com | Test123! | 路由配置、数据采集规格 |
 | 质量员 | quality@example.com | Test123! | FAI/OQC/MRB、缺陷管理 |
-| 组长 | leader@example.com | Test123! | 批次管理、就绪检查、授权 |
+| 组长 | leader@example.com | Test123! | 批次管理、就绪检查、授权、收尾 |
 | 操作员 | operator@example.com | Test123! | 工位执行、进站/出站 |
 
-### 演示前检查清单
-
-- [ ] 运行 `bun run db:seed` 重置数据库
-- [ ] 运行 `bun apps/server/scripts/seed-demo.ts` 创建演示数据
-- [ ] 启动服务 `bun run dev`
-- [ ] 打开浏览器访问 http://localhost:3001
-- [ ] 使用 admin@example.com 登录验证
-- [ ] 预先打开以下页面标签：
-  - 工单管理 `/mes/work-orders`
-  - 批次管理 `/mes/runs`
-  - 追溯查询 `/mes/trace`
-
-### 推荐演示数据
+### 推荐演示数据（可跳转用）
 
 | 用途 | 工单号 | 批次号 | SN |
 |------|--------|--------|-----|
-| 待下发工单 | WO-MGMT-SMT-QUEUE | - | - |
-| 准备中批次 | WO-MGMT-SMT-PREP | RUN-MGMT-SMT-PREP | - |
+| SMT 全流程起点（推荐） | WO-MGMT-SMT-QUEUE | （新建） | （新扫/新生成） |
+| DIP 全流程起点（推荐） | WO-DEMO-DIP-{时间戳} | （新建） | （新扫/新生成） |
+| 准备中批次（可跳转） | WO-MGMT-SMT-PREP | RUN-MGMT-SMT-PREP | - |
 | 执行中批次 | WO-MGMT-SMT-EXEC | RUN-MGMT-SMT-EXEC | SN-MGMT-EXEC-0001 |
 | 质量锁定批次 | WO-MGMT-SMT-HOLD | RUN-MGMT-SMT-HOLD | SN-MGMT-HOLD-0001 |
-| 已完成追溯 | WO-MGMT-SMT-DONE | RUN-MGMT-SMT-DONE | **SN-MGMT-DONE-0001** |
+| 已完成追溯 | WO-MGMT-SMT-DONE | RUN-MGMT-SMT-DONE | SN-MGMT-DONE-0001 |
 | DIP 执行中 | WO-MGMT-DIP-EXEC | RUN-MGMT-DIP-EXEC | SN-MGMT-DIP-EXEC-0001 |
+| DIP 已完成追溯 | WO-MGMT-DIP-DONE | RUN-MGMT-DIP-DONE | SN-MGMT-DIP-DONE-0001 |
 
 ### 常见问题应对
 
@@ -214,8 +329,5 @@
 **Q: 和现有 ERP 如何对接？**
 > 系统已实现与金蝶云星空的对接接口，支持工单、物料、BOM、路由的自动同步。其他 ERP 可通过标准接口适配。
 
-**Q: 上线需要多长时间？**
-> 核心系统已具备上线条件。具体时间取决于：1) 产线配置 2) 操作员培训 3) ERP 对接调试。
-
 **Q: 如果网络断了怎么办？**
-> 系统支持降级模式。所有外部集成检查都可以手动豁免，确保生产不中断。事后可补录数据。
+> 系统支持降级模式：外部集成检查可手动录入或豁免，确保生产不中断；事后可补录数据并保留审计记录。

@@ -80,8 +80,8 @@ P1（应该）：
   - DoD：对 `issues/*alignment_report*` 与相关文档标注"已过期/已修复"或更新为 as-built 快照
   - Touch points：`issues/`、`domain_docs/mes/plan/*`
   - As-built（清理日期 2026-01-12）：
-    - `issues/archived/smt_flows_userfeedback_draft_alignment_report.md`：标注"已过期"，M2 已实现锡膏/钢网/上料防错/OQC/SPI-AOI
-    - `issues/archived/smt_flows_userfeedback_draft_review_report.md`：标注"已过期"，M2 已实现状态机/TrackIn-Out/不良处置/OQC
+    - `issues/archived/smp_flows_userfeedback_draft_alignment_report.md`：标注"已过期"，M2 已实现锡膏/钢网/上料防错/OQC/SPI-AOI
+    - `issues/archived/smp_flows_userfeedback_draft_review_report.md`：标注"已过期"，M2 已实现状态机/TrackIn-Out/不良处置/OQC
     - `issues/archived/data-list-*.md`：标注"已完成/已采纳"
     - `domain_docs/mes/plan/worktree_oqc_mrb_todo.md`：移动至 `archive/`
 
@@ -158,8 +158,8 @@ P1（应该）：
     - [x] 3.2.5.3 Execution: TrackIn/Out 校验 station 属于 run.line
     - [x] 3.2.5.4 Web: Run 创建对话框预填/锁定派工产线 + 友好错误提示
 
-- [ ] 3.2.6 FAI 试产执行：支持 Run=PREP 下 TrackIn/TrackOut（受控）
-  - 背景：`spec/process/03_smt_flows.md` 要求 “创建 FAI → 首件生产(试产) → 判定 → Run 授权”，但当前 execution 仅允许 `Run=AUTHORIZED|IN_PROGRESS`。
+- [x] 3.2.6 FAI 试产执行：支持 Run=PREP 下 TrackIn/TrackOut（受控）
+  - 背景：`spec/process/03_smp_flows.md` 要求 “创建 FAI → 首件生产(试产) → 判定 → Run 授权”，但当前 execution 仅允许 `Run=AUTHORIZED|IN_PROGRESS`。
   - DoD：
     - Run=PREP 且存在 active FAI（INSPECTING）时，允许在工位执行页完成试产 TrackIn/TrackOut，不把 Run 推进到 IN_PROGRESS
     - 试产必须先通过 readiness（formal 或豁免后全通过），否则禁止试产
@@ -190,13 +190,13 @@ P1（应该）：
   - DoD：每个角色给出“入口→关键操作→常见异常→自助排查”；与现有权限/页面一致
   - Touch points：`user_docs/`、`apps/web/src/routes/_authenticated/mes/*`
 
-- [ ] 3.4.2 上线演示脚本（现场演示顺序 + 讲解点）
+- [x] 3.4.2 上线演示脚本（现场演示顺序 + 讲解点）
   - DoD：形成 10~20 分钟可讲完的演示路线（包含失败分支示例与追溯展示）
   - Touch points：`user_docs/`、`domain_docs/mes/tests/01_acceptance_scenarios.md`
   - Subtasks:
-    - [ ] 3.4.2.1 Demo Guide: SMT 全流程（按 `spec/process/01_end_to_end_flows.md` + `03_smt_flows.md` 走完）
-    - [ ] 3.4.2.2 Demo Guide: DIP 全流程（按 `spec/process/01_end_to_end_flows.md` + `04_dip_flows.md` 走完）
-    - [ ] 3.4.2.3 Demo Guide: 失败分支示例（readiness fail/waive, NG/处置, OQC fail/MRB）
+    - [x] 3.4.2.1 Demo Guide: SMT 全流程（按 `spec/process/01_end_to_end_flows.md` + `03_smp_flows.md` 走完）
+    - [x] 3.4.2.2 Demo Guide: DIP 全流程（按 `spec/process/01_end_to_end_flows.md` + `04_dip_flows.md` 走完）
+    - [x] 3.4.2.3 Demo Guide: 失败分支示例（readiness fail/waive, NG/处置, OQC fail/MRB）
 
 - [ ] 3.4.3 体验优化清单（仅收敛到 P1 阻断项）
   - DoD：收集并分级：P0 阻断 / P1 重要 / P2 可延后；每项绑定到具体页面与期望行为

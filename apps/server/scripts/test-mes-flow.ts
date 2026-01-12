@@ -686,7 +686,12 @@ async function runTest(options: CliOptions) {
 			return data?.error;
 		}, { actor: "leader" });
 
-		const faiId = await runStep(summary, "FAI: create/start/record/complete (PASS)", async () => {
+		const stations =
+			options.track === "dip"
+				? ["ST-DIP-INS-01", "ST-DIP-WAVE-01", "ST-DIP-POST-01", "ST-DIP-TEST-01"]
+				: ["ST-PRINT-01", "ST-SPI-01", "ST-MOUNT-01", "ST-REFLOW-01", "ST-AOI-01"];
+
+		const faiId = await runStep(summary, "FAI: create/start (INSPECTING)", async () => {
 			const gate = await quality.get(`/fai/run/${runNo}/gate`);
 			expectOk(gate.res, gate.data, "FAI gate");
 
@@ -697,27 +702,49 @@ async function runTest(options: CliOptions) {
 			const started = await quality.post(`/fai/${id}/start`);
 			expectOk(started.res, started.data, "FAI start");
 
-			const item = await quality.post(`/fai/${id}/items`, { itemName: "Visual Inspection", result: "PASS" });
-			expectOk(item.res, item.data, "FAI record item");
-
-			const completed = await quality.post(`/fai/${id}/complete`, { decision: "PASS" });
-			expectOk(completed.res, completed.data, "FAI complete");
-
 			return id;
 		}, { actor: "quality" });
 
 		summary.context.faiId = faiId;
+
+		await runStep(summary, "FAI: trial execution (first step, Run=PREP)", async () => {
+			const firstStationCode = stations[0];
+			if (!firstStationCode) throw new ApiError("No station code configured for trial execution");
+
+			const inResult = await leader.post(`/stations/${firstStationCode}/track-in`, { sn, woNo, runNo });
+			expectOk(inResult.res, inResult.data, `FAI trial track-in ${firstStationCode}`);
+
+			const outResult = await leader.post(`/stations/${firstStationCode}/track-out`, {
+				sn,
+				runNo,
+				result: "PASS",
+				operatorId: options.operatorId,
+			});
+			expectOk(outResult.res, outResult.data, `FAI trial track-out ${firstStationCode}`);
+
+			return { stationCode: firstStationCode };
+		}, { actor: "leader" });
+
+		await runStep(summary, "FAI: record/complete (PASS)", async () => {
+			const item = await quality.post(`/fai/${faiId}/items`, {
+				unitSn: sn,
+				itemName: "Visual Inspection",
+				result: "PASS",
+			});
+			expectOk(item.res, item.data, "FAI record item");
+
+			const completed = await quality.post(`/fai/${faiId}/complete`, { decision: "PASS" });
+			expectOk(completed.res, completed.data, "FAI complete");
+
+			return { faiId };
+		}, { actor: "quality" });
 
 		await runStep(summary, "Run: authorize (expect PASS)", async () => {
 			const { res, data } = await leader.post(`/runs/${runNo}/authorize`, { action: "AUTHORIZE" });
 			return expectOk(res, data, "Run authorize");
 		}, { actor: "leader" });
 
-		const stations =
-			options.track === "dip"
-				? ["ST-DIP-INS-01", "ST-DIP-WAVE-01", "ST-DIP-POST-01", "ST-DIP-TEST-01"]
-				: ["ST-PRINT-01", "ST-SPI-01", "ST-MOUNT-01", "ST-REFLOW-01", "ST-AOI-01"];
-		for (const stationCode of stations) {
+		for (const stationCode of stations.slice(1)) {
 			await runStep(summary, `Execution: track-in ${stationCode}`, async () => {
 				const { res, data } = await leader.post(`/stations/${stationCode}/track-in`, { sn, woNo, runNo });
 				return expectOk(res, data, `Track-in ${stationCode}`);
