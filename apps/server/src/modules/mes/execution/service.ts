@@ -131,6 +131,15 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 					message: "Run has no executable route version",
 				};
 			}
+			if (run.lineId && station.lineId && run.lineId !== station.lineId) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "STATION_LINE_MISMATCH");
+				return {
+					success: false,
+					code: "STATION_LINE_MISMATCH",
+					message: "Station does not belong to the run line",
+				};
+			}
 			if (run.status !== RunStatus.AUTHORIZED && run.status !== RunStatus.IN_PROGRESS) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "RUN_NOT_AUTHORIZED");
@@ -336,6 +345,15 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 					success: false,
 					code: "ROUTE_VERSION_NOT_READY",
 					message: "Run has no executable route version",
+				};
+			}
+			if (run.lineId && station.lineId && run.lineId !== station.lineId) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "STATION_LINE_MISMATCH");
+				return {
+					success: false,
+					code: "STATION_LINE_MISMATCH",
+					message: "Station does not belong to the run line",
 				};
 			}
 			if (run.status !== RunStatus.AUTHORIZED && run.status !== RunStatus.IN_PROGRESS) {

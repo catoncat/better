@@ -36,6 +36,9 @@ const setSpanAttributes = (span: Span, attributes: Record<string, unknown>) => {
 const isWorkOrderStatus = (value: string | undefined): value is WorkOrderStatus =>
 	Boolean(value) && Object.values(WorkOrderStatus).includes(value as WorkOrderStatus);
 
+const isJsonObject = (value: unknown): value is Record<string, unknown> =>
+	Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
 export const listWorkOrders = async (
 	db: PrismaClient,
 	query: WorkOrderListQuery,
@@ -266,10 +269,49 @@ export const releaseWorkOrder = async (
 					};
 				}
 
+				const line = await db.line.findUnique({ where: { code: data.lineCode } });
+				if (!line) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "LINE_NOT_FOUND");
+					return {
+						success: false,
+						code: "LINE_NOT_FOUND",
+						message: "Line not found",
+						status: 404,
+					};
+				}
+
+				const stationGroup = data.stationGroupCode
+					? await db.stationGroup.findUnique({ where: { code: data.stationGroupCode } })
+					: null;
+				if (data.stationGroupCode && !stationGroup) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "STATION_GROUP_NOT_FOUND");
+					return {
+						success: false,
+						code: "STATION_GROUP_NOT_FOUND",
+						message: "Station group not found",
+						status: 404,
+					};
+				}
+
+				const baseMeta = isJsonObject(wo.meta) ? wo.meta : {};
+				const existingDispatch = isJsonObject(baseMeta.dispatch) ? baseMeta.dispatch : {};
 				const updated = await db.workOrder.update({
 					where: { woNo },
 					data: {
 						status: WorkOrderStatus.RELEASED,
+						meta: {
+							...baseMeta,
+							dispatch: {
+								...existingDispatch,
+								lineId: line.id,
+								lineCode: line.code,
+								stationGroupId: stationGroup?.id ?? null,
+								stationGroupCode: stationGroup?.code ?? null,
+								dispatchedAt: new Date().toISOString(),
+							},
+						},
 					},
 				});
 
@@ -361,6 +403,21 @@ export const createRun = async (
 					};
 				}
 
+				const dispatchMeta =
+					isJsonObject(wo.meta) && isJsonObject(wo.meta.dispatch) ? wo.meta.dispatch : null;
+				const dispatchedLineCode =
+					dispatchMeta && typeof dispatchMeta.lineCode === "string" ? dispatchMeta.lineCode : null;
+				if (dispatchedLineCode && dispatchedLineCode !== data.lineCode) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "WORK_ORDER_DISPATCH_LINE_MISMATCH");
+					return {
+						success: false,
+						code: "WORK_ORDER_DISPATCH_LINE_MISMATCH",
+						message: `Work order dispatched to line ${dispatchedLineCode}`,
+						status: 400,
+					};
+				}
+
 				const latestVersion = await db.executableRouteVersion.findFirst({
 					where: {
 						routingId: wo.routingId,
@@ -376,6 +433,93 @@ export const createRun = async (
 						code: "ROUTE_VERSION_NOT_READY",
 						message: "No executable route version available",
 						status: 404,
+					};
+				}
+
+				const snapshot = latestVersion.snapshotJson;
+				const steps = (() => {
+					if (!snapshot || typeof snapshot !== "object") return [];
+					const record = snapshot as { steps?: unknown };
+					if (!Array.isArray(record.steps)) return [];
+					return record.steps
+						.map((step) => {
+							if (!step || typeof step !== "object") return null;
+							const value = step as {
+								stepNo?: unknown;
+								stationType?: unknown;
+								stationGroupId?: unknown;
+								allowedStationIds?: unknown;
+							};
+							const stepNo = typeof value.stepNo === "number" ? value.stepNo : null;
+							const stationType = typeof value.stationType === "string" ? value.stationType : null;
+							const stationGroupId =
+								typeof value.stationGroupId === "string" ? value.stationGroupId : null;
+							const allowedStationIds = Array.isArray(value.allowedStationIds)
+								? value.allowedStationIds.filter((id): id is string => typeof id === "string")
+								: [];
+							if (!stepNo || !stationType) return null;
+							return { stepNo, stationType, stationGroupId, allowedStationIds };
+						})
+						.filter((step): step is NonNullable<typeof step> => Boolean(step))
+						.sort((a, b) => a.stepNo - b.stepNo);
+				})();
+
+				const lineStations = await db.station.findMany({
+					where: { lineId: line.id },
+					select: { id: true, stationType: true, groupId: true },
+				});
+
+				const isStationValidForStep = (
+					step: {
+						stationType: string;
+						stationGroupId: string | null;
+						allowedStationIds: string[];
+					},
+					station: { id: string; stationType: string; groupId: string | null },
+				) => {
+					if (step.stationType !== station.stationType) return false;
+					if (step.allowedStationIds.length > 0 && !step.allowedStationIds.includes(station.id))
+						return false;
+					if (step.stationGroupId && step.stationGroupId !== station.groupId) return false;
+					return true;
+				};
+
+				const incompatibleSteps = steps.filter(
+					(step) => !lineStations.some((station) => isStationValidForStep(step, station)),
+				);
+				if (incompatibleSteps.length > 0) {
+					const missingGroupIds = [
+						...new Set(
+							incompatibleSteps
+								.map((s) => s.stationGroupId)
+								.filter((id): id is string => typeof id === "string" && id.length > 0),
+						),
+					];
+					const groupById = new Map(
+						(missingGroupIds.length
+							? await db.stationGroup.findMany({
+									where: { id: { in: missingGroupIds } },
+									select: { id: true, code: true },
+								})
+							: []
+						).map((g) => [g.id, g.code]),
+					);
+					const groupLabels = missingGroupIds
+						.map((id) => groupById.get(id) ?? id)
+						.filter(Boolean)
+						.join(", ");
+					const stepNos = incompatibleSteps.map((s) => s.stepNo).join(", ");
+
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "RUN_LINE_INCOMPATIBLE_WITH_ROUTE");
+					return {
+						success: false,
+						code: "RUN_LINE_INCOMPATIBLE_WITH_ROUTE",
+						message:
+							groupLabels.length > 0
+								? `Line ${line.code} is incompatible with route steps (missing station group(s): ${groupLabels}; stepNo: ${stepNos})`
+								: `Line ${line.code} is incompatible with route steps (stepNo: ${stepNos})`,
+						status: 400,
 					};
 				}
 

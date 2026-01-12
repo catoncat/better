@@ -29,7 +29,7 @@ export const workOrderErrorResponseSchema = t.Object({
 });
 
 export const workOrderReleaseSchema = t.Object({
-	lineCode: t.Optional(t.String()),
+	lineCode: t.String(),
 	stationGroupCode: t.Optional(t.String()),
 });
 

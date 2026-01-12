@@ -215,6 +215,101 @@ export async function checkRoute(db: PrismaClient, run: Run): Promise<CheckItemR
 				];
 			}
 
+			if (run.lineId) {
+				const snapshot = version.snapshotJson;
+				const steps = (() => {
+					if (!snapshot || typeof snapshot !== "object") return [];
+					const record = snapshot as { steps?: unknown };
+					if (!Array.isArray(record.steps)) return [];
+					return record.steps
+						.map((step) => {
+							if (!step || typeof step !== "object") return null;
+							const value = step as {
+								stepNo?: unknown;
+								stationType?: unknown;
+								stationGroupId?: unknown;
+								allowedStationIds?: unknown;
+							};
+							const stepNo = typeof value.stepNo === "number" ? value.stepNo : null;
+							const stationType = typeof value.stationType === "string" ? value.stationType : null;
+							const stationGroupId =
+								typeof value.stationGroupId === "string" ? value.stationGroupId : null;
+							const allowedStationIds = Array.isArray(value.allowedStationIds)
+								? value.allowedStationIds.filter((id): id is string => typeof id === "string")
+								: [];
+							if (!stepNo || !stationType) return null;
+							return { stepNo, stationType, stationGroupId, allowedStationIds };
+						})
+						.filter((step): step is NonNullable<typeof step> => Boolean(step))
+						.sort((a, b) => a.stepNo - b.stepNo);
+				})();
+
+				const stations = await db.station.findMany({
+					where: { lineId: run.lineId },
+					select: { id: true, stationType: true, groupId: true },
+				});
+
+				const isStationValidForStep = (
+					step: {
+						stationType: string;
+						stationGroupId: string | null;
+						allowedStationIds: string[];
+					},
+					station: { id: string; stationType: string; groupId: string | null },
+				) => {
+					if (step.stationType !== station.stationType) return false;
+					if (step.allowedStationIds.length > 0 && !step.allowedStationIds.includes(station.id))
+						return false;
+					if (step.stationGroupId && step.stationGroupId !== station.groupId) return false;
+					return true;
+				};
+
+				const incompatibleSteps = steps.filter(
+					(step) => !stations.some((station) => isStationValidForStep(step, station)),
+				);
+
+				if (incompatibleSteps.length > 0) {
+					const line = await db.line.findUnique({
+						where: { id: run.lineId },
+						select: { code: true },
+					});
+
+					const missingGroupIds = [
+						...new Set(
+							incompatibleSteps
+								.map((s) => s.stationGroupId)
+								.filter((id): id is string => typeof id === "string" && id.length > 0),
+						),
+					];
+					const groupById = new Map(
+						(missingGroupIds.length
+							? await db.stationGroup.findMany({
+									where: { id: { in: missingGroupIds } },
+									select: { id: true, code: true },
+								})
+							: []
+						).map((g) => [g.id, g.code]),
+					);
+					const groupLabels = missingGroupIds
+						.map((id) => groupById.get(id) ?? id)
+						.filter(Boolean)
+						.join(", ");
+					const stepNos = incompatibleSteps.map((s) => s.stepNo).join(", ");
+
+					return [
+						{
+							itemType: ReadinessItemType.ROUTE,
+							itemKey: String(version.versionNo),
+							status: ReadinessItemStatus.FAILED,
+							failReason:
+								groupLabels.length > 0
+									? `产线 ${line?.code ?? run.lineId} 与路由不兼容：缺少站点组 ${groupLabels}（stepNo: ${stepNos}）`
+									: `产线 ${line?.code ?? run.lineId} 与路由不兼容（stepNo: ${stepNos}）`,
+						},
+					];
+				}
+			}
+
 			return [
 				{
 					itemType: ReadinessItemType.ROUTE,
