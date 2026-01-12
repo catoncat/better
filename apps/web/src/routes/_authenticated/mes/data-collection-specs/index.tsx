@@ -11,6 +11,7 @@ import {
 	useDataCollectionSpecList,
 	useUpdateDataCollectionSpec,
 } from "@/hooks/use-data-collection-specs";
+import { useOperationList } from "@/hooks/use-operations";
 import { useQueryPresets } from "@/hooks/use-query-presets";
 import { DCSpecCard } from "./-components/card";
 import { type DCSpecTableMeta, dcSpecColumns } from "./-components/columns";
@@ -54,6 +55,16 @@ function DataCollectionSpecsPage() {
 	// Dialog state (to be implemented in Slice 4)
 	const [_editingSpec, setEditingSpec] = useState<DataCollectionSpec | null>(null);
 	const [_isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+
+	// Fetch operations for filter dropdown
+	const { data: operationsData } = useOperationList({ pageSize: 100 });
+	const operationOptions = useMemo(() => {
+		if (!operationsData?.items) return [];
+		return operationsData.items.map((op) => ({
+			label: `${op.code} - ${op.name}`,
+			value: op.code,
+		}));
+	}, [operationsData]);
 
 	// Parse filters from URL
 	const filters: DCSpecFilters = useMemo(
@@ -287,6 +298,14 @@ function DataCollectionSpecsPage() {
 						key: "search",
 						type: "search",
 						placeholder: "搜索采集项名称...",
+					},
+					{
+						key: "operationCode",
+						type: "select",
+						label: "工序",
+						placeholder: "选择工序",
+						options: operationOptions,
+						width: "w-[200px]",
 					},
 					{
 						key: "isActive",
