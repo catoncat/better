@@ -61,6 +61,7 @@ export const PRESET_ROLES: PresetRole[] = [
 			Permission.ROUTE_COMPILE,
 			Permission.ROUTE_CREATE,
 			Permission.DATA_SPEC_CONFIG,
+			Permission.OPERATION_CONFIG,
 			Permission.WO_READ,
 			Permission.RUN_READ,
 			Permission.TRACE_READ,

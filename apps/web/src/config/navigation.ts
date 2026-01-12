@@ -120,6 +120,12 @@ export const navMain: NavItem[] = [
 				permissions: [Permission.ROUTE_READ],
 			},
 			{
+				title: "采集项管理",
+				url: "/mes/data-collection-specs",
+				permissions: [Permission.DATA_SPEC_READ, Permission.DATA_SPEC_CONFIG],
+				permissionMode: "any",
+			},
+			{
 				title: "路由版本",
 				url: "/mes/route-versions",
 				permissions: [Permission.ROUTE_READ],

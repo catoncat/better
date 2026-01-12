@@ -13,6 +13,7 @@ import {
 	slotMappingModule,
 } from "./loading/routes";
 import { masterDataModule } from "./master-data/routes";
+import { operationModule } from "./operation/routes";
 import { mrbRoutes } from "./oqc/mrb-routes";
 import { oqcRoutes } from "./oqc/routes";
 import { samplingRuleRoutes } from "./oqc/sampling-rule-routes";
@@ -40,6 +41,7 @@ export const mesModule = new Elysia()
 	.use(readinessModule)
 	.use(readinessExceptionsModule)
 	.use(dataCollectionSpecModule)
+	.use(operationModule)
 	.use(routingModule)
 	.use(executionModule)
 	.use(stationModule)

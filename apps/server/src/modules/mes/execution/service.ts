@@ -592,21 +592,37 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 
 			const dataItems = data.data ?? [];
 			const specNames = dataItems.map((item) => item.specName);
-			const requiredSpecIds = currentStep.dataSpecIds ?? [];
-			const specs = requiredSpecIds.length
+			const boundSpecIds = currentStep.dataSpecIds ?? [];
+			const specs = boundSpecIds.length
 				? await db.dataCollectionSpec.findMany({
-						where: { id: { in: requiredSpecIds } },
+						where: { id: { in: boundSpecIds } },
 					})
 				: specNames.length
 					? await db.dataCollectionSpec.findMany({
 							where: {
 								operationId: currentStep.operationId,
 								name: { in: specNames },
+								isActive: true,
 							},
 						})
 					: [];
 
-			const specsByName = new Map(specs.map((spec) => [spec.name, spec]));
+			if (boundSpecIds.length > 0) {
+				const fetchedIds = new Set(specs.map((spec) => spec.id));
+				const missingIds = boundSpecIds.filter((id) => !fetchedIds.has(id));
+				if (missingIds.length > 0) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "DATA_SPEC_NOT_FOUND");
+					return {
+						success: false,
+						code: "DATA_SPEC_NOT_FOUND",
+						message: `One or more bound data specs are missing: ${missingIds.join(", ")}`,
+					};
+				}
+			}
+
+			const activeSpecs = boundSpecIds.length > 0 ? specs.filter((spec) => spec.isActive) : specs;
+			const specsByName = new Map(activeSpecs.map((spec) => [spec.name, spec]));
 			const missingSpecs = specNames.filter((name) => !specsByName.has(name));
 			if (missingSpecs.length > 0) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
@@ -618,17 +634,10 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 				};
 			}
 
-			if (requiredSpecIds.length > 0) {
-				if (specs.length !== requiredSpecIds.length) {
-					span.setStatus({ code: SpanStatusCode.ERROR });
-					span.setAttribute("mes.error_code", "DATA_SPEC_NOT_FOUND");
-					return {
-						success: false,
-						code: "DATA_SPEC_NOT_FOUND",
-						message: "One or more required data specs are missing",
-					};
-				}
-				const requiredNames = specs.map((spec) => spec.name);
+			if (boundSpecIds.length > 0 && result === TrackResult.PASS) {
+				const requiredNames = activeSpecs
+					.filter((spec) => spec.isRequired)
+					.map((spec) => spec.name);
 				const missingRequired = requiredNames.filter((name) => !specNames.includes(name));
 				if (missingRequired.length > 0) {
 					span.setStatus({ code: SpanStatusCode.ERROR });
@@ -757,4 +766,121 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 			span.end();
 		}
 	});
+};
+
+/**
+ * Get data collection specs for the current step of a unit
+ * Used by the UI to dynamically generate data collection form fields
+ */
+export const getUnitDataSpecs = async (db: PrismaClient, stationCode: string, sn: string) => {
+	const station = await db.station.findUnique({ where: { code: stationCode } });
+	if (!station) {
+		return { success: false, code: "STATION_NOT_FOUND", message: "Station not found" };
+	}
+
+	const unit = await db.unit.findUnique({
+		where: { sn },
+		include: {
+			run: {
+				include: {
+					routeVersion: true,
+				},
+			},
+		},
+	});
+
+	if (!unit) {
+		return { success: false, code: "UNIT_NOT_FOUND", message: "Unit not found" };
+	}
+
+	if (!unit.run) {
+		return { success: false, code: "UNIT_NO_RUN", message: "Unit has no associated run" };
+	}
+
+	if (!unit.run.routeVersion) {
+		return {
+			success: false,
+			code: "ROUTE_VERSION_NOT_READY",
+			message: "Run has no executable route version",
+		};
+	}
+
+	const snapshotSteps = getSnapshotSteps(unit.run.routeVersion.snapshotJson);
+	if (!snapshotSteps || snapshotSteps.length === 0) {
+		return { success: false, code: "ROUTING_EMPTY", message: "Routing has no steps" };
+	}
+
+	const currentStep = snapshotSteps.find((s) => s.stepNo === unit.currentStepNo);
+	if (!currentStep) {
+		return { success: false, code: "STEP_MISMATCH", message: "Current step not found in routing" };
+	}
+
+	// Get operation info
+	const operation = await db.operation.findUnique({
+		where: { id: currentStep.operationId },
+	});
+	if (!operation) {
+		return { success: false, code: "OPERATION_NOT_FOUND", message: "Operation not found" };
+	}
+
+	// Get data specs for this step
+	const dataSpecIds = currentStep.dataSpecIds ?? [];
+	let specs: Array<{
+		id: string;
+		name: string;
+		itemType: string;
+		dataType: string;
+		method: string;
+		triggerType: string;
+		isRequired: boolean;
+		spec: unknown;
+	}> = [];
+
+	if (dataSpecIds.length > 0) {
+		specs = await db.dataCollectionSpec.findMany({
+			where: {
+				id: { in: dataSpecIds },
+				isActive: true,
+			},
+			select: {
+				id: true,
+				name: true,
+				itemType: true,
+				dataType: true,
+				method: true,
+				triggerType: true,
+				isRequired: true,
+				spec: true,
+			},
+			orderBy: [{ isRequired: "desc" }, { name: "asc" }],
+		});
+	}
+
+	// Parse spec JSON for each item
+	const parseSpec = (specJson: unknown) => {
+		if (!specJson || typeof specJson !== "object") return undefined;
+		const s = specJson as Record<string, unknown>;
+		return {
+			min: typeof s.min === "number" ? s.min : undefined,
+			max: typeof s.max === "number" ? s.max : undefined,
+			target: typeof s.target === "number" ? s.target : undefined,
+			lsl: typeof s.lsl === "number" ? s.lsl : undefined,
+			usl: typeof s.usl === "number" ? s.usl : undefined,
+			unit: typeof s.unit === "string" ? s.unit : undefined,
+		};
+	};
+
+	return {
+		success: true,
+		data: {
+			sn: unit.sn,
+			stepNo: unit.currentStepNo,
+			operationCode: operation.code,
+			operationName: operation.name,
+			specs: specs.map((spec) => ({
+				...spec,
+				spec: parseSpec(spec.spec),
+			})),
+		},
+	};
 };

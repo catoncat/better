@@ -231,35 +231,59 @@ P1（应该）：
   - As-built（实现入口）：
     - 模块挂载：`apps/server/src/modules/mes/routes.ts`（use dataCollectionSpecModule）
 
-- [ ] 3.5.2 Web: 采集项管理页（列表 + 新增/编辑对话框）
+- [x] 3.5.2 Web: 采集项管理页（列表 + 新增/编辑对话框）
   - DoD：工程师可自助配置采集项（name/type/method/spec/alarm/isRequired/isActive）；可快速检索
   - Touch points：`apps/web/src/routes/_authenticated/mes/*`（新增路由/页面）
   - Subtasks:
-    - [ ] 3.5.2.1 Web List: 列表/筛选/状态切换（enable-disable）
-    - [ ] 3.5.2.2 Web Dialog: 新增/编辑（TanStack Form + Zod）
-    - [ ] 3.5.2.3 UX: 表单校验与错误提示（与后端一致）
+    - [x] 3.5.2.1 Web List: 列表/筛选/状态切换（enable-disable）
+      - As-built（实现入口）：`apps/web/src/routes/_authenticated/mes/data-collection-specs/index.tsx`
+    - [x] 3.5.2.2 Web Dialog: 新增/编辑（TanStack Form + Zod）
+      - As-built（实现入口）：`apps/web/src/routes/_authenticated/mes/data-collection-specs/-components/spec-dialog.tsx`
+    - [x] 3.5.2.3 UX: 表单校验与错误提示（与后端一致）
+      - As-built（实现入口）：`apps/web/src/hooks/use-data-collection-specs.ts`（toast 错误处理）、`apps/web/src/components/ui/form-field-wrapper.tsx`（Field 校验显示）
+  - As-built（实现入口）：
+    - 列表页：`apps/web/src/routes/_authenticated/mes/data-collection-specs/index.tsx`
+    - 对话框：`apps/web/src/routes/_authenticated/mes/data-collection-specs/-components/spec-dialog.tsx`
+    - 列定义：`apps/web/src/routes/_authenticated/mes/data-collection-specs/-components/columns.tsx`
+    - 卡片视图：`apps/web/src/routes/_authenticated/mes/data-collection-specs/-components/card.tsx`
+    - 字段元数据：`apps/web/src/routes/_authenticated/mes/data-collection-specs/-components/field-meta.tsx`
+    - Hooks：`apps/web/src/hooks/use-data-collection-specs.ts`、`apps/web/src/hooks/use-operations.ts`
 
-- [ ] 3.5.3 Web: 路由配置绑定体验升级（替换 `dataSpecIdsText` 手填）
+- [x] 3.5.3 Web: 路由配置绑定体验升级（替换 `dataSpecIdsText` 手填）
   - DoD：路由配置页支持选择/移除采集项，并可按 Operation/Step 做绑定；保存后可编译进入 route snapshot
   - Touch points：`apps/web/src/routes/_authenticated/mes/routes/$routingCode.tsx`、`apps/server/src/modules/mes/routing/service.ts`
   - Subtasks:
-    - [ ] 3.5.3.1 Web: 采集项选择器（按 Operation 分组/搜索）
-    - [ ] 3.5.3.2 Server: compile 将绑定写入 snapshot（`dataSpecIds`）
-    - [ ] 3.5.3.3 Guard: 未绑定/绑定缺失时给出可定位错误
+    - [x] 3.5.3.1 Web: 采集项选择器（按 Operation 分组/搜索）
+      - As-built（实现入口）：`apps/web/src/routes/_authenticated/mes/-components/data-spec-selector.tsx`、`apps/web/src/routes/_authenticated/mes/routes/$routingCode.tsx`
+    - [x] 3.5.3.2 Server: compile 将绑定写入 snapshot（`dataSpecIds`）
+      - As-built（实现入口）：`apps/server/src/modules/mes/routing/service.ts`（compileRouteExecution）
+    - [x] 3.5.3.3 Guard: 绑定缺失/工序不匹配时给出可定位错误
+      - As-built（实现入口）：`apps/server/src/modules/mes/routing/service.ts`（DATA_SPEC_NOT_FOUND / DATA_SPEC_OPERATION_MISMATCH）
 
-- [ ] 3.5.4 Execution: 手工数据采集入口补齐（TrackOut 时录入）
-  - DoD：执行页在 TrackOut 时按绑定的 specs 生成输入项并校验类型；缺必填项时阻断并提示（与后端一致）
+- [x] 3.5.4 Execution: 手工数据采集入口补齐（TrackOut 时录入）
+  - DoD：执行页在 TrackOut 时按绑定的 specs 生成输入项并校验类型；**PASS** 缺必填项时阻断并提示（与后端一致）
   - Touch points：`apps/web/src/routes/_authenticated/mes/execution.tsx`、`apps/server/src/modules/mes/execution/schema.ts`
   - Subtasks:
-    - [ ] 3.5.4.1 Web: TrackOut 对话框生成动态输入项（按 spec dataType）
-    - [ ] 3.5.4.2 Server: `REQUIRED_DATA_MISSING` / `DATA_VALUE_INVALID` 错误可读且可定位
+    - [x] 3.5.4.1 Web: TrackOut 对话框生成动态输入项（按 spec dataType）
+      - As-built（实现入口）：`apps/web/src/routes/_authenticated/mes/-components/track-out-dialog.tsx`
+    - [x] 3.5.4.2 Server: `REQUIRED_DATA_MISSING` / `DATA_VALUE_INVALID` 错误可读且可定位
+      - As-built（实现入口）：`apps/server/src/modules/mes/execution/service.ts`（trackOut data[] 校验）
+  - As-built（实现入口）：
+    - API: `apps/server/src/modules/mes/execution/routes.ts`（GET /:stationCode/unit/:sn/data-specs）
+    - Service: `apps/server/src/modules/mes/execution/service.ts`（getUnitDataSpecs）
+    - Schema: `apps/server/src/modules/mes/execution/schema.ts`（unitDataSpecsResponseSchema）
+    - Hook: `apps/web/src/hooks/use-station-execution.ts`（useUnitDataSpecs）
+    - Dialog: `apps/web/src/routes/_authenticated/mes/-components/track-out-dialog.tsx`
+    - Page: `apps/web/src/routes/_authenticated/mes/execution.tsx`（集成 TrackOutDialog）
 
-- [ ] 3.5.5 RBAC: 默认角色权限对齐（采集配置/采集录入）
+- [x] 3.5.5 RBAC: 默认角色权限对齐（采集配置/采集录入）
   - DoD：engineer 可管理采集项；执行角色具备必要的数据采集能力；权限与 UI 入口一致
   - Touch points：`packages/db/src/permissions/permissions.ts`、`packages/db/src/permissions/preset-roles.ts`
   - Subtasks:
-    - [ ] 3.5.5.1 Permissions: 新增/复用权限点并加入默认角色
-    - [ ] 3.5.5.2 Web: 页面/按钮入口与权限一致（无权限不渲染或禁用）
+    - [x] 3.5.5.1 Permissions: 新增/复用权限点并加入默认角色
+      - As-built（实现入口）：`packages/db/src/permissions/permissions.ts`、`packages/db/src/permissions/preset-roles.ts`
+    - [x] 3.5.5.2 Web: 页面/按钮入口与权限一致（无权限不渲染或禁用）
+      - As-built（实现入口）：`apps/web/src/config/navigation.ts`、`apps/web/src/routes/_authenticated/mes/data-collection-specs/index.tsx`
 
 ---
 

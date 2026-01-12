@@ -360,6 +360,22 @@ export const compileRouteExecution = async (
 	const compiledSteps: CompiledStep[] = [];
 	const stepIdByNo = new Map(routing.steps.map((step) => [step.stepNo, step.id]));
 
+	const allDataSpecIds = new Set<string>();
+	for (const config of configs) {
+		for (const id of toStringArray(config.dataSpecIds as Prisma.JsonValue)) {
+			allDataSpecIds.add(id);
+		}
+	}
+
+	const dataSpecs =
+		allDataSpecIds.size > 0
+			? await db.dataCollectionSpec.findMany({
+					where: { id: { in: Array.from(allDataSpecIds) } },
+					select: { id: true, operationId: true },
+				})
+			: [];
+	const dataSpecById = new Map(dataSpecs.map((spec) => [spec.id, spec]));
+
 	const configsByStepId = new Map<string, ExecutionConfig[]>();
 	const configsBySourceStepKey = new Map<string, ExecutionConfig[]>();
 	const routeConfigs = configs.filter((config) => config.routingId === routing.id);
@@ -430,6 +446,30 @@ export const compileRouteExecution = async (
 			}
 		}
 
+		const dataSpecIdList = toStringArray(dataSpecIds as Prisma.JsonValue);
+		if (dataSpecIdList.length > 0) {
+			const missing = dataSpecIdList.filter((id) => !dataSpecById.has(id));
+			if (missing.length > 0) {
+				errors.push({
+					stepNo: step.stepNo,
+					code: "DATA_SPEC_NOT_FOUND",
+					message: `Data specs not found: ${missing.join(", ")}`,
+				});
+			}
+
+			const mismatched = dataSpecIdList.filter((id) => {
+				const spec = dataSpecById.get(id);
+				return spec ? spec.operationId !== step.operationId : false;
+			});
+			if (mismatched.length > 0) {
+				errors.push({
+					stepNo: step.stepNo,
+					code: "DATA_SPEC_OPERATION_MISMATCH",
+					message: `Data specs must belong to the step operation: ${mismatched.join(", ")}`,
+				});
+			}
+		}
+
 		compiledSteps.push({
 			stepNo: step.stepNo,
 			operationId: step.operationId,
@@ -438,7 +478,7 @@ export const compileRouteExecution = async (
 			allowedStationIds: allowedList,
 			requiresFAI,
 			requiresAuthorization,
-			dataSpecIds: toStringArray(dataSpecIds as Prisma.JsonValue),
+			dataSpecIds: dataSpecIdList,
 			ingestMapping: ingestMapping ?? null,
 		});
 	}

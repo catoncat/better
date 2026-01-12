@@ -37,6 +37,7 @@ import { Route as AuthenticatedMesRoutesIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedMesOqcIndexRouteImport } from './routes/_authenticated/mes/oqc/index'
 import { Route as AuthenticatedMesMaterialsIndexRouteImport } from './routes/_authenticated/mes/materials/index'
 import { Route as AuthenticatedMesLoadingIndexRouteImport } from './routes/_authenticated/mes/loading/index'
+import { Route as AuthenticatedMesDataCollectionSpecsIndexRouteImport } from './routes/_authenticated/mes/data-collection-specs/index'
 import { Route as AuthenticatedMesBomsIndexRouteImport } from './routes/_authenticated/mes/boms/index'
 import { Route as AuthenticatedMesRunsRunNoRouteImport } from './routes/_authenticated/mes/runs/$runNo'
 import { Route as AuthenticatedMesRoutesRoutingCodeRouteImport } from './routes/_authenticated/mes/routes/$routingCode'
@@ -203,6 +204,12 @@ const AuthenticatedMesLoadingIndexRoute =
     path: '/mes/loading/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedMesDataCollectionSpecsIndexRoute =
+  AuthenticatedMesDataCollectionSpecsIndexRouteImport.update({
+    id: '/mes/data-collection-specs/',
+    path: '/mes/data-collection-specs/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMesBomsIndexRoute =
   AuthenticatedMesBomsIndexRouteImport.update({
     id: '/mes/boms/',
@@ -275,6 +282,7 @@ export interface FileRoutesByFullPath {
   '/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
   '/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
   '/mes/boms': typeof AuthenticatedMesBomsIndexRoute
+  '/mes/data-collection-specs': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
   '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
   '/mes/materials': typeof AuthenticatedMesMaterialsIndexRoute
   '/mes/oqc': typeof AuthenticatedMesOqcIndexRoute
@@ -310,6 +318,7 @@ export interface FileRoutesByTo {
   '/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
   '/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
   '/mes/boms': typeof AuthenticatedMesBomsIndexRoute
+  '/mes/data-collection-specs': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
   '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
   '/mes/materials': typeof AuthenticatedMesMaterialsIndexRoute
   '/mes/oqc': typeof AuthenticatedMesOqcIndexRoute
@@ -348,6 +357,7 @@ export interface FileRoutesById {
   '/_authenticated/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
   '/_authenticated/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
   '/_authenticated/mes/boms/': typeof AuthenticatedMesBomsIndexRoute
+  '/_authenticated/mes/data-collection-specs/': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
   '/_authenticated/mes/loading/': typeof AuthenticatedMesLoadingIndexRoute
   '/_authenticated/mes/materials/': typeof AuthenticatedMesMaterialsIndexRoute
   '/_authenticated/mes/oqc/': typeof AuthenticatedMesOqcIndexRoute
@@ -386,6 +396,7 @@ export interface FileRouteTypes {
     | '/mes/routes/$routingCode'
     | '/mes/runs/$runNo'
     | '/mes/boms'
+    | '/mes/data-collection-specs'
     | '/mes/loading'
     | '/mes/materials'
     | '/mes/oqc'
@@ -421,6 +432,7 @@ export interface FileRouteTypes {
     | '/mes/routes/$routingCode'
     | '/mes/runs/$runNo'
     | '/mes/boms'
+    | '/mes/data-collection-specs'
     | '/mes/loading'
     | '/mes/materials'
     | '/mes/oqc'
@@ -458,6 +470,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/routes/$routingCode'
     | '/_authenticated/mes/runs/$runNo'
     | '/_authenticated/mes/boms/'
+    | '/_authenticated/mes/data-collection-specs/'
     | '/_authenticated/mes/loading/'
     | '/_authenticated/mes/materials/'
     | '/_authenticated/mes/oqc/'
@@ -669,6 +682,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesLoadingIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/mes/data-collection-specs/': {
+      id: '/_authenticated/mes/data-collection-specs/'
+      path: '/mes/data-collection-specs'
+      fullPath: '/mes/data-collection-specs'
+      preLoaderRoute: typeof AuthenticatedMesDataCollectionSpecsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/mes/boms/': {
       id: '/_authenticated/mes/boms/'
       path: '/mes/boms'
@@ -765,6 +785,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesOqcRulesRoute: typeof AuthenticatedMesOqcRulesRoute
   AuthenticatedMesRunsRunNoRoute: typeof AuthenticatedMesRunsRunNoRoute
   AuthenticatedMesBomsIndexRoute: typeof AuthenticatedMesBomsIndexRoute
+  AuthenticatedMesDataCollectionSpecsIndexRoute: typeof AuthenticatedMesDataCollectionSpecsIndexRoute
   AuthenticatedMesLoadingIndexRoute: typeof AuthenticatedMesLoadingIndexRoute
   AuthenticatedMesMaterialsIndexRoute: typeof AuthenticatedMesMaterialsIndexRoute
   AuthenticatedMesOqcIndexRoute: typeof AuthenticatedMesOqcIndexRoute
@@ -805,6 +826,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMesOqcRulesRoute: AuthenticatedMesOqcRulesRoute,
   AuthenticatedMesRunsRunNoRoute: AuthenticatedMesRunsRunNoRoute,
   AuthenticatedMesBomsIndexRoute: AuthenticatedMesBomsIndexRoute,
+  AuthenticatedMesDataCollectionSpecsIndexRoute:
+    AuthenticatedMesDataCollectionSpecsIndexRoute,
   AuthenticatedMesLoadingIndexRoute: AuthenticatedMesLoadingIndexRoute,
   AuthenticatedMesMaterialsIndexRoute: AuthenticatedMesMaterialsIndexRoute,
   AuthenticatedMesOqcIndexRoute: AuthenticatedMesOqcIndexRoute,
