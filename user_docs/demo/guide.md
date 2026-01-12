@@ -7,7 +7,7 @@
 本指南用于“按规范走完一次流程”，验证当前实现的交互链路是否闭环：
 
 - 端到端闭环：`domain_docs/mes/spec/process/01_end_to_end_flows.md`
-- SMT 流程：`domain_docs/mes/spec/process/03_smp_flows.md`
+- SMT 流程：`domain_docs/mes/spec/process/03_smt_flows.md`
 - DIP 流程：`domain_docs/mes/spec/process/04_dip_flows.md`
 
 > 反馈里提到的“产前检查”对应系统中的 **Readiness（就绪检查）**，入口在 Run 详情页 `/mes/runs/{runNo}`。
@@ -99,7 +99,7 @@
 
 ### 2.4 FAI（首件检验）+ 授权前试产过站（关键补齐点）
 
-> 规范要求顺序：创建 FAI → 首件生产(试产) → 判定 → Run 授权（见 `03_smp_flows.md`）。
+> 规范要求顺序：创建 FAI → 首件生产(试产) → 判定 → Run 授权（见 `03_smt_flows.md`）。
 
 #### 页面：Run 详情 `/mes/runs/{runNo}` + FAI `/mes/fai` + 执行 `/mes/execution`
 

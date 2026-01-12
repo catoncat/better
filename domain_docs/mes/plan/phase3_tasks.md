@@ -159,7 +159,7 @@ P1（应该）：
     - [x] 3.2.5.4 Web: Run 创建对话框预填/锁定派工产线 + 友好错误提示
 
 - [x] 3.2.6 FAI 试产执行：支持 Run=PREP 下 TrackIn/TrackOut（受控）
-  - 背景：`spec/process/03_smp_flows.md` 要求 “创建 FAI → 首件生产(试产) → 判定 → Run 授权”，但当前 execution 仅允许 `Run=AUTHORIZED|IN_PROGRESS`。
+  - 背景：`spec/process/03_smt_flows.md` 要求 “创建 FAI → 首件生产(试产) → 判定 → Run 授权”，但当前 execution 仅允许 `Run=AUTHORIZED|IN_PROGRESS`。
   - DoD：
     - Run=PREP 且存在 active FAI（INSPECTING）时，允许在工位执行页完成试产 TrackIn/TrackOut，不把 Run 推进到 IN_PROGRESS
     - 试产必须先通过 readiness（formal 或豁免后全通过），否则禁止试产
@@ -194,13 +194,19 @@ P1（应该）：
   - DoD：形成 10~20 分钟可讲完的演示路线（包含失败分支示例与追溯展示）
   - Touch points：`user_docs/`、`domain_docs/mes/tests/01_acceptance_scenarios.md`
   - Subtasks:
-    - [x] 3.4.2.1 Demo Guide: SMT 全流程（按 `spec/process/01_end_to_end_flows.md` + `03_smp_flows.md` 走完）
+    - [x] 3.4.2.1 Demo Guide: SMT 全流程（按 `spec/process/01_end_to_end_flows.md` + `03_smt_flows.md` 走完）
     - [x] 3.4.2.2 Demo Guide: DIP 全流程（按 `spec/process/01_end_to_end_flows.md` + `04_dip_flows.md` 走完）
     - [x] 3.4.2.3 Demo Guide: 失败分支示例（readiness fail/waive, NG/处置, OQC fail/MRB）
 
 - [ ] 3.4.3 体验优化清单（仅收敛到 P1 阻断项）
   - DoD：收集并分级：P0 阻断 / P1 重要 / P2 可延后；每项绑定到具体页面与期望行为
   - Touch points：`apps/web/src/routes/_authenticated/mes/*`
+  - Subtasks:
+    - [ ] 3.4.3.1 Demo guide “dry run” 校验：按 `user_docs/demo/guide.md` 从头跑一次并修正文案/入口偏差
+    - [ ] 3.4.3.2 Run detail → Execution：新增“开始执行”深链（预填 runNo/woNo，减少跳转成本）
+    - [ ] 3.4.3.3 Execution：增加“待执行批次”列表（AUTHORIZED + PREP 可试产），点击即可带入表单
+    - [ ] 3.4.3.4 Demo guide：明确 Unit 生成路径（TrackIn 自动建 Unit vs 手动“生成单件”按钮）
+  - References：`conversation/2026-01-12_143644_demo-guide-accuracy-and-next-plan.md`
 
 - [ ] 3.4.4 外部集成降级 SOP（TPM/WMS/SPI/AOI/钢网/锡膏）
   - DoD：给出“不可用时怎么做/恢复后怎么切回/谁有权限操作/需要哪些审计记录”的明确步骤
