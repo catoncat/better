@@ -1,4 +1,5 @@
 import { useForm } from "@tanstack/react-form";
+import { useEffect } from "react";
 import * as z from "zod";
 import { LineSelect } from "@/components/select/line-select";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,15 @@ interface RunCreateDialogProps {
 	workOrder: WorkOrder | null;
 }
 
+const getDispatchedLineCode = (workOrder: WorkOrder | null) => {
+	const meta = (workOrder as { meta?: unknown } | null)?.meta;
+	if (!meta || typeof meta !== "object") return null;
+	const dispatch = (meta as { dispatch?: unknown }).dispatch;
+	if (!dispatch || typeof dispatch !== "object") return null;
+	const lineCode = (dispatch as { lineCode?: unknown }).lineCode;
+	return typeof lineCode === "string" && lineCode.trim() ? lineCode.trim() : null;
+};
+
 export function RunCreateDialog({
 	open,
 	onOpenChange,
@@ -37,8 +47,9 @@ export function RunCreateDialog({
 	isSubmitting,
 	workOrder,
 }: RunCreateDialogProps) {
+	const dispatchedLineCode = getDispatchedLineCode(workOrder);
 	const defaultValues: RunFormValues = {
-		lineCode: "",
+		lineCode: dispatchedLineCode ?? "",
 		shiftCode: "Day",
 		changeoverNo: "",
 	};
@@ -58,6 +69,15 @@ export function RunCreateDialog({
 			onOpenChange(false);
 		},
 	});
+
+	useEffect(() => {
+		if (!open) return;
+		form.reset({
+			lineCode: dispatchedLineCode ?? "",
+			shiftCode: "Day",
+			changeoverNo: "",
+		});
+	}, [dispatchedLineCode, form, open]);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -80,6 +100,7 @@ export function RunCreateDialog({
 								value={field.state.value}
 								onValueChange={field.handleChange}
 								placeholder="选择线体"
+								disabled={Boolean(dispatchedLineCode)}
 							/>
 						)}
 					</Field>

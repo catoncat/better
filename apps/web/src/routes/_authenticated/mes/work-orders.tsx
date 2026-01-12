@@ -294,17 +294,25 @@ function WorkOrdersPage() {
 
 	const handleRunSubmit = async (values: RunFormValues) => {
 		if (selectedWO) {
-			const result = await createRun({ woNo: selectedWO.woNo, ...values });
-			const runNo = (result as { data?: { runNo?: string } } | undefined)?.data?.runNo;
-			if (runNo) {
-				navigate({ to: "/mes/runs/$runNo", params: { runNo } });
+			try {
+				const result = await createRun({ woNo: selectedWO.woNo, ...values });
+				const runNo = result?.runNo;
+				if (runNo) {
+					navigate({ to: "/mes/runs/$runNo", params: { runNo } });
+				}
+			} catch {
+				// Toast handled in mutation onError
 			}
 		}
 	};
 
 	const handleReleaseSubmit = async (values: WorkOrderReleaseFormValues) => {
 		if (selectedWO) {
-			await releaseWO({ woNo: selectedWO.woNo, ...values });
+			try {
+				await releaseWO({ woNo: selectedWO.woNo, ...values });
+			} catch {
+				// Toast handled in mutation onError
+			}
 		}
 	};
 

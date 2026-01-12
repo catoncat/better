@@ -103,17 +103,15 @@ export function useReleaseWorkOrder() {
 
 	return useMutation({
 		mutationFn: async ({ woNo, ...body }: WorkOrderReleaseInput & { woNo: string }) => {
-			const { data, error } = await client.api["work-orders"]({ woNo }).release.post(body);
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "发布工单失败");
-			}
-
-			return data;
+			const response = await client.api["work-orders"]({ woNo }).release.post(body);
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			toast.success("工单已发布");
 			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
+		},
+		onError: (error: Error) => {
+			toast.error(error.message);
 		},
 	});
 }
