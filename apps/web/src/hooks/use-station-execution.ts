@@ -18,6 +18,15 @@ type StationQueueResponse = Awaited<ReturnType<ReturnType<typeof stationQueueApi
 export type StationQueue = NonNullable<StationQueueResponse>;
 export type QueueItem = StationQueue["queue"][number];
 
+// Type for unit data specs
+const unitDataSpecsApi = (stationCode: string, sn: string) =>
+	client.api.stations({ stationCode }).unit({ sn })["data-specs"];
+type UnitDataSpecsEnvelope = Awaited<
+	ReturnType<ReturnType<typeof unitDataSpecsApi>["get"]>
+>["data"];
+export type UnitDataSpecs = UnwrapEnvelope<NonNullable<UnitDataSpecsEnvelope>>;
+export type DataSpecItem = UnitDataSpecs["specs"][number];
+
 export function useStations() {
 	return useQuery<StationList>({
 		queryKey: ["mes", "stations"],
@@ -35,6 +44,17 @@ export function useStationQueue(stationCode: string) {
 		refetchInterval: 10_000,
 		queryFn: async () => {
 			const response = await client.api.stations({ stationCode }).queue.get();
+			return unwrap(response);
+		},
+	});
+}
+
+export function useUnitDataSpecs(stationCode: string, sn: string) {
+	return useQuery<UnitDataSpecs>({
+		queryKey: ["mes", "unit-data-specs", stationCode, sn],
+		enabled: Boolean(stationCode) && Boolean(sn),
+		queryFn: async () => {
+			const response = await client.api.stations({ stationCode }).unit({ sn })["data-specs"].get();
 			return unwrap(response);
 		},
 	});

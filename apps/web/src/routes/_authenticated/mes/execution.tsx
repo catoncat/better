@@ -43,6 +43,7 @@ import {
 	useTrackOut,
 } from "@/hooks/use-station-execution";
 import { useUserProfile } from "@/hooks/use-users";
+import { TrackOutDialog } from "./-components/track-out-dialog";
 
 export const Route = createFileRoute("/_authenticated/mes/execution")({
 	component: ExecutionPage,
@@ -64,6 +65,9 @@ function ExecutionPage() {
 	const [selectedStation, setSelectedStation] = useState<string>("");
 	const [ngDialogOpen, setNgDialogOpen] = useState(false);
 	const [ngItem, setNgItem] = useState<{ sn: string; runNo: string } | null>(null);
+	// State for TrackOut dialog with data collection
+	const [trackOutDialogOpen, setTrackOutDialogOpen] = useState(false);
+	const [trackOutItem, setTrackOutItem] = useState<{ sn: string; runNo: string } | null>(null);
 	const stationStorageKey = "mes.execution.station";
 	const { data: userProfile } = useUserProfile();
 	const { data: stations } = useStations();
@@ -150,14 +154,14 @@ function ExecutionPage() {
 		}
 	}, [availableStations, selectedStation]);
 
-	const handleQueueItemClick = async (item: { sn: string; woNo: string; runNo: string }) => {
-		if (!selectedStation || !canTrackOut || isOutPending) return;
-		await trackOut({
-			stationCode: selectedStation,
-			sn: item.sn,
-			runNo: item.runNo,
-			result: "PASS",
-		});
+	// Open TrackOut dialog with data collection
+	const handleOpenTrackOutDialog = (item: { sn: string; runNo: string }) => {
+		setTrackOutItem(item);
+		setTrackOutDialogOpen(true);
+	};
+
+	const handleTrackOutSuccess = () => {
+		setTrackOutItem(null);
 		outForm.reset({ sn: "", runNo: "", result: "PASS" });
 		refetchQueue();
 	};
@@ -325,9 +329,11 @@ function ExecutionPage() {
 															variant="secondary"
 															size="sm"
 															disabled={!canTrackOut || isOutPending}
-															onClick={() => handleQueueItemClick(item)}
+															onClick={() =>
+																handleOpenTrackOutDialog({ sn: item.sn, runNo: item.runNo })
+															}
 														>
-															一键出站
+															出站
 														</Button>
 														<Button
 															variant="outline"
@@ -429,7 +435,7 @@ function ExecutionPage() {
 							<Card>
 								<CardHeader>
 									<CardTitle>出站录入</CardTitle>
-									<CardDescription>从左侧队列点击"一键出站"直接提交，或手动输入</CardDescription>
+									<CardDescription>从左侧队列点击"出站"按钮，或手动输入</CardDescription>
 								</CardHeader>
 								<CardContent>
 									<form
@@ -509,6 +515,19 @@ function ExecutionPage() {
 				</div>
 			)}
 
+			{/* TrackOut with Data Collection Dialog */}
+			{trackOutItem && (
+				<TrackOutDialog
+					open={trackOutDialogOpen}
+					onOpenChange={setTrackOutDialogOpen}
+					stationCode={selectedStation}
+					sn={trackOutItem.sn}
+					runNo={trackOutItem.runNo}
+					onSuccess={handleTrackOutSuccess}
+				/>
+			)}
+
+			{/* NG Confirmation Dialog */}
 			<Dialog open={ngDialogOpen} onOpenChange={setNgDialogOpen}>
 				<DialogContent>
 					<DialogHeader>

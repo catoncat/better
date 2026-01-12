@@ -230,12 +230,21 @@ P1（应该）：
     - [ ] 3.5.3.2 Server: compile 将绑定写入 snapshot（`dataSpecIds`）
     - [ ] 3.5.3.3 Guard: 未绑定/绑定缺失时给出可定位错误
 
-- [ ] 3.5.4 Execution: 手工数据采集入口补齐（TrackOut 时录入）
+- [x] 3.5.4 Execution: 手工数据采集入口补齐（TrackOut 时录入）
   - DoD：执行页在 TrackOut 时按绑定的 specs 生成输入项并校验类型；缺必填项时阻断并提示（与后端一致）
   - Touch points：`apps/web/src/routes/_authenticated/mes/execution.tsx`、`apps/server/src/modules/mes/execution/schema.ts`
   - Subtasks:
-    - [ ] 3.5.4.1 Web: TrackOut 对话框生成动态输入项（按 spec dataType）
-    - [ ] 3.5.4.2 Server: `REQUIRED_DATA_MISSING` / `DATA_VALUE_INVALID` 错误可读且可定位
+    - [x] 3.5.4.1 Web: TrackOut 对话框生成动态输入项（按 spec dataType）
+      - As-built（实现入口）：`apps/web/src/routes/_authenticated/mes/-components/track-out-dialog.tsx`
+    - [x] 3.5.4.2 Server: `REQUIRED_DATA_MISSING` / `DATA_VALUE_INVALID` 错误可读且可定位
+      - As-built（实现入口）：`apps/server/src/modules/mes/execution/service.ts`（trackOut data[] 校验）
+  - As-built（实现入口）：
+    - API: `apps/server/src/modules/mes/execution/routes.ts`（GET /:stationCode/unit/:sn/data-specs）
+    - Service: `apps/server/src/modules/mes/execution/service.ts`（getUnitDataSpecs）
+    - Schema: `apps/server/src/modules/mes/execution/schema.ts`（unitDataSpecsResponseSchema）
+    - Hook: `apps/web/src/hooks/use-station-execution.ts`（useUnitDataSpecs）
+    - Dialog: `apps/web/src/routes/_authenticated/mes/-components/track-out-dialog.tsx`
+    - Page: `apps/web/src/routes/_authenticated/mes/execution.tsx`（集成 TrackOutDialog）
 
 - [ ] 3.5.5 RBAC: 默认角色权限对齐（采集配置/采集录入）
   - DoD：engineer 可管理采集项；执行角色具备必要的数据采集能力；权限与 UI 入口一致

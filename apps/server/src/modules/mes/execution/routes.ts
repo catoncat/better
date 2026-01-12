@@ -9,8 +9,9 @@ import {
 	trackInSchema,
 	trackOutSchema,
 	trackResponseSchema,
+	unitDataSpecsResponseSchema,
 } from "./schema";
-import { trackIn, trackOut } from "./service";
+import { getUnitDataSpecs, trackIn, trackOut } from "./service";
 
 export const executionModule = new Elysia({
 	prefix: "/stations",
@@ -51,6 +52,40 @@ export const executionModule = new Elysia({
 				}),
 			},
 			detail: { tags: ["MES - Execution"] },
+		},
+	)
+	.get(
+		"/:stationCode/unit/:sn/data-specs",
+		async ({ db, params, set }) => {
+			const result = await getUnitDataSpecs(db, params.stationCode, params.sn);
+			if (!result.success) {
+				const errorCode = result.code ?? "EXECUTION_ERROR";
+				const errorMessage = result.message ?? "Failed to get data specs";
+				set.status =
+					errorCode === "STATION_NOT_FOUND" || errorCode === "UNIT_NOT_FOUND" ? 404 : 400;
+				return { ok: false as const, error: { code: errorCode, message: errorMessage } };
+			}
+			return { ok: true as const, data: result.data! };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.EXEC_TRACK_OUT,
+			params: t.Object({ stationCode: t.String(), sn: t.String() }),
+			response: {
+				200: unitDataSpecsResponseSchema,
+				400: t.Object({
+					ok: t.Boolean(),
+					error: t.Object({ code: t.String(), message: t.String() }),
+				}),
+				404: t.Object({
+					ok: t.Boolean(),
+					error: t.Object({ code: t.String(), message: t.String() }),
+				}),
+			},
+			detail: {
+				tags: ["MES - Execution"],
+				summary: "Get data collection specs for unit at current step",
+			},
 		},
 	)
 	.post(
