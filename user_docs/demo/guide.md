@@ -192,9 +192,85 @@
 
 ## 四、DIP 流程演示（可选）
 
-当需要验证 DIP 路线时，按 `04_dip_flows.md` 的结构执行同样的闭环（入口与 SMT 一致）。
+> 目标：按 `domain_docs/mes/spec/process/04_dip_flows.md` 的闭环顺序，走完 DIP 的 “准备→（可选 FAI）→授权→执行→收尾→OQC/MRB→追溯”。
 
-建议工位示例：`ST-DIP-INS-01` → `ST-DIP-WAVE-01` → `ST-DIP-POST-01` → `ST-DIP-TEST-01`。
+### 4.0 前置说明（DIP 的“工序粒度”）
+
+- 系统执行侧是通用的：只要 ERP 路由里存在对应工序（Operation）且产线有对应工位（Station），执行页面就能按步骤 TrackIn/TrackOut。
+- DIP 规范里包含 IPQC 节点（后焊/测试段首件），当前系统 **未实现独立 IPQC 模块**，不作为 Run 授权门禁（规范备注也写明当前未实现 IPQC）。
+
+### 4.1 创建 DIP 工单与 Run（推荐：完整闭环）
+
+#### 页面：工单管理 `/mes/work-orders`
+
+**操作演示：**
+1. 点击「接收外部工单」
+2. 填入以下示例（可按需调整）：
+   - 工单号：`WO-DEMO-DIP-{时间戳}`
+   - 产品编码：`P-2001`
+   - 计划数量：`5`
+   - 路由编码：`PCBA-DIP-V1`
+   - 物料状态：建议选「全部领料」
+3. 接收后，选择该工单点击「下发」→ 选择 DIP 产线（示例：`LINE-DIP-A`）
+4. 点击「创建批次」创建 Run（Run= `PREP`）并进入 `/mes/runs/{runNo}`
+
+### 4.2 Readiness（产前检查）
+
+#### 页面：批次详情 `/mes/runs/{runNo}`
+
+**操作演示：**
+1. 在 Readiness 卡片点击「正式检查」直到通过（`PASSED`）
+2. 若失败：按需走「豁免」或通过 `/mes/integration/manual-entry` 做外部状态的手动录入/绑定
+
+### 4.3 FAI（可选）+ 授权前试产过站
+
+#### 页面：Run 详情 `/mes/runs/{runNo}` + `/mes/fai` + `/mes/execution`
+
+**操作演示：**
+1. 若 Run 详情页显示需要 FAI：
+   - 点击「创建 FAI」
+   - 在 `/mes/fai` 对该 FAI 点击「开始」（进入 `INSPECTING`）
+2. 授权前试产（Run=PREP）：进入 `/mes/execution` 选择 DIP 首工位并完成一次 PASS：
+   - 推荐示例首工位：`ST-DIP-INS-01`
+3. 回到 `/mes/fai` 记录检验项并「完成」为 `PASS`
+
+**注意：**
+- 授权前试产只允许首工序；若在 Run=PREP 时操作非首工位会返回 `FAI_TRIAL_STEP_NOT_ALLOWED`。
+
+### 4.4 Run 授权（Run=AUTHORIZED）
+
+#### 页面：Run 详情 `/mes/runs/{runNo}`（或 Run 列表 `/mes/runs`）
+
+**操作演示：**
+1. 点击「授权生产」
+2. 若失败：按错误码回到 Readiness / FAI 修复后重试（常见：`READINESS_CHECK_FAILED`、`FAI_NOT_PASSED`）
+
+### 4.5 执行（Run=IN_PROGRESS）
+
+#### 页面：工位执行 `/mes/execution`
+
+**操作演示：**
+1. 依次选择工位并完成 TrackIn/TrackOut（PASS）直到末工序，Unit 进入 `DONE`
+2. 推荐工位示例（种子数据默认 4 站）：
+   - `ST-DIP-INS-01` → `ST-DIP-WAVE-01` → `ST-DIP-POST-01` → `ST-DIP-TEST-01`
+3. 若你的 ERP 路由拆得更细（例如插件/后焊/外观/测试分段多工序），按路由步骤顺序继续 TrackIn/TrackOut 即可
+
+### 4.6 Run 收尾 + OQC/MRB 闭环
+
+#### 页面：Run 详情 `/mes/runs/{runNo}` + OQC `/mes/oqc`
+
+**操作演示：**
+1. 在 Run 详情页点击「收尾」
+2. 若需要 OQC：进入 `/mes/oqc` 完成任务（PASS/FAIL）
+3. 若 OQC 失败：Run 进入 `ON_HOLD`，在 Run 详情页点击「MRB 决策」选择放行/返修/报废
+
+### 4.7 工单收尾 + 追溯验证
+
+#### 页面：`/mes/work-orders` + `/mes/trace`
+
+**操作演示：**
+1. 工单收尾：在 `/mes/work-orders` 对工单执行「收尾」→ WO 进入 `COMPLETED`
+2. 追溯验证：在 `/mes/trace` 输入 DIP 的 SN，确认可看到路由版本快照、过站、FAI/OQC（如有）
 
 ---
 
@@ -253,4 +329,3 @@
 
 **Q: 如果网络断了怎么办？**
 > 系统支持降级模式：外部集成检查可手动录入或豁免，确保生产不中断；事后可补录数据并保留审计记录。
-
