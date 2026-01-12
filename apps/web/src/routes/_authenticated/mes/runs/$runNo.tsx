@@ -45,7 +45,7 @@ import {
 	useReadinessLatest,
 	useWaiveItem,
 } from "@/hooks/use-readiness";
-import { useCloseRun, useRunDetail, useGenerateUnits } from "@/hooks/use-runs";
+import { useCloseRun, useGenerateUnits, useRunDetail } from "@/hooks/use-runs";
 import { INSPECTION_STATUS_MAP, READINESS_ITEM_TYPE_MAP } from "@/lib/constants";
 import { CloseoutDialog } from "@/routes/_authenticated/mes/-components/closeout-dialog";
 import {
@@ -327,7 +327,8 @@ function RunDetailPage() {
 					</CardHeader>
 					<CardContent>
 						<p className="text-2xl font-bold">{data.unitStats.total}</p>
-						{data.unitStats.total === 0 && (data.run.status === "PREP" || data.run.status === "AUTHORIZED") ? (
+						{data.unitStats.total === 0 &&
+						(data.run.status === "PREP" || data.run.status === "AUTHORIZED") ? (
 							<Button
 								variant="outline"
 								size="sm"
@@ -839,7 +840,8 @@ function RunDetailPage() {
 								placeholder="输入生成数量"
 							/>
 							<p className="text-xs text-muted-foreground">
-								将生成 {generateUnitsQty} 个单件，SN 格式: SN-{runNo}-0001 ~ SN-{runNo}-{String(generateUnitsQty).padStart(4, "0")}
+								将生成 {generateUnitsQty} 个单件，SN 格式: SN-{runNo}-0001 ~ SN-{runNo}-
+								{String(generateUnitsQty).padStart(4, "0")}
 							</p>
 						</div>
 					</div>

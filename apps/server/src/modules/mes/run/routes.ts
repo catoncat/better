@@ -10,15 +10,15 @@ import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
 import {
+	generateUnitsResponseSchema,
+	generateUnitsSchema,
 	runAuthorizeSchema,
 	runDetailResponseSchema,
 	runErrorResponseSchema,
 	runListQuerySchema,
 	runResponseSchema,
-	generateUnitsSchema,
-	generateUnitsResponseSchema,
 } from "./schema";
-import { authorizeRun, closeRun, getRunDetail, listRuns, generateUnits } from "./service";
+import { authorizeRun, closeRun, generateUnits, getRunDetail, listRuns } from "./service";
 
 export const runModule = new Elysia({
 	prefix: "/runs",

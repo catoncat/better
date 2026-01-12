@@ -6,7 +6,7 @@ import { parseSortOrderBy } from "../../../utils/sort";
 import { checkFaiGate } from "../fai/service";
 import { checkAndTriggerOqc } from "../oqc/trigger-service";
 import { canAuthorize as checkReadiness } from "../readiness/service";
-import type { runAuthorizeSchema, runListQuerySchema, generateUnitsSchema } from "./schema";
+import type { generateUnitsSchema, runAuthorizeSchema, runListQuerySchema } from "./schema";
 
 type RunAuthorizeInput = Static<typeof runAuthorizeSchema>;
 type RunListQuery = Static<typeof runListQuerySchema>;
