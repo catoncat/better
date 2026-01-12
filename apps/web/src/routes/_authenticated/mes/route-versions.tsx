@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_authenticated/mes/route-versions")({
 });
 
 function RouteVersionsPage() {
-	const [routingCode, setRoutingCode] = useState("PCBA-STD-V1");
+	const [routingCode, setRoutingCode] = useState("");
 	const { data, isLoading, isFetching, refetch } = useRouteVersions(routingCode);
 	const { mutateAsync: compileRoute, isPending: isCompiling } = useCompileRouteVersion();
 
