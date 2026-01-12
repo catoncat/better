@@ -76,9 +76,14 @@ P1（应该）：
     - Trace API：`apps/server/src/modules/mes/trace/routes.ts`、`apps/server/src/modules/mes/trace/service.ts`
     - Data Collection 写入/校验：`apps/server/src/modules/mes/execution/service.ts`（TrackOut `data[]` + specName 校验与写入 DataValue）
 
-- [ ] 3.1.3 清理过期差距报告与重复规范（避免团队误判进度）
-  - DoD：对 `issues/*alignment_report*` 与相关文档标注“已过期/已修复”或更新为 as-built 快照
+- [x] 3.1.3 清理过期差距报告与重复规范（避免团队误判进度）
+  - DoD：对 `issues/*alignment_report*` 与相关文档标注"已过期/已修复"或更新为 as-built 快照
   - Touch points：`issues/`、`domain_docs/mes/plan/*`
+  - As-built（清理日期 2026-01-12）：
+    - `issues/archived/smp_flows_userfeedback_draft_alignment_report.md`：标注"已过期"，M2 已实现锡膏/钢网/上料防错/OQC/SPI-AOI
+    - `issues/archived/smp_flows_userfeedback_draft_review_report.md`：标注"已过期"，M2 已实现状态机/TrackIn-Out/不良处置/OQC
+    - `issues/archived/data-list-*.md`：标注"已完成/已采纳"
+    - `domain_docs/mes/plan/worktree_oqc_mrb_todo.md`：移动至 `archive/`
 
 ### 3.2 Track B — E2E Demo & Seed Hardening（P0）
 
@@ -163,9 +168,9 @@ P1（应该）：
   - DoD：明确“升级前备份”“回滚恢复”“db:deploy 流程”“数据目录权限/磁盘策略”
   - Touch points：`agent_docs/05_ops/single_binary_deployment.md`（或新增 ops 文档）、`agent_docs/00_onboarding/setup.md`
 
-- [ ] 3.3.3 观测与审计最低配置（上线可运维）
-  - DoD：明确日志/追踪开关、Jaeger 可选接入、审计事件查询路径（UI/API）
-  - Touch points：`agent_docs/05_ops/observability_jaeger.md`、`apps/server/src/modules/audit/*`、`apps/web/src/routes/_authenticated/system/*`
+- [ ] 3.3.3 日志与审计最低配置（上线可运维）
+  - DoD：明确日志开关与审计事件查询路径（UI/API）
+  - Touch points：`apps/server/src/modules/audit/*`、`apps/web/src/routes/_authenticated/system/*`
 
 ### 3.4 Track D — UX & Training（P1）
 

@@ -1,3 +1,11 @@
+> **✅ 已完成 / COMPLETED**
+>
+> 本计划已在 2026-01 完成实施。详见 `data-list-implement.md` 的完成总结。
+>
+> **清理日期**：2026-01-12（任务 3.1.3）
+
+---
+
 # Data List Pattern Alignment Plan
 
 ## Scope
