@@ -84,8 +84,12 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 					password,
 				},
 				{
-					onSuccess: () => {
-						queryClient.removeQueries({ queryKey: sessionQueryKey });
+					onSuccess: async () => {
+						await queryClient.fetchQuery({
+							queryKey: sessionQueryKey,
+							queryFn: () => authClient.getSession(),
+							staleTime: 0,
+						});
 						toast.success("登录成功");
 						router.navigate({ to: "/mes/work-orders" });
 					},
