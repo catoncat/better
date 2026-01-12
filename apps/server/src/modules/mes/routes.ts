@@ -13,10 +13,10 @@ import {
 	slotMappingModule,
 } from "./loading/routes";
 import { masterDataModule } from "./master-data/routes";
+import { operationModule } from "./operation/routes";
 import { mrbRoutes } from "./oqc/mrb-routes";
 import { oqcRoutes } from "./oqc/routes";
 import { samplingRuleRoutes } from "./oqc/sampling-rule-routes";
-import { operationModule } from "./operation/routes";
 import { readinessExceptionsModule, readinessModule } from "./readiness/routes";
 import { routingModule } from "./routing/routes";
 import { runModule } from "./run/routes";
