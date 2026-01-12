@@ -22,7 +22,6 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/form-field-wrapper";
-import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
@@ -52,6 +51,7 @@ import { useRouteDetail } from "@/hooks/use-routes";
 import { useStations } from "@/hooks/use-station-execution";
 import { useStationGroups } from "@/hooks/use-station-groups";
 import { client, unwrap } from "@/lib/eden";
+import { DataSpecSelector } from "../-components/data-spec-selector";
 
 export const Route = createFileRoute("/_authenticated/mes/routes/$routingCode")({
 	component: RouteDetailPage,
@@ -75,7 +75,7 @@ const configSchema = z
 		allowedStationIds: z.array(z.string()).optional(),
 		requiresFAI: z.boolean().optional(),
 		requiresAuthorization: z.boolean().optional(),
-		dataSpecIdsText: z.string().optional(),
+		dataSpecIds: z.array(z.string()).optional(),
 		ingestMappingText: z.string().optional(),
 		metaText: z.string().optional(),
 	})
@@ -161,6 +161,7 @@ function RouteDetailPage() {
 				value: String(step.stepNo),
 				label: `Step ${step.stepNo} · ${step.operationName}`,
 				sourceStepKey: step.sourceStepKey,
+				operationCode: step.operationCode,
 			})),
 		[steps],
 	);
@@ -682,7 +683,7 @@ function ExecutionConfigDialog({
 	onOpenChange: (open: boolean) => void;
 	editingConfig: ExecutionConfig | null;
 	routingCode: string;
-	stepOptions: Array<{ value: string; label: string; sourceStepKey: string | null }>;
+	stepOptions: Array<{ value: string; label: string; sourceStepKey: string | null; operationCode: string }>;
 	stationGroupOptions: Array<{ value: string; label: string }>;
 	stations: StationOption[];
 }) {
@@ -707,7 +708,7 @@ function ExecutionConfigDialog({
 		allowedStationIds: normalizeStringArray(editingConfig?.allowedStationIds ?? null),
 		requiresFAI: editingConfig?.requiresFAI ?? false,
 		requiresAuthorization: editingConfig?.requiresAuthorization ?? false,
-		dataSpecIdsText: normalizeStringArray(editingConfig?.dataSpecIds ?? null).join(","),
+		dataSpecIds: normalizeStringArray(editingConfig?.dataSpecIds ?? null),
 		ingestMappingText: editingConfig?.ingestMapping
 			? JSON.stringify(editingConfig.ingestMapping, null, 2)
 			: "",
@@ -720,7 +721,7 @@ function ExecutionConfigDialog({
 			onChange: configSchema,
 		},
 		onSubmit: async ({ value: values }) => {
-			const dataSpecIds = parseCommaList(values.dataSpecIdsText);
+			const dataSpecIds = values.dataSpecIds ?? [];
 			const ingestMapping = parseJson(values.ingestMappingText);
 			const meta = parseJson(values.metaText);
 
@@ -771,7 +772,7 @@ function ExecutionConfigDialog({
 			allowedStationIds: normalizeStringArray(editingConfig?.allowedStationIds ?? null),
 			requiresFAI: editingConfig?.requiresFAI ?? false,
 			requiresAuthorization: editingConfig?.requiresAuthorization ?? false,
-			dataSpecIdsText: normalizeStringArray(editingConfig?.dataSpecIds ?? null).join(","),
+			dataSpecIds: normalizeStringArray(editingConfig?.dataSpecIds ?? null),
 			ingestMappingText: editingConfig?.ingestMapping
 				? JSON.stringify(editingConfig.ingestMapping, null, 2)
 				: "",
@@ -789,7 +790,7 @@ function ExecutionConfigDialog({
 				allowedStationIds: [],
 				requiresFAI: false,
 				requiresAuthorization: false,
-				dataSpecIdsText: "",
+				dataSpecIds: [],
 				ingestMappingText: "",
 				metaText: "",
 			});
@@ -978,16 +979,25 @@ function ExecutionConfigDialog({
 							</Field>
 						</div>
 
-						<Field form={form} name="dataSpecIdsText" label="采集项标识">
-							{(field) => (
-								<Input
-									placeholder="多个用逗号分隔，例如 TEMP,POWER"
-									value={field.state.value}
-									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
-								/>
-							)}
-						</Field>
+						{/* DataSpecSelector wrapped in form.Subscribe to get stepNo reactively */}
+						<form.Subscribe selector={(state) => state.values.stepNo}>
+							{(stepNo) => {
+								const selectedOperationCode = stepNo
+									? stepOptions.find((s) => s.value === stepNo)?.operationCode
+									: undefined;
+								return (
+									<Field form={form} name="dataSpecIds" label="采集项">
+										{(field) => (
+											<DataSpecSelector
+												value={field.state.value ?? []}
+												onChange={field.handleChange}
+												operationCode={selectedOperationCode}
+											/>
+										)}
+									</Field>
+								);
+							}}
+						</form.Subscribe>
 
 						<div className="grid gap-4 md:grid-cols-2">
 							<Field form={form} name="ingestMappingText" label="采集映射 (JSON)">
@@ -1036,14 +1046,6 @@ function ExecutionConfigDialog({
 function normalizeStringArray(value: unknown) {
 	if (!Array.isArray(value)) return [];
 	return value.filter((item): item is string => typeof item === "string");
-}
-
-function parseCommaList(value?: string) {
-	if (!value) return [];
-	return value
-		.split(",")
-		.map((item) => item.trim())
-		.filter(Boolean);
 }
 
 function parseJson(value?: string) {
