@@ -1,5 +1,4 @@
 import { OqcSamplingType, type Prisma, type PrismaClient } from "@better-app/db";
-import { SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
 import type { createSamplingRuleSchema, updateSamplingRuleSchema } from "./schema";
@@ -13,8 +12,6 @@ type SamplingRuleRecord = Prisma.OqcSamplingRuleGetPayload<{
 		routing: { select: { code: true; name: true } };
 	};
 }>;
-
-const tracer = trace.getTracer("mes.oqc.sampling-rule");
 
 /**
  * List OQC sampling rules with pagination and filters.
@@ -109,84 +106,69 @@ export async function createSamplingRule(
 	db: PrismaClient,
 	data: CreateSamplingRuleInput,
 ): Promise<ServiceResult<SamplingRuleRecord>> {
-	return tracer.startActiveSpan("samplingRule.create", async (span) => {
-		try {
-			// Validate line exists if lineId provided
-			if (data.lineId) {
-				const line = await db.line.findUnique({ where: { id: data.lineId } });
-				if (!line) {
-					span.setStatus({ code: SpanStatusCode.ERROR });
-					return {
-						success: false as const,
-						code: "LINE_NOT_FOUND",
-						message: "Line not found",
-						status: 404,
-					};
-				}
-			}
-
-			// Validate routing exists if routingId provided
-			if (data.routingId) {
-				const routing = await db.routing.findUnique({ where: { id: data.routingId } });
-				if (!routing) {
-					span.setStatus({ code: SpanStatusCode.ERROR });
-					return {
-						success: false as const,
-						code: "ROUTING_NOT_FOUND",
-						message: "Routing not found",
-						status: 404,
-					};
-				}
-			}
-
-			// Validate sampleValue based on samplingType
-			if (data.samplingType === "PERCENTAGE" && (data.sampleValue < 0 || data.sampleValue > 100)) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				return {
-					success: false as const,
-					code: "INVALID_SAMPLE_VALUE",
-					message: "Percentage must be between 0 and 100",
-					status: 400,
-				};
-			}
-
-			if (data.samplingType === "FIXED" && data.sampleValue < 1) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				return {
-					success: false as const,
-					code: "INVALID_SAMPLE_VALUE",
-					message: "Fixed sample count must be at least 1",
-					status: 400,
-				};
-			}
-
-			const rule = await db.oqcSamplingRule.create({
-				data: {
-					productCode: data.productCode ?? null,
-					lineId: data.lineId ?? null,
-					routingId: data.routingId ?? null,
-					samplingType: data.samplingType as OqcSamplingType,
-					sampleValue: data.sampleValue,
-					priority: data.priority ?? 0,
-					isActive: data.isActive ?? true,
-					meta: data.meta ?? null,
-				},
-				include: {
-					line: { select: { code: true, name: true } },
-					routing: { select: { code: true, name: true } },
-				},
-			});
-
-			span.setAttribute("samplingRule.id", rule.id);
-			return { success: true as const, data: rule };
-		} catch (error) {
-			span.recordException(error as Error);
-			span.setStatus({ code: SpanStatusCode.ERROR });
-			throw error;
-		} finally {
-			span.end();
+	// Validate line exists if lineId provided
+	if (data.lineId) {
+		const line = await db.line.findUnique({ where: { id: data.lineId } });
+		if (!line) {
+			return {
+				success: false as const,
+				code: "LINE_NOT_FOUND",
+				message: "Line not found",
+				status: 404,
+			};
 		}
+	}
+
+	// Validate routing exists if routingId provided
+	if (data.routingId) {
+		const routing = await db.routing.findUnique({ where: { id: data.routingId } });
+		if (!routing) {
+			return {
+				success: false as const,
+				code: "ROUTING_NOT_FOUND",
+				message: "Routing not found",
+				status: 404,
+			};
+		}
+	}
+
+	// Validate sampleValue based on samplingType
+	if (data.samplingType === "PERCENTAGE" && (data.sampleValue < 0 || data.sampleValue > 100)) {
+		return {
+			success: false as const,
+			code: "INVALID_SAMPLE_VALUE",
+			message: "Percentage must be between 0 and 100",
+			status: 400,
+		};
+	}
+
+	if (data.samplingType === "FIXED" && data.sampleValue < 1) {
+		return {
+			success: false as const,
+			code: "INVALID_SAMPLE_VALUE",
+			message: "Fixed sample count must be at least 1",
+			status: 400,
+		};
+	}
+
+	const rule = await db.oqcSamplingRule.create({
+		data: {
+			productCode: data.productCode ?? null,
+			lineId: data.lineId ?? null,
+			routingId: data.routingId ?? null,
+			samplingType: data.samplingType as OqcSamplingType,
+			sampleValue: data.sampleValue,
+			priority: data.priority ?? 0,
+			isActive: data.isActive ?? true,
+			meta: data.meta ?? null,
+		},
+		include: {
+			line: { select: { code: true, name: true } },
+			routing: { select: { code: true, name: true } },
+		},
 	});
+
+	return { success: true as const, data: rule };
 }
 
 /**
@@ -197,108 +179,91 @@ export async function updateSamplingRule(
 	ruleId: string,
 	data: UpdateSamplingRuleInput,
 ): Promise<ServiceResult<SamplingRuleRecord>> {
-	return tracer.startActiveSpan("samplingRule.update", async (span) => {
-		span.setAttribute("samplingRule.id", ruleId);
+	const existing = await db.oqcSamplingRule.findUnique({ where: { id: ruleId } });
+	if (!existing) {
+		return {
+			success: false as const,
+			code: "SAMPLING_RULE_NOT_FOUND",
+			message: "OQC sampling rule not found",
+			status: 404,
+		};
+	}
 
-		try {
-			const existing = await db.oqcSamplingRule.findUnique({ where: { id: ruleId } });
-			if (!existing) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				return {
-					success: false as const,
-					code: "SAMPLING_RULE_NOT_FOUND",
-					message: "OQC sampling rule not found",
-					status: 404,
-				};
-			}
-
-			// Validate line exists if lineId provided
-			if (data.lineId !== undefined && data.lineId !== null) {
-				const line = await db.line.findUnique({ where: { id: data.lineId } });
-				if (!line) {
-					span.setStatus({ code: SpanStatusCode.ERROR });
-					return {
-						success: false as const,
-						code: "LINE_NOT_FOUND",
-						message: "Line not found",
-						status: 404,
-					};
-				}
-			}
-
-			// Validate routing exists if routingId provided
-			if (data.routingId !== undefined && data.routingId !== null) {
-				const routing = await db.routing.findUnique({ where: { id: data.routingId } });
-				if (!routing) {
-					span.setStatus({ code: SpanStatusCode.ERROR });
-					return {
-						success: false as const,
-						code: "ROUTING_NOT_FOUND",
-						message: "Routing not found",
-						status: 404,
-					};
-				}
-			}
-
-			// Determine the final samplingType for validation
-			const finalSamplingType = data.samplingType ?? existing.samplingType;
-			const finalSampleValue = data.sampleValue ?? existing.sampleValue;
-
-			// Validate sampleValue based on samplingType
-			if (finalSamplingType === "PERCENTAGE" && (finalSampleValue < 0 || finalSampleValue > 100)) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				return {
-					success: false as const,
-					code: "INVALID_SAMPLE_VALUE",
-					message: "Percentage must be between 0 and 100",
-					status: 400,
-				};
-			}
-
-			if (finalSamplingType === "FIXED" && finalSampleValue < 1) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				return {
-					success: false as const,
-					code: "INVALID_SAMPLE_VALUE",
-					message: "Fixed sample count must be at least 1",
-					status: 400,
-				};
-			}
-
-			const updateData: Prisma.OqcSamplingRuleUpdateInput = {};
-
-			if (data.productCode !== undefined) updateData.productCode = data.productCode;
-			if (data.lineId !== undefined)
-				updateData.line = data.lineId ? { connect: { id: data.lineId } } : { disconnect: true };
-			if (data.routingId !== undefined)
-				updateData.routing = data.routingId
-					? { connect: { id: data.routingId } }
-					: { disconnect: true };
-			if (data.samplingType !== undefined)
-				updateData.samplingType = data.samplingType as OqcSamplingType;
-			if (data.sampleValue !== undefined) updateData.sampleValue = data.sampleValue;
-			if (data.priority !== undefined) updateData.priority = data.priority;
-			if (data.isActive !== undefined) updateData.isActive = data.isActive;
-			if (data.meta !== undefined) updateData.meta = data.meta;
-
-			const rule = await db.oqcSamplingRule.update({
-				where: { id: ruleId },
-				data: updateData,
-				include: {
-					line: { select: { code: true, name: true } },
-					routing: { select: { code: true, name: true } },
-				},
-			});
-
-			return { success: true as const, data: rule };
-		} catch (error) {
-			span.recordException(error as Error);
-			span.setStatus({ code: SpanStatusCode.ERROR });
-			throw error;
-		} finally {
-			span.end();
+	// Validate line exists if lineId provided
+	if (data.lineId !== undefined && data.lineId !== null) {
+		const line = await db.line.findUnique({ where: { id: data.lineId } });
+		if (!line) {
+			return {
+				success: false as const,
+				code: "LINE_NOT_FOUND",
+				message: "Line not found",
+				status: 404,
+			};
 		}
+	}
+
+	// Validate routing exists if routingId provided
+	if (data.routingId !== undefined && data.routingId !== null) {
+		const routing = await db.routing.findUnique({ where: { id: data.routingId } });
+		if (!routing) {
+			return {
+				success: false as const,
+				code: "ROUTING_NOT_FOUND",
+				message: "Routing not found",
+				status: 404,
+			};
+		}
+	}
+
+	// Determine the final samplingType for validation
+	const finalSamplingType = data.samplingType ?? existing.samplingType;
+	const finalSampleValue = data.sampleValue ?? existing.sampleValue;
+
+	// Validate sampleValue based on samplingType
+	if (finalSamplingType === "PERCENTAGE" && (finalSampleValue < 0 || finalSampleValue > 100)) {
+		return {
+			success: false as const,
+			code: "INVALID_SAMPLE_VALUE",
+			message: "Percentage must be between 0 and 100",
+			status: 400,
+		};
+	}
+
+	if (finalSamplingType === "FIXED" && finalSampleValue < 1) {
+		return {
+			success: false as const,
+			code: "INVALID_SAMPLE_VALUE",
+			message: "Fixed sample count must be at least 1",
+			status: 400,
+		};
+	}
+
+	const updateData: Prisma.OqcSamplingRuleUpdateInput = {};
+
+	if (data.productCode !== undefined) updateData.productCode = data.productCode;
+	if (data.lineId !== undefined)
+		updateData.line = data.lineId ? { connect: { id: data.lineId } } : { disconnect: true };
+	if (data.routingId !== undefined)
+		updateData.routing = data.routingId
+			? { connect: { id: data.routingId } }
+			: { disconnect: true };
+	if (data.samplingType !== undefined)
+		updateData.samplingType = data.samplingType as OqcSamplingType;
+	if (data.sampleValue !== undefined) updateData.sampleValue = data.sampleValue;
+	if (data.priority !== undefined) updateData.priority = data.priority;
+	if (data.isActive !== undefined) updateData.isActive = data.isActive;
+	if (data.meta !== undefined) updateData.meta = data.meta;
+
+	const rule = await db.oqcSamplingRule.update({
+		where: { id: ruleId },
+		data: updateData,
+		include: {
+			line: { select: { code: true, name: true } },
+			routing: { select: { code: true, name: true } },
+		},
 	});
+
+	return { success: true as const, data: rule };
 }
 
 /**
@@ -308,36 +273,23 @@ export async function deleteSamplingRule(
 	db: PrismaClient,
 	ruleId: string,
 ): Promise<ServiceResult<{ deleted: boolean }>> {
-	return tracer.startActiveSpan("samplingRule.delete", async (span) => {
-		span.setAttribute("samplingRule.id", ruleId);
+	const existing = await db.oqcSamplingRule.findUnique({ where: { id: ruleId } });
+	if (!existing) {
+		return {
+			success: false as const,
+			code: "SAMPLING_RULE_NOT_FOUND",
+			message: "OQC sampling rule not found",
+			status: 404,
+		};
+	}
 
-		try {
-			const existing = await db.oqcSamplingRule.findUnique({ where: { id: ruleId } });
-			if (!existing) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				return {
-					success: false as const,
-					code: "SAMPLING_RULE_NOT_FOUND",
-					message: "OQC sampling rule not found",
-					status: 404,
-				};
-			}
-
-			// Soft delete by setting isActive to false
-			await db.oqcSamplingRule.update({
-				where: { id: ruleId },
-				data: { isActive: false },
-			});
-
-			return { success: true as const, data: { deleted: true } };
-		} catch (error) {
-			span.recordException(error as Error);
-			span.setStatus({ code: SpanStatusCode.ERROR });
-			throw error;
-		} finally {
-			span.end();
-		}
+	// Soft delete by setting isActive to false
+	await db.oqcSamplingRule.update({
+		where: { id: ruleId },
+		data: { isActive: false },
 	});
+
+	return { success: true as const, data: { deleted: true } };
 }
 
 /**
@@ -353,78 +305,59 @@ export async function getApplicableRule(
 		routingId?: string | null;
 	},
 ): Promise<SamplingRuleRecord | null> {
-	return tracer.startActiveSpan("samplingRule.getApplicable", async (span) => {
-		span.setAttribute("productCode", params.productCode ?? "null");
-		span.setAttribute("lineId", params.lineId ?? "null");
-		span.setAttribute("routingId", params.routingId ?? "null");
-
-		try {
-			// Build conditions based on provided parameters
-			// More specific matches are handled by priority in the rules themselves
-			const baseCondition: Prisma.OqcSamplingRuleWhereInput = {
-				isActive: true,
-				AND: [
-					// Product code: either matches or rule has no product code restriction
-					{
-						OR: [
-							{ productCode: null },
-							...(params.productCode ? [{ productCode: params.productCode }] : []),
-						],
-					},
-					// Line: either matches or rule has no line restriction
-					{
-						OR: [{ lineId: null }, ...(params.lineId ? [{ lineId: params.lineId }] : [])],
-					},
-					// Routing: either matches or rule has no routing restriction
-					{
-						OR: [
-							{ routingId: null },
-							...(params.routingId ? [{ routingId: params.routingId }] : []),
-						],
-					},
+	// Build conditions based on provided parameters
+	// More specific matches are handled by priority in the rules themselves
+	const baseCondition: Prisma.OqcSamplingRuleWhereInput = {
+		isActive: true,
+		AND: [
+			// Product code: either matches or rule has no product code restriction
+			{
+				OR: [
+					{ productCode: null },
+					...(params.productCode ? [{ productCode: params.productCode }] : []),
 				],
-			};
+			},
+			// Line: either matches or rule has no line restriction
+			{
+				OR: [{ lineId: null }, ...(params.lineId ? [{ lineId: params.lineId }] : [])],
+			},
+			// Routing: either matches or rule has no routing restriction
+			{
+				OR: [{ routingId: null }, ...(params.routingId ? [{ routingId: params.routingId }] : [])],
+			},
+		],
+	};
 
-			const rules = await db.oqcSamplingRule.findMany({
-				where: baseCondition,
-				orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
-				include: {
-					line: { select: { code: true, name: true } },
-					routing: { select: { code: true, name: true } },
-				},
-			});
-
-			if (rules.length === 0) {
-				return null;
-			}
-
-			const sorted = rules
-				.map((rule) => ({
-					rule,
-					specificity:
-						(rule.productCode ? 1 : 0) + (rule.lineId ? 1 : 0) + (rule.routingId ? 1 : 0),
-				}))
-				.sort((a, b) => {
-					if (a.specificity !== b.specificity) {
-						return b.specificity - a.specificity;
-					}
-					if (a.rule.priority !== b.rule.priority) {
-						return b.rule.priority - a.rule.priority;
-					}
-					return b.rule.createdAt.getTime() - a.rule.createdAt.getTime();
-				});
-
-			const selected = sorted[0]?.rule ?? null;
-			if (selected) {
-				span.setAttribute("samplingRule.id", selected.id);
-				span.setAttribute("samplingRule.type", selected.samplingType);
-			}
-
-			return selected;
-		} finally {
-			span.end();
-		}
+	const rules = await db.oqcSamplingRule.findMany({
+		where: baseCondition,
+		orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+		include: {
+			line: { select: { code: true, name: true } },
+			routing: { select: { code: true, name: true } },
+		},
 	});
+
+	if (rules.length === 0) {
+		return null;
+	}
+
+	const sorted = rules
+		.map((rule) => ({
+			rule,
+			specificity: (rule.productCode ? 1 : 0) + (rule.lineId ? 1 : 0) + (rule.routingId ? 1 : 0),
+		}))
+		.sort((a, b) => {
+			if (a.specificity !== b.specificity) {
+				return b.specificity - a.specificity;
+			}
+			if (a.rule.priority !== b.rule.priority) {
+				return b.rule.priority - a.rule.priority;
+			}
+			return b.rule.createdAt.getTime() - a.rule.createdAt.getTime();
+		});
+
+	const selected = sorted[0]?.rule ?? null;
+	return selected;
 }
 
 /**

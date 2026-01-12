@@ -5,7 +5,6 @@ import {
 	type PrismaClient,
 	RunStatus,
 } from "@better-app/db";
-import { SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
 import type { completeFaiSchema, createFaiSchema, recordFaiItemSchema } from "./schema";
@@ -18,7 +17,6 @@ type InspectionRecord = Prisma.InspectionGetPayload<{
 	include: { items: true };
 }>;
 
-const tracer = trace.getTracer("mes.fai");
 const buildInspectionActiveKey = (runId: string, type: InspectionType) => `${runId}:${type}`;
 
 /**
@@ -31,111 +29,91 @@ export async function createFai(
 	data: CreateFaiInput,
 	_createdBy?: string,
 ): Promise<ServiceResult<InspectionRecord>> {
-	return tracer.startActiveSpan("fai.create", async (span) => {
-		span.setAttribute("fai.runNo", runNo);
-		span.setAttribute("fai.sampleQty", data.sampleQty);
+	const run = await db.run.findUnique({ where: { runNo } });
+	if (!run) {
+		return {
+			success: false as const,
+			code: "RUN_NOT_FOUND",
+			message: "Run not found",
+			status: 404,
+		};
+	}
 
-		try {
-			const run = await db.run.findUnique({ where: { runNo } });
-			if (!run) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				return {
-					success: false as const,
-					code: "RUN_NOT_FOUND",
-					message: "Run not found",
-					status: 404,
-				};
-			}
+	// Check if run is in a valid state for FAI creation
+	if (run.status !== RunStatus.PREP) {
+		return {
+			success: false as const,
+			code: "INVALID_RUN_STATUS",
+			message: `Run status ${run.status} does not allow FAI creation`,
+			status: 400,
+		};
+	}
 
-			// Check if run is in a valid state for FAI creation
-			if (run.status !== RunStatus.PREP) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				return {
-					success: false as const,
-					code: "INVALID_RUN_STATUS",
-					message: `Run status ${run.status} does not allow FAI creation`,
-					status: 400,
-				};
-			}
+	const activeKey = buildInspectionActiveKey(run.id, InspectionType.FAI);
 
-			const activeKey = buildInspectionActiveKey(run.id, InspectionType.FAI);
+	// Check if there's already an active FAI
+	const existingFai = await db.inspection.findFirst({
+		where: {
+			runId: run.id,
+			type: InspectionType.FAI,
+			status: { in: [InspectionStatus.PENDING, InspectionStatus.INSPECTING] },
+		},
+	});
 
-			// Check if there's already an active FAI
-			const existingFai = await db.inspection.findFirst({
-				where: {
-					runId: run.id,
-					type: InspectionType.FAI,
-					status: { in: [InspectionStatus.PENDING, InspectionStatus.INSPECTING] },
-				},
-			});
-
-			if (existingFai) {
-				if (!existingFai.activeKey) {
-					try {
-						await db.inspection.update({
-							where: { id: existingFai.id },
-							data: { activeKey },
-						});
-					} catch (error) {
-						if (
-							!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")
-						) {
-							throw error;
-						}
-					}
-				}
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				return {
-					success: false as const,
-					code: "FAI_ALREADY_EXISTS",
-					message: "An active FAI task already exists for this run",
-					status: 400,
-				};
-			}
-
-			let fai: InspectionRecord;
+	if (existingFai) {
+		if (!existingFai.activeKey) {
 			try {
-				fai = await db.$transaction(async (tx) => {
-					// Create the FAI inspection
-					const inspection = await tx.inspection.create({
-						data: {
-							runId: run.id,
-							type: InspectionType.FAI,
-							status: InspectionStatus.PENDING,
-							activeKey,
-							sampleQty: data.sampleQty,
-							passedQty: 0,
-							failedQty: 0,
-							remark: data.remark,
-						},
-						include: { items: true },
-					});
-
-					return inspection;
+				await db.inspection.update({
+					where: { id: existingFai.id },
+					data: { activeKey },
 				});
 			} catch (error) {
-				if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-					span.setStatus({ code: SpanStatusCode.ERROR });
-					return {
-						success: false as const,
-						code: "FAI_ALREADY_EXISTS",
-						message: "An active FAI task already exists for this run",
-						status: 400,
-					};
+				if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")) {
+					throw error;
 				}
-				throw error;
 			}
-
-			span.setAttribute("fai.id", fai.id);
-			return { success: true as const, data: fai };
-		} catch (error) {
-			span.recordException(error as Error);
-			span.setStatus({ code: SpanStatusCode.ERROR });
-			throw error;
-		} finally {
-			span.end();
 		}
-	});
+		return {
+			success: false as const,
+			code: "FAI_ALREADY_EXISTS",
+			message: "An active FAI task already exists for this run",
+			status: 400,
+		};
+	}
+
+	let fai: InspectionRecord;
+	try {
+		fai = await db.$transaction(async (tx) => {
+			// Create the FAI inspection
+			const inspection = await tx.inspection.create({
+				data: {
+					runId: run.id,
+					type: InspectionType.FAI,
+					status: InspectionStatus.PENDING,
+					activeKey,
+					sampleQty: data.sampleQty,
+					passedQty: 0,
+					failedQty: 0,
+					remark: data.remark,
+				},
+				include: { items: true },
+			});
+
+			return inspection;
+		});
+	} catch (error) {
+		if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+			return {
+				success: false as const,
+				code: "FAI_ALREADY_EXISTS",
+				message: "An active FAI task already exists for this run",
+				status: 400,
+			};
+		}
+		throw error;
+	}
+
+	return { success: true as const, data: fai };
 }
 
 /**
@@ -146,57 +124,49 @@ export async function startFai(
 	faiId: string,
 	inspectorId?: string,
 ): Promise<ServiceResult<InspectionRecord>> {
-	return tracer.startActiveSpan("fai.start", async (span) => {
-		span.setAttribute("fai.id", faiId);
-
-		try {
-			const fai = await db.inspection.findUnique({
-				where: { id: faiId },
-				include: { items: true },
-			});
-
-			if (!fai) {
-				return {
-					success: false as const,
-					code: "FAI_NOT_FOUND",
-					message: "FAI task not found",
-					status: 404,
-				};
-			}
-
-			if (fai.type !== InspectionType.FAI) {
-				return {
-					success: false as const,
-					code: "NOT_FAI_INSPECTION",
-					message: "This is not a FAI inspection",
-					status: 400,
-				};
-			}
-
-			if (fai.status !== InspectionStatus.PENDING) {
-				return {
-					success: false as const,
-					code: "INVALID_FAI_STATUS",
-					message: `FAI status ${fai.status} cannot be started`,
-					status: 400,
-				};
-			}
-
-			const updated = await db.inspection.update({
-				where: { id: faiId },
-				data: {
-					status: InspectionStatus.INSPECTING,
-					inspectorId,
-					startedAt: new Date(),
-				},
-				include: { items: true },
-			});
-
-			return { success: true as const, data: updated };
-		} finally {
-			span.end();
-		}
+	const fai = await db.inspection.findUnique({
+		where: { id: faiId },
+		include: { items: true },
 	});
+
+	if (!fai) {
+		return {
+			success: false as const,
+			code: "FAI_NOT_FOUND",
+			message: "FAI task not found",
+			status: 404,
+		};
+	}
+
+	if (fai.type !== InspectionType.FAI) {
+		return {
+			success: false as const,
+			code: "NOT_FAI_INSPECTION",
+			message: "This is not a FAI inspection",
+			status: 400,
+		};
+	}
+
+	if (fai.status !== InspectionStatus.PENDING) {
+		return {
+			success: false as const,
+			code: "INVALID_FAI_STATUS",
+			message: `FAI status ${fai.status} cannot be started`,
+			status: 400,
+		};
+	}
+
+	const updated = await db.inspection.update({
+		where: { id: faiId },
+		data: {
+			status: InspectionStatus.INSPECTING,
+			inspectorId,
+			startedAt: new Date(),
+		},
+		include: { items: true },
+	});
+
+	return { success: true as const, data: updated };
 }
 
 /**
@@ -208,60 +178,51 @@ export async function recordFaiItem(
 	data: RecordFaiItemInput,
 	inspectedBy?: string,
 ): Promise<ServiceResult<{ itemId: string }>> {
-	return tracer.startActiveSpan("fai.recordItem", async (span) => {
-		span.setAttribute("fai.id", faiId);
-		span.setAttribute("fai.itemName", data.itemName);
+	const fai = await db.inspection.findUnique({ where: { id: faiId } });
 
-		try {
-			const fai = await db.inspection.findUnique({ where: { id: faiId } });
+	if (!fai) {
+		return {
+			success: false as const,
+			code: "FAI_NOT_FOUND",
+			message: "FAI task not found",
+			status: 404,
+		};
+	}
 
-			if (!fai) {
-				return {
-					success: false as const,
-					code: "FAI_NOT_FOUND",
-					message: "FAI task not found",
-					status: 404,
-				};
-			}
+	if (fai.type !== InspectionType.FAI) {
+		return {
+			success: false as const,
+			code: "NOT_FAI_INSPECTION",
+			message: "This is not a FAI inspection",
+			status: 400,
+		};
+	}
 
-			if (fai.type !== InspectionType.FAI) {
-				return {
-					success: false as const,
-					code: "NOT_FAI_INSPECTION",
-					message: "This is not a FAI inspection",
-					status: 400,
-				};
-			}
+	if (fai.status !== InspectionStatus.INSPECTING) {
+		return {
+			success: false as const,
+			code: "FAI_NOT_INSPECTING",
+			message: `FAI must be in INSPECTING status to record items`,
+			status: 400,
+		};
+	}
 
-			if (fai.status !== InspectionStatus.INSPECTING) {
-				return {
-					success: false as const,
-					code: "FAI_NOT_INSPECTING",
-					message: `FAI must be in INSPECTING status to record items`,
-					status: 400,
-				};
-			}
-
-			const item = await db.inspectionItem.create({
-				data: {
-					inspectionId: faiId,
-					unitSn: data.unitSn,
-					itemName: data.itemName,
-					itemSpec: data.itemSpec,
-					actualValue: data.actualValue,
-					result: data.result,
-					defectCode: data.defectCode,
-					remark: data.remark,
-					inspectedBy,
-					inspectedAt: new Date(),
-				},
-			});
-
-			return { success: true as const, data: { itemId: item.id } };
-		} finally {
-			span.end();
-		}
+	const item = await db.inspectionItem.create({
+		data: {
+			inspectionId: faiId,
+			unitSn: data.unitSn,
+			itemName: data.itemName,
+			itemSpec: data.itemSpec,
+			actualValue: data.actualValue,
+			result: data.result,
+			defectCode: data.defectCode,
+			remark: data.remark,
+			inspectedBy,
+			inspectedAt: new Date(),
+		},
 	});
+
+	return { success: true as const, data: { itemId: item.id } };
 }
 
 /**
@@ -273,114 +234,105 @@ export async function completeFai(
 	data: CompleteFaiInput,
 	decidedBy?: string,
 ): Promise<ServiceResult<InspectionRecord>> {
-	return tracer.startActiveSpan("fai.complete", async (span) => {
-		span.setAttribute("fai.id", faiId);
-		span.setAttribute("fai.decision", data.decision);
-
-		try {
-			const fai = await db.inspection.findUnique({
-				where: { id: faiId },
-				include: { run: true },
-			});
-
-			if (!fai) {
-				return {
-					success: false as const,
-					code: "FAI_NOT_FOUND",
-					message: "FAI task not found",
-					status: 404,
-				};
-			}
-
-			if (fai.type !== InspectionType.FAI) {
-				return {
-					success: false as const,
-					code: "NOT_FAI_INSPECTION",
-					message: "This is not a FAI inspection",
-					status: 400,
-				};
-			}
-
-			if (fai.status !== InspectionStatus.INSPECTING) {
-				return {
-					success: false as const,
-					code: "FAI_NOT_INSPECTING",
-					message: `FAI must be in INSPECTING status to complete`,
-					status: 400,
-				};
-			}
-
-			const sampleQty = fai.sampleQty;
-			let passedQty = data.passedQty;
-			let failedQty = data.failedQty;
-
-			if (data.decision === "PASS") {
-				if (failedQty !== undefined && failedQty !== 0) {
-					return {
-						success: false as const,
-						code: "INVALID_FAI_COUNTS",
-						message: "Failed quantity must be 0 when decision is PASS",
-						status: 400,
-					};
-				}
-
-				failedQty = failedQty ?? 0;
-
-				if (sampleQty !== null && sampleQty !== undefined) {
-					passedQty = passedQty ?? sampleQty;
-					if (passedQty !== sampleQty) {
-						return {
-							success: false as const,
-							code: "INVALID_FAI_COUNTS",
-							message: "Passed quantity must equal sample quantity when decision is PASS",
-							status: 400,
-						};
-					}
-				}
-			} else {
-				if (failedQty === undefined || failedQty <= 0) {
-					return {
-						success: false as const,
-						code: "INVALID_FAI_COUNTS",
-						message: "Failed quantity must be greater than 0 when decision is FAIL",
-						status: 400,
-					};
-				}
-
-				if (sampleQty !== null && sampleQty !== undefined) {
-					passedQty = passedQty ?? sampleQty - failedQty;
-					if (passedQty < 0 || passedQty + failedQty !== sampleQty) {
-						return {
-							success: false as const,
-							code: "INVALID_FAI_COUNTS",
-							message: "Passed + failed quantities must equal sample quantity",
-							status: 400,
-						};
-					}
-				}
-			}
-
-			const newStatus = data.decision === "PASS" ? InspectionStatus.PASS : InspectionStatus.FAIL;
-
-			const updated = await db.inspection.update({
-				where: { id: faiId },
-				data: {
-					status: newStatus,
-					activeKey: null,
-					passedQty,
-					failedQty,
-					decidedBy,
-					decidedAt: new Date(),
-					remark: data.remark ?? fai.remark,
-				},
-				include: { items: true },
-			});
-
-			return { success: true as const, data: updated };
-		} finally {
-			span.end();
-		}
+	const fai = await db.inspection.findUnique({
+		where: { id: faiId },
+		include: { run: true },
 	});
+
+	if (!fai) {
+		return {
+			success: false as const,
+			code: "FAI_NOT_FOUND",
+			message: "FAI task not found",
+			status: 404,
+		};
+	}
+
+	if (fai.type !== InspectionType.FAI) {
+		return {
+			success: false as const,
+			code: "NOT_FAI_INSPECTION",
+			message: "This is not a FAI inspection",
+			status: 400,
+		};
+	}
+
+	if (fai.status !== InspectionStatus.INSPECTING) {
+		return {
+			success: false as const,
+			code: "FAI_NOT_INSPECTING",
+			message: `FAI must be in INSPECTING status to complete`,
+			status: 400,
+		};
+	}
+
+	const sampleQty = fai.sampleQty;
+	let passedQty = data.passedQty;
+	let failedQty = data.failedQty;
+
+	if (data.decision === "PASS") {
+		if (failedQty !== undefined && failedQty !== 0) {
+			return {
+				success: false as const,
+				code: "INVALID_FAI_COUNTS",
+				message: "Failed quantity must be 0 when decision is PASS",
+				status: 400,
+			};
+		}
+
+		failedQty = failedQty ?? 0;
+
+		if (sampleQty !== null && sampleQty !== undefined) {
+			passedQty = passedQty ?? sampleQty;
+			if (passedQty !== sampleQty) {
+				return {
+					success: false as const,
+					code: "INVALID_FAI_COUNTS",
+					message: "Passed quantity must equal sample quantity when decision is PASS",
+					status: 400,
+				};
+			}
+		}
+	} else {
+		if (failedQty === undefined || failedQty <= 0) {
+			return {
+				success: false as const,
+				code: "INVALID_FAI_COUNTS",
+				message: "Failed quantity must be greater than 0 when decision is FAIL",
+				status: 400,
+			};
+		}
+
+		if (sampleQty !== null && sampleQty !== undefined) {
+			passedQty = passedQty ?? sampleQty - failedQty;
+			if (passedQty < 0 || passedQty + failedQty !== sampleQty) {
+				return {
+					success: false as const,
+					code: "INVALID_FAI_COUNTS",
+					message: "Passed + failed quantities must equal sample quantity",
+					status: 400,
+				};
+			}
+		}
+	}
+
+	const newStatus = data.decision === "PASS" ? InspectionStatus.PASS : InspectionStatus.FAIL;
+
+	const updated = await db.inspection.update({
+		where: { id: faiId },
+		data: {
+			status: newStatus,
+			activeKey: null,
+			passedQty,
+			failedQty,
+			decidedBy,
+			decidedAt: new Date(),
+			remark: data.remark ?? fai.remark,
+		},
+		include: { items: true },
+	});
+
+	return { success: true as const, data: updated };
 }
 
 /**

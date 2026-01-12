@@ -1,5 +1,4 @@
 import { DispositionType, type Prisma, type PrismaClient, UnitStatus } from "@better-app/db";
-import { SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
 import type {
@@ -22,8 +21,6 @@ type ReworkTaskWithRelations = Prisma.ReworkTaskGetPayload<{
 	include: { unit: true; disposition: { include: { defect: true } } };
 }>;
 
-const tracer = trace.getTracer("mes.defect");
-
 const DEFECT_STATUS = {
 	RECORDED: "RECORDED",
 	DISPOSITIONED: "DISPOSITIONED",
@@ -45,57 +42,42 @@ export async function createDefect(
 	trackId?: string,
 	createdBy?: string,
 ): Promise<ServiceResult<DefectWithRelations>> {
-	return tracer.startActiveSpan("defect.create", async (span) => {
-		span.setAttribute("defect.unitSn", data.unitSn);
-		span.setAttribute("defect.code", data.code);
+	const unit = await db.unit.findUnique({ where: { sn: data.unitSn } });
+	if (!unit) {
+		return {
+			success: false as const,
+			code: "UNIT_NOT_FOUND",
+			message: "Unit not found",
+			status: 404,
+		};
+	}
 
-		try {
-			const unit = await db.unit.findUnique({ where: { sn: data.unitSn } });
-			if (!unit) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				return {
-					success: false as const,
-					code: "UNIT_NOT_FOUND",
-					message: "Unit not found",
-					status: 404,
-				};
-			}
+	const meta: Prisma.JsonObject = {};
+	if (data.remark) {
+		meta.remark = data.remark;
+	}
+	if (createdBy) {
+		meta.createdBy = createdBy;
+	}
 
-			const meta: Prisma.JsonObject = {};
-			if (data.remark) {
-				meta.remark = data.remark;
-			}
-			if (createdBy) {
-				meta.createdBy = createdBy;
-			}
-
-			const defect = await db.defect.create({
-				data: {
-					unitId: unit.id,
-					trackId,
-					code: data.code,
-					location: data.location,
-					qty: data.qty ?? 1,
-					status: DEFECT_STATUS.RECORDED,
-					meta: Object.keys(meta).length > 0 ? meta : undefined,
-				},
-				include: {
-					unit: true,
-					track: true,
-					disposition: { include: { reworkTask: true } },
-				},
-			});
-
-			span.setAttribute("defect.id", defect.id);
-			return { success: true as const, data: defect };
-		} catch (error) {
-			span.recordException(error as Error);
-			span.setStatus({ code: SpanStatusCode.ERROR });
-			throw error;
-		} finally {
-			span.end();
-		}
+	const defect = await db.defect.create({
+		data: {
+			unitId: unit.id,
+			trackId,
+			code: data.code,
+			location: data.location,
+			qty: data.qty ?? 1,
+			status: DEFECT_STATUS.RECORDED,
+			meta: Object.keys(meta).length > 0 ? meta : undefined,
+		},
+		include: {
+			unit: true,
+			track: true,
+			disposition: { include: { reworkTask: true } },
+		},
 	});
+
+	return { success: true as const, data: defect };
 }
 
 /**
@@ -107,122 +89,113 @@ export async function assignDisposition(
 	data: AssignDispositionInput,
 	decidedBy?: string,
 ): Promise<ServiceResult<DefectWithRelations>> {
-	return tracer.startActiveSpan("defect.assignDisposition", async (span) => {
-		span.setAttribute("defect.id", defectId);
-		span.setAttribute("disposition.type", data.type);
-
-		try {
-			const defect = await db.defect.findUnique({
-				where: { id: defectId },
-				include: { unit: true, disposition: true },
-			});
-
-			if (!defect) {
-				return {
-					success: false as const,
-					code: "DEFECT_NOT_FOUND",
-					message: "Defect not found",
-					status: 404,
-				};
-			}
-
-			if (defect.disposition) {
-				return {
-					success: false as const,
-					code: "ALREADY_DISPOSITIONED",
-					message: "Defect already has a disposition",
-					status: 400,
-				};
-			}
-
-			const dispositionType = data.type as DispositionType;
-
-			const result = await db.$transaction(async (tx) => {
-				// Create disposition
-				const disposition = await tx.disposition.create({
-					data: {
-						defectId,
-						type: dispositionType,
-						decidedBy,
-						decidedAt: new Date(),
-						reason: data.reason,
-					},
-				});
-
-				// Update defect status
-				await tx.defect.update({
-					where: { id: defectId },
-					data: { status: DEFECT_STATUS.DISPOSITIONED },
-				});
-
-				// Handle each disposition type
-				if (dispositionType === DispositionType.REWORK) {
-					// Create rework task
-					const fromStepNo = defect.unit.currentStepNo;
-					const toStepNo = data.toStepNo ?? 1;
-
-					await tx.reworkTask.create({
-						data: {
-							dispositionId: disposition.id,
-							unitId: defect.unit.id,
-							fromStepNo,
-							toStepNo,
-							status: REWORK_STATUS.OPEN,
-						},
-					});
-
-					// Update unit status
-					await tx.unit.update({
-						where: { id: defect.unit.id },
-						data: {
-							status: UnitStatus.QUEUED,
-							currentStepNo: toStepNo,
-						},
-					});
-				} else if (dispositionType === DispositionType.SCRAP) {
-					// Update unit status to scrapped
-					await tx.unit.update({
-						where: { id: defect.unit.id },
-						data: { status: UnitStatus.SCRAPPED },
-					});
-
-					// Close defect immediately for scrap
-					await tx.defect.update({
-						where: { id: defectId },
-						data: { status: DEFECT_STATUS.CLOSED },
-					});
-				} else if (dispositionType === DispositionType.HOLD) {
-					// Update unit status to hold
-					await tx.unit.update({
-						where: { id: defect.unit.id },
-						data: { status: UnitStatus.ON_HOLD },
-					});
-				}
-
-				return tx.defect.findUnique({
-					where: { id: defectId },
-					include: {
-						unit: true,
-						track: true,
-						disposition: { include: { reworkTask: true } },
-					},
-				});
-			});
-
-			if (!result) {
-				return {
-					success: false as const,
-					code: "DISPOSITION_FAILED",
-					message: "Failed to create disposition",
-					status: 500,
-				};
-			}
-
-			return { success: true as const, data: result };
-		} finally {
-			span.end();
-		}
+	const defect = await db.defect.findUnique({
+		where: { id: defectId },
+		include: { unit: true, disposition: true },
 	});
+
+	if (!defect) {
+		return {
+			success: false as const,
+			code: "DEFECT_NOT_FOUND",
+			message: "Defect not found",
+			status: 404,
+		};
+	}
+
+	if (defect.disposition) {
+		return {
+			success: false as const,
+			code: "ALREADY_DISPOSITIONED",
+			message: "Defect already has a disposition",
+			status: 400,
+		};
+	}
+
+	const dispositionType = data.type as DispositionType;
+
+	const result = await db.$transaction(async (tx) => {
+		// Create disposition
+		const disposition = await tx.disposition.create({
+			data: {
+				defectId,
+				type: dispositionType,
+				decidedBy,
+				decidedAt: new Date(),
+				reason: data.reason,
+			},
+		});
+
+		// Update defect status
+		await tx.defect.update({
+			where: { id: defectId },
+			data: { status: DEFECT_STATUS.DISPOSITIONED },
+		});
+
+		// Handle each disposition type
+		if (dispositionType === DispositionType.REWORK) {
+			// Create rework task
+			const fromStepNo = defect.unit.currentStepNo;
+			const toStepNo = data.toStepNo ?? 1;
+
+			await tx.reworkTask.create({
+				data: {
+					dispositionId: disposition.id,
+					unitId: defect.unit.id,
+					fromStepNo,
+					toStepNo,
+					status: REWORK_STATUS.OPEN,
+				},
+			});
+
+			// Update unit status
+			await tx.unit.update({
+				where: { id: defect.unit.id },
+				data: {
+					status: UnitStatus.QUEUED,
+					currentStepNo: toStepNo,
+				},
+			});
+		} else if (dispositionType === DispositionType.SCRAP) {
+			// Update unit status to scrapped
+			await tx.unit.update({
+				where: { id: defect.unit.id },
+				data: { status: UnitStatus.SCRAPPED },
+			});
+
+			// Close defect immediately for scrap
+			await tx.defect.update({
+				where: { id: defectId },
+				data: { status: DEFECT_STATUS.CLOSED },
+			});
+		} else if (dispositionType === DispositionType.HOLD) {
+			// Update unit status to hold
+			await tx.unit.update({
+				where: { id: defect.unit.id },
+				data: { status: UnitStatus.ON_HOLD },
+			});
+		}
+
+		return tx.defect.findUnique({
+			where: { id: defectId },
+			include: {
+				unit: true,
+				track: true,
+				disposition: { include: { reworkTask: true } },
+			},
+		});
+	});
+
+	if (!result) {
+		return {
+			success: false as const,
+			code: "DISPOSITION_FAILED",
+			message: "Failed to create disposition",
+			status: 500,
+		};
+	}
+
+	return { success: true as const, data: result };
 }
 
 /**
@@ -234,87 +207,79 @@ export async function releaseHold(
 	data: ReleaseHoldInput,
 	releasedBy?: string,
 ): Promise<ServiceResult<DefectWithRelations>> {
-	return tracer.startActiveSpan("defect.releaseHold", async (span) => {
-		span.setAttribute("defect.id", defectId);
-
-		try {
-			const defect = await db.defect.findUnique({
-				where: { id: defectId },
-				include: { unit: true, disposition: true },
-			});
-
-			if (!defect) {
-				return {
-					success: false as const,
-					code: "DEFECT_NOT_FOUND",
-					message: "Defect not found",
-					status: 404,
-				};
-			}
-
-			if (!defect.disposition || defect.disposition.type !== DispositionType.HOLD) {
-				return {
-					success: false as const,
-					code: "NOT_HOLD_DISPOSITION",
-					message: "Defect is not held",
-					status: 400,
-				};
-			}
-
-			if (defect.unit.status !== UnitStatus.ON_HOLD) {
-				return {
-					success: false as const,
-					code: "UNIT_NOT_HELD",
-					message: "Unit is not in ON_HOLD status",
-					status: 400,
-				};
-			}
-
-			const result = await db.$transaction(async (tx) => {
-				// Release unit back to queued
-				await tx.unit.update({
-					where: { id: defect.unit.id },
-					data: { status: UnitStatus.QUEUED },
-				});
-
-				// Close defect
-				await tx.defect.update({
-					where: { id: defectId },
-					data: {
-						status: DEFECT_STATUS.CLOSED,
-						meta: {
-							...(defect.meta as object | undefined),
-							releasedBy,
-							releaseReason: data.reason,
-							releasedAt: new Date().toISOString(),
-						},
-					},
-				});
-
-				return tx.defect.findUnique({
-					where: { id: defectId },
-					include: {
-						unit: true,
-						track: true,
-						disposition: { include: { reworkTask: true } },
-					},
-				});
-			});
-
-			if (!result) {
-				return {
-					success: false as const,
-					code: "RELEASE_FAILED",
-					message: "Failed to release hold",
-					status: 500,
-				};
-			}
-
-			return { success: true as const, data: result };
-		} finally {
-			span.end();
-		}
+	const defect = await db.defect.findUnique({
+		where: { id: defectId },
+		include: { unit: true, disposition: true },
 	});
+
+	if (!defect) {
+		return {
+			success: false as const,
+			code: "DEFECT_NOT_FOUND",
+			message: "Defect not found",
+			status: 404,
+		};
+	}
+
+	if (!defect.disposition || defect.disposition.type !== DispositionType.HOLD) {
+		return {
+			success: false as const,
+			code: "NOT_HOLD_DISPOSITION",
+			message: "Defect is not held",
+			status: 400,
+		};
+	}
+
+	if (defect.unit.status !== UnitStatus.ON_HOLD) {
+		return {
+			success: false as const,
+			code: "UNIT_NOT_HELD",
+			message: "Unit is not in ON_HOLD status",
+			status: 400,
+		};
+	}
+
+	const result = await db.$transaction(async (tx) => {
+		// Release unit back to queued
+		await tx.unit.update({
+			where: { id: defect.unit.id },
+			data: { status: UnitStatus.QUEUED },
+		});
+
+		// Close defect
+		await tx.defect.update({
+			where: { id: defectId },
+			data: {
+				status: DEFECT_STATUS.CLOSED,
+				meta: {
+					...(defect.meta as object | undefined),
+					releasedBy,
+					releaseReason: data.reason,
+					releasedAt: new Date().toISOString(),
+				},
+			},
+		});
+
+		return tx.defect.findUnique({
+			where: { id: defectId },
+			include: {
+				unit: true,
+				track: true,
+				disposition: { include: { reworkTask: true } },
+			},
+		});
+	});
+
+	if (!result) {
+		return {
+			success: false as const,
+			code: "RELEASE_FAILED",
+			message: "Failed to release hold",
+			status: 500,
+		};
+	}
+
+	return { success: true as const, data: result };
 }
 
 /**
@@ -326,77 +291,69 @@ export async function completeRework(
 	data: CompleteReworkInput,
 	doneBy?: string,
 ): Promise<ServiceResult<ReworkTaskWithRelations>> {
-	return tracer.startActiveSpan("defect.completeRework", async (span) => {
-		span.setAttribute("rework.id", reworkTaskId);
-
-		try {
-			const reworkTask = await db.reworkTask.findUnique({
-				where: { id: reworkTaskId },
-				include: { unit: true, disposition: { include: { defect: true } } },
-			});
-
-			if (!reworkTask) {
-				return {
-					success: false as const,
-					code: "REWORK_TASK_NOT_FOUND",
-					message: "Rework task not found",
-					status: 404,
-				};
-			}
-
-			if (reworkTask.status !== REWORK_STATUS.OPEN) {
-				return {
-					success: false as const,
-					code: "REWORK_NOT_OPEN",
-					message: `Rework task status is ${reworkTask.status}, cannot complete`,
-					status: 400,
-				};
-			}
-
-			const result = await db.$transaction(async (tx) => {
-				// Complete rework task
-				await tx.reworkTask.update({
-					where: { id: reworkTaskId },
-					data: {
-						status: REWORK_STATUS.DONE,
-						doneBy,
-						doneAt: new Date(),
-						remark: data.remark,
-					},
-				});
-
-				// Update unit status back to queued
-				await tx.unit.update({
-					where: { id: reworkTask.unitId },
-					data: { status: UnitStatus.QUEUED },
-				});
-
-				// Close defect
-				await tx.defect.update({
-					where: { id: reworkTask.disposition.defect.id },
-					data: { status: DEFECT_STATUS.CLOSED },
-				});
-
-				return tx.reworkTask.findUnique({
-					where: { id: reworkTaskId },
-					include: { unit: true, disposition: { include: { defect: true } } },
-				});
-			});
-
-			if (!result) {
-				return {
-					success: false as const,
-					code: "COMPLETE_FAILED",
-					message: "Failed to complete rework",
-					status: 500,
-				};
-			}
-
-			return { success: true as const, data: result };
-		} finally {
-			span.end();
-		}
+	const reworkTask = await db.reworkTask.findUnique({
+		where: { id: reworkTaskId },
+		include: { unit: true, disposition: { include: { defect: true } } },
 	});
+
+	if (!reworkTask) {
+		return {
+			success: false as const,
+			code: "REWORK_TASK_NOT_FOUND",
+			message: "Rework task not found",
+			status: 404,
+		};
+	}
+
+	if (reworkTask.status !== REWORK_STATUS.OPEN) {
+		return {
+			success: false as const,
+			code: "REWORK_NOT_OPEN",
+			message: `Rework task status is ${reworkTask.status}, cannot complete`,
+			status: 400,
+		};
+	}
+
+	const result = await db.$transaction(async (tx) => {
+		// Complete rework task
+		await tx.reworkTask.update({
+			where: { id: reworkTaskId },
+			data: {
+				status: REWORK_STATUS.DONE,
+				doneBy,
+				doneAt: new Date(),
+				remark: data.remark,
+			},
+		});
+
+		// Update unit status back to queued
+		await tx.unit.update({
+			where: { id: reworkTask.unitId },
+			data: { status: UnitStatus.QUEUED },
+		});
+
+		// Close defect
+		await tx.defect.update({
+			where: { id: reworkTask.disposition.defect.id },
+			data: { status: DEFECT_STATUS.CLOSED },
+		});
+
+		return tx.reworkTask.findUnique({
+			where: { id: reworkTaskId },
+			include: { unit: true, disposition: { include: { defect: true } } },
+		});
+	});
+
+	if (!result) {
+		return {
+			success: false as const,
+			code: "COMPLETE_FAILED",
+			message: "Failed to complete rework",
+			status: 500,
+		};
+	}
+
+	return { success: true as const, data: result };
 }
 
 /**

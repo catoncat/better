@@ -1,5 +1,4 @@
 import { type Prisma, type PrismaClient, RunStatus, UnitStatus } from "@better-app/db";
-import { type Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
 import { parseSortOrderBy } from "../../../utils/sort";
@@ -13,8 +12,6 @@ type RunListQuery = Static<typeof runListQuerySchema>;
 type GenerateUnitsInput = Static<typeof generateUnitsSchema>;
 type RunRecord = Prisma.RunGetPayload<Prisma.RunDefaultArgs>;
 
-const tracer = trace.getTracer("mes");
-
 const TERMINAL_RUN_STATUSES: RunStatus[] = [
 	RunStatus.COMPLETED,
 	RunStatus.CLOSED_REWORK,
@@ -22,15 +19,6 @@ const TERMINAL_RUN_STATUSES: RunStatus[] = [
 ];
 
 const TERMINAL_UNIT_STATUSES: UnitStatus[] = [UnitStatus.DONE, UnitStatus.SCRAPPED];
-
-const setSpanAttributes = (span: Span, attributes: Record<string, unknown>) => {
-	for (const [key, value] of Object.entries(attributes)) {
-		if (value === undefined || value === null) continue;
-		if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-			span.setAttribute(key, value);
-		}
-	}
-};
 
 export const getRunDetail = async (db: PrismaClient, runNo: string) => {
 	const run = await db.run.findUnique({
@@ -202,108 +190,75 @@ export const authorizeRun = async (
 	runNo: string,
 	data: RunAuthorizeInput,
 ): Promise<ServiceResult<RunRecord>> => {
-	return await tracer.startActiveSpan(
-		"mes.runs.authorize",
-		async (span): Promise<ServiceResult<RunRecord>> => {
-			setSpanAttributes(span, {
-				"mes.run.run_no": runNo,
-				"mes.run.action": data.action,
-				"mes.run.reason": data.reason,
-			});
+	const run = await db.run.findUnique({ where: { runNo } });
+	if (!run) {
+		return {
+			success: false,
+			code: "RUN_NOT_FOUND",
+			message: "Run not found",
+			status: 404,
+		};
+	}
 
-			try {
-				const run = await db.run.findUnique({ where: { runNo } });
-				if (!run) {
-					span.setStatus({ code: SpanStatusCode.ERROR });
-					span.setAttribute("mes.error_code", "RUN_NOT_FOUND");
-					return {
-						success: false,
-						code: "RUN_NOT_FOUND",
-						message: "Run not found",
-						status: 404,
-					};
-				}
+	if (data.action === "AUTHORIZE") {
+		if (run.status === RunStatus.AUTHORIZED) {
+			return { success: true, data: run };
+		}
+		if (run.status !== RunStatus.PREP) {
+			return {
+				success: false,
+				code: "RUN_NOT_READY",
+				message: "Run is not in a state that can be authorized",
+				status: 400,
+			};
+		}
 
-				if (data.action === "AUTHORIZE") {
-					if (run.status === RunStatus.AUTHORIZED) {
-						return { success: true, data: run };
-					}
-					if (run.status !== RunStatus.PREP) {
-						span.setStatus({ code: SpanStatusCode.ERROR });
-						span.setAttribute("mes.error_code", "RUN_NOT_READY");
-						return {
-							success: false,
-							code: "RUN_NOT_READY",
-							message: "Run is not in a state that can be authorized",
-							status: 400,
-						};
-					}
+		const readinessResult = await checkReadiness(db, runNo);
+		if (!readinessResult.success) {
+			return readinessResult as ServiceResult<RunRecord>;
+		}
+		if (!readinessResult.data.canAuthorize) {
+			return {
+				success: false,
+				code: "READINESS_CHECK_FAILED",
+				message: "Readiness check failed. All items must pass or be waived before authorization.",
+				status: 400,
+			};
+		}
 
-					const readinessResult = await checkReadiness(db, runNo);
-					if (!readinessResult.success) {
-						span.setStatus({ code: SpanStatusCode.ERROR });
-						span.setAttribute("mes.error_code", readinessResult.code);
-						return readinessResult as ServiceResult<RunRecord>;
-					}
-					if (!readinessResult.data.canAuthorize) {
-						span.setStatus({ code: SpanStatusCode.ERROR });
-						span.setAttribute("mes.error_code", "READINESS_CHECK_FAILED");
-						return {
-							success: false,
-							code: "READINESS_CHECK_FAILED",
-							message:
-								"Readiness check failed. All items must pass or be waived before authorization.",
-							status: 400,
-						};
-					}
+		// Check FAI gate if required
+		const faiResult = await checkFaiGate(db, runNo);
+		if (!faiResult.success) {
+			return faiResult as ServiceResult<RunRecord>;
+		}
+		if (faiResult.data.requiresFai && !faiResult.data.faiPassed) {
+			return {
+				success: false,
+				code: "FAI_NOT_PASSED",
+				message: "FAI inspection is required but not passed. Complete FAI before authorization.",
+				status: 400,
+			};
+		}
 
-					// Check FAI gate if required
-					const faiResult = await checkFaiGate(db, runNo);
-					if (!faiResult.success) {
-						span.setStatus({ code: SpanStatusCode.ERROR });
-						span.setAttribute("mes.error_code", faiResult.code);
-						return faiResult as ServiceResult<RunRecord>;
-					}
-					if (faiResult.data.requiresFai && !faiResult.data.faiPassed) {
-						span.setStatus({ code: SpanStatusCode.ERROR });
-						span.setAttribute("mes.error_code", "FAI_NOT_PASSED");
-						return {
-							success: false,
-							code: "FAI_NOT_PASSED",
-							message:
-								"FAI inspection is required but not passed. Complete FAI before authorization.",
-							status: 400,
-						};
-					}
+		const updated = await db.run.update({
+			where: { runNo },
+			data: {
+				status: RunStatus.AUTHORIZED,
+			},
+		});
+		return { success: true, data: updated };
+	}
 
-					const updated = await db.run.update({
-						where: { runNo },
-						data: {
-							status: RunStatus.AUTHORIZED,
-						},
-					});
-					return { success: true, data: updated };
-				}
-
-				if (run.status !== RunStatus.AUTHORIZED) {
-					return { success: true, data: run };
-				}
-				const updated = await db.run.update({
-					where: { runNo },
-					data: {
-						status: RunStatus.PREP,
-					},
-				});
-				return { success: true, data: updated };
-			} catch (error) {
-				span.recordException(error as Error);
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				throw error;
-			} finally {
-				span.end();
-			}
+	if (run.status !== RunStatus.AUTHORIZED) {
+		return { success: true, data: run };
+	}
+	const updated = await db.run.update({
+		where: { runNo },
+		data: {
+			status: RunStatus.PREP,
 		},
-	);
+	});
+	return { success: true, data: updated };
 };
 
 export const closeRun = async (
@@ -311,120 +266,90 @@ export const closeRun = async (
 	runNo: string,
 	options?: { closedBy?: string },
 ): Promise<ServiceResult<RunRecord>> => {
-	return tracer.startActiveSpan("mes.runs.close", async (span) => {
-		setSpanAttributes(span, { "mes.run.run_no": runNo });
-
-		try {
-			const run = await db.run.findUnique({
-				where: { runNo },
-				include: { units: { select: { status: true } } },
-			});
-
-			if (!run) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "RUN_NOT_FOUND");
-				return {
-					success: false as const,
-					code: "RUN_NOT_FOUND",
-					message: "Run not found",
-					status: 404,
-				};
-			}
-
-			const { units: _units, ...runRecord } = run;
-
-			if (TERMINAL_RUN_STATUSES.includes(run.status)) {
-				return { success: true as const, data: runRecord };
-			}
-
-			if (run.status !== RunStatus.IN_PROGRESS) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "RUN_NOT_CLOSABLE");
-				return {
-					success: false as const,
-					code: "RUN_NOT_CLOSABLE",
-					message: `Run status ${run.status} does not allow closeout`,
-					status: 400,
-				};
-			}
-
-			if (run.units.length === 0) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "RUN_HAS_NO_UNITS");
-				return {
-					success: false as const,
-					code: "RUN_HAS_NO_UNITS",
-					message: "Run has no units",
-					status: 400,
-				};
-			}
-
-			const allUnitsTerminal = run.units.every((unit) =>
-				TERMINAL_UNIT_STATUSES.includes(unit.status),
-			);
-			if (!allUnitsTerminal) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "RUN_UNITS_NOT_TERMINAL");
-				return {
-					success: false as const,
-					code: "RUN_UNITS_NOT_TERMINAL",
-					message: "Not all units are terminal (DONE/SCRAPPED)",
-					status: 400,
-				};
-			}
-
-			const oqcTriggerResult = await checkAndTriggerOqc(db, runNo, {
-				createdBy: options?.closedBy,
-			});
-			if (!oqcTriggerResult.success) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", oqcTriggerResult.code);
-				return oqcTriggerResult as ServiceResult<RunRecord>;
-			}
-
-			if (oqcTriggerResult.data.triggered) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "OQC_REQUIRED");
-				return {
-					success: false as const,
-					code: "OQC_REQUIRED",
-					message: `OQC is required. Task ${oqcTriggerResult.data.oqcId} created.`,
-					status: 409,
-				};
-			}
-
-			if (!oqcTriggerResult.data.completed) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "RUN_CLOSEOUT_FAILED");
-				return {
-					success: false as const,
-					code: "RUN_CLOSEOUT_FAILED",
-					message: oqcTriggerResult.data.reason,
-					status: 400,
-				};
-			}
-
-			const updatedRun = await db.run.findUnique({ where: { runNo } });
-			if (!updatedRun) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "RUN_NOT_FOUND");
-				return {
-					success: false as const,
-					code: "RUN_NOT_FOUND",
-					message: "Run not found",
-					status: 404,
-				};
-			}
-
-			return { success: true as const, data: updatedRun };
-		} catch (error) {
-			span.recordException(error as Error);
-			span.setStatus({ code: SpanStatusCode.ERROR });
-			throw error;
-		} finally {
-			span.end();
-		}
+	const run = await db.run.findUnique({
+		where: { runNo },
+		include: { units: { select: { status: true } } },
 	});
+
+	if (!run) {
+		return {
+			success: false as const,
+			code: "RUN_NOT_FOUND",
+			message: "Run not found",
+			status: 404,
+		};
+	}
+
+	const { units: _units, ...runRecord } = run;
+
+	if (TERMINAL_RUN_STATUSES.includes(run.status)) {
+		return { success: true as const, data: runRecord };
+	}
+
+	if (run.status !== RunStatus.IN_PROGRESS) {
+		return {
+			success: false as const,
+			code: "RUN_NOT_CLOSABLE",
+			message: `Run status ${run.status} does not allow closeout`,
+			status: 400,
+		};
+	}
+
+	if (run.units.length === 0) {
+		return {
+			success: false as const,
+			code: "RUN_HAS_NO_UNITS",
+			message: "Run has no units",
+			status: 400,
+		};
+	}
+
+	const allUnitsTerminal = run.units.every((unit) => TERMINAL_UNIT_STATUSES.includes(unit.status));
+	if (!allUnitsTerminal) {
+		return {
+			success: false as const,
+			code: "RUN_UNITS_NOT_TERMINAL",
+			message: "Not all units are terminal (DONE/SCRAPPED)",
+			status: 400,
+		};
+	}
+
+	const oqcTriggerResult = await checkAndTriggerOqc(db, runNo, {
+		createdBy: options?.closedBy,
+	});
+	if (!oqcTriggerResult.success) {
+		return oqcTriggerResult as ServiceResult<RunRecord>;
+	}
+
+	if (oqcTriggerResult.data.triggered) {
+		return {
+			success: false as const,
+			code: "OQC_REQUIRED",
+			message: `OQC is required. Task ${oqcTriggerResult.data.oqcId} created.`,
+			status: 409,
+		};
+	}
+
+	if (!oqcTriggerResult.data.completed) {
+		return {
+			success: false as const,
+			code: "RUN_CLOSEOUT_FAILED",
+			message: oqcTriggerResult.data.reason,
+			status: 400,
+		};
+	}
+
+	const updatedRun = await db.run.findUnique({ where: { runNo } });
+	if (!updatedRun) {
+		return {
+			success: false as const,
+			code: "RUN_NOT_FOUND",
+			message: "Run not found",
+			status: 404,
+		};
+	}
+
+	return { success: true as const, data: updatedRun };
 };
 
 /**
@@ -457,105 +382,82 @@ export const generateUnits = async (
 	runNo: string,
 	data: GenerateUnitsInput,
 ): Promise<ServiceResult<{ generated: number; units: Array<{ sn: string; status: string }> }>> => {
-	return tracer.startActiveSpan("mes.runs.generateUnits", async (span) => {
-		setSpanAttributes(span, {
-			"mes.run.run_no": runNo,
-			"mes.run.quantity": data.quantity,
-		});
-
-		try {
-			const run = await db.run.findUnique({
-				where: { runNo },
+	const run = await db.run.findUnique({
+		where: { runNo },
+		include: {
+			workOrder: true,
+			routeVersion: {
 				include: {
-					workOrder: true,
-					routeVersion: {
+					routing: {
 						include: {
-							routing: {
-								include: {
-									steps: { orderBy: { stepNo: "asc" }, take: 1 },
-								},
-							},
+							steps: { orderBy: { stepNo: "asc" }, take: 1 },
 						},
 					},
 				},
-			});
-
-			if (!run) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "RUN_NOT_FOUND");
-				return {
-					success: false as const,
-					code: "RUN_NOT_FOUND",
-					message: "Run not found",
-					status: 404,
-				};
-			}
-
-			// Check if run is in a valid state for unit generation
-			const allowedStatuses: RunStatus[] = [RunStatus.PREP, RunStatus.AUTHORIZED];
-			if (!allowedStatuses.includes(run.status)) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "INVALID_RUN_STATUS");
-				return {
-					success: false as const,
-					code: "INVALID_RUN_STATUS",
-					message: `Cannot generate units for run in status ${run.status}. Allowed: ${allowedStatuses.join(", ")}`,
-					status: 400,
-				};
-			}
-
-			// Check existing unit count
-			const existingCount = await db.unit.count({ where: { runId: run.id } });
-			if (existingCount > 0) {
-				span.setStatus({ code: SpanStatusCode.ERROR });
-				span.setAttribute("mes.error_code", "UNITS_ALREADY_EXIST");
-				return {
-					success: false as const,
-					code: "UNITS_ALREADY_EXIST",
-					message: `Run already has ${existingCount} units. Delete existing units first or use a different run.`,
-					status: 400,
-				};
-			}
-
-			// Generate SN prefix based on run number or custom prefix
-			const snPrefix = data.snPrefix || `SN-${runNo}-`;
-
-			// Get first step number from routing
-			const firstStepNo = run.routeVersion?.routing?.steps?.[0]?.stepNo ?? 1;
-
-			// Create units in batch
-			const unitsData = Array.from({ length: data.quantity }, (_, i) => ({
-				runId: run.id,
-				woId: run.workOrder.id,
-				sn: `${snPrefix}${String(i + 1).padStart(4, "0")}`,
-				status: UnitStatus.QUEUED,
-				currentStepNo: firstStepNo,
-			}));
-
-			await db.unit.createMany({ data: unitsData });
-
-			// Fetch created units for response
-			const createdUnits = await db.unit.findMany({
-				where: { runId: run.id },
-				select: { sn: true, status: true },
-				orderBy: { sn: "asc" },
-			});
-
-			span.setAttribute("mes.units.generated", createdUnits.length);
-
-			return {
-				success: true as const,
-				data: {
-					generated: createdUnits.length,
-					units: createdUnits,
-				},
-			};
-		} catch (error) {
-			span.recordException(error as Error);
-			span.setStatus({ code: SpanStatusCode.ERROR });
-			throw error;
-		} finally {
-			span.end();
-		}
+			},
+		},
 	});
+
+	if (!run) {
+		return {
+			success: false as const,
+			code: "RUN_NOT_FOUND",
+			message: "Run not found",
+			status: 404,
+		};
+	}
+
+	// Check if run is in a valid state for unit generation
+	const allowedStatuses: RunStatus[] = [RunStatus.PREP, RunStatus.AUTHORIZED];
+	if (!allowedStatuses.includes(run.status)) {
+		return {
+			success: false as const,
+			code: "INVALID_RUN_STATUS",
+			message: `Cannot generate units for run in status ${run.status}. Allowed: ${allowedStatuses.join(", ")}`,
+			status: 400,
+		};
+	}
+
+	// Check existing unit count
+	const existingCount = await db.unit.count({ where: { runId: run.id } });
+	if (existingCount > 0) {
+		return {
+			success: false as const,
+			code: "UNITS_ALREADY_EXIST",
+			message: `Run already has ${existingCount} units. Delete existing units first or use a different run.`,
+			status: 400,
+		};
+	}
+
+	// Generate SN prefix based on run number or custom prefix
+	const snPrefix = data.snPrefix || `SN-${runNo}-`;
+
+	// Get first step number from routing
+	const firstStepNo = run.routeVersion?.routing?.steps?.[0]?.stepNo ?? 1;
+
+	// Create units in batch
+	const unitsData = Array.from({ length: data.quantity }, (_, i) => ({
+		runId: run.id,
+		woId: run.workOrder.id,
+		sn: `${snPrefix}${String(i + 1).padStart(4, "0")}`,
+		status: UnitStatus.QUEUED,
+		currentStepNo: firstStepNo,
+	}));
+
+	await db.unit.createMany({ data: unitsData });
+
+	// Fetch created units for response
+	const createdUnits = await db.unit.findMany({
+		where: { runId: run.id },
+		select: { sn: true, status: true },
+		orderBy: { sn: "asc" },
+	});
+
+	return {
+		success: true as const,
+		data: {
+			generated: createdUnits.length,
+			units: createdUnits,
+		},
+	};
 };
