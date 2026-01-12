@@ -18,7 +18,6 @@ Framework-specific details beyond project docs.
 
 ## Plugins
 - [Cron](https://elysiajs.com/plugins/cron.md)
-- [OpenTelemetry](https://elysiajs.com/plugins/opentelemetry.md)
 
 ## Integrations
 - [Better Auth](https://elysiajs.com/integrations/better-auth.md)
