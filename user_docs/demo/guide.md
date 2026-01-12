@@ -313,11 +313,13 @@
 | 用途 | 工单号 | 批次号 | SN |
 |------|--------|--------|-----|
 | SMT 全流程起点（推荐） | WO-MGMT-SMT-QUEUE | （新建） | （新扫/新生成） |
+| DIP 全流程起点（推荐） | WO-DEMO-DIP-{时间戳} | （新建） | （新扫/新生成） |
 | 准备中批次（可跳转） | WO-MGMT-SMT-PREP | RUN-MGMT-SMT-PREP | - |
 | 执行中批次 | WO-MGMT-SMT-EXEC | RUN-MGMT-SMT-EXEC | SN-MGMT-EXEC-0001 |
 | 质量锁定批次 | WO-MGMT-SMT-HOLD | RUN-MGMT-SMT-HOLD | SN-MGMT-HOLD-0001 |
 | 已完成追溯 | WO-MGMT-SMT-DONE | RUN-MGMT-SMT-DONE | SN-MGMT-DONE-0001 |
 | DIP 执行中 | WO-MGMT-DIP-EXEC | RUN-MGMT-DIP-EXEC | SN-MGMT-DIP-EXEC-0001 |
+| DIP 已完成追溯 | WO-MGMT-DIP-DONE | RUN-MGMT-DIP-DONE | SN-MGMT-DIP-DONE-0001 |
 
 ### 常见问题应对
 
