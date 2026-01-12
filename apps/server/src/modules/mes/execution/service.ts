@@ -1,8 +1,8 @@
 import type { PrismaClient } from "@better-app/db";
 import {
+	InspectionResultStatus,
 	InspectionStatus,
 	InspectionType,
-	InspectionResultStatus,
 	RunStatus,
 	TrackResult,
 	TrackSource,
@@ -121,7 +121,8 @@ const resolveFaiTrialGate = async (
 	return {
 		allowed: true,
 		faiId: activeFai.id,
-		sampleQty: typeof activeFai.sampleQty === "number" && activeFai.sampleQty > 0 ? activeFai.sampleQty : 1,
+		sampleQty:
+			typeof activeFai.sampleQty === "number" && activeFai.sampleQty > 0 ? activeFai.sampleQty : 1,
 		startedAt: activeFai.startedAt,
 		trackedUnitIds: new Set(distinctTrackedUnits.map((row) => row.unitId)),
 	};
@@ -311,7 +312,8 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 					return {
 						success: false,
 						code: "FAI_TRIAL_STEP_NOT_ALLOWED",
-						message: "FAI trial only allows TrackIn/TrackOut on the first routing step before authorization.",
+						message:
+							"FAI trial only allows TrackIn/TrackOut on the first routing step before authorization.",
 					};
 				}
 
@@ -384,7 +386,9 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 						stepNo: currentStep.stepNo,
 						stationId: station.id,
 						source: TrackSource.MANUAL,
-						meta: faiTrial?.allowed ? { executionMode: "FAI_TRIAL", faiId: faiTrial.faiId } : undefined,
+						meta: faiTrial?.allowed
+							? { executionMode: "FAI_TRIAL", faiId: faiTrial.faiId }
+							: undefined,
 						inAt: now,
 					},
 				});
@@ -570,7 +574,8 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 					return {
 						success: false,
 						code: "FAI_TRIAL_STEP_NOT_ALLOWED",
-						message: "FAI trial only allows TrackIn/TrackOut on the first routing step before authorization.",
+						message:
+							"FAI trial only allows TrackIn/TrackOut on the first routing step before authorization.",
 					};
 				}
 			}

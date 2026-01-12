@@ -304,7 +304,11 @@ function RunDetailPage() {
 				<div className="flex items-center gap-2">
 					{data.run.status === "PREP" && (
 						<Can permissions={Permission.RUN_AUTHORIZE}>
-							<Button size="sm" onClick={() => handleAuthorize("AUTHORIZE")} disabled={authorizeRun.isPending}>
+							<Button
+								size="sm"
+								onClick={() => handleAuthorize("AUTHORIZE")}
+								disabled={authorizeRun.isPending}
+							>
 								<CheckCircle2 className="mr-2 h-4 w-4" />
 								授权生产
 							</Button>
