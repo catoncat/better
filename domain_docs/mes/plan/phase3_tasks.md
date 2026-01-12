@@ -163,9 +163,9 @@ P1（应该）：
   - DoD：明确“升级前备份”“回滚恢复”“db:deploy 流程”“数据目录权限/磁盘策略”
   - Touch points：`agent_docs/05_ops/single_binary_deployment.md`（或新增 ops 文档）、`agent_docs/00_onboarding/setup.md`
 
-- [ ] 3.3.3 观测与审计最低配置（上线可运维）
-  - DoD：明确日志/追踪开关、Jaeger 可选接入、审计事件查询路径（UI/API）
-  - Touch points：`agent_docs/05_ops/observability_jaeger.md`、`apps/server/src/modules/audit/*`、`apps/web/src/routes/_authenticated/system/*`
+- [ ] 3.3.3 日志与审计最低配置（上线可运维）
+  - DoD：明确日志开关与审计事件查询路径（UI/API）
+  - Touch points：`apps/server/src/modules/audit/*`、`apps/web/src/routes/_authenticated/system/*`
 
 ### 3.4 Track D — UX & Training（P1）
 

@@ -44,9 +44,6 @@ bun apps/server/scripts/test-mes-flow.ts
 ```
 The script logs in with the seeded admin user and runs the full flow.
 
-## Optional Observability (Jaeger v2 + OpenSearch)
-- Setup guide: `agent_docs/05_ops/observability_jaeger.md`
-
 ## Environment Variables and SQLite
 - Use `DATABASE_URL=file:<path>` for SQLite.
 - For monorepo dev, relative paths are resolved from repo root.

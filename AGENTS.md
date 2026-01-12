@@ -97,8 +97,6 @@ Use the smallest set of docs needed for the task. Skip anything not required.
 ## Scheduled Tasks / Ops
 - Cron job:
   1. `agent_docs/05_ops/cron_jobs.md`
-- Observability (Jaeger):
-  1. `agent_docs/05_ops/observability_jaeger.md`
 
 ## Quality and Release
 - Before commit or PR:
