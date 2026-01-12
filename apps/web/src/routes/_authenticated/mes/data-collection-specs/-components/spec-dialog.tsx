@@ -174,7 +174,7 @@ export function SpecDialog({ open, onOpenChange, spec }: SpecDialogProps) {
 				>
 					{/* Basic Info */}
 					<div className="grid grid-cols-2 gap-4">
-						<Field form={form} name="operationCode" label="工序">
+						<Field form={form} name="operationCode" label="工序" required>
 							{(field) => (
 								<Select
 									value={field.state.value}
@@ -195,7 +195,7 @@ export function SpecDialog({ open, onOpenChange, spec }: SpecDialogProps) {
 							)}
 						</Field>
 
-						<Field form={form} name="name" label="采集项名称">
+						<Field form={form} name="name" label="采集项名称" required>
 							{(field) => (
 								<Input
 									placeholder="例：焊接温度"
