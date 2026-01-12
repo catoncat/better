@@ -30,11 +30,7 @@ interface DataSpecSelectorProps {
  * - 搜索过滤
  * - 可选按 operationCode 过滤
  */
-export function DataSpecSelector({
-	value,
-	onChange,
-	operationCode,
-}: DataSpecSelectorProps) {
+export function DataSpecSelector({ value, onChange, operationCode }: DataSpecSelectorProps) {
 	const [search, setSearch] = useState("");
 
 	// 获取采集项列表（启用状态）
@@ -72,7 +68,10 @@ export function DataSpecSelector({
 					specs: [],
 				});
 			}
-			groups.get(key)!.specs.push(spec);
+			const group = groups.get(key);
+			if (group) {
+				group.specs.push(spec);
+			}
 		}
 
 		// 按工序代码排序
@@ -94,19 +93,13 @@ export function DataSpecSelector({
 	const selectedSet = new Set(value);
 
 	if (isLoading) {
-		return (
-			<div className="text-sm text-muted-foreground py-4 text-center">
-				加载采集项...
-			</div>
-		);
+		return <div className="text-sm text-muted-foreground py-4 text-center">加载采集项...</div>;
 	}
 
 	if (specs.length === 0) {
 		return (
 			<div className="text-sm text-muted-foreground py-4 text-center">
-				{operationCode
-					? `工序 ${operationCode} 暂无可用采集项`
-					: "暂无可用采集项"}
+				{operationCode ? `工序 ${operationCode} 暂无可用采集项` : "暂无可用采集项"}
 			</div>
 		);
 	}
@@ -126,17 +119,13 @@ export function DataSpecSelector({
 
 			{/* 已选计数 */}
 			{value.length > 0 && (
-				<div className="text-xs text-muted-foreground">
-					已选 {value.length} 项
-				</div>
+				<div className="text-xs text-muted-foreground">已选 {value.length} 项</div>
 			)}
 
 			{/* 分组列表 */}
 			<div className="max-h-56 overflow-auto rounded-md border border-border">
 				{groupedSpecs.length === 0 ? (
-					<div className="text-sm text-muted-foreground py-4 text-center">
-						无匹配结果
-					</div>
+					<div className="text-sm text-muted-foreground py-4 text-center">无匹配结果</div>
 				) : (
 					groupedSpecs.map((group) => (
 						<div key={group.operationCode}>
@@ -150,16 +139,11 @@ export function DataSpecSelector({
 									const checked = selectedSet.has(spec.id);
 									const checkboxId = `spec-${spec.id}`;
 									return (
-										<div
-											key={spec.id}
-											className="flex items-start gap-2 px-1 py-0.5"
-										>
+										<div key={spec.id} className="flex items-start gap-2 px-1 py-0.5">
 											<Checkbox
 												id={checkboxId}
 												checked={checked}
-												onCheckedChange={(val) =>
-													handleToggle(spec.id, Boolean(val))
-												}
+												onCheckedChange={(val) => handleToggle(spec.id, Boolean(val))}
 												className="mt-0.5"
 											/>
 											<label
@@ -169,9 +153,7 @@ export function DataSpecSelector({
 												<span className="font-medium">{spec.name}</span>
 												<span className="ml-2 text-xs text-muted-foreground">
 													{spec.itemType} · {spec.dataType}
-													{spec.isRequired && (
-														<span className="text-destructive ml-1">*必填</span>
-													)}
+													{spec.isRequired && <span className="text-destructive ml-1">*必填</span>}
 												</span>
 											</label>
 										</div>

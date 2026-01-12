@@ -1,6 +1,7 @@
 import { useForm } from "@tanstack/react-form";
 import { Loader2 } from "lucide-react";
 import { useEffect, useMemo } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,12 +34,6 @@ interface TrackOutDialogProps {
 	runNo: string;
 	onSuccess?: () => void;
 }
-
-// Build dynamic form values type
-type FormValues = {
-	result: "PASS" | "FAIL";
-	data: Record<string, number | string | boolean | undefined>;
-};
 
 const resultSchema = z.enum(["PASS", "FAIL"]);
 
@@ -86,8 +81,10 @@ export function TrackOutDialog({
 				valueNumber?: number;
 				valueText?: string;
 				valueBoolean?: boolean;
+				valueJson?: unknown;
 			}> = [];
 
+			let jsonParseFailed = false;
 			for (const spec of specs) {
 				const val = value.data[spec.name];
 				if (val === undefined || val === "") continue;
@@ -101,11 +98,19 @@ export function TrackOutDialog({
 				} else if (spec.dataType === "TEXT" && typeof val === "string") {
 					item.valueText = val;
 				} else if (spec.dataType === "JSON" && typeof val === "string") {
-					item.valueText = val; // Store JSON as text for now
+					try {
+						item.valueJson = JSON.parse(val);
+					} catch {
+						toast.error(`采集项「${spec.name}」JSON 格式不正确`);
+						jsonParseFailed = true;
+						break;
+					}
 				}
 
 				dataArray.push(item);
 			}
+
+			if (jsonParseFailed) return;
 
 			await trackOut({
 				stationCode,
@@ -132,6 +137,7 @@ export function TrackOutDialog({
 
 	// Validate required fields
 	const validateRequired = () => {
+		if (form.getFieldValue("result") === "FAIL") return true;
 		for (const spec of specs) {
 			if (spec.isRequired) {
 				const val = form.getFieldValue(`data.${spec.name}` as never);
@@ -194,7 +200,10 @@ export function TrackOutDialog({
 								onBlur={field.handleBlur}
 								onChange={(e) => {
 									const v = e.target.value;
-									field.handleChange((v ? Number(v) : undefined) as never);
+									const parsed = v ? Number(v) : undefined;
+									field.handleChange(
+										(parsed === undefined || Number.isFinite(parsed) ? parsed : undefined) as never,
+									);
 								}}
 							/>
 						)}

@@ -683,7 +683,12 @@ function ExecutionConfigDialog({
 	onOpenChange: (open: boolean) => void;
 	editingConfig: ExecutionConfig | null;
 	routingCode: string;
-	stepOptions: Array<{ value: string; label: string; sourceStepKey: string | null; operationCode: string }>;
+	stepOptions: Array<{
+		value: string;
+		label: string;
+		sourceStepKey: string | null;
+		operationCode: string;
+	}>;
 	stationGroupOptions: Array<{ value: string; label: string }>;
 	stations: StationOption[];
 }) {

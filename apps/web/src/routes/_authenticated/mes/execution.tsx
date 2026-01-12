@@ -108,9 +108,14 @@ function ExecutionPage() {
 		},
 		onSubmit: async ({ value: values }) => {
 			if (!selectedStation || !canTrackOut) return;
-			await trackOut({ stationCode: selectedStation, ...values });
-			outForm.reset({ sn: "", runNo: values.runNo, result: "PASS" });
-			refetchQueue();
+			if (values.result === "FAIL") {
+				await trackOut({ stationCode: selectedStation, ...values });
+				outForm.reset({ sn: "", runNo: values.runNo, result: "PASS" });
+				refetchQueue();
+				return;
+			}
+
+			handleOpenTrackOutDialog({ sn: values.sn, runNo: values.runNo });
 		},
 	});
 

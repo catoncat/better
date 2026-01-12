@@ -105,6 +105,9 @@ export function SpecDialog({ open, onOpenChange, spec }: SpecDialogProps) {
 				if (value.specUnit) specObj.unit = value.specUnit;
 			}
 
+			const specPayload =
+				value.dataType === "NUMBER" && Object.keys(specObj).length > 0 ? specObj : null;
+
 			const payload = {
 				operationCode: value.operationCode.trim(),
 				name: value.name.trim(),
@@ -114,7 +117,7 @@ export function SpecDialog({ open, onOpenChange, spec }: SpecDialogProps) {
 				triggerType: value.triggerType,
 				isRequired: value.isRequired,
 				isActive: value.isActive,
-				spec: Object.keys(specObj).length > 0 ? specObj : undefined,
+				spec: specPayload,
 			};
 
 			if (isEdit && spec) {
