@@ -29,6 +29,10 @@ export const Permission = {
 	DATA_SPEC_READ: "data_spec:read",
 	DATA_SPEC_CONFIG: "data_spec:config",
 
+	// Operation domain (MES-Native operations)
+	OPERATION_READ: "operation:read",
+	OPERATION_CONFIG: "operation:config",
+
 	// Routing domain
 	ROUTE_READ: "route:read",
 	ROUTE_CONFIGURE: "route:configure",
@@ -104,6 +108,13 @@ export const PERMISSION_GROUPS = {
 		permissions: [
 			{ value: Permission.DATA_SPEC_READ, label: "查看采集项" },
 			{ value: Permission.DATA_SPEC_CONFIG, label: "管理采集项" },
+		],
+	},
+	operation: {
+		label: "工序管理",
+		permissions: [
+			{ value: Permission.OPERATION_READ, label: "查看工序" },
+			{ value: Permission.OPERATION_CONFIG, label: "管理工序" },
 		],
 	},
 	route: {
