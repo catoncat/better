@@ -130,9 +130,22 @@ export function AppSidebar({
 												key={item.title}
 												item={item}
 												visibleItems={visibleItems}
+												isActive={isGroupActive}
 											/>
 										);
 									}
+
+									const activeSubItemUrl = visibleItems.reduce<string | undefined>(
+										(activeUrl, subItem) => {
+											const matches =
+												location.pathname === subItem.url ||
+												location.pathname.startsWith(`${subItem.url}/`);
+											if (!matches) return activeUrl;
+											if (!activeUrl) return subItem.url;
+											return subItem.url.length > activeUrl.length ? subItem.url : activeUrl;
+										},
+										undefined,
+									);
 
 									return (
 										<Collapsible
@@ -143,7 +156,11 @@ export function AppSidebar({
 										>
 											<SidebarMenuItem>
 												<CollapsibleTrigger asChild>
-													<SidebarMenuButton tooltip={item.title} className="font-medium">
+													<SidebarMenuButton
+														tooltip={item.title}
+														className="font-medium"
+														isActive={isGroupActive}
+													>
 														{item.icon && <item.icon />}
 														<span>{item.title}</span>
 														<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -152,7 +169,7 @@ export function AppSidebar({
 												<CollapsibleContent>
 													<SidebarMenuSub>
 														{visibleItems.map((subItem) => {
-															const isSubActive = location.pathname === subItem.url;
+															const isSubActive = activeSubItemUrl === subItem.url;
 															return (
 																<SidebarMenuSubItem key={subItem.title}>
 																	<SidebarMenuSubButton asChild isActive={isSubActive}>
@@ -299,9 +316,11 @@ export function AppSidebar({
 function CollapsedSidebarMenuItem({
 	item,
 	visibleItems,
+	isActive,
 }: {
 	item: (typeof navMain)[number];
 	visibleItems: NonNullable<(typeof navMain)[number]["items"]>;
+	isActive: boolean;
 }) {
 	const [isOpen, setIsOpen] = useState(false);
 	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -333,7 +352,7 @@ function CollapsedSidebarMenuItem({
 		<SidebarMenuItem onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
 			<DropdownMenu open={isOpen} onOpenChange={setIsOpen} modal={false}>
 				<DropdownMenuTrigger asChild>
-					<SidebarMenuButton className="font-medium">
+					<SidebarMenuButton className="font-medium" isActive={isActive}>
 						{item.icon && <item.icon />}
 						<span>{item.title}</span>
 						<ChevronRight className="ml-auto" />
