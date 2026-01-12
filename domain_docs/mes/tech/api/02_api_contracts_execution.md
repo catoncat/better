@@ -55,9 +55,15 @@ Response example:
 - Recommended: routing resolution check:
   - must resolve a routing
   - routing must have at least one READY executable version
-- If not: return `ROUTE_VERSION_NOT_READY` / `ROUTE_COMPILE_FAILED`
+- If not: return `ROUTE_NOT_FOUND` / `ROUTE_NOT_READY`
+- Dispatch: release is a “派工” action; persist the chosen target line on the WorkOrder (stored in `WorkOrder.meta.dispatch.*`)
 
-Request: none
+Request example:
+```json
+{
+  "lineCode": "LINE-A"
+}
+```
 
 Response example:
 ```json
@@ -78,12 +84,14 @@ Behavior (required):
 2) Select latest READY `ExecutableRouteVersion`
 3) Persist `Run.routeVersionId`
 4) Initialize run status `PREP`
+5) Validate selected line is compatible with the frozen route snapshot (station group / allowed stations / station type)
 
 Request example:
 ```json
 {
   "lineCode": "LINE-A",
-  "qty": 100
+  "shiftCode": "Day",
+  "changeoverNo": "CHG-001"
 }
 ```
 

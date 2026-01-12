@@ -144,6 +144,15 @@ P1（应该）：
     - 验收脚本：`apps/server/scripts/test-mes-flow.ts`（readiness-waive）
     - Readiness：`apps/server/src/modules/mes/readiness/routes.ts`、`apps/server/src/modules/mes/readiness/service.ts`
 
+- [x] 3.2.5 Guard: 创建批次校验产线与路由执行语义兼容
+  - DoD：创建 Run 时校验所选产线包含路由步骤所需的站点组/工位约束（`stationGroupId`/`allowedStationIds`/`stationType`）；不兼容则阻止创建并给出可定位提示
+  - Touch points：`apps/server/src/modules/mes/work-order/service.ts`、`apps/server/src/modules/mes/readiness/service.ts`、`apps/server/src/modules/mes/execution/service.ts`、`apps/web/src/routes/_authenticated/mes/-components/run-create-dialog.tsx`
+  - Subtasks:
+    - [x] 3.2.5.1 Server: `createRun` 校验 route snapshot 与 line stations 兼容
+    - [x] 3.2.5.2 Readiness: `ROUTE` 检查补充“产线-站点组兼容性”
+    - [x] 3.2.5.3 Execution: TrackIn/Out 校验 station 属于 run.line
+    - [x] 3.2.5.4 Web: Run 创建对话框预填/锁定派工产线 + 友好错误提示
+
 ### 3.3 Track C — Ops & Deployment Readiness（P0）
 
 - [ ] 3.3.1 单体部署清单化：构建、运行、TLS、端口、Web 模式、DB 路径
