@@ -455,21 +455,37 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 
 			const dataItems = data.data ?? [];
 			const specNames = dataItems.map((item) => item.specName);
-			const requiredSpecIds = currentStep.dataSpecIds ?? [];
-			const specs = requiredSpecIds.length
+			const boundSpecIds = currentStep.dataSpecIds ?? [];
+			const specs = boundSpecIds.length
 				? await db.dataCollectionSpec.findMany({
-						where: { id: { in: requiredSpecIds } },
+						where: { id: { in: boundSpecIds } },
 					})
 				: specNames.length
 					? await db.dataCollectionSpec.findMany({
 							where: {
 								operationId: currentStep.operationId,
 								name: { in: specNames },
+								isActive: true,
 							},
 						})
 					: [];
 
-			const specsByName = new Map(specs.map((spec) => [spec.name, spec]));
+			if (boundSpecIds.length > 0) {
+				const fetchedIds = new Set(specs.map((spec) => spec.id));
+				const missingIds = boundSpecIds.filter((id) => !fetchedIds.has(id));
+				if (missingIds.length > 0) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "DATA_SPEC_NOT_FOUND");
+					return {
+						success: false,
+						code: "DATA_SPEC_NOT_FOUND",
+						message: `One or more bound data specs are missing: ${missingIds.join(", ")}`,
+					};
+				}
+			}
+
+			const activeSpecs = boundSpecIds.length > 0 ? specs.filter((spec) => spec.isActive) : specs;
+			const specsByName = new Map(activeSpecs.map((spec) => [spec.name, spec]));
 			const missingSpecs = specNames.filter((name) => !specsByName.has(name));
 			if (missingSpecs.length > 0) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
@@ -481,17 +497,10 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 				};
 			}
 
-			if (requiredSpecIds.length > 0) {
-				if (specs.length !== requiredSpecIds.length) {
-					span.setStatus({ code: SpanStatusCode.ERROR });
-					span.setAttribute("mes.error_code", "DATA_SPEC_NOT_FOUND");
-					return {
-						success: false,
-						code: "DATA_SPEC_NOT_FOUND",
-						message: "One or more required data specs are missing",
-					};
-				}
-				const requiredNames = specs.map((spec) => spec.name);
+			if (boundSpecIds.length > 0 && result === TrackResult.PASS) {
+				const requiredNames = activeSpecs
+					.filter((spec) => spec.isRequired)
+					.map((spec) => spec.name);
 				const missingRequired = requiredNames.filter((name) => !specNames.includes(name));
 				if (missingRequired.length > 0) {
 					span.setStatus({ code: SpanStatusCode.ERROR });

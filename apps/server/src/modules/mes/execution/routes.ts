@@ -58,14 +58,14 @@ export const executionModule = new Elysia({
 		"/:stationCode/unit/:sn/data-specs",
 		async ({ db, params, set }) => {
 			const result = await getUnitDataSpecs(db, params.stationCode, params.sn);
-			if (!result.success) {
+			if (!result.success || !result.data) {
 				const errorCode = result.code ?? "EXECUTION_ERROR";
 				const errorMessage = result.message ?? "Failed to get data specs";
 				set.status =
 					errorCode === "STATION_NOT_FOUND" || errorCode === "UNIT_NOT_FOUND" ? 404 : 400;
 				return { ok: false as const, error: { code: errorCode, message: errorMessage } };
 			}
-			return { ok: true as const, data: result.data! };
+			return { ok: true as const, data: result.data };
 		},
 		{
 			isAuth: true,
