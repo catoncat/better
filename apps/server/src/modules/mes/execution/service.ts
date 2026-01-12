@@ -1,5 +1,7 @@
 import type { PrismaClient } from "@better-app/db";
 import {
+	InspectionStatus,
+	InspectionType,
 	InspectionResultStatus,
 	RunStatus,
 	TrackResult,
@@ -10,6 +12,7 @@ import { type Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
 import { createDefectFromTrackOut } from "../defect/service";
 import { checkAndTriggerOqc } from "../oqc/trigger-service";
+import { canAuthorize as canAuthorizeReadiness } from "../readiness/service";
 import type { trackInSchema, trackOutSchema } from "./schema";
 
 type TrackInInput = Static<typeof trackInSchema>;
@@ -56,6 +59,72 @@ const getSnapshotSteps = (snapshot: unknown) => {
 		requiresAuthorization?: boolean;
 		dataSpecIds?: string[];
 	}>;
+};
+
+type FaiTrialGateResult =
+	| {
+			allowed: true;
+			faiId: string;
+			sampleQty: number;
+			startedAt: Date;
+			trackedUnitIds: Set<string>;
+	  }
+	| { allowed: false; code: string; message: string };
+
+const resolveFaiTrialGate = async (
+	db: PrismaClient,
+	run: { id: string; runNo: string },
+): Promise<FaiTrialGateResult> => {
+	const readiness = await canAuthorizeReadiness(db, run.runNo);
+	if (!readiness.success) {
+		return {
+			allowed: false,
+			code: readiness.code ?? "READINESS_CHECK_FAILED",
+			message: readiness.message ?? "Readiness check failed",
+		};
+	}
+	if (!readiness.data.canAuthorize) {
+		return {
+			allowed: false,
+			code: "READINESS_CHECK_FAILED",
+			message: "Readiness check failed. Fix or waive all failed items before FAI trial.",
+		};
+	}
+
+	const activeFai = await db.inspection.findFirst({
+		where: {
+			runId: run.id,
+			type: InspectionType.FAI,
+			status: InspectionStatus.INSPECTING,
+		},
+		orderBy: { createdAt: "desc" },
+		select: { id: true, sampleQty: true, startedAt: true },
+	});
+
+	if (!activeFai || !activeFai.startedAt) {
+		return {
+			allowed: false,
+			code: "FAI_TRIAL_NOT_READY",
+			message: "FAI trial requires an active FAI in INSPECTING status (start FAI first).",
+		};
+	}
+
+	const distinctTrackedUnits = await db.track.findMany({
+		where: {
+			unit: { runId: run.id },
+			createdAt: { gte: activeFai.startedAt },
+		},
+		distinct: ["unitId"],
+		select: { unitId: true },
+	});
+
+	return {
+		allowed: true,
+		faiId: activeFai.id,
+		sampleQty: typeof activeFai.sampleQty === "number" && activeFai.sampleQty > 0 ? activeFai.sampleQty : 1,
+		startedAt: activeFai.startedAt,
+		trackedUnitIds: new Set(distinctTrackedUnits.map((row) => row.unitId)),
+	};
 };
 
 export const trackIn = async (db: PrismaClient, stationCode: string, data: TrackInInput) => {
@@ -140,7 +209,19 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 					message: "Station does not belong to the run line",
 				};
 			}
-			if (run.status !== RunStatus.AUTHORIZED && run.status !== RunStatus.IN_PROGRESS) {
+
+			let faiTrial: FaiTrialGateResult | null = null;
+			if (run.status === RunStatus.PREP) {
+				const gate = await resolveFaiTrialGate(db, { id: run.id, runNo: run.runNo });
+				if (!gate.allowed) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", gate.code);
+					return { success: false, code: gate.code, message: gate.message };
+				}
+				faiTrial = gate;
+				span.setAttribute("mes.execution.mode", "FAI_TRIAL");
+				span.setAttribute("mes.fai.id", gate.faiId);
+			} else if (run.status !== RunStatus.AUTHORIZED && run.status !== RunStatus.IN_PROGRESS) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "RUN_NOT_AUTHORIZED");
 				return {
@@ -149,6 +230,7 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 					message: "Run is not authorized or in progress",
 				};
 			}
+
 			if (run.workOrder.woNo !== data.woNo) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "RUN_WORK_ORDER_MISMATCH");
@@ -221,6 +303,30 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 					message: "Current step not found in routing",
 				};
 			}
+
+			if (faiTrial?.allowed) {
+				if (currentStep.stepNo !== firstStep.stepNo) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "FAI_TRIAL_STEP_NOT_ALLOWED");
+					return {
+						success: false,
+						code: "FAI_TRIAL_STEP_NOT_ALLOWED",
+						message: "FAI trial only allows TrackIn/TrackOut on the first routing step before authorization.",
+					};
+				}
+
+				const isAlreadyTrialUnit = unit?.id ? faiTrial.trackedUnitIds.has(unit.id) : false;
+				if (!isAlreadyTrialUnit && faiTrial.trackedUnitIds.size >= faiTrial.sampleQty) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "FAI_TRIAL_LIMIT_REACHED");
+					return {
+						success: false,
+						code: "FAI_TRIAL_LIMIT_REACHED",
+						message: `FAI trial unit limit reached (sampleQty=${faiTrial.sampleQty}).`,
+					};
+				}
+			}
+
 			if (!isValidStationForStep(currentStep, station)) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "STATION_MISMATCH");
@@ -278,6 +384,7 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 						stepNo: currentStep.stepNo,
 						stationId: station.id,
 						source: TrackSource.MANUAL,
+						meta: faiTrial?.allowed ? { executionMode: "FAI_TRIAL", faiId: faiTrial.faiId } : undefined,
 						inAt: now,
 					},
 				});
@@ -356,7 +463,19 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 					message: "Station does not belong to the run line",
 				};
 			}
-			if (run.status !== RunStatus.AUTHORIZED && run.status !== RunStatus.IN_PROGRESS) {
+
+			let faiTrial: FaiTrialGateResult | null = null;
+			if (run.status === RunStatus.PREP) {
+				const gate = await resolveFaiTrialGate(db, { id: run.id, runNo: run.runNo });
+				if (!gate.allowed) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", gate.code);
+					return { success: false, code: gate.code, message: gate.message };
+				}
+				faiTrial = gate;
+				span.setAttribute("mes.execution.mode", "FAI_TRIAL");
+				span.setAttribute("mes.fai.id", gate.faiId);
+			} else if (run.status !== RunStatus.AUTHORIZED && run.status !== RunStatus.IN_PROGRESS) {
 				span.setStatus({ code: SpanStatusCode.ERROR });
 				span.setAttribute("mes.error_code", "RUN_NOT_AUTHORIZED");
 				return {
@@ -441,6 +560,19 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 					code: "STEP_MISMATCH",
 					message: "Current step not found in routing",
 				};
+			}
+
+			if (faiTrial?.allowed) {
+				const firstStep = [...steps].sort((a, b) => a.stepNo - b.stepNo)[0];
+				if (firstStep && currentStep.stepNo !== firstStep.stepNo) {
+					span.setStatus({ code: SpanStatusCode.ERROR });
+					span.setAttribute("mes.error_code", "FAI_TRIAL_STEP_NOT_ALLOWED");
+					return {
+						success: false,
+						code: "FAI_TRIAL_STEP_NOT_ALLOWED",
+						message: "FAI trial only allows TrackIn/TrackOut on the first routing step before authorization.",
+					};
+				}
 			}
 
 			if (!isValidStationForStep(currentStep, station)) {
