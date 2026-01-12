@@ -97,8 +97,6 @@ Use the smallest set of docs needed for the task. Skip anything not required.
 ## Scheduled Tasks / Ops
 - Cron job:
   1. `agent_docs/05_ops/cron_jobs.md`
-- Observability (Jaeger):
-  1. `agent_docs/05_ops/observability_jaeger.md`
 
 ## Quality and Release
 - Before commit or PR:
@@ -126,12 +124,12 @@ Use the smallest set of docs needed for the task. Skip anything not required.
 ### Process Specs (Source of Truth)
 - End-to-End Flows: `domain_docs/mes/spec/process/01_end_to_end_flows.md`
 - State Machines: `domain_docs/mes/spec/process/02_state_machines.md`
-- SMP Flows: `domain_docs/mes/spec/process/03_smp_flows.md`
+- SMT Flows: `domain_docs/mes/spec/process/03_smt_flows.md`
 - DIP Flows: `domain_docs/mes/spec/process/04_dip_flows.md`
 
 ### Implementation Alignment
 - E2E Align: `domain_docs/mes/spec/impl_align/01_e2e_align.md`
-- SMP Align: `domain_docs/mes/spec/impl_align/03_smp_align.md`
+- SMT Align: `domain_docs/mes/spec/impl_align/03_smt_align.md`
 - DIP Align: `domain_docs/mes/spec/impl_align/04_dip_align.md`
 
 ### Routing

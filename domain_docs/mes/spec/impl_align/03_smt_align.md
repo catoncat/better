@@ -1,6 +1,6 @@
 # SMT 流程实现对齐
 
-对应流程: `spec/process/03_smp_flows.md`
+对应流程: `spec/process/03_smt_flows.md`
 
 > 缺失的节点 = 尚未对齐实现
 > Align 仅映射流程图中的动作节点（矩形）；开始/结束/判断节点不单独列出。

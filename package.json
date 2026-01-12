@@ -34,6 +34,9 @@
     "db:deploy:acceptance": "DATABASE_URL=file:./data/acceptance.db bun run db:deploy",
     "db:seed:acceptance": "DATABASE_URL=file:./data/acceptance.db bun run db:seed",
     "mes:acceptance": "bun scripts/mes-acceptance.ts"
+    ,
+    "workflow:run": "bun scripts/workflow-run.ts",
+    "mes:triage": "bun scripts/workflow-run.ts agent_workflows/mes-triage.json"
   },
   "packageManager": "bun@1.3.1",
   "devDependencies": {

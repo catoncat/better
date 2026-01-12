@@ -1,0 +1,46 @@
+{
+  "name": "mes-triage",
+  "version": 1,
+  "description": "Deterministic MES triage: worktree scan + plan extraction + saved conversation note (no code changes).",
+  "steps": [
+    {
+      "id": "git_status",
+      "title": "Repo status snapshot",
+      "kind": "command",
+      "args": ["git", "status", "--porcelain=v1", "-b"],
+      "captureStdoutTo": "outputs/git_status.md",
+      "captureStderrTo": "outputs/git_status.stderr.md"
+    },
+    {
+      "id": "worktree_scan",
+      "title": "Worktree scan snapshot",
+      "kind": "bun",
+      "args": ["scripts/worktree-scan.ts", "--format", "md"],
+      "captureStdoutTo": "outputs/worktree_scan.md",
+      "captureStderrTo": "outputs/worktree_scan.stderr.md"
+    },
+    {
+      "id": "triage_render",
+      "title": "Render tracks + candidates from plan",
+      "kind": "bun",
+      "args": [
+        "scripts/mes-triage-render.ts",
+        "--plan",
+        "domain_docs/mes/plan/phase3_tasks.md",
+        "--max",
+        "5"
+      ],
+      "captureStdoutTo": "outputs/triage.md",
+      "captureStderrTo": "outputs/triage.stderr.md"
+    },
+    {
+      "id": "conversation_note",
+      "title": "Write triage output to conversation note",
+      "kind": "bun",
+      "args": ["scripts/mes-triage-note.ts", "--topic", "mes-triage_next-work"],
+      "captureStdoutTo": "outputs/conversation_note.txt",
+      "captureStderrTo": "outputs/conversation_note.stderr.txt"
+    }
+  ]
+}
+

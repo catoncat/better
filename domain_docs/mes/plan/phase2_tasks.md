@@ -159,7 +159,7 @@ model ReadinessCheckItem {
 
 ### 3.4 Task 2.4: Loading Verify (上料防错)
 
-> 参考: `domain_docs/mes/spec/process/03_smp_flows.md` - MES 核心模块
+> 参考: `domain_docs/mes/spec/process/03_smt_flows.md` - MES 核心模块
 
 - [x] 2.4.1 Schema: `LoadingRecord` 模型 (站位、物料、绑定关系)
 - [x] 2.4.2 Schema: `FeederSlot` / `SlotMaterialMapping` / `RunSlotExpectation` (产线站位配置 + 期望来源)
@@ -222,7 +222,7 @@ model ReadinessCheckItem {
 
 ### 3.8 Task 2.8: Status Enum Alignment
 
-- [x] 2.8.1 Run/Unit/WO 状态枚举对齐 SMP v2.4
+- [x] 2.8.1 Run/Unit/WO 状态枚举对齐 SMT v2.4
 - [x] 2.8.2 旧状态数据迁移 (FAI_PENDING/RUNNING/FINISHING/ARCHIVED/OUT_PASSED/REWORK/HOLD/CANCELLED)
 
 ---
@@ -237,7 +237,7 @@ model ReadinessCheckItem {
 ## 5. References
 
 - 端到端流程: `domain_docs/mes/spec/process/01_end_to_end_flows.md`
-- SMT 产线流程: `domain_docs/mes/spec/process/03_smp_flows.md`
+- SMT 产线流程: `domain_docs/mes/spec/process/03_smt_flows.md`
 - 集成规范: `domain_docs/mes/spec/integration/01_system_integrations.md`
 - Traceability: `domain_docs/mes/spec/traceability/01_traceability_contract.md`
 - API 模式: `agent_docs/03_backend/api_patterns.md`

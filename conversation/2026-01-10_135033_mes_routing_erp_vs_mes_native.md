@@ -47,7 +47,7 @@
 ...共5个细步骤，只覆盖SMT
 ```
 
-ERP的"SMT"是1个工序，而流程图（`03_smp_flows.md`）需要细化到5+个步骤。**金蝶做不到这个粒度**。
+ERP的"SMT"是1个工序，而流程图（`03_smt_flows.md`）需要细化到5+个步骤。**金蝶做不到这个粒度**。
 
 ### 3. MES原生路由的隐患
 
@@ -119,6 +119,6 @@ RoutingStep:
 
 - `domain_docs/mes/spec/routing/01_routing_engine.md` — 路由引擎设计
 - `domain_docs/mes/tech/db/01_prisma_schema.md` — 数据模型
-- `domain_docs/mes/spec/process/03_smp_flows.md` — SMT流程图
+- `domain_docs/mes/spec/process/03_smt_flows.md` — SMT流程图
 - `domain_docs/mes/spec/process/04_dip_flows.md` — DIP流程图
 - `apps/server/src/modules/mes/routing/service.ts` — 路由服务实现

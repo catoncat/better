@@ -18,21 +18,28 @@
 | 了解 M3 进度/待办 | `plan/phase3_tasks.md` |
 | 了解历史进度（M2） | `plan/phase2_tasks.md` |
 | 了解全局流程 | `spec/process/01_end_to_end_flows.md` |
-| 了解 SMT 流程 | `spec/process/03_smp_flows.md` |
+| 了解 SMT 流程 | `spec/process/03_smt_flows.md` |
 | 了解 DIP 流程 | `spec/process/04_dip_flows.md` |
 | 查找节点对应实现 | `spec/impl_align/` |
+
+## Triage（接下来做什么）
+
+- 以计划为准：优先从 `plan/phase3_tasks.md` 选择 `[ ]` / `[~]` 的条目。
+- 可用确定性 triage 输出基线（含 worktree scan + 候选项 + 冲突提示）：
+  - `bun scripts/workflow-run.ts agent_workflows/mes-triage.json`
+  - 产物：`.spec-workflow/`（本地、gitignored）+ `conversation/`（可追溯记录）
 
 ## 流程定义
 
 - `spec/process/01_end_to_end_flows.md` - 端到端流程
 - `spec/process/02_state_machines.md` - 状态机定义
-- `spec/process/03_smp_flows.md` - SMT 产线流程
+- `spec/process/03_smt_flows.md` - SMT 产线流程
 - `spec/process/04_dip_flows.md` - DIP 产线流程
 
 ## 实现对齐
 
 - `spec/impl_align/01_e2e_align.md` - 端到端闭环节点实现映射
-- `spec/impl_align/03_smp_align.md` - SMT 节点实现映射
+- `spec/impl_align/03_smt_align.md` - SMT 节点实现映射
 - `spec/impl_align/04_dip_align.md` - DIP 节点实现映射
 
 ## 任务追踪

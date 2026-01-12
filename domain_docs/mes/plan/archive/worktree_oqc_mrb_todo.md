@@ -1,10 +1,10 @@
-# Worktree TODO - OQC + MRB (SMP v2.4)
+# Worktree TODO - OQC + MRB (SMT v2.4)
 
 ## Worktree Info
-- Scope: OQC + MRB (SMP v2.4)
+- Scope: OQC + MRB (SMT v2.4)
 
 ## Goal
-落地 OQC 抽检与 MRB 决策闭环，严格对齐 `domain_docs/mes/spec/process/03_smp_flows.md`。
+落地 OQC 抽检与 MRB 决策闭环，严格对齐 `domain_docs/mes/spec/process/03_smt_flows.md`。
 
 ## Tracking Policy
 - 本文件是 OQC/MRB 任务追踪的唯一来源。

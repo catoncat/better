@@ -17,7 +17,7 @@
 
 **已更新的文件**：
 - ✅ `domain_docs/mes/spec/process/01_end_to_end_flows.md` - 添加对齐表引用
-- ✅ `domain_docs/mes/spec/process/03_smp_flows.md` - 添加对齐表引用
+- ✅ `domain_docs/mes/spec/process/03_smt_flows.md` - 添加对齐表引用
 - ✅ `domain_docs/mes/spec/process/04_dip_flows.md` - 添加对齐表引用并修正 FAI 描述
 
 ---
@@ -115,7 +115,7 @@
 
 **按流程查找**：
 - 通用流程 → `domain_docs/mes/spec/process/01_end_to_end_flows.md` → `## Implementation Status`
-- SMT 流程 → `domain_docs/mes/spec/process/03_smp_flows.md` → `## Implementation Status`
+- SMT 流程 → `domain_docs/mes/spec/process/03_smt_flows.md` → `## Implementation Status`
 - DIP 流程 → `domain_docs/mes/spec/process/04_dip_flows.md` → `## Implementation Status`
 
 **按实现状态查找**：
@@ -214,7 +214,7 @@
 |------|------|------|
 | `domain_docs/mes/CONTEXT.md` | ✅ 已创建 | MES 进度摘要 + 待办入口 |
 | `domain_docs/mes/spec/process/01_end_to_end_flows.md` | ✅ 已更新 | 内置对齐表 |
-| `domain_docs/mes/spec/process/03_smp_flows.md` | ✅ 已更新 | 内置对齐表 |
+| `domain_docs/mes/spec/process/03_smt_flows.md` | ✅ 已更新 | 内置对齐表 |
 | `domain_docs/mes/spec/process/04_dip_flows.md` | ✅ 已更新 | 内置对齐表 + DIP 对齐 |
 | `conversation/flow_implementation_tracking_summary.md` | ✅ 已创建 | 本总结文档 |
 
