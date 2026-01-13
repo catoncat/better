@@ -328,7 +328,9 @@ function RunDetailPage() {
 							</Button>
 						</Can>
 					)}
-					{(data.run.status === "AUTHORIZED" || data.run.status === "IN_PROGRESS") && (
+					{(data.run.status === "PREP" ||
+						data.run.status === "AUTHORIZED" ||
+						data.run.status === "IN_PROGRESS") && (
 						<Can permissions={Permission.EXEC_TRACK_IN}>
 							<Button variant="default" size="sm" asChild>
 								<Link
@@ -336,7 +338,7 @@ function RunDetailPage() {
 									search={{ runNo: data.run.runNo, woNo: data.workOrder.woNo }}
 								>
 									<Play className="mr-2 h-4 w-4" />
-									开始执行
+									{data.run.status === "PREP" ? "试产执行" : "开始执行"}
 								</Link>
 							</Button>
 						</Can>
