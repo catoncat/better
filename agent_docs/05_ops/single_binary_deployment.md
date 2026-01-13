@@ -70,6 +70,17 @@ Upgrade (migrations + binary):
 - Replace the `better-app` binary and restart the service.
 - Verify `GET /api/health` and a basic UI login.
 
+## Logging and Audit
+- Runtime logs:
+  - The server logs to stdout/stderr (capture via systemd/journald, Docker logs, or your process manager).
+  - `NODE_ENV=production` hides internal error details in HTTP responses, but errors are still logged server-side.
+- Audit logs (event history):
+  - API: `GET /api/audit-logs` (filters: `page/pageSize/actorId/entityType/entityId/action/status/from/to`)
+  - API: `GET /api/audit-logs/:id`
+  - UI (exploration): `GET /openapi` includes the `Audit Logs` endpoints for interactive querying.
+- Optional audit archive cron:
+  - Configure via `AUDIT_ARCHIVE_*` in `apps/server/.env.example` (`AUDIT_ARCHIVE_ENABLED`, retention, output dir).
+
 ## Troubleshooting
 - `unable to open database file`: ensure `DATABASE_URL` points to a file path and the parent directory exists with correct permissions.
 - `Both APP_TLS_CERT_PATH and APP_TLS_KEY_PATH must be set together`: set both or neither.
