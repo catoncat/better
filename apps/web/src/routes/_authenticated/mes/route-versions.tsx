@@ -1,6 +1,5 @@
 import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { format } from "date-fns";
 import { useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
 import { RouteSelect } from "@/components/select/route-select";
@@ -21,6 +20,7 @@ import {
 	useCompileRouteVersion,
 	useRouteVersions,
 } from "@/hooks/use-route-versions";
+import { formatDateTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/mes/route-versions")({
 	component: RouteVersionsPage,
@@ -139,9 +139,7 @@ function RouteVersionsPage() {
 											</Badge>
 										</TableCell>
 										<TableCell>
-											{version.compiledAt
-												? format(new Date(version.compiledAt), "yyyy-MM-dd HH:mm")
-												: "-"}
+											{formatDateTime(version.compiledAt)}
 										</TableCell>
 										<TableCell className="text-muted-foreground">
 											{formatErrors(version.errorsJson)}
