@@ -57,7 +57,7 @@ bun apps/server/scripts/test-mes-flow.ts
 
 ## 关键环境变量
 
-- `DATABASE_URL`: SQLite `file:` URL（例 `file:./data/`，相对路径相对于 repo 根，会在 `packages/db` 解析为绝对路径）。
+- `DATABASE_URL`: SQLite `file:` URL（例 `file:./data/db.db`，相对路径相对于 repo 根，会在 `packages/db` 解析为绝对路径）。
 - `APP_URL`: 用于 API CORS 与 Better Auth 回调（默认 `http://localhost:3001`）。
 - `APP_WEB_MODE`: `off|embedded|dir`，由 `apps/server/src/web/config.ts` 解析 Web 服务策略。
 - `APP_TIMEZONE`: 时区设置（默认 `Asia/Shanghai`）。
