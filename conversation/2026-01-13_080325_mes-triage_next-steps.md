@@ -3,7 +3,7 @@
 ## Context
 - User asked “接下来做什么” for MES (M3 Go-Live Readiness).
 - Triage source of truth: `domain_docs/mes/plan/phase3_tasks.md` pending items.
-- Repo status: `main` clean; there is an in-flight worktree that may conflict with MES web-route changes.
+- Repo status: `main` was clean at triage time; user later confirmed the previous doc/worktree noise is resolved.
 
 ## Decisions
 - Shortlist focuses on `[ ]` P0 go-live blockers in `phase3_tasks.md` (deployment + ops SOP + training/SOP).
@@ -35,7 +35,6 @@
   - If you want a dedicated worktree, I’ll propose: `bun scripts/worktree-new.ts <branch> <path>`.
 
 ## Open Questions
-- Do you still need `/Users/envvar/lzb/better-3.5.2`? (It’s dirty + behind 29; impacts web-related work.)
 - Which track/candidate should we implement first?
 - Do you want a new worktree for the chosen item?
 
@@ -47,4 +46,19 @@
 
 ## Selected
 - User selected: Track A (Ops & Deployment Readiness)
-- Next: confirm which candidate to implement first (`3.3.1` / `3.3.2` / `3.3.3`) and whether to use a dedicated worktree
+- Worktree created for Track A:
+  - branch: `feat/3.3-ops-deployment`
+  - path: `/Users/envvar/lzb/better-3.3`
+
+## Track A Notes (for parallel agents)
+- `DATABASE_URL` should point to a SQLite file path (not a directory):
+  - Runtime uses `new Database(<path>)` via `packages/db/src/bun-sqlite-adapter.ts` and a directory path fails.
+  - Ops docs should standardize examples like `DATABASE_URL=file:/var/lib/better-app/db.db` (and local `file:./data/db.db`).
+- Web serving modes:
+  - `apps/server/src/web/config.ts` defaults to `embedded` in production or when running as a compiled binary.
+  - If embedded assets are missing, `apps/server/src/web/serve-web.ts` throws with a clear message; `bun run build:single` must include `gen:web-embed`.
+- TLS:
+  - `apps/server/src/index.ts` requires both `APP_TLS_CERT_PATH` + `APP_TLS_KEY_PATH` set together; it reads PEM text from disk at startup.
+- Audit logs:
+  - API exists: `apps/server/src/modules/audit/routes.ts` (prefix `/api/audit-logs`).
+  - Web UI route does not currently exist under `apps/web/src/routes/_authenticated/system/*` (candidate work for `3.3.3` if we want UI access).
