@@ -1,6 +1,21 @@
 ---
 name: mes-implement
 description: 'Repo-specific MES implementation workflow. Use when the user asks to implement /build/fix/change MES features (server/web/db/docs) in this repo, especially anything under domain_docs/mes. Enforce plan-first work, and enforce the doc contract: flow = diagram + notes + references only; impl_align = node name to API/Server/Web mapping only (no status); plan = the only progress tracker. Ensure flow node names and impl_align node names match exactly.'
+trigger_examples:
+  positive:
+    - "实现 MES 功能"
+    - "开发 MES"
+    - "做 MES 的 XXX"
+    - "MES 上料防错"
+    - "MES OQC"
+    - "MES 执行"
+    - "implement MES feature"
+    - "build MES"
+    - "fix MES bug"
+  negative:
+    - "现在做什么" # → mes-triage
+    - "MES 待办" # → mes-triage
+    - "非 MES 功能" # → repo-dev-loop
 ---
 
 # MES Implement
@@ -52,7 +67,7 @@ Implement one selected MES task end-to-end while keeping plan/flow/align as sing
    - Run `bun scripts/smart-verify.ts` (doc-only skips; `--force` overrides).
    - If fixes are needed: `bun run lint:fix` and/or `bun run format`.
    - Run the narrowest relevant tests if the touched package exposes them.
-   - Sanity doc checks: `rg -nP \"\\p{Extended_Pictographic}\" domain_docs/mes` (must be empty).
+   - Sanity doc checks: `rg -nP \"\p{Extended_Pictographic}\" domain_docs/mes` (must be empty).
 
 ## Commit Checkpoints (Default)
 
@@ -66,5 +81,4 @@ If the task includes multiple slices, do not wait to the end. Commit after each 
 
 ## When Not To Use
 
-Do not use this workflow for pure “what next” triage; use `mes-triage` instead.
-triage; use `mes-triage` instead.
+Do not use this workflow for pure "what next" triage; use `mes-triage` instead.

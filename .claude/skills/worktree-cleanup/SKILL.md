@@ -1,6 +1,20 @@
 ---
 name: worktree-cleanup
 description: "Clean up finished git worktrees and branches (删除 worktree/清理 worktree/prune/删分支). Use when a task is done and the user wants to remove a worktree directory and delete the associated local/remote branch."
+trigger_examples:
+  positive:
+    - "删除 worktree"
+    - "清理 worktree"
+    - "删分支"
+    - "清理分支"
+    - "任务完成了，清理"
+    - "remove worktree"
+    - "delete branch"
+    - "cleanup"
+    - "prune"
+  negative:
+    - "创建 worktree" # → worktree-bootstrap
+    - "worktree 状态" # → worktree-status
 ---
 
 # Worktree Cleanup
@@ -33,4 +47,3 @@ Remove completed worktrees and delete no-longer-needed branches to keep parallel
 - If unsure whether the branch is merged, check:
   - `git branch --merged main`
 - If the branch is still checked out by another worktree, remove that worktree first.
-

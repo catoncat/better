@@ -1,6 +1,18 @@
 ---
 name: small-step-commits
 description: 'Enforce small, frequent commits (小步提交/多次 commit) in this repo. Use when implementing/refactoring code, updating docs, or making multi-file changes; ensures work is committed in coherent slices (plan/docs/schema/api/ui) instead of one big end-of-task commit.'
+trigger_examples:
+  positive:
+    - "小步提交"
+    - "多次 commit"
+    - "分步提交"
+    - "频繁提交"
+    - "small commits"
+    - "commit often"
+    - "incremental commits"
+  negative:
+    - "一次性提交" # 用户明确要求批量
+    - "最后再提交" # 用户明确要求延迟
 ---
 
 # Small-Step Commits

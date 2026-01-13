@@ -2,6 +2,25 @@
 name: mes-triage
 description: 'Repo-specific MES next-work triage (global plan). Use when the user asks what to build next / next tasks / which milestone to do next for MES in this repo (e.g., "接下来开发什么/下一步做什么"). Not for current branch/worktree progress; use `worktree-status` for "做到哪/进度/完成怎么样". Read domain_docs/mes/CONTEXT.md and domain_docs/mes/plan/*, then output 2-4 parallelizable tracks with 3-5 candidates total and ask the user to pick one. Do not modify code/docs/plan during triage unless explicitly asked (except the required conversation sync note).'
 context: fork
+trigger_examples:
+  positive:
+    - "现在做什么"
+    - "做什么"
+    - "干什么"
+    - "下一步"
+    - "接下来"
+    - "下个任务"
+    - "先做哪个"
+    - "优先做什么"
+    - "MES 待办"
+    - "what's next"
+    - "next task"
+    - "what to build"
+  negative:
+    - "做到哪了" # → worktree-status
+    - "进度怎么样" # → worktree-status
+    - "这个分支完成了吗" # → worktree-status
+    - "帮我实现 XXX" # → mes-implement
 ---
 
 # MES Triage
@@ -62,4 +81,4 @@ End with: "Pick one; I will confirm scope and start plan-first implementation."
 - Only write/update the conversation note; do not modify code/docs/plan during triage unless the user explicitly asks.
 - Do not create worktrees or switch branches unless the user explicitly asks.
 - Do not invent new tasks outside `domain_docs/mes/plan/` without proposing them as plan additions first.
-- If the user is asking about “progress/status” of the current branch/worktree, use `worktree-status` instead of re-triaging.
+- If the user is asking about "progress/status" of the current branch/worktree, use `worktree-status` instead of re-triaging.

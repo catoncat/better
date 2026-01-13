@@ -1,6 +1,19 @@
 ---
 name: task-slicer
 description: 'Split a repo task into 2-6 conflict-friendly slices with explicit commit checkpoints. Use when starting a non-trivial task, when the user asks for a plan (拆分任务/拆分 plan/切片), or when small-step commits are desired (小步提交/多次 commit). Outputs a slice plan with staged file hints and commit message suggestions.'
+trigger_examples:
+  positive:
+    - "拆分任务"
+    - "拆分一下"
+    - "切片"
+    - "分步骤做"
+    - "怎么拆"
+    - "slice this task"
+    - "break it down"
+    - "plan the steps"
+  negative:
+    - "现在做什么" # → mes-triage
+    - "进度怎么样" # → worktree-status
 ---
 
 # Task Slicer

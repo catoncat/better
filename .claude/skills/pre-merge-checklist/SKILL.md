@@ -1,6 +1,20 @@
 ---
 name: pre-merge-checklist
 description: "Run pre-merge / pre-PR verification for this repo (合并前检查/PR前检查). Use when the user asks to finish, merge, open a PR, or do final checks; enforces git-status cleanliness, bun lint/typecheck, and required doc/plan/align updates."
+trigger_examples:
+  positive:
+    - "合并前检查"
+    - "PR 前检查"
+    - "准备合并"
+    - "可以合并了吗"
+    - "检查一下"
+    - "pre-merge check"
+    - "ready to merge"
+    - "open PR"
+    - "final check"
+  negative:
+    - "进度怎么样" # → worktree-status
+    - "现在做什么" # → mes-triage
 ---
 
 # Pre-Merge Checklist

@@ -2,14 +2,31 @@
 name: worktree-status
 description: "Report current branch/worktree progress (分支进度/做到哪/还差什么/worktree 状态). Reads and updates `worktree_notes/<branchSlug>.md` (AUTO status block) and reports next steps; do not triage/slice unless explicitly asked."
 context: fork
+trigger_examples:
+  positive:
+    - "做到哪了"
+    - "进度怎么样"
+    - "还差什么"
+    - "完成了吗"
+    - "这个分支状态"
+    - "当前任务进度"
+    - "worktree 状态"
+    - "branch status"
+    - "what's left"
+    - "progress"
+  negative:
+    - "现在做什么" # → mes-triage
+    - "下一步做什么" # → mes-triage
+    - "帮我实现 XXX" # → mes-implement / repo-dev-loop
+    - "创建 worktree" # → worktree-bootstrap
 ---
 
 # Worktree Status
 
 ## Triggers
 
-- “这个分支做到哪了 / 还差什么 / 进度如何 / 当前任务完成怎么样”
-- “worktree 状态 / branch status / progress”
+- "这个分支做到哪了 / 还差什么 / 进度如何 / 当前任务完成怎么样"
+- "worktree 状态 / branch status / progress"
 
 ## Workflow
 
@@ -21,6 +38,5 @@ context: fork
 
 ## Guardrails
 
-- Do not run `mes-triage` / `task-slicer` for progress questions unless explicitly asked to “重新拆分/重新 triage”.
+- Do not run `mes-triage` / `task-slicer` for progress questions unless explicitly asked to "重新拆分/重新 triage".
 - Do not rewrite non-AUTO sections of the note without explicit user instruction.
-
