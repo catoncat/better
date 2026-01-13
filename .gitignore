@@ -91,3 +91,4 @@ others/
 !.claude/skills/
 !.claude/skills/**
 .factory/
+.task-context.json

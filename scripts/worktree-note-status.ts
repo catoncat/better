@@ -167,6 +167,8 @@ const replaceAutoStatusBlock = (text: string, statusLines: string[]): string => 
 	return [head, "", ...statusLines, tail].join("\n");
 };
 
+const SKIP_BRANCHES = ["main", "master"];
+
 const main = () => {
 	const repoRootRes = run(["git", "rev-parse", "--show-toplevel"], { cwd: process.cwd() });
 	if (repoRootRes.exitCode !== 0) die(repoRootRes.stderr || "git rev-parse --show-toplevel failed");
@@ -179,6 +181,12 @@ const main = () => {
 	if (!branch) die("Not on a branch (detached HEAD); pass --note explicitly.");
 
 	const { notePath: noteArg, baseRef: baseArg } = parseArgs(process.argv);
+
+	// Skip main/master branches - they don't need worktree notes
+	if (!noteArg && SKIP_BRANCHES.includes(branch)) {
+		console.log(`Skipped: ${branch} is a base branch, no worktree note needed.`);
+		return;
+	}
 	const baseRef = resolveBaseRef(repoRoot, baseArg);
 
 	const slug = branchSlug(branch);
