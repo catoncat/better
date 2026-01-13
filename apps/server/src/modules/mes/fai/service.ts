@@ -1,4 +1,5 @@
 import {
+	InspectionResultStatus,
 	InspectionStatus,
 	InspectionType,
 	Prisma,
@@ -281,6 +282,24 @@ export async function completeFai(
 		}
 
 		failedQty = failedQty ?? 0;
+
+		// Check for SPI/AOI inspection failures on FAI sample units
+		// If decision is PASS but there are inspection FAILs, block completion
+		const inspectionFailCount = await db.inspectionResultRecord.count({
+			where: {
+				runNo: fai.run?.runNo,
+				result: InspectionResultStatus.FAIL,
+			},
+		});
+
+		if (inspectionFailCount > 0) {
+			return {
+				success: false as const,
+				code: "INSPECTION_FAILURES_EXIST",
+				message: `Cannot mark FAI as PASS: ${inspectionFailCount} SPI/AOI inspection failure(s) exist for this run`,
+				status: 400,
+			};
+		}
 
 		if (sampleQty !== null && sampleQty !== undefined) {
 			passedQty = passedQty ?? sampleQty;
