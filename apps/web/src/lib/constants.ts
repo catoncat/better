@@ -123,3 +123,15 @@ export const FAI_STATUS_MAP: Record<string, string> = {
 	PASS: "已通过",
 	FAIL: "未通过",
 };
+
+export const DEFECT_STATUS_MAP: Record<string, string> = {
+	RECORDED: "已记录",
+	DISPOSITIONED: "已处置",
+	CLOSED: "已关闭",
+};
+
+export const DISPOSITION_TYPE_MAP: Record<string, string> = {
+	REWORK: "返工",
+	SCRAP: "报废",
+	HOLD: "暂扣",
+};

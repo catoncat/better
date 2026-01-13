@@ -1,6 +1,5 @@
 import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
-import { format } from "date-fns";
 import {
 	AlertTriangle,
 	ChevronLeft,
@@ -51,6 +50,8 @@ import {
 	useReleaseHold,
 } from "@/hooks/use-defects";
 import { useUnitTrace } from "@/hooks/use-trace";
+import { DEFECT_STATUS_MAP, DISPOSITION_TYPE_MAP } from "@/lib/constants";
+import { formatDateTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/mes/defects")({
 	validateSearch: (search: Record<string, unknown>): DefectQuery => ({
@@ -128,37 +129,27 @@ function DefectsPage() {
 	const pageSize = query.pageSize ?? 20;
 	const totalPages = Math.ceil(total / pageSize);
 
-	const formatTime = (value?: string | Date | null) => {
-		if (!value) return "-";
-		const date = typeof value === "string" ? new Date(value) : value;
-		return format(date, "yyyy-MM-dd HH:mm:ss");
-	};
-
 	const getStatusBadge = (status: string) => {
-		const map: Record<
-			string,
-			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-		> = {
-			RECORDED: { label: "已记录", variant: "destructive" },
-			DISPOSITIONED: { label: "已处置", variant: "default" },
-			CLOSED: { label: "已关闭", variant: "secondary" },
-		};
-		const config = map[status] ?? { label: status, variant: "outline" as const };
-		return <Badge variant={config.variant}>{config.label}</Badge>;
+		const label = DEFECT_STATUS_MAP[status] || status;
+		let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+
+		if (status === "RECORDED") variant = "destructive";
+		if (status === "DISPOSITIONED") variant = "default";
+		if (status === "CLOSED") variant = "secondary";
+
+		return <Badge variant={variant}>{label}</Badge>;
 	};
 
 	const getDispositionBadge = (type?: string | null) => {
 		if (!type) return null;
-		const map: Record<
-			string,
-			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-		> = {
-			REWORK: { label: "返工", variant: "default" },
-			SCRAP: { label: "报废", variant: "destructive" },
-			HOLD: { label: "暂扣", variant: "outline" },
-		};
-		const config = map[type] ?? { label: type, variant: "outline" as const };
-		return <Badge variant={config.variant}>{config.label}</Badge>;
+		const label = DISPOSITION_TYPE_MAP[type] || type;
+		let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+
+		if (type === "REWORK") variant = "default";
+		if (type === "SCRAP") variant = "destructive";
+		if (type === "HOLD") variant = "outline";
+
+		return <Badge variant={variant}>{label}</Badge>;
 	};
 
 	const handleAssignDisposition = () => {
@@ -287,9 +278,11 @@ function DefectsPage() {
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value="ALL">全部</SelectItem>
-									<SelectItem value="RECORDED">已记录</SelectItem>
-									<SelectItem value="DISPOSITIONED">已处置</SelectItem>
-									<SelectItem value="CLOSED">已关闭</SelectItem>
+									{Object.entries(DEFECT_STATUS_MAP).map(([value, label]) => (
+										<SelectItem key={value} value={value}>
+											{label}
+										</SelectItem>
+									))}
 								</SelectContent>
 							</Select>
 						</div>
@@ -343,7 +336,7 @@ function DefectsPage() {
 													)
 												: "-"}
 										</TableCell>
-										<TableCell>{formatTime(defect.createdAt)}</TableCell>
+										<TableCell>{formatDateTime(defect.createdAt)}</TableCell>
 										<TableCell className="text-right">
 											<div className="flex gap-2 justify-end">
 												{defect.status === "RECORDED" && (
@@ -469,7 +462,7 @@ function DefectsPage() {
 											</div>
 											<div>
 												<span className="text-muted-foreground">决定时间：</span>
-												{formatTime(defectDetailTyped.disposition.decidedAt)}
+												{formatDateTime(defectDetailTyped.disposition.decidedAt)}
 											</div>
 											{defectDetailTyped.disposition.type === "REWORK" &&
 												defectDetailTyped.disposition.reworkTask && (
