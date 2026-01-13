@@ -193,6 +193,12 @@ export const navMain: NavItem[] = [
 				permissions: [Permission.SYSTEM_ROLE_MANAGE],
 			},
 			{
+				title: "审计日志",
+				url: "/system/audit-logs",
+				permissions: [Permission.SYSTEM_USER_MANAGE, Permission.SYSTEM_ROLE_MANAGE],
+				permissionMode: "any",
+			},
+			{
 				title: "系统设置",
 				url: "/system/settings",
 				permissions: [Permission.SYSTEM_CONFIG],
