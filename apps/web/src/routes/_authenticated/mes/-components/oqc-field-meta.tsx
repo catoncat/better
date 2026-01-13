@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { format } from "date-fns";
 import type { DataListFieldMeta } from "@/components/data-list/field-meta";
 import { Badge } from "@/components/ui/badge";
 import type { OqcInspection } from "@/hooks/use-oqc";
 import { INSPECTION_STATUS_MAP, RUN_STATUS_MAP } from "@/lib/constants";
+import { formatDateTime } from "@/lib/utils";
 
 const getOqcStatusBadge = (status: string) => {
 	const label = INSPECTION_STATUS_MAP[status] ?? status;
@@ -100,7 +100,7 @@ export const oqcFieldMeta: DataListFieldMeta<OqcInspection>[] = [
 		key: "createdAt",
 		label: "创建时间",
 		cardDetail: true,
-		cardValue: (oqc) => format(new Date(oqc.createdAt), "yyyy-MM-dd HH:mm"),
-		tableCell: (oqc) => format(new Date(oqc.createdAt), "yyyy-MM-dd HH:mm"),
+		cardValue: (oqc) => formatDateTime(oqc.createdAt),
+		tableCell: (oqc) => formatDateTime(oqc.createdAt),
 	},
 ];
