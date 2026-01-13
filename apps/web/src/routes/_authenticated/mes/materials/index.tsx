@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
-import { format } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { type MaterialListItem, useMaterialList } from "@/hooks/use-materials";
 import { useQueryPresets } from "@/hooks/use-query-presets";
+import { formatDateTime } from "@/lib/utils";
 
 interface MaterialFilters {
 	search: string;
@@ -47,11 +47,6 @@ export const Route = createFileRoute("/_authenticated/mes/materials/")({
 	}),
 	component: MaterialsPage,
 });
-
-const formatTime = (value?: string | Date | null) => {
-	if (!value) return "-";
-	return format(value instanceof Date ? value : new Date(value), "yyyy-MM-dd HH:mm");
-};
 
 function MaterialsPage() {
 	const viewPreferencesKey = "materials";
@@ -259,7 +254,7 @@ function MaterialsPage() {
 			{
 				accessorKey: "sourceUpdatedAt",
 				header: "同步时间",
-				cell: ({ row }) => formatTime(row.original.sourceUpdatedAt),
+				cell: ({ row }) => formatDateTime(row.original.sourceUpdatedAt),
 			},
 		];
 	}, []);
@@ -382,7 +377,7 @@ function MaterialsPage() {
 								<div>单位：{item.unit || "-"}</div>
 								<div>型号：{item.model || "-"}</div>
 							</div>
-							<div>同步时间：{formatTime(item.sourceUpdatedAt)}</div>
+							<div>同步时间：{formatDateTime(item.sourceUpdatedAt)}</div>
 						</CardContent>
 					</Card>
 				),
