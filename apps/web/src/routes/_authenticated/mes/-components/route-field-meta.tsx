@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { format } from "date-fns";
 import type { DataListFieldMeta } from "@/components/data-list/field-meta";
 import { Badge } from "@/components/ui/badge";
 import type { RouteSummary } from "@/hooks/use-routes";
+import { formatDateTime } from "@/lib/utils";
 
 const getSourceBadge = (sourceSystem: string) => {
 	const label = sourceSystem === "ERP" ? "ERP" : "MES";
@@ -71,7 +71,7 @@ export const routeFieldMeta: DataListFieldMeta<RouteSummary>[] = [
 		label: "更新时间",
 		sortable: true,
 		cardDetail: true,
-		cardValue: (route) => format(new Date(route.updatedAt), "yyyy-MM-dd HH:mm"),
-		tableCell: (route) => format(new Date(route.updatedAt), "yyyy-MM-dd HH:mm"),
+		cardValue: (route) => formatDateTime(route.updatedAt),
+		tableCell: (route) => formatDateTime(route.updatedAt),
 	},
 ];
