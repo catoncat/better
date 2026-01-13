@@ -1,6 +1,5 @@
 import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { format } from "date-fns";
 import {
 	CheckCircle2,
 	ChevronLeft,
@@ -50,6 +49,8 @@ import {
 	useRecordFaiItem,
 	useStartFai,
 } from "@/hooks/use-fai";
+import { FAI_STATUS_MAP } from "@/lib/constants";
+import { formatDateTime } from "@/lib/utils";
 
 interface FaiSearchParams {
 	runNo?: string;
@@ -143,24 +144,15 @@ function FaiPage() {
 		(completeForm.failedQty <= 0 ||
 			(typeof sampleQty === "number" && completeForm.failedQty > sampleQty));
 
-	const formatTime = (value?: string | Date | null) => {
-		if (!value) return "-";
-		const date = typeof value === "string" ? new Date(value) : value;
-		return format(date, "yyyy-MM-dd HH:mm:ss");
-	};
-
 	const getStatusBadge = (status: string) => {
-		const map: Record<
-			string,
-			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-		> = {
-			PENDING: { label: "待开始", variant: "outline" },
-			INSPECTING: { label: "检验中", variant: "default" },
-			PASS: { label: "通过", variant: "secondary" },
-			FAIL: { label: "失败", variant: "destructive" },
-		};
-		const config = map[status] ?? { label: status, variant: "outline" as const };
-		return <Badge variant={config.variant}>{config.label}</Badge>;
+		const label = FAI_STATUS_MAP[status] || status;
+		let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+
+		if (status === "INSPECTING") variant = "default";
+		if (status === "PASS") variant = "secondary";
+		if (status === "FAIL") variant = "destructive";
+
+		return <Badge variant={variant}>{label}</Badge>;
 	};
 
 	const handleStartFai = (faiId: string) => {
@@ -267,10 +259,11 @@ function FaiPage() {
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value="ALL">全部</SelectItem>
-									<SelectItem value="PENDING">待开始</SelectItem>
-									<SelectItem value="INSPECTING">检验中</SelectItem>
-									<SelectItem value="PASS">已通过</SelectItem>
-									<SelectItem value="FAIL">已失败</SelectItem>
+									{Object.entries(FAI_STATUS_MAP).map(([value, label]) => (
+										<SelectItem key={value} value={value}>
+											{label}
+										</SelectItem>
+									))}
 								</SelectContent>
 							</Select>
 						</div>
@@ -324,8 +317,8 @@ function FaiPage() {
 										<TableCell>
 											{fai.passedQty ?? 0} / {fai.failedQty ?? 0}
 										</TableCell>
-										<TableCell>{formatTime(fai.createdAt)}</TableCell>
-										<TableCell>{formatTime(fai.startedAt)}</TableCell>
+										<TableCell>{formatDateTime(fai.createdAt)}</TableCell>
+										<TableCell>{formatDateTime(fai.startedAt)}</TableCell>
 										<TableCell className="text-right">
 											<div className="flex gap-2 justify-end">
 												{fai.status === "PENDING" && (
@@ -483,7 +476,7 @@ function FaiPage() {
 															</Badge>
 														</TableCell>
 														<TableCell>{item.unitSn ?? "-"}</TableCell>
-														<TableCell>{formatTime(item.inspectedAt)}</TableCell>
+														<TableCell>{formatDateTime(item.inspectedAt)}</TableCell>
 													</TableRow>
 												))}
 											</TableBody>
