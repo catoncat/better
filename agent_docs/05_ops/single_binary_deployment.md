@@ -59,6 +59,7 @@ This repo treats SQLite as a single DB file. Plan backups and upgrades around th
 Backup (recommended: stop the service first):
 - Identify DB path from `DATABASE_URL` (example: `/var/lib/better-app/db.db`).
 - Stop the service, copy the DB file to a timestamped backup, then start the service.
+- Ensure the service user has read/write permission to the DB file and its parent directory, and that the disk has enough free space for DB growth + backups.
 
 Restore:
 - Stop the service, replace the DB file with a known-good backup, then start the service.
