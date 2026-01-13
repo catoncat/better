@@ -53,6 +53,23 @@ Options:
   - place a `.env` file in the working directory and start the binary from that directory.
 - Health check (API): `GET /api/health`
 
+## SQLite Backup / Restore / Upgrade
+This repo treats SQLite as a single DB file. Plan backups and upgrades around that file.
+
+Backup (recommended: stop the service first):
+- Identify DB path from `DATABASE_URL` (example: `/var/lib/better-app/db.db`).
+- Stop the service, copy the DB file to a timestamped backup, then start the service.
+
+Restore:
+- Stop the service, replace the DB file with a known-good backup, then start the service.
+
+Upgrade (migrations + binary):
+- Always take a DB backup first.
+- Apply Prisma migrations using the repo (requires Bun + deps on the host running migrations):
+  - `DATABASE_URL=file:/var/lib/better-app/db.db bun run db:deploy`
+- Replace the `better-app` binary and restart the service.
+- Verify `GET /api/health` and a basic UI login.
+
 ## Troubleshooting
 - `unable to open database file`: ensure `DATABASE_URL` points to a file path and the parent directory exists with correct permissions.
 - `Both APP_TLS_CERT_PATH and APP_TLS_KEY_PATH must be set together`: set both or neither.

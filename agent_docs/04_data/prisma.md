@@ -14,9 +14,9 @@
 
 ## Database URL
 Use SQLite file URLs.
-- Local dev: `DATABASE_URL=file:./data/`
-- Docker: `DATABASE_URL=file:/data/`
-- Bare metal: `DATABASE_URL=file:/var/lib/better-app/`
+- Local dev: `DATABASE_URL=file:./data/db.db`
+- Docker: `DATABASE_URL=file:/data/db.db`
+- Bare metal: `DATABASE_URL=file:/var/lib/better-app/db.db`
 
 ## Migrations
 - Dev: `bun run db:migrate -- --name <change>`
