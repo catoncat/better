@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { format } from "date-fns";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +23,8 @@ import {
 } from "@/components/ui/table";
 import { useLines } from "@/hooks/use-lines";
 import { type ExceptionsQuery, useReadinessExceptions } from "@/hooks/use-readiness";
+import { READINESS_STATUS_MAP, RUN_STATUS_MAP } from "@/lib/constants";
+import { formatDateTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/mes/readiness-exceptions")({
 	component: ReadinessExceptionsPage,
@@ -45,39 +46,26 @@ function ReadinessExceptionsPage() {
 	const limit = data?.limit ?? 20;
 	const totalPages = Math.ceil(total / limit);
 
-	const formatTime = (value?: string | null) => {
-		if (!value) return "-";
-		return format(new Date(value), "yyyy-MM-dd HH:mm:ss");
-	};
-
 	const getRunStatusBadge = (status: string) => {
-		const map: Record<
-			string,
-			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-		> = {
-			PREP: { label: "准备中", variant: "outline" },
-			AUTHORIZED: { label: "已授权", variant: "default" },
-			IN_PROGRESS: { label: "生产中", variant: "default" },
-			ON_HOLD: { label: "隔离", variant: "outline" },
-			COMPLETED: { label: "已完成", variant: "secondary" },
-			CLOSED_REWORK: { label: "闭环返修", variant: "secondary" },
-			SCRAPPED: { label: "报废", variant: "destructive" },
-		};
-		const config = map[status] ?? { label: status, variant: "outline" as const };
-		return <Badge variant={config.variant}>{config.label}</Badge>;
+		const label = RUN_STATUS_MAP[status] || status;
+		let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+
+		if (status === "AUTHORIZED") variant = "default";
+		if (status === "IN_PROGRESS") variant = "default";
+		if (status === "COMPLETED" || status === "CLOSED_REWORK") variant = "secondary";
+		if (status === "SCRAPPED") variant = "destructive";
+
+		return <Badge variant={variant}>{label}</Badge>;
 	};
 
 	const getCheckStatusBadge = (status: string) => {
-		const map: Record<
-			string,
-			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-		> = {
-			PASSED: { label: "通过", variant: "default" },
-			FAILED: { label: "失败", variant: "destructive" },
-			PENDING: { label: "检查中", variant: "outline" },
-		};
-		const config = map[status] ?? { label: status, variant: "outline" as const };
-		return <Badge variant={config.variant}>{config.label}</Badge>;
+		const label = READINESS_STATUS_MAP[status] || status;
+		let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+
+		if (status === "PASSED") variant = "default";
+		if (status === "FAILED") variant = "destructive";
+
+		return <Badge variant={variant}>{label}</Badge>;
 	};
 
 	const handleLineChange = (value: string) => {
@@ -223,7 +211,7 @@ function ReadinessExceptionsPage() {
 													{item.waivedCount}
 												</TableCell>
 												<TableCell className="text-muted-foreground">
-													{formatTime(item.checkedAt)}
+													{formatDateTime(item.checkedAt)}
 												</TableCell>
 											</TableRow>
 										))}
