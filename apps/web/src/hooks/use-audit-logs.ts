@@ -1,4 +1,3 @@
-import type { AuditEntityType } from "@better-app/db";
 import { useQuery } from "@tanstack/react-query";
 import { client, unwrap } from "@/lib/eden";
 
@@ -10,6 +9,8 @@ type AuditLogListData = UnwrapEnvelope<NonNullable<AuditLogListResponse>>;
 
 export type AuditLogItem = AuditLogListData["items"][number];
 export type AuditLogList = AuditLogListData;
+
+type AuditEntityType = AuditLogItem["entityType"];
 
 export interface UseAuditLogListParams {
 	page?: number;

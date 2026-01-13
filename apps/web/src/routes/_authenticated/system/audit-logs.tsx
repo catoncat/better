@@ -1,4 +1,3 @@
-import type { AuditEntityType } from "@better-app/db";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
@@ -9,10 +8,17 @@ import { AuditLogCard } from "./-components/audit-log-card";
 import { auditLogColumns } from "./-components/audit-log-columns";
 import { auditEntityTypeOptions, auditStatusOptions } from "./-components/audit-log-field-meta";
 
+type AuditEntityType = AuditLogItem["entityType"];
+
+const auditEntityTypeValueSet = new Set(auditEntityTypeOptions.map((opt) => opt.value));
+
+const isAuditEntityType = (value: string): value is AuditEntityType =>
+	value !== "all" && auditEntityTypeValueSet.has(value);
+
 interface AuditLogFilters {
 	action: string;
 	status: "all" | "SUCCESS" | "FAIL";
-	entityType: "all" | string;
+	entityType: "all" | AuditEntityType;
 	entityId: string;
 	actorId: string;
 	from?: string;
@@ -59,7 +65,10 @@ function SystemAuditLogsPage() {
 				searchParams.status === "SUCCESS" || searchParams.status === "FAIL"
 					? searchParams.status
 					: "all",
-			entityType: searchParams.entityType ? searchParams.entityType : "all",
+			entityType:
+				searchParams.entityType && isAuditEntityType(searchParams.entityType)
+					? searchParams.entityType
+					: "all",
 			entityId: searchParams.entityId || "",
 			actorId: searchParams.actorId || "",
 			from: searchParams.from || undefined,
@@ -190,7 +199,7 @@ function SystemAuditLogsPage() {
 		page: pageIndex + 1,
 		pageSize,
 		actorId: filters.actorId.trim() || undefined,
-		entityType: filters.entityType !== "all" ? (filters.entityType as AuditEntityType) : undefined,
+		entityType: filters.entityType !== "all" ? filters.entityType : undefined,
 		entityId: filters.entityId.trim() || undefined,
 		action: filters.action.trim() || undefined,
 		status: filters.status !== "all" ? filters.status : undefined,
