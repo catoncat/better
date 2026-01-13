@@ -192,6 +192,7 @@ function inferTouchedAreas(files: string[]): string[] {
     else if (file.startsWith("packages/db/")) areas.add("db");
     else if (file.startsWith("apps/server/")) areas.add("server");
     else if (file.startsWith("apps/web/")) areas.add("web");
+    else if (file.startsWith("worktree_notes/")) areas.add("worktree_notes");
     else if (file.startsWith("domain_docs/")) areas.add("domain_docs");
     else if (file.startsWith("agent_docs/")) areas.add("agent_docs");
     else if (file.startsWith("scripts/")) areas.add("scripts");
@@ -330,4 +331,3 @@ if (format === "json") {
 } else {
   console.log(toMarkdown(statuses));
 }
-

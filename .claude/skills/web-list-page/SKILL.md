@@ -36,6 +36,4 @@ Build a list page that follows the repo's list pattern: FilterToolbar + QueryPre
    - Slice 2: filters + presets (`feat(web): add filters/presets for <entity> list`)
    - Slice 3: card view + polish (`feat(web): add card view for <entity> list`)
 5. Verify:
-   - `bun run check-types`
-   - `bun run lint`
-
+   - `bun scripts/smart-verify.ts` (doc-only skips; `--force` overrides)

@@ -32,6 +32,4 @@ Implement a consistent create/edit dialog with end-to-end type safety and stable
    - Slice 2: form fields + validation (`feat(web): add <entity> form fields`)
    - Slice 3: submit wiring + side effects (`feat(web): wire <entity> dialog mutations`)
 5. Verify:
-   - `bun run check-types`
-   - `bun run lint`
-
+   - `bun scripts/smart-verify.ts` (doc-only skips; `--force` overrides)

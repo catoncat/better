@@ -6,6 +6,10 @@
 - Always use **bun**.
 - Use `bun run lint` / `bun run format` (Biome) for linting and formatting.
 - Use `bun run check-types` (tsc) for type checking.
+- Prefer `bun scripts/smart-verify.ts` as the default verification entrypoint:
+  - Doc-only change set → skip `lint`/`check-types`
+  - Any code/config change → run `bun run lint` + `bun run check-types`
+  - Override: `bun scripts/smart-verify.ts --force`
 - Start each task/turn with `git status` (if not clean, call it out before proceeding).
 - **Update Docs with Code**: If implementation diverges from specs (in `agent_docs` or `domain_docs`), update the documentation *before* or *during* the PR. Docs must reflect reality.
 - This is a greenfield system; do not assume legacy/transition behavior.
@@ -24,6 +28,7 @@
 - **Small-Step Commits**: Commit after each coherent slice (plan/docs/schema/api/ui) or completed plan checkbox; do not wait for full task completion. If you must stop mid-way, make a `wip:` commit and continue in the next commit.
 - **Conversation Sync**: If a response includes discussion/plan/decision, also write a note to `conversation/YYYY-MM-DD_HHMMSS_<topic>.md` (timestamp via `date '+%Y-%m-%d_%H%M%S'`). If a plan was produced, include the plan content.
   - Template: Context, Decisions, Plan, Open Questions, References
+- **Worktree Notes**: Persist branch/worktree task context in `worktree_notes/<branchSlug>.md` (created by `scripts/worktree-new.ts`). Use it to answer progress/status questions without re-triage.
 - **Repo Skills**: Canonical skills live in `.claude/skills` (shared); `.codex/skills` is a symlink. Prefer `repo-dev-loop`, `task-slicer`, `small-step-commits`, `mes-triage`, `mes-implement`.
 - **Worktree Cleanup**: When a worktree task is finished, remove the worktree and delete the branch (prefer `worktree-cleanup`).
 
@@ -39,6 +44,8 @@ Use a worktree to avoid `bun run lint` / `bun run check-types` noise from other 
 
 Shortcut: `bun scripts/worktree-new.ts <branch> <path>` (creates the worktree, runs `bun install`, copies `apps/server/.env` if present, rewrites `DATABASE_URL` to the canonical main worktree `data/`).
 Run it from the worktree that owns the canonical `apps/server/.env` and `data/` (typically the main checkout).
+To carry task context into the new worktree, pass note options (recommended):
+- `--task ... --plan ... --plan-item ... --triage ... --touch ... --slice ...` (writes `worktree_notes/<branchSlug>.md`)
 
 Cleanup (after merge):
 - Remove: `git worktree remove <path>` (or `--force` to discard)
@@ -101,7 +108,7 @@ Use the smallest set of docs needed for the task. Skip anything not required.
 ## Quality and Release
 - Before commit or PR:
   1. `agent_docs/01_core/testing_quality.md`
-  2. Run `bun run lint` and `bun run check-types` in the branch/worktree you are about to merge.
+  2. Run `bun scripts/smart-verify.ts` in the branch/worktree you are about to merge (doc-only will skip).
 
 ## Domain Specs (MES)
 

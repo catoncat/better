@@ -5,25 +5,13 @@ description: "Run pre-merge / pre-PR verification for this repo (合并前检查
 
 # Pre-Merge Checklist
 
-## Goal
+## Workflow
 
-Catch issues early and keep merge-ready commits.
-
-## Checklist
-
-0. Confirm you are in the worktree you plan to merge.
-1. Repo state:
-   - `git status`
-   - If not clean, commit or stash; call it out.
-2. Required docs:
-   - If this work included discussion/plan/decision, ensure a note exists in `conversation/YYYY-MM-DD_HHMMSS_<topic>.md`.
-   - If this work implemented MES changes:
-     - Confirm the relevant `domain_docs/mes/spec/impl_align/*.md` and plan files are updated.
-3. Formatting (optional but recommended):
-   - `bun run format`
-4. Verification (required):
-   - `bun run lint`
-   - `bun run check-types`
-5. Final sanity:
-   - `git diff --stat`
-   - Ensure staged/committed changes match the intended slice(s).
+| Step | Action |
+|------|--------|
+| 0 | Confirm you are in the worktree/branch you plan to merge |
+| 1 | Repo state: `git status` (if dirty, call it out; do not auto-commit unless asked) |
+| 2 | Required docs: conversation note (if discussion/plan/decision happened); MES work requires plan/align updates |
+| 3 | Optional formatting: `bun run format` |
+| 4 | Verification (smart): `bun scripts/smart-verify.ts` (doc-only skips; `--force` overrides) |
+| 5 | Final sanity: `git diff --stat` and confirm changes match the intended slice(s) |

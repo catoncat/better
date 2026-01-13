@@ -23,7 +23,7 @@ Keep changes conflict-friendly by committing early and often.
 
 - Prefer buildable commits; use `wip:` only when necessary.
 - Do not commit secrets or local env files (`apps/server/.env`, `.env*`, `data/`).
-- When using worktrees, run `bun run lint` / `bun run check-types` inside the worktree you plan to merge.
+- When using worktrees, run `bun scripts/smart-verify.ts` inside the worktree you plan to merge (doc-only skips; `--force` overrides).
 
 ## Commit Message Pattern
 

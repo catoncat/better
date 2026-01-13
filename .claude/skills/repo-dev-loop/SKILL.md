@@ -6,52 +6,17 @@ context: fork
 
 # Repo Dev Loop
 
-## Goal
-
-Make changes conflict-friendly and reviewable by committing in small slices instead of one big end-of-task commit.
-
 ## Workflow
 
-0. Preflight:
-   - Run `git status`.
-   - If not clean, call it out and resolve first (commit/stash/switch worktree).
-1. Decide worktree:
-   - If the task is high-churn (DB schema, core routing/execution, large UI refactor), recommend a dedicated `git worktree` + branch.
-   - Offer: `bun scripts/worktree-new.ts <branch> <path>`.
-2. Slice the task:
-   - If the task is non-trivial (multiple files or multiple domains), create 2-6 slices (use `task-slicer`).
-   - Each slice should be independently committable.
-3. Implement slice-by-slice:
-   - After finishing one slice, stage only relevant files and commit immediately.
-   - Do not wait for full task completion.
-   - If you must stop mid-slice, commit `wip:` and continue next.
-4. Sync decisions:
-   - If a response includes discussion/plan/decision, write `conversation/YYYY-MM-DD_HHMMSS_<topic>.md` (timestamp via `date '+%Y-%m-%d_%H%M%S'`).
-   - Include: Context, Decisions, Plan, Open Questions, References.
-5. Verify before merge:
-   - Run `bun run lint` and `bun run check-types` in the branch/worktree you plan to merge.
+| Step | Action |
+|------|--------|
+| 0 | Preflight per `AGENTS.md` (`git status`, call out dirty tree) |
+| 1 | Worktree? High-churn or dirty tree → recommend `bun scripts/worktree-new.ts <branch> <path> --task ...` (writes `worktree_notes/`) |
+| 2 | Slice (2-6): use `task-slicer`; prefer independently committable slices |
+| 3 | Implement slice-by-slice; if the user hasn’t asked for commits, ask before running `git commit` |
+| 4 | If discussion/plan/decision happened: write a `conversation/` note (`bun scripts/conversation-new.ts`) |
+| 5 | Verify before merge: `bun scripts/smart-verify.ts` (doc-only skips; `--force` overrides) |
 
-## Commit Checkpoints (Default)
+## Guardrails
 
-Commit at these boundaries (even if the overall task is not done):
-
-- Plan/doc update completed
-- Schema/migration completed
-- One API endpoint (route + service + tests) completed
-- One UI screen/dialog completed
-- Align/backfill updates completed
-
-## Staging Rules
-
-- Avoid `git add .` unless the slice is truly repo-wide.
-- Prefer: `git add <files...>` then `git commit -m "<type>(<scope>): <summary>"`.
-
-## Commit Message Pattern
-
-- `feat(<scope>): <summary>`
-- `fix(<scope>): <summary>`
-- `docs(<scope>): <summary>`
-- `chore(<scope>): <summary>`
-- `wip: <summary>`
-
-Scope examples: `mes`, `web`, `server`, `db`, `workflow`.
+- Don’t run full triage for progress/status questions; use `worktree-status` instead.

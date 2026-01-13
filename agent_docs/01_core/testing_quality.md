@@ -7,8 +7,13 @@
 - Before committing or preparing a PR.
 
 ## Required Checks
-- Type checking: `bun run check-types`
-- Lint and format: `bun run lint:fix`
+- Default verification entrypoint: `bun scripts/smart-verify.ts`
+  - Doc-only change set → skip `lint`/`check-types`
+  - Any code/config change → run `bun run lint` + `bun run check-types`
+  - Override: `bun scripts/smart-verify.ts --force`
+- Manual format/fix (when needed):
+  - Format: `bun run format`
+  - Lint fixes: `bun run lint:fix`
 
 ## Testing Notes
 - No automated harness yet; use manual QA via `bun run dev`.

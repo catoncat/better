@@ -52,6 +52,7 @@ bun apps/server/scripts/test-mes-flow.ts
 - `bun run dev` / `bun run dev:web` / `bun run dev:server`（开发）
 - `bun run db:migrate` / `bun run db:deploy` / `bun run db:studio` / `bun run db:generate`
 - `bun run lint:fix` / `bun run lint` / `bun run check-types`
+- `bun scripts/smart-verify.ts`（智能验证：纯文档变更跳过 `lint`/`check-types`）
 - `bun run build:single`（生成单一二进制 `apps/server/better-app` + 嵌入前端）
 - `bun run db:seed`（刷新 MES 示例数据）
 

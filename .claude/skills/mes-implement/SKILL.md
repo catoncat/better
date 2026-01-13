@@ -22,7 +22,7 @@ Implement one selected MES task end-to-end while keeping plan/flow/align as sing
    - Check `git status`; if not clean, ask the user whether to switch to a worktree or to commit/stash before proceeding.
    - If the change is large/high-churn, recommend using a dedicated `git worktree` + branch.
    - Worktree bootstrap (recommended):
-     - `bun scripts/worktree-new.ts <branch> <path>` (run from the main checkout; creates the worktree, runs `bun install`, copies `apps/server/.env` if present, rewrites `DATABASE_URL` to the canonical main worktree `data/`)
+     - `bun scripts/worktree-new.ts <branch> <path> --task "..." --plan ... --plan-item ...` (also writes `worktree_notes/<branchSlug>.md`)
      - Or manually: `bun install`, copy `apps/server/.env`, ensure `DATABASE_URL` is an absolute `file:` path to the canonical `data/` (no symlinks).
    - If using a worktree for a large task, prefer a worktree-scoped plan file under `domain_docs/mes/plan/` (e.g. `worktree_*_todo.md`) and backfill `phase2_tasks.md` after merge.
    - Commit in small steps and do not wait for full task completion. If needed, use `wip:` commits and follow with a cleanup commit.
@@ -49,8 +49,8 @@ Implement one selected MES task end-to-end while keeping plan/flow/align as sing
 6. Update plan:
    - Mark tasks done only in the plan file(s).
 7. Verify:
-   - Run `bun run check-types`.
-   - Run `bun run lint` (fix with `bun run lint:fix` and `bun run format` if needed).
+   - Run `bun scripts/smart-verify.ts` (doc-only skips; `--force` overrides).
+   - If fixes are needed: `bun run lint:fix` and/or `bun run format`.
    - Run the narrowest relevant tests if the touched package exposes them.
    - Sanity doc checks: `rg -nP \"\\p{Extended_Pictographic}\" domain_docs/mes` (must be empty).
 

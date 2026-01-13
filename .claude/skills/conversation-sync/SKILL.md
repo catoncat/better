@@ -5,23 +5,8 @@ description: "Create and maintain timestamped discussion notes in conversation/ 
 
 # Conversation Sync
 
-## Goal
-
-After any discussion/plan/decision, save a short, searchable note under `conversation/` with a timestamped filename.
-
 ## Workflow
 
-1. Create a new note file:
-   - Run: `bun scripts/conversation-new.ts "<topic>"`
-   - This prints the new file path.
-2. Fill the template sections:
-   - Context: what problem was being solved
-   - Decisions: what was agreed and why (short)
-   - Plan: next steps / checkpoints
-   - Open Questions: what is unresolved
-   - References: key file paths, issues, links
-3. Keep the note minimal:
-   - No emoji
-   - Prefer bullets and concrete file paths
-4. If a plan was produced in chat, copy the plan content into the note.
-5. If you produced structured output (tracks, candidates, tables, checklists), paste that content into the note verbatim so another agent can resume without re-analysis.
+1. Create: `bun scripts/conversation-new.ts "<topic>"` (prints the new file path)
+2. Fill: Context / Decisions / Plan / Open Questions / References
+3. Paste structured output verbatim (tracks/tables/checklists) so another agent can resume without re-analysis

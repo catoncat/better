@@ -29,6 +29,4 @@ Change the DB schema safely with migrations and generated artifacts, using small
    - Slice 1: schema + migration files (`feat(db): add <change> schema migration`)
    - Slice 2: any required app code adjustments (`fix(server): adapt to <change> schema`)
 5. Verify again in the merge worktree:
-   - `bun run lint`
-   - `bun run check-types`
-
+   - `bun scripts/smart-verify.ts` (doc-only skips; `--force` overrides)

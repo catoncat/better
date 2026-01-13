@@ -33,6 +33,4 @@ Implement an endpoint with correct layering (routes vs service), envelopes, vali
    - Slice 2: service logic + transaction (`feat(server): implement <entity> service`)
    - Slice 3: audit + error mapping + polish (`fix(server): add audit/envelope for <entity>`)
 4. Verify (in the merge worktree):
-   - `bun run check-types`
-   - `bun run lint`
-
+   - `bun scripts/smart-verify.ts` (doc-only skips; `--force` overrides)
