@@ -186,9 +186,12 @@ P1（应该）：
 
 ### 3.4 Track D — UX & Training（P1）
 
-- [ ] 3.4.1 角色化操作手册（计划/工艺/质量/组长/操作员）
+- [x] 3.4.1 角色化操作手册（计划/工艺/质量/组长/操作员）
   - DoD：每个角色给出“入口→关键操作→常见异常→自助排查”；与现有权限/页面一致
   - Touch points：`user_docs/`、`apps/web/src/routes/_authenticated/mes/*`
+  - As-built（实现入口）：
+    - 概览：`user_docs/00_role_overview.md`
+    - 角色指南：`user_docs/02_planner.md`、`user_docs/03_engineer.md`、`user_docs/04_quality.md`、`user_docs/05_leader.md`、`user_docs/06_operator.md`
 
 - [x] 3.4.2 上线演示脚本（现场演示顺序 + 讲解点）
   - DoD：形成 10~20 分钟可讲完的演示路线（包含失败分支示例与追溯展示）
@@ -208,9 +211,13 @@ P1（应该）：
     - [ ] 3.4.3.4 Demo guide：明确 Unit 生成路径（TrackIn 自动建 Unit vs 手动“生成单件”按钮）
   - References：`conversation/2026-01-12_143644_demo-guide-accuracy-and-next-plan.md`
 
-- [ ] 3.4.4 外部集成降级 SOP（TPM/WMS/SPI/AOI/钢网/锡膏）
+- [~] 3.4.4 外部集成降级 SOP（TPM/WMS/SPI/AOI/钢网/锡膏）
   - DoD：给出“不可用时怎么做/恢复后怎么切回/谁有权限操作/需要哪些审计记录”的明确步骤
   - Touch points：`user_docs/`、`apps/web/src/routes/_authenticated/mes/*`、`apps/server/src/modules/mes/integration/*`
+  - As-built（已有覆盖，待收敛为 SOP）：
+    - TPM/WMS（readiness 手工录入）：`user_docs/05_leader.md`
+    - SPI/AOI（检测结果手工录入）：`user_docs/06_operator.md`
+    - 概览（降级模式说明）：`user_docs/03_engineer.md`、`user_docs/demo/guide.md`
 
 ### 3.5 Track E — Data Collection 配置（P0）
 
