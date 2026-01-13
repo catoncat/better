@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
-import { format } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { type BomParentListItem, useBomParentList } from "@/hooks/use-boms";
 import { useQueryPresets } from "@/hooks/use-query-presets";
+import { formatDateTime } from "@/lib/utils";
 
 interface BomFilters {
 	search: string;
@@ -43,11 +43,6 @@ export const Route = createFileRoute("/_authenticated/mes/boms/")({
 	}),
 	component: BomPage,
 });
-
-const formatTime = (value?: string | Date | null) => {
-	if (!value) return "-";
-	return format(value instanceof Date ? value : new Date(value), "yyyy-MM-dd HH:mm");
-};
 
 function BomPage() {
 	const viewPreferencesKey = "boms";
@@ -245,7 +240,7 @@ function BomPage() {
 			{
 				accessorKey: "latestSourceUpdatedAt",
 				header: "同步时间",
-				cell: ({ row }) => formatTime(row.original.latestSourceUpdatedAt),
+				cell: ({ row }) => formatDateTime(row.original.latestSourceUpdatedAt),
 			},
 			{
 				id: "actions",
@@ -348,7 +343,7 @@ function BomPage() {
 							</CardHeader>
 							<CardContent className="text-sm text-muted-foreground space-y-2">
 								<div className="text-foreground">{item.parentName || "-"}</div>
-								<div>同步时间：{formatTime(item.latestSourceUpdatedAt)}</div>
+								<div>同步时间：{formatDateTime(item.latestSourceUpdatedAt)}</div>
 								<div className="space-y-1">
 									{item.children.slice(0, 5).map((c) => (
 										<div key={c.childCode} className="flex items-center justify-between gap-4">
@@ -389,7 +384,7 @@ function BomPage() {
 					{activeItem ? (
 						<div className="space-y-2">
 							<div className="text-sm text-muted-foreground">
-								同步时间：{formatTime(activeItem.latestSourceUpdatedAt)}
+								同步时间：{formatDateTime(activeItem.latestSourceUpdatedAt)}
 							</div>
 							<div className="rounded-md border border-border divide-y">
 								<div className="grid grid-cols-12 gap-2 p-2 text-xs text-muted-foreground">
