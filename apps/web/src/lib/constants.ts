@@ -95,3 +95,31 @@ export const AUDIT_ENTITY_TYPE_MAP: Record<string, string> = {
 	SYSTEM: "系统",
 	READINESS_CHECK: "准备检查",
 };
+
+export const UNIT_STATUS_MAP: Record<string, string> = {
+	QUEUED: "排队",
+	IN_STATION: "在站",
+	DONE: "完成",
+	OUT_FAILED: "不良",
+	SCRAPPED: "报废",
+	ON_HOLD: "隔离",
+};
+
+export const READINESS_STATUS_MAP: Record<string, string> = {
+	PENDING: "检查中",
+	PASSED: "已通过",
+	FAILED: "未通过",
+};
+
+export const READINESS_ITEM_STATUS_MAP: Record<string, string> = {
+	PASSED: "通过",
+	FAILED: "失败",
+	WAIVED: "已豁免",
+};
+
+export const FAI_STATUS_MAP: Record<string, string> = {
+	PENDING: "待开始",
+	INSPECTING: "检验中",
+	PASS: "已通过",
+	FAIL: "未通过",
+};

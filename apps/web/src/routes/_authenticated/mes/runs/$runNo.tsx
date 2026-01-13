@@ -1,6 +1,5 @@
 import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { format } from "date-fns";
 import {
 	AlertTriangle,
 	ArrowLeft,
@@ -46,7 +45,16 @@ import {
 	useWaiveItem,
 } from "@/hooks/use-readiness";
 import { useAuthorizeRun, useCloseRun, useGenerateUnits, useRunDetail } from "@/hooks/use-runs";
-import { INSPECTION_STATUS_MAP, READINESS_ITEM_TYPE_MAP } from "@/lib/constants";
+import {
+	FAI_STATUS_MAP,
+	INSPECTION_STATUS_MAP,
+	READINESS_ITEM_STATUS_MAP,
+	READINESS_ITEM_TYPE_MAP,
+	READINESS_STATUS_MAP,
+	RUN_STATUS_MAP,
+	UNIT_STATUS_MAP,
+} from "@/lib/constants";
+import { formatDateTime } from "@/lib/utils";
 import { CloseoutDialog } from "@/routes/_authenticated/mes/-components/closeout-dialog";
 import {
 	MrbDecisionDialog,
@@ -98,69 +106,47 @@ function RunDetailPage() {
 	const [generateUnitsDialogOpen, setGenerateUnitsDialogOpen] = useState(false);
 	const [generateUnitsQty, setGenerateUnitsQty] = useState(10);
 
-	const formatTime = (value?: string | Date | null) => {
-		if (!value) return "-";
-		const date = typeof value === "string" ? new Date(value) : value;
-		return format(date, "yyyy-MM-dd HH:mm:ss");
-	};
-
 	const getStatusBadge = (status: string) => {
-		const map: Record<
-			string,
-			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-		> = {
-			PREP: { label: "准备中", variant: "outline" },
-			AUTHORIZED: { label: "已授权", variant: "default" },
-			IN_PROGRESS: { label: "生产中", variant: "default" },
-			ON_HOLD: { label: "隔离", variant: "outline" },
-			COMPLETED: { label: "已完成", variant: "secondary" },
-			CLOSED_REWORK: { label: "闭环返修", variant: "secondary" },
-			SCRAPPED: { label: "报废", variant: "destructive" },
-		};
-		const config = map[status] ?? { label: status, variant: "outline" as const };
-		return <Badge variant={config.variant}>{config.label}</Badge>;
+		const label = RUN_STATUS_MAP[status] || status;
+		let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+
+		if (status === "AUTHORIZED" || status === "IN_PROGRESS") variant = "default";
+		if (status === "COMPLETED" || status === "CLOSED_REWORK") variant = "secondary";
+		if (status === "SCRAPPED") variant = "destructive";
+
+		return <Badge variant={variant}>{label}</Badge>;
 	};
 
 	const getUnitStatusBadge = (status: string) => {
-		const map: Record<
-			string,
-			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-		> = {
-			QUEUED: { label: "排队", variant: "outline" },
-			IN_STATION: { label: "在站", variant: "default" },
-			DONE: { label: "完成", variant: "secondary" },
-			OUT_FAILED: { label: "不良", variant: "destructive" },
-			SCRAPPED: { label: "报废", variant: "destructive" },
-			ON_HOLD: { label: "隔离", variant: "outline" },
-		};
-		const config = map[status] ?? { label: status, variant: "outline" as const };
-		return <Badge variant={config.variant}>{config.label}</Badge>;
+		const label = UNIT_STATUS_MAP[status] || status;
+		let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+
+		if (status === "IN_STATION") variant = "default";
+		if (status === "DONE") variant = "secondary";
+		if (status === "OUT_FAILED" || status === "SCRAPPED") variant = "destructive";
+
+		return <Badge variant={variant}>{label}</Badge>;
 	};
 
 	const getReadinessStatusBadge = (status: string) => {
-		const map: Record<
-			string,
-			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-		> = {
-			PASSED: { label: "已通过", variant: "default" },
-			FAILED: { label: "未通过", variant: "destructive" },
-			PENDING: { label: "检查中", variant: "outline" },
-		};
-		const config = map[status] ?? { label: status, variant: "outline" as const };
-		return <Badge variant={config.variant}>{config.label}</Badge>;
+		const label = READINESS_STATUS_MAP[status] || status;
+		let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+
+		if (status === "PASSED") variant = "default";
+		if (status === "FAILED") variant = "destructive";
+
+		return <Badge variant={variant}>{label}</Badge>;
 	};
 
 	const getItemStatusBadge = (status: string) => {
-		const map: Record<
-			string,
-			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-		> = {
-			PASSED: { label: "通过", variant: "default" },
-			FAILED: { label: "失败", variant: "destructive" },
-			WAIVED: { label: "已豁免", variant: "secondary" },
-		};
-		const config = map[status] ?? { label: status, variant: "outline" as const };
-		return <Badge variant={config.variant}>{config.label}</Badge>;
+		const label = READINESS_ITEM_STATUS_MAP[status] || status;
+		let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+
+		if (status === "PASSED") variant = "default";
+		if (status === "FAILED") variant = "destructive";
+		if (status === "WAIVED") variant = "secondary";
+
+		return <Badge variant={variant}>{label}</Badge>;
 	};
 
 	const getItemTypeLabel = (type: string) => {
@@ -168,17 +154,14 @@ function RunDetailPage() {
 	};
 
 	const getFaiStatusBadge = (status: string) => {
-		const map: Record<
-			string,
-			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-		> = {
-			PENDING: { label: "待开始", variant: "outline" },
-			INSPECTING: { label: "检验中", variant: "default" },
-			PASS: { label: "已通过", variant: "secondary" },
-			FAIL: { label: "未通过", variant: "destructive" },
-		};
-		const config = map[status] ?? { label: status, variant: "outline" as const };
-		return <Badge variant={config.variant}>{config.label}</Badge>;
+		const label = FAI_STATUS_MAP[status] || status;
+		let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+
+		if (status === "INSPECTING") variant = "default";
+		if (status === "PASS") variant = "secondary";
+		if (status === "FAIL") variant = "destructive";
+
+		return <Badge variant={variant}>{label}</Badge>;
 	};
 
 	const getOqcStatusBadge = (status: string) => {
@@ -422,15 +405,15 @@ function RunDetailPage() {
 						</div>
 						<div>
 							<p className="text-sm text-muted-foreground">开始时间</p>
-							<p className="font-medium">{formatTime(data.run.startedAt)}</p>
+							<p className="font-medium">{formatDateTime(data.run.startedAt)}</p>
 						</div>
 						<div>
 							<p className="text-sm text-muted-foreground">结束时间</p>
-							<p className="font-medium">{formatTime(data.run.endedAt)}</p>
+							<p className="font-medium">{formatDateTime(data.run.endedAt)}</p>
 						</div>
 						<div>
 							<p className="text-sm text-muted-foreground">创建时间</p>
-							<p className="font-medium">{formatTime(data.run.createdAt)}</p>
+							<p className="font-medium">{formatDateTime(data.run.createdAt)}</p>
 						</div>
 					</CardContent>
 				</Card>
@@ -539,7 +522,7 @@ function RunDetailPage() {
 									</div>
 									<div>
 										<p className="text-sm text-muted-foreground">检查时间</p>
-										<p className="font-medium">{formatTime(readinessData.checkedAt)}</p>
+										<p className="font-medium">{formatDateTime(readinessData.checkedAt)}</p>
 									</div>
 									<div>
 										<p className="text-sm text-muted-foreground">结果汇总</p>
@@ -581,7 +564,7 @@ function RunDetailPage() {
 															)}
 															{item.status === "WAIVED" && item.waivedAt && (
 																<span className="text-xs text-muted-foreground">
-																	{formatTime(item.waivedAt)}
+																	{formatDateTime(item.waivedAt)}
 																</span>
 															)}
 														</TableCell>
@@ -653,7 +636,7 @@ function RunDetailPage() {
 								</div>
 								<div>
 									<p className="text-sm text-muted-foreground">创建时间</p>
-									<p className="font-medium">{formatTime(existingFai.createdAt)}</p>
+									<p className="font-medium">{formatDateTime(existingFai.createdAt)}</p>
 								</div>
 							</div>
 						) : (
@@ -726,7 +709,7 @@ function RunDetailPage() {
 								</div>
 								<div>
 									<p className="text-sm text-muted-foreground">创建时间</p>
-									<p className="font-medium">{formatTime(oqcDetail.createdAt)}</p>
+									<p className="font-medium">{formatDateTime(oqcDetail.createdAt)}</p>
 								</div>
 							</div>
 						) : (
@@ -767,7 +750,7 @@ function RunDetailPage() {
 										</TableCell>
 										<TableCell>{getUnitStatusBadge(unit.status)}</TableCell>
 										<TableCell className="text-muted-foreground">
-											{formatTime(unit.updatedAt)}
+											{formatDateTime(unit.updatedAt)}
 										</TableCell>
 										<TableCell>
 											<Button variant="ghost" size="sm" asChild>

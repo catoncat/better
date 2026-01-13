@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useAbility } from "@/hooks/use-ability";
 import { useQueryPresets } from "@/hooks/use-query-presets";
 import { type Run, useAuthorizeRun, useRunList } from "@/hooks/use-runs";
+import { RUN_STATUS_MAP } from "@/lib/constants";
 import { client } from "@/lib/eden";
 import { RunCard } from "../-components/run-card";
 import { runColumns } from "../-components/run-columns";
@@ -377,15 +378,10 @@ function RunsPage() {
 						key: "status",
 						type: "multiSelect",
 						label: "状态",
-						options: [
-							{ label: "准备中", value: "PREP" },
-							{ label: "已授权", value: "AUTHORIZED" },
-							{ label: "生产中", value: "IN_PROGRESS" },
-							{ label: "隔离", value: "ON_HOLD" },
-							{ label: "已完成", value: "COMPLETED" },
-							{ label: "闭环返修", value: "CLOSED_REWORK" },
-							{ label: "报废", value: "SCRAPPED" },
-						],
+						options: Object.entries(RUN_STATUS_MAP).map(([value, label]) => ({
+							label,
+							value,
+						})),
 					},
 					{
 						key: "lineCode",

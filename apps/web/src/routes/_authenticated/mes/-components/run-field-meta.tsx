@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { format } from "date-fns";
 import type { DataListFieldMeta } from "@/components/data-list/field-meta";
 import { Badge } from "@/components/ui/badge";
 import type { Run } from "@/hooks/use-runs";
-import { RUN_STATUS_MAP } from "@/lib/constants";
+import { READINESS_STATUS_MAP, RUN_STATUS_MAP } from "@/lib/constants";
+import { formatDateTime } from "@/lib/utils";
 
 type RunWithReadiness = Run & { readinessStatus?: string | null };
 
@@ -22,20 +22,14 @@ const getRunStatusBadge = (status: string) => {
 const getReadinessBadge = (readinessStatus?: string | null) => {
 	if (!readinessStatus) return <span className="text-muted-foreground">-</span>;
 
-	const map: Record<
-		string,
-		{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-	> = {
-		PENDING: { label: "检查中", variant: "outline" },
-		PASSED: { label: "通过", variant: "secondary" },
-		FAILED: { label: "失败", variant: "destructive" },
-	};
+	const label = READINESS_STATUS_MAP[readinessStatus] || readinessStatus;
+	let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
 
-	const config = map[readinessStatus] ?? {
-		label: readinessStatus,
-		variant: "outline" as const,
-	};
-	return <Badge variant={config.variant}>{config.label}</Badge>;
+	if (readinessStatus === "PENDING") variant = "outline";
+	if (readinessStatus === "PASSED") variant = "secondary";
+	if (readinessStatus === "FAILED") variant = "destructive";
+
+	return <Badge variant={variant}>{label}</Badge>;
 };
 
 export const runFieldMeta: DataListFieldMeta<Run>[] = [
@@ -110,7 +104,7 @@ export const runFieldMeta: DataListFieldMeta<Run>[] = [
 		label: "创建时间",
 		sortable: true,
 		cardDetail: true,
-		cardValue: (run) => format(new Date(run.createdAt), "yyyy-MM-dd HH:mm"),
-		tableCell: (run) => format(new Date(run.createdAt), "yyyy-MM-dd HH:mm"),
+		cardValue: (run) => formatDateTime(run.createdAt),
+		tableCell: (run) => formatDateTime(run.createdAt),
 	},
 ];
