@@ -21,6 +21,7 @@ import { Route as AuthenticatedSystemTestUploadRouteImport } from './routes/_aut
 import { Route as AuthenticatedSystemSettingsRouteImport } from './routes/_authenticated/system/settings'
 import { Route as AuthenticatedSystemRoleManagementRouteImport } from './routes/_authenticated/system/role-management'
 import { Route as AuthenticatedSystemIntegrationsRouteImport } from './routes/_authenticated/system/integrations'
+import { Route as AuthenticatedSystemAuditLogsRouteImport } from './routes/_authenticated/system/audit-logs'
 import { Route as AuthenticatedMesWorkOrdersRouteImport } from './routes/_authenticated/mes/work-orders'
 import { Route as AuthenticatedMesTraceRouteImport } from './routes/_authenticated/mes/trace'
 import { Route as AuthenticatedMesRoutesRouteImport } from './routes/_authenticated/mes/routes'
@@ -110,6 +111,12 @@ const AuthenticatedSystemIntegrationsRoute =
   AuthenticatedSystemIntegrationsRouteImport.update({
     id: '/system/integrations',
     path: '/system/integrations',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedSystemAuditLogsRoute =
+  AuthenticatedSystemAuditLogsRouteImport.update({
+    id: '/system/audit-logs',
+    path: '/system/audit-logs',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedMesWorkOrdersRoute =
@@ -268,6 +275,7 @@ export interface FileRoutesByFullPath {
   '/mes/routes': typeof AuthenticatedMesRoutesRouteWithChildren
   '/mes/trace': typeof AuthenticatedMesTraceRoute
   '/mes/work-orders': typeof AuthenticatedMesWorkOrdersRoute
+  '/system/audit-logs': typeof AuthenticatedSystemAuditLogsRoute
   '/system/integrations': typeof AuthenticatedSystemIntegrationsRoute
   '/system/role-management': typeof AuthenticatedSystemRoleManagementRoute
   '/system/settings': typeof AuthenticatedSystemSettingsRoute
@@ -304,6 +312,7 @@ export interface FileRoutesByTo {
   '/mes/route-versions': typeof AuthenticatedMesRouteVersionsRoute
   '/mes/trace': typeof AuthenticatedMesTraceRoute
   '/mes/work-orders': typeof AuthenticatedMesWorkOrdersRoute
+  '/system/audit-logs': typeof AuthenticatedSystemAuditLogsRoute
   '/system/integrations': typeof AuthenticatedSystemIntegrationsRoute
   '/system/role-management': typeof AuthenticatedSystemRoleManagementRoute
   '/system/settings': typeof AuthenticatedSystemSettingsRoute
@@ -343,6 +352,7 @@ export interface FileRoutesById {
   '/_authenticated/mes/routes': typeof AuthenticatedMesRoutesRouteWithChildren
   '/_authenticated/mes/trace': typeof AuthenticatedMesTraceRoute
   '/_authenticated/mes/work-orders': typeof AuthenticatedMesWorkOrdersRoute
+  '/_authenticated/system/audit-logs': typeof AuthenticatedSystemAuditLogsRoute
   '/_authenticated/system/integrations': typeof AuthenticatedSystemIntegrationsRoute
   '/_authenticated/system/role-management': typeof AuthenticatedSystemRoleManagementRoute
   '/_authenticated/system/settings': typeof AuthenticatedSystemSettingsRoute
@@ -382,6 +392,7 @@ export interface FileRouteTypes {
     | '/mes/routes'
     | '/mes/trace'
     | '/mes/work-orders'
+    | '/system/audit-logs'
     | '/system/integrations'
     | '/system/role-management'
     | '/system/settings'
@@ -418,6 +429,7 @@ export interface FileRouteTypes {
     | '/mes/route-versions'
     | '/mes/trace'
     | '/mes/work-orders'
+    | '/system/audit-logs'
     | '/system/integrations'
     | '/system/role-management'
     | '/system/settings'
@@ -456,6 +468,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/routes'
     | '/_authenticated/mes/trace'
     | '/_authenticated/mes/work-orders'
+    | '/_authenticated/system/audit-logs'
     | '/_authenticated/system/integrations'
     | '/_authenticated/system/role-management'
     | '/_authenticated/system/settings'
@@ -568,6 +581,13 @@ declare module '@tanstack/react-router' {
       path: '/system/integrations'
       fullPath: '/system/integrations'
       preLoaderRoute: typeof AuthenticatedSystemIntegrationsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/system/audit-logs': {
+      id: '/_authenticated/system/audit-logs'
+      path: '/system/audit-logs'
+      fullPath: '/system/audit-logs'
+      preLoaderRoute: typeof AuthenticatedSystemAuditLogsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/work-orders': {
@@ -772,6 +792,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesRoutesRoute: typeof AuthenticatedMesRoutesRouteWithChildren
   AuthenticatedMesTraceRoute: typeof AuthenticatedMesTraceRoute
   AuthenticatedMesWorkOrdersRoute: typeof AuthenticatedMesWorkOrdersRoute
+  AuthenticatedSystemAuditLogsRoute: typeof AuthenticatedSystemAuditLogsRoute
   AuthenticatedSystemIntegrationsRoute: typeof AuthenticatedSystemIntegrationsRoute
   AuthenticatedSystemRoleManagementRoute: typeof AuthenticatedSystemRoleManagementRoute
   AuthenticatedSystemSettingsRoute: typeof AuthenticatedSystemSettingsRoute
@@ -808,6 +829,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMesRoutesRoute: AuthenticatedMesRoutesRouteWithChildren,
   AuthenticatedMesTraceRoute: AuthenticatedMesTraceRoute,
   AuthenticatedMesWorkOrdersRoute: AuthenticatedMesWorkOrdersRoute,
+  AuthenticatedSystemAuditLogsRoute: AuthenticatedSystemAuditLogsRoute,
   AuthenticatedSystemIntegrationsRoute: AuthenticatedSystemIntegrationsRoute,
   AuthenticatedSystemRoleManagementRoute:
     AuthenticatedSystemRoleManagementRoute,

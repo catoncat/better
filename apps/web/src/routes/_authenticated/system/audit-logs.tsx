@@ -13,7 +13,9 @@ function SystemAuditLogsPage() {
 		(typeof window !== "undefined" ? window.location.origin : "");
 
 	const openApiUrl = serverUrl ? `${serverUrl}/openapi` : "/openapi";
-	const auditLogsUrl = serverUrl ? `${serverUrl}/api/audit-logs?page=1&pageSize=30` : "/api/audit-logs?page=1&pageSize=30";
+	const auditLogsUrl = serverUrl
+		? `${serverUrl}/api/audit-logs?page=1&pageSize=30`
+		: "/api/audit-logs?page=1&pageSize=30";
 
 	return (
 		<div className="space-y-8">
@@ -46,7 +48,10 @@ function SystemAuditLogsPage() {
 					</div>
 
 					<div className="text-sm text-muted-foreground">
-						<div>API: `GET /api/audit-logs`（支持过滤：entityType/entityId/actorId/action/status/from/to）</div>
+						<div>
+							API: `GET
+							/api/audit-logs`（支持过滤：entityType/entityId/actorId/action/status/from/to）
+						</div>
 						<div>API: `GET /api/audit-logs/:id`</div>
 						<div>运维与归档说明：`agent_docs/05_ops/single_binary_deployment.md`</div>
 					</div>
@@ -55,4 +60,3 @@ function SystemAuditLogsPage() {
 		</div>
 	);
 }
-
