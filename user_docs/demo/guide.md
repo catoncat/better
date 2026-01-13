@@ -4,13 +4,13 @@
 
 ## 0. 流程对照（必读）
 
-本指南用于“按规范走完一次流程”，验证当前实现的交互链路是否闭环：
+本指南用于"按规范走完一次流程"，验证当前实现的交互链路是否闭环：
 
 - 端到端闭环：`domain_docs/mes/spec/process/01_end_to_end_flows.md`
 - SMT 流程：`domain_docs/mes/spec/process/03_smt_flows.md`
 - DIP 流程：`domain_docs/mes/spec/process/04_dip_flows.md`
 
-> 反馈里提到的“产前检查”对应系统中的 **Readiness（就绪检查）**，入口在 Run 详情页 `/mes/runs/{runNo}`。
+> 反馈里提到的"产前检查"对应系统中的 **Readiness（就绪检查）**，入口在 Run 详情页 `/mes/runs/{runNo}`。
 
 ---
 
@@ -39,7 +39,7 @@
 
 ## 二、SMT 全流程演示（推荐：跑完一次闭环）
 
-> 目标：用同一个 SMT Run 跑通 “准备 → 试产 → 授权 → 批量执行 → 收尾 → OQC/MRB → 完工 → 追溯”。
+> 目标：用同一个 SMT Run 跑通 "准备 → 试产 → 授权 → 批量执行 → 收尾 → OQC/MRB → 完工 → 追溯"。
 
 ### 2.0 演示前检查清单
 
@@ -47,6 +47,7 @@
 - [ ] 运行 `bun apps/server/scripts/seed-demo.ts` 创建演示数据
 - [ ] 启动服务 `bun run dev`
 - [ ] 打开浏览器访问 http://localhost:3001
+- [ ] 确认路由版本状态为 READY（可在 `/mes/routes` 查看）
 
 建议提前打开页面标签：
 
@@ -80,7 +81,7 @@
 1. 在 Readiness 卡片点击「正式检查」
 2. 若失败：
    - 直接对失败项点击「豁免」并填写原因（演示降级路径），或
-   - 使用 `/mes/integration/manual-entry` 完成钢网/锡膏绑定与手动状态录入（演示“外部系统不可用时”路径）
+   - 使用 `/mes/integration/manual-entry` 完成钢网/锡膏绑定与手动状态录入（演示"外部系统不可用时"路径）
 3. 最终目标：Readiness 状态为 `PASSED`
 
 ---
@@ -91,7 +92,7 @@
 
 **操作演示：**
 1. 输入 Run 号 → 点击确定
-2. 若提示“尚未加载站位期望”，点击「加载站位表」
+2. 若提示"尚未加载站位期望"，点击「加载站位表」
 3. 使用扫码面板按站位完成上料验证（出现 `PASS`）
 4. 回到 Run 详情页再次点击「正式检查」，确认 LOADING 项通过
 
@@ -139,6 +140,12 @@
 2. 进入 `/mes/defects` 对缺陷处置：`REWORK` / `SCRAP` / `HOLD`
 3. 若 `REWORK`：在 `/mes/rework-tasks` 查看返修任务并继续执行
 
+**补充说明：**
+
+> **数据采集**：若工位配置了数据采集项（如温度、时间等），TrackOut 前需填写采集数据。当前演示数据已配置可选采集项，可跳过。
+
+> **站点类型**：当前演示以人工站点（MANUAL）为主。规范中定义的 AUTO（设备事件）、BATCH（载具/批次）、TEST（测试结果接入）等站点类型的设备集成/自动化场景可参考 API 文档。
+
 ---
 
 ### 2.7 Run 收尾 + OQC/MRB 闭环（Run 进入终态）
@@ -152,6 +159,12 @@
    - 放行 → `COMPLETED`
    - 返修 → `CLOSED_REWORK`（创建返修 Run）
    - 报废 → `SCRAPPED`
+
+**返修 Run 后续操作（若选择返修）：**
+1. 系统自动创建新的返修 Run（进入 `PREP` 或 `AUTHORIZED`，取决于配置）
+2. 在 `/mes/runs` 找到返修 Run（标记为返修来源）
+3. 返修 Run 可豁免 FAI（需权限 + 填写原因）
+4. 继续执行返修 Run 直到完成
 
 ---
 
@@ -188,16 +201,35 @@
 1. Run 收尾触发 OQC → `/mes/oqc` 完成 `FAIL`
 2. Run 进入 `ON_HOLD` → Run 详情页「MRB 决策」选择放行/返修/报废
 
+### 3.4 FAI 不通过 → 重新试产 → 再判定
+
+1. 在 `/mes/fai` 完成检验时选择 `FAIL`
+2. FAI 状态变为 `FAILED`，Run 无法授权
+3. 重新创建 FAI 或重新试产首件
+4. 再次在 `/mes/fai` 记录检验项并判定为 `PASS`
+5. 回到 Run 详情页点击「授权生产」
+
 ---
 
 ## 四、DIP 流程演示（可选）
 
-> 目标：按 `domain_docs/mes/spec/process/04_dip_flows.md` 的闭环顺序，走完 DIP 的 “准备→（可选 FAI）→授权→执行→收尾→OQC/MRB→追溯”。
+> 目标：按 `domain_docs/mes/spec/process/04_dip_flows.md` 的闭环顺序，走完 DIP 的 "准备→（可选 FAI）→授权→执行→收尾→OQC/MRB→追溯"。
 
-### 4.0 前置说明（DIP 的“工序粒度”）
+### 4.0 前置说明
+
+#### 工序粒度
 
 - 系统执行侧是通用的：只要 ERP 路由里存在对应工序（Operation）且产线有对应工位（Station），执行页面就能按步骤 TrackIn/TrackOut。
-- DIP 规范里包含 IPQC 节点（后焊/测试段首件），当前系统 **未实现独立 IPQC 模块**，不作为 Run 授权门禁（规范备注也写明当前未实现 IPQC）。
+- 演示数据的 DIP 路由（`PCBA-DIP-V1`）为简化版本（4 工序）；若需完整演示规范中的细分工序（AI 插件/手工插件/异形件/手工焊接/剪脚/三防漆/固化/外观检验等），可在 ERP 或 `/mes/sync` 中导入更详细的路由配置。
+
+#### IPQC 实现状态
+
+| 规范节点 | 当前实现 | 演示方式 |
+|----------|----------|----------|
+| IPQC（后焊段首件检查） | 未实现独立模块 | 可用 FAI 或执行记录替代验证 |
+| IPQC（测试段首件检查） | 未实现独立模块 | 可用 FAI 或执行记录替代验证 |
+
+> 注：IPQC 不作为 Run 授权门禁，规范备注也写明当前未实现 IPQC。
 
 ### 4.1 创建 DIP 工单与 Run（推荐：完整闭环）
 
@@ -255,6 +287,10 @@
    - `ST-DIP-INS-01` → `ST-DIP-WAVE-01` → `ST-DIP-POST-01` → `ST-DIP-TEST-01`
 3. 若你的 ERP 路由拆得更细（例如插件/后焊/外观/测试分段多工序），按路由步骤顺序继续 TrackIn/TrackOut 即可
 
+**补充说明：**
+
+> **数据采集**：若工位配置了数据采集项，TrackOut 前需填写采集数据。
+
 ### 4.6 Run 收尾 + OQC/MRB 闭环
 
 #### 页面：Run 详情 `/mes/runs/{runNo}` + OQC `/mes/oqc`
@@ -263,6 +299,11 @@
 1. 在 Run 详情页点击「收尾」
 2. 若需要 OQC：进入 `/mes/oqc` 完成任务（PASS/FAIL）
 3. 若 OQC 失败：Run 进入 `ON_HOLD`，在 Run 详情页点击「MRB 决策」选择放行/返修/报废
+
+**返修 Run 后续操作（若选择返修）：**
+1. 系统自动创建新的返修 Run
+2. 在 `/mes/runs` 找到返修 Run 并继续执行
+3. 返修 Run 可豁免 FAI（需权限 + 填写原因）
 
 ### 4.7 工单收尾 + 追溯验证
 
@@ -310,16 +351,16 @@
 
 ### 推荐演示数据（可跳转用）
 
-| 用途 | 工单号 | 批次号 | SN |
-|------|--------|--------|-----|
-| SMT 全流程起点（推荐） | WO-MGMT-SMT-QUEUE | （新建） | （新扫/新生成） |
-| DIP 全流程起点（推荐） | WO-DEMO-DIP-{时间戳} | （新建） | （新扫/新生成） |
-| 准备中批次（可跳转） | WO-MGMT-SMT-PREP | RUN-MGMT-SMT-PREP | - |
-| 执行中批次 | WO-MGMT-SMT-EXEC | RUN-MGMT-SMT-EXEC | SN-MGMT-EXEC-0001 |
-| 质量锁定批次 | WO-MGMT-SMT-HOLD | RUN-MGMT-SMT-HOLD | SN-MGMT-HOLD-0001 |
-| 已完成追溯 | WO-MGMT-SMT-DONE | RUN-MGMT-SMT-DONE | SN-MGMT-DONE-0001 |
-| DIP 执行中 | WO-MGMT-DIP-EXEC | RUN-MGMT-DIP-EXEC | SN-MGMT-DIP-EXEC-0001 |
-| DIP 已完成追溯 | WO-MGMT-DIP-DONE | RUN-MGMT-DIP-DONE | SN-MGMT-DIP-DONE-0001 |
+| 用途 | 工单号 | 批次号 | SN | 路由编码 |
+|------|--------|--------|-----|----------|
+| SMT 全流程起点（推荐） | WO-MGMT-SMT-QUEUE | （新建） | （新扫/新生成） | PCBA-SMT-V1 |
+| DIP 全流程起点（推荐） | WO-DEMO-DIP-{时间戳} | （新建） | （新扫/新生成） | PCBA-DIP-V1 |
+| 准备中批次（可跳转） | WO-MGMT-SMT-PREP | RUN-MGMT-SMT-PREP | - | PCBA-SMT-V1 |
+| 执行中批次 | WO-MGMT-SMT-EXEC | RUN-MGMT-SMT-EXEC | SN-MGMT-EXEC-0001 | PCBA-SMT-V1 |
+| 质量锁定批次 | WO-MGMT-SMT-HOLD | RUN-MGMT-SMT-HOLD | SN-MGMT-HOLD-0001 | PCBA-SMT-V1 |
+| 已完成追溯 | WO-MGMT-SMT-DONE | RUN-MGMT-SMT-DONE | SN-MGMT-DONE-0001 | PCBA-SMT-V1 |
+| DIP 执行中 | WO-MGMT-DIP-EXEC | RUN-MGMT-DIP-EXEC | SN-MGMT-DIP-EXEC-0001 | PCBA-DIP-V1 |
+| DIP 已完成追溯 | WO-MGMT-DIP-DONE | RUN-MGMT-DIP-DONE | SN-MGMT-DIP-DONE-0001 | PCBA-DIP-V1 |
 
 ### 常见问题应对
 
