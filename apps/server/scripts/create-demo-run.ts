@@ -84,7 +84,7 @@ async function main() {
 			lineId: dipLine.id,
 			routeVersionId: routeVersion.id,
 			status: RunStatus.AUTHORIZED, // 直接设为已授权，跳过预检
-			plannedQty: 3,
+			planQty: 3,
 			startedAt: new Date(),
 		},
 	});

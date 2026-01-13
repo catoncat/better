@@ -442,6 +442,7 @@ export const createRun = async (
 				woId: wo.id,
 				lineId: line.id,
 				routeVersionId: latestVersion.id,
+				planQty: data.planQty,
 				shiftCode: data.shiftCode,
 				changeoverNo: data.changeoverNo,
 				status: RunStatus.PREP,

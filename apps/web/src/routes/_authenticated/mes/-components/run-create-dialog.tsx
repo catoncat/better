@@ -17,6 +17,7 @@ import type { WorkOrder } from "@/hooks/use-work-orders";
 
 const runSchema = z.object({
 	lineCode: z.string().min(1, "线体编码不能为空"),
+	planQty: z.number().int().min(1, "计划数量必须大于 0"),
 	shiftCode: z.string().optional(),
 	changeoverNo: z.string().optional(),
 });
@@ -48,8 +49,10 @@ export function RunCreateDialog({
 	workOrder,
 }: RunCreateDialogProps) {
 	const dispatchedLineCode = getDispatchedLineCode(workOrder);
+	const defaultPlanQty = workOrder?.plannedQty ?? 1;
 	const defaultValues: RunFormValues = {
 		lineCode: dispatchedLineCode ?? "",
+		planQty: defaultPlanQty,
 		shiftCode: "Day",
 		changeoverNo: "",
 	};
@@ -74,10 +77,11 @@ export function RunCreateDialog({
 		if (!open) return;
 		form.reset({
 			lineCode: dispatchedLineCode ?? "",
+			planQty: workOrder?.plannedQty ?? 1,
 			shiftCode: "Day",
 			changeoverNo: "",
 		});
-	}, [dispatchedLineCode, form, open]);
+	}, [dispatchedLineCode, form, open, workOrder?.plannedQty]);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -101,6 +105,19 @@ export function RunCreateDialog({
 								onValueChange={field.handleChange}
 								placeholder="选择线体"
 								disabled={Boolean(dispatchedLineCode)}
+							/>
+						)}
+					</Field>
+					<Field form={form} name="planQty" label="计划数量">
+						{(field) => (
+							<Input
+								type="number"
+								min={1}
+								max={workOrder?.plannedQty ?? 10000}
+								placeholder="本批次计划生产数量"
+								value={field.state.value}
+								onBlur={field.handleBlur}
+								onChange={(e) => field.handleChange(Number(e.target.value))}
 							/>
 						)}
 					</Field>

@@ -69,6 +69,7 @@ export const getRunDetail = async (db: PrismaClient, runNo: string) => {
 			id: run.id,
 			runNo: run.runNo,
 			status: run.status,
+			planQty: run.planQty,
 			shiftCode: run.shiftCode,
 			startedAt: run.startedAt?.toISOString() ?? null,
 			endedAt: run.endedAt?.toISOString() ?? null,
@@ -429,6 +430,16 @@ export const generateUnits = async (
 		};
 	}
 
+	// Check quantity does not exceed planQty
+	if (data.quantity > run.planQty) {
+		return {
+			success: false as const,
+			code: "QUANTITY_EXCEEDS_PLAN",
+			message: `Requested quantity (${data.quantity}) exceeds run plan quantity (${run.planQty})`,
+			status: 400,
+		};
+	}
+
 	// Generate SN prefix based on run number or custom prefix
 	const snPrefix = data.snPrefix || `SN-${runNo}-`;
 
@@ -459,5 +470,81 @@ export const generateUnits = async (
 			generated: createdUnits.length,
 			units: createdUnits,
 		},
+	};
+};
+
+/**
+ * Delete all QUEUED units for a Run (only if they have no Track records).
+ */
+export const deleteUnits = async (
+	db: PrismaClient,
+	runNo: string,
+): Promise<ServiceResult<{ deleted: number }>> => {
+	const run = await db.run.findUnique({ where: { runNo } });
+
+	if (!run) {
+		return {
+			success: false as const,
+			code: "RUN_NOT_FOUND",
+			message: "Run not found",
+			status: 404,
+		};
+	}
+
+	// Only allow deletion for non-terminal runs
+	if (TERMINAL_RUN_STATUSES.includes(run.status)) {
+		return {
+			success: false as const,
+			code: "RUN_IN_TERMINAL_STATUS",
+			message: `Cannot delete units for run in terminal status ${run.status}`,
+			status: 400,
+		};
+	}
+
+	// Find all units for this run
+	const units = await db.unit.findMany({
+		where: { runId: run.id },
+		select: { id: true, sn: true, status: true },
+	});
+
+	if (units.length === 0) {
+		return {
+			success: true as const,
+			data: { deleted: 0 },
+		};
+	}
+
+	// Check if any unit has track records (has been processed)
+	const unitsWithTracks = await db.track.findMany({
+		where: { unitId: { in: units.map((u) => u.id) } },
+		select: { unitId: true },
+	});
+	const trackedUnitIds = new Set(unitsWithTracks.map((t) => t.unitId));
+
+	// Only allow deletion of QUEUED units without track records
+	const deletableUnits = units.filter(
+		(u) => u.status === UnitStatus.QUEUED && !trackedUnitIds.has(u.id),
+	);
+	const nonDeletableUnits = units.filter(
+		(u) => u.status !== UnitStatus.QUEUED || trackedUnitIds.has(u.id),
+	);
+
+	if (nonDeletableUnits.length > 0) {
+		return {
+			success: false as const,
+			code: "UNITS_CANNOT_BE_DELETED",
+			message: `${nonDeletableUnits.length} unit(s) cannot be deleted because they have been processed or are not in QUEUED status`,
+			status: 400,
+		};
+	}
+
+	// Delete all deletable units
+	await db.unit.deleteMany({
+		where: { id: { in: deletableUnits.map((u) => u.id) } },
+	});
+
+	return {
+		success: true as const,
+		data: { deleted: deletableUnits.length },
 	};
 };

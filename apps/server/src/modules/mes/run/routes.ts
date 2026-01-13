@@ -10,6 +10,7 @@ import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
 import {
+	deleteUnitsResponseSchema,
 	generateUnitsResponseSchema,
 	generateUnitsSchema,
 	runAuthorizeSchema,
@@ -18,7 +19,14 @@ import {
 	runListQuerySchema,
 	runResponseSchema,
 } from "./schema";
-import { authorizeRun, closeRun, generateUnits, getRunDetail, listRuns } from "./service";
+import {
+	authorizeRun,
+	closeRun,
+	deleteUnits,
+	generateUnits,
+	getRunDetail,
+	listRuns,
+} from "./service";
 
 export const runModule = new Elysia({
 	prefix: "/runs",
@@ -227,5 +235,27 @@ export const runModule = new Elysia({
 				404: runErrorResponseSchema,
 			},
 			detail: { tags: ["MES - Runs"], summary: "Generate units for a run" },
+		},
+	)
+	.delete(
+		"/:runNo/units",
+		async ({ db, params, set }) => {
+			const result = await deleteUnits(db, params.runNo);
+			if (!result.success) {
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.RUN_AUTHORIZE,
+			params: t.Object({ runNo: t.String() }),
+			response: {
+				200: deleteUnitsResponseSchema,
+				400: runErrorResponseSchema,
+				404: runErrorResponseSchema,
+			},
+			detail: { tags: ["MES - Runs"], summary: "Delete all QUEUED units for a run" },
 		},
 	);

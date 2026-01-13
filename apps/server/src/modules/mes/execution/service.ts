@@ -8,7 +8,6 @@ import {
 	TrackSource,
 	UnitStatus,
 } from "@better-app/db";
-import { type Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Static } from "elysia";
 import { createDefectFromTrackOut } from "../defect/service";
 import { checkAndTriggerOqc } from "../oqc/trigger-service";
@@ -18,7 +17,34 @@ import type { trackInSchema, trackOutSchema } from "./schema";
 type TrackInInput = Static<typeof trackInSchema>;
 type TrackOutInput = Static<typeof trackOutSchema>;
 
-const tracer = trace.getTracer("mes");
+type Span = {
+	setAttribute: (key: string, value: string | number | boolean) => void;
+	setStatus: (status: { code: number }) => void;
+	recordException: (error: Error) => void;
+	end: () => void;
+};
+
+const SpanStatusCode = {
+	ERROR: 2,
+} as const;
+
+const tracer = {
+	startActiveSpan: async <T>(name: string, fn: (span: Span) => Promise<T>): Promise<T> => {
+		const noopSpan: Span = {
+			setAttribute: () => {},
+			setStatus: () => {},
+			recordException: () => {},
+			end: () => {},
+		};
+
+		try {
+			return await fn(noopSpan);
+		} finally {
+			noopSpan.end();
+			void name;
+		}
+	},
+} as const;
 
 const setSpanAttributes = (span: Span, attributes: Record<string, unknown>) => {
 	for (const [key, value] of Object.entries(attributes)) {
@@ -353,16 +379,13 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 
 				let resolvedUnit = unit;
 				if (!resolvedUnit) {
-					resolvedUnit = await tx.unit.create({
-						data: {
-							sn: data.sn,
-							woId: run.woId,
-							runId: run.id,
-							status: UnitStatus.QUEUED,
-							currentStepNo: currentStep.stepNo,
-						},
-					});
-				} else if (!resolvedUnit.runId) {
+					return {
+						success: false as const,
+						code: "UNIT_NOT_FOUND",
+						message: `Unit with SN ${data.sn} not found. Please generate units for this run first.`,
+					};
+				}
+				if (!resolvedUnit.runId) {
 					resolvedUnit = await tx.unit.update({
 						where: { id: resolvedUnit.id },
 						data: { runId: run.id },
