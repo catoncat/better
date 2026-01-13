@@ -76,9 +76,10 @@ Upgrade (migrations + binary):
   - The server logs to stdout/stderr (capture via systemd/journald, Docker logs, or your process manager).
   - `NODE_ENV=production` hides internal error details in HTTP responses, but errors are still logged server-side.
 - Audit logs (event history):
+  - UI: `/system/audit-logs` (requires System User/Role manage permissions)
   - API: `GET /api/audit-logs` (filters: `page/pageSize/actorId/entityType/entityId/action/status/from/to`)
   - API: `GET /api/audit-logs/:id`
-  - UI (exploration): `GET /openapi` includes the `Audit Logs` endpoints for interactive querying.
+  - OpenAPI (exploration): `GET /openapi` includes the `Audit Logs` endpoints for interactive querying.
 - Optional audit archive cron:
   - Configure via `AUDIT_ARCHIVE_*` in `apps/server/.env.example` (`AUDIT_ARCHIVE_ENABLED`, retention, output dir).
 
