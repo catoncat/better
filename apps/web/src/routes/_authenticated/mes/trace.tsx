@@ -1,5 +1,4 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
-import { format } from "date-fns";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +22,8 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { useUnitTrace } from "@/hooks/use-trace";
+import { UNIT_STATUS_MAP } from "@/lib/constants";
+import { formatDateTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/mes/trace")({
 	validateSearch: (search: Record<string, unknown>) => ({
@@ -61,26 +62,15 @@ function TracePage() {
 		}
 	};
 
-	const formatTime = (value?: string | null) => {
-		if (!value) return "-";
-		return format(new Date(value), "yyyy-MM-dd HH:mm:ss");
-	};
-
 	const getStatusBadge = (status: string) => {
-		const map: Record<
-			string,
-			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-		> = {
-			IDLE: { label: "空闲", variant: "outline" },
-			QUEUED: { label: "排队", variant: "outline" },
-			IN_STATION: { label: "在站", variant: "default" },
-			DONE: { label: "完成", variant: "secondary" },
-			OUT_FAILED: { label: "不良", variant: "destructive" },
-			SCRAPPED: { label: "报废", variant: "destructive" },
-			ON_HOLD: { label: "隔离", variant: "outline" },
-		};
-		const config = map[status] ?? { label: status, variant: "outline" as const };
-		return <Badge variant={config.variant}>{config.label}</Badge>;
+		const label = UNIT_STATUS_MAP[status] || status;
+		let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+
+		if (status === "IN_STATION") variant = "default";
+		if (status === "DONE") variant = "secondary";
+		if (status === "OUT_FAILED" || status === "SCRAPPED") variant = "destructive";
+
+		return <Badge variant={variant}>{label}</Badge>;
 	};
 
 	const getResultBadge = (result: string | null) => {
@@ -188,7 +178,7 @@ function TracePage() {
 							</div>
 							<div>
 								<p className="text-sm text-muted-foreground">编译时间</p>
-								<p className="font-medium">{formatTime(data.routeVersion.compiledAt)}</p>
+								<p className="font-medium">{formatDateTime(data.routeVersion.compiledAt)}</p>
 							</div>
 						</CardContent>
 					</Card>
@@ -221,8 +211,8 @@ function TracePage() {
 											<TableRow key={`track-${track.stepNo}-${track.inAt}`}>
 												<TableCell className="font-medium">Step {track.stepNo}</TableCell>
 												<TableCell>{track.operation ?? "-"}</TableCell>
-												<TableCell>{formatTime(track.inAt)}</TableCell>
-												<TableCell>{formatTime(track.outAt)}</TableCell>
+												<TableCell>{formatDateTime(track.inAt)}</TableCell>
+												<TableCell>{formatDateTime(track.outAt)}</TableCell>
 												<TableCell>{getResultBadge(track.result)}</TableCell>
 											</TableRow>
 										))
