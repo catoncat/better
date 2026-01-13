@@ -214,13 +214,15 @@ P1（应该）：
       - As-built: `guide.md:116-127` 新增 Unit 生成路径对比表格和说明
   - References：`conversation/2026-01-12_143644_demo-guide-accuracy-and-next-plan.md`
 
-- [~] 3.4.4 外部集成降级 SOP（TPM/WMS/SPI/AOI/钢网/锡膏）
-  - DoD：给出“不可用时怎么做/恢复后怎么切回/谁有权限操作/需要哪些审计记录”的明确步骤
+- [x] 3.4.4 外部集成降级 SOP（TPM/WMS/SPI/AOI/钢网/锡膏）
+  - DoD：给出"不可用时怎么做/恢复后怎么切回/谁有权限操作/需要哪些审计记录"的明确步骤
   - Touch points：`user_docs/`、`apps/web/src/routes/_authenticated/mes/*`、`apps/server/src/modules/mes/integration/*`
-  - As-built（已有覆盖，待收敛为 SOP）：
-    - TPM/WMS（readiness 手工录入）：`user_docs/05_leader.md`
-    - SPI/AOI（检测结果手工录入）：`user_docs/06_operator.md`
-    - 概览（降级模式说明）：`user_docs/03_engineer.md`、`user_docs/demo/guide.md`
+  - As-built：`user_docs/sop_degraded_mode.md` - 统一 SOP 文档，涵盖：
+    - TPM/WMS 降级（Readiness 手动录入）
+    - SPI/AOI 降级（检测结果手动录入）
+    - Readiness 豁免（最后手段）
+    - 降级决策流程图
+    - 权限与审计要求
 
 ### 3.5 Track E — Data Collection 配置（P0）
 
