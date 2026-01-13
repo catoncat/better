@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { format } from "date-fns";
 import { CheckCircle2, ChevronLeft, ChevronRight, Loader2, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +31,8 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { type ReworkQuery, useCompleteRework, useReworkTaskList } from "@/hooks/use-defects";
+import { REWORK_TASK_STATUS_MAP } from "@/lib/constants";
+import { formatDateTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/mes/rework-tasks")({
 	component: ReworkTasksPage,
@@ -63,23 +64,15 @@ function ReworkTasksPage() {
 	const pageSize = data?.pageSize ?? 20;
 	const totalPages = Math.ceil(total / pageSize);
 
-	const formatTime = (value?: string | Date | null) => {
-		if (!value) return "-";
-		const date = typeof value === "string" ? new Date(value) : value;
-		return format(date, "yyyy-MM-dd HH:mm:ss");
-	};
-
 	const getStatusBadge = (status: string) => {
-		const map: Record<
-			string,
-			{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-		> = {
-			OPEN: { label: "进行中", variant: "default" },
-			DONE: { label: "已完成", variant: "secondary" },
-			CANCELLED: { label: "已取消", variant: "outline" },
-		};
-		const config = map[status] ?? { label: status, variant: "outline" as const };
-		return <Badge variant={config.variant}>{config.label}</Badge>;
+		const label = REWORK_TASK_STATUS_MAP[status] || status;
+		let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+
+		if (status === "OPEN") variant = "default";
+		if (status === "DONE") variant = "secondary";
+		if (status === "CANCELLED") variant = "outline";
+
+		return <Badge variant={variant}>{label}</Badge>;
 	};
 
 	const handleCompleteRework = () => {
@@ -139,9 +132,11 @@ function ReworkTasksPage() {
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value="ALL">全部</SelectItem>
-									<SelectItem value="OPEN">进行中</SelectItem>
-									<SelectItem value="DONE">已完成</SelectItem>
-									<SelectItem value="CANCELLED">已取消</SelectItem>
+									{Object.entries(REWORK_TASK_STATUS_MAP).map(([value, label]) => (
+										<SelectItem key={value} value={value}>
+											{label}
+										</SelectItem>
+									))}
 								</SelectContent>
 							</Select>
 						</div>
@@ -185,8 +180,8 @@ function ReworkTasksPage() {
 										<TableCell>{task.disposition?.defect?.code ?? "-"}</TableCell>
 										<TableCell>工步 {task.toStepNo}</TableCell>
 										<TableCell>{getStatusBadge(task.status)}</TableCell>
-										<TableCell>{formatTime(task.createdAt)}</TableCell>
-										<TableCell>{formatTime(task.doneAt)}</TableCell>
+										<TableCell>{formatDateTime(task.createdAt)}</TableCell>
+										<TableCell>{formatDateTime(task.doneAt)}</TableCell>
 										<TableCell className="text-right">
 											{task.status === "OPEN" && (
 												<Button

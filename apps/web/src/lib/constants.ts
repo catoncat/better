@@ -135,3 +135,9 @@ export const DISPOSITION_TYPE_MAP: Record<string, string> = {
 	SCRAP: "报废",
 	HOLD: "暂扣",
 };
+
+export const REWORK_TASK_STATUS_MAP: Record<string, string> = {
+	OPEN: "进行中",
+	DONE: "已完成",
+	CANCELLED: "已取消",
+};
