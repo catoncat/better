@@ -138,9 +138,7 @@ function RouteVersionsPage() {
 												{version.status}
 											</Badge>
 										</TableCell>
-										<TableCell>
-											{formatDateTime(version.compiledAt)}
-										</TableCell>
+										<TableCell>{formatDateTime(version.compiledAt)}</TableCell>
 										<TableCell className="text-muted-foreground">
 											{formatErrors(version.errorsJson)}
 										</TableCell>
