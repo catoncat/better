@@ -8,12 +8,13 @@ import {
 	ClipboardCheck,
 	Loader2,
 	Package,
+	Play,
 	Plus,
 	RefreshCw,
 	Shield,
 	XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Can } from "@/components/ability/can";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -97,6 +98,11 @@ function RunDetailPage() {
 	// Generate units dialog state
 	const [generateUnitsDialogOpen, setGenerateUnitsDialogOpen] = useState(false);
 	const [generateUnitsQty, setGenerateUnitsQty] = useState(10);
+
+	useEffect(() => {
+		if (!data?.run.planQty) return;
+		setGenerateUnitsQty((current) => Math.min(current, data.run.planQty));
+	}, [data?.run.planQty]);
 
 	const formatTime = (value?: string | Date | null) => {
 		if (!value) return "-";
@@ -340,6 +346,19 @@ function RunDetailPage() {
 							</Button>
 						</Can>
 					)}
+					{(data.run.status === "AUTHORIZED" || data.run.status === "IN_PROGRESS") && (
+						<Can permissions={Permission.EXEC_TRACK_IN}>
+							<Button variant="default" size="sm" asChild>
+								<Link
+									to="/mes/execution"
+									search={{ runNo: data.run.runNo, woNo: data.workOrder.woNo }}
+								>
+									<Play className="mr-2 h-4 w-4" />
+									开始执行
+								</Link>
+							</Button>
+						</Can>
+					)}
 					<Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
 						<RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
 						刷新
@@ -350,10 +369,11 @@ function RunDetailPage() {
 			<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
 				<Card>
 					<CardHeader className="pb-2">
-						<CardDescription>计划数量</CardDescription>
+						<CardDescription>批次计划数量</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<p className="text-2xl font-bold">{data.workOrder.plannedQty}</p>
+						<p className="text-2xl font-bold">{data.run.planQty}</p>
+						<p className="text-xs text-muted-foreground">工单: {data.workOrder.plannedQty}</p>
 					</CardContent>
 				</Card>
 				<Card>
@@ -869,7 +889,7 @@ function RunDetailPage() {
 								id="generateUnitsQty"
 								type="number"
 								min={1}
-								max={10000}
+								max={data.run.planQty}
 								value={generateUnitsQty}
 								onChange={(e) => setGenerateUnitsQty(Number.parseInt(e.target.value, 10) || 1)}
 								placeholder="输入生成数量"
@@ -878,6 +898,7 @@ function RunDetailPage() {
 								将生成 {generateUnitsQty} 个单件，SN 格式: SN-{runNo}-0001 ~ SN-{runNo}-
 								{String(generateUnitsQty).padStart(4, "0")}
 							</p>
+							<p className="text-xs text-muted-foreground">最大数量: {data.run.planQty}</p>
 						</div>
 					</div>
 					<DialogFooter>
@@ -890,7 +911,11 @@ function RunDetailPage() {
 								setGenerateUnitsDialogOpen(false);
 								refetch();
 							}}
-							disabled={generateUnitsQty < 1 || generateUnits.isPending}
+							disabled={
+								generateUnitsQty < 1 ||
+								generateUnitsQty > data.run.planQty ||
+								generateUnits.isPending
+							}
 						>
 							{generateUnits.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							生成

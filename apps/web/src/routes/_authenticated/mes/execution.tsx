@@ -2,7 +2,7 @@ import { Permission } from "@better-app/db/permissions";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
-import { RefreshCw } from "lucide-react";
+import { ChevronRight, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as z from "zod";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAbility } from "@/hooks/use-ability";
+import { useRunList } from "@/hooks/use-runs";
 import {
 	useResolveUnitBySn,
 	useStationQueue,
@@ -45,8 +46,14 @@ import {
 import { useUserProfile } from "@/hooks/use-users";
 import { TrackOutDialog } from "./-components/track-out-dialog";
 
+const searchSchema = z.object({
+	runNo: z.string().optional(),
+	woNo: z.string().optional(),
+});
+
 export const Route = createFileRoute("/_authenticated/mes/execution")({
 	component: ExecutionPage,
+	validateSearch: searchSchema,
 });
 
 const trackInSchema = z.object({
@@ -62,6 +69,7 @@ const trackOutSchema = z.object({
 });
 
 function ExecutionPage() {
+	const searchParams = Route.useSearch();
 	const [selectedStation, setSelectedStation] = useState<string>("");
 	const [ngDialogOpen, setNgDialogOpen] = useState(false);
 	const [ngItem, setNgItem] = useState<{ sn: string; runNo: string } | null>(null);
@@ -69,6 +77,8 @@ function ExecutionPage() {
 	const [trackOutDialogOpen, setTrackOutDialogOpen] = useState(false);
 	const [trackOutItem, setTrackOutItem] = useState<{ sn: string; runNo: string } | null>(null);
 	const stationStorageKey = "mes.execution.station";
+	// Track if we've applied search params to avoid re-applying on re-renders
+	const appliedSearchParamsRef = useRef(false);
 	const { data: userProfile } = useUserProfile();
 	const { data: stations } = useStations();
 	const {
@@ -76,6 +86,12 @@ function ExecutionPage() {
 		refetch: refetchQueue,
 		isFetching: isQueueFetching,
 	} = useStationQueue(selectedStation);
+	// Fetch executable runs (AUTHORIZED or PREP with active FAI for trial production)
+	const { data: executableRuns, isFetching: isRunsFetching } = useRunList({
+		status: ["AUTHORIZED", "PREP", "IN_PROGRESS"],
+		pageSize: 10,
+		sort: "-updatedAt",
+	});
 	const { mutateAsync: trackIn, isPending: isInPending } = useTrackIn();
 	const { mutateAsync: trackOut, isPending: isOutPending } = useTrackOut();
 	const { mutateAsync: resolveUnitBySn, isPending: isResolvingSn } = useResolveUnitBySn();
@@ -135,6 +151,21 @@ function ExecutionPage() {
 		}
 	}, []);
 
+	// Apply search params to prefill forms (only once on mount)
+	useEffect(() => {
+		if (appliedSearchParamsRef.current) return;
+		if (searchParams.runNo || searchParams.woNo) {
+			appliedSearchParamsRef.current = true;
+			if (searchParams.runNo) {
+				inForm.setFieldValue("runNo", searchParams.runNo);
+				outForm.setFieldValue("runNo", searchParams.runNo);
+			}
+			if (searchParams.woNo) {
+				inForm.setFieldValue("woNo", searchParams.woNo);
+			}
+		}
+	}, [searchParams.runNo, searchParams.woNo, inForm, outForm]);
+
 	useEffect(() => {
 		if (typeof window === "undefined") return;
 		if (selectedStation) {
@@ -187,6 +218,13 @@ function ExecutionPage() {
 		setNgDialogOpen(false);
 		setNgItem(null);
 		refetchQueue();
+	};
+
+	// Select a run from the executable list and prefill forms
+	const handleSelectRun = (run: { runNo: string; woNo: string }) => {
+		inForm.setFieldValue("runNo", run.runNo);
+		inForm.setFieldValue("woNo", run.woNo);
+		outForm.setFieldValue("runNo", run.runNo);
 	};
 
 	const parseScanValue = (raw: string) => {
@@ -284,6 +322,60 @@ function ExecutionPage() {
 								))}
 							</SelectContent>
 						</Select>
+					)}
+				</CardContent>
+			</Card>
+
+			{/* Executable Runs Card */}
+			<Card>
+				<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+					<div>
+						<CardTitle>待执行批次</CardTitle>
+						<CardDescription>选择批次快速预填表单</CardDescription>
+					</div>
+					{isRunsFetching && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
+				</CardHeader>
+				<CardContent>
+					{!executableRuns?.items || executableRuns.items.length === 0 ? (
+						<div className="py-4 text-center text-sm text-muted-foreground">暂无待执行批次</div>
+					) : (
+						<div className="space-y-2">
+							{executableRuns.items.slice(0, 5).map((run) => (
+								<button
+									key={run.runNo}
+									type="button"
+									className="flex w-full items-center justify-between rounded-lg border p-3 text-left hover:bg-accent"
+									onClick={() => handleSelectRun({ runNo: run.runNo, woNo: run.workOrder.woNo })}
+								>
+									<div className="space-y-1">
+										<div className="flex items-center gap-2">
+											<span className="font-mono text-sm font-medium">{run.runNo}</span>
+											<Badge
+												variant={
+													run.status === "AUTHORIZED"
+														? "default"
+														: run.status === "IN_PROGRESS"
+															? "default"
+															: "outline"
+												}
+											>
+												{run.status === "AUTHORIZED"
+													? "已授权"
+													: run.status === "IN_PROGRESS"
+														? "生产中"
+														: run.status === "PREP"
+															? "准备中"
+															: run.status}
+											</Badge>
+										</div>
+										<div className="text-xs text-muted-foreground">
+											工单: {run.workOrder.woNo} · 产品: {run.workOrder.productCode}
+										</div>
+									</div>
+									<ChevronRight className="h-4 w-4 text-muted-foreground" />
+								</button>
+							))}
+						</div>
 					)}
 				</CardContent>
 			</Card>
