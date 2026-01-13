@@ -1,7 +1,6 @@
 import { Permission } from "@better-app/db/permissions";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
-import { format } from "date-fns";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as z from "zod";
@@ -43,6 +42,7 @@ import {
 	useTrackOut,
 } from "@/hooks/use-station-execution";
 import { useUserProfile } from "@/hooks/use-users";
+import { formatDateTime } from "@/lib/utils";
 import { TrackOutDialog } from "./-components/track-out-dialog";
 
 export const Route = createFileRoute("/_authenticated/mes/execution")({
@@ -249,11 +249,6 @@ function ExecutionPage() {
 		}, 250);
 	};
 
-	const formatTime = (value?: string | null) => {
-		if (!value) return "-";
-		return format(new Date(value), "HH:mm:ss");
-	};
-
 	return (
 		<div className="space-y-6">
 			<div>
@@ -326,7 +321,7 @@ function ExecutionPage() {
 													<Badge variant="outline">Step {item.currentStepNo}</Badge>
 												</TableCell>
 												<TableCell className="text-muted-foreground">
-													{formatTime(item.inAt)}
+													{formatDateTime(item.inAt)}
 												</TableCell>
 												<TableCell>
 													<div className="flex flex-wrap gap-2">
