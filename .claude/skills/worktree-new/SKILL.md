@@ -1,5 +1,5 @@
 ---
-name: worktree-bootstrap
+name: worktree-new
 description: "Set up and use git worktrees for parallel development in this repo (worktree/并行/并发/冲突/分支). Use when tasks can block each other, when running bun lint/typecheck is noisy due to other in-flight edits, or when the user wants to work on multiple branches concurrently."
 trigger_examples:
   positive:
@@ -17,7 +17,7 @@ trigger_examples:
     - "worktree 状态" # → worktree-status
 ---
 
-# Worktree Bootstrap
+# Worktree New
 
 ## Goal
 

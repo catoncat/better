@@ -13,9 +13,9 @@ trigger_examples:
     - "build MES"
     - "fix MES bug"
   negative:
-    - "现在做什么" # → mes-triage
-    - "MES 待办" # → mes-triage
-    - "非 MES 功能" # → repo-dev-loop
+    - "现在做什么" # → mes-next
+    - "MES 待办" # → mes-next
+    - "非 MES 功能" # → dev
 ---
 
 # MES Implement
@@ -81,4 +81,4 @@ If the task includes multiple slices, do not wait to the end. Commit after each 
 
 ## When Not To Use
 
-Do not use this workflow for pure "what next" triage; use `mes-triage` instead.
+Do not use this workflow for pure "what next" triage; use `mes-next` instead.

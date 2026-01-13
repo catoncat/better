@@ -1,5 +1,5 @@
 ---
-name: mes-triage
+name: mes-next
 description: 'Repo-specific MES next-work triage (global plan). Use when the user asks what to build next / next tasks / which milestone to do next for MES in this repo (e.g., "接下来开发什么/下一步做什么"). Not for current branch/worktree progress; use `worktree-status` for "做到哪/进度/完成怎么样". Read domain_docs/mes/CONTEXT.md and domain_docs/mes/plan/*, then output 2-4 parallelizable tracks with 3-5 candidates total and ask the user to pick one. Do not modify code/docs/plan during triage unless explicitly asked (except the required conversation sync note).'
 context: fork
 trigger_examples:
@@ -23,7 +23,7 @@ trigger_examples:
     - "帮我实现 XXX" # → mes-implement
 ---
 
-# MES Triage
+# MES Next
 
 ## Goal
 
@@ -33,7 +33,7 @@ Select the next MES development target from the plan, then ask the user to choos
 
 0. Run `git status` (if not clean, call it out before proceeding).
 0. Optional deterministic baseline (control plane):
-   - Run: `bun scripts/workflow-run.ts agent_workflows/mes-triage.json`
+   - Run: `bun scripts/workflow-run.ts agent_workflows/mes-next.json`
    - This writes step-level artifacts to `.spec-workflow/` (gitignored) and writes a triage note under `conversation/`.
 1. Worktree preflight (for parallel work):
    - Run `bun scripts/worktree-scan.ts` and capture the output.
@@ -52,7 +52,7 @@ Select the next MES development target from the plan, then ask the user to choos
    - Explicitly list conflicts (what cannot be done in parallel).
 4. Produce the triage output (tracks + conflicts) in the Output Format below.
 5. Sync triage output to a conversation note BEFORE asking the user to pick:
-   - Create a note: `bun scripts/conversation-new.ts "mes-triage_<topic>"`
+   - Create a note: `bun scripts/conversation-new.ts "mes-next_<topic>"`
    - Paste the full triage output into the note (include Worktree Scan, Tracks, Candidates, Conflicts, and the selection prompt).
    - Do not save only the chosen track; the note must preserve all options for parallel agents.
 6. Output the tracks + candidates to the user, then ask the user to pick one track or one candidate.

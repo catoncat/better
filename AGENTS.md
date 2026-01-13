@@ -29,7 +29,7 @@
 - **Conversation Sync**: If a response includes discussion/plan/decision, also write a note to `conversation/YYYY-MM-DD_HHMMSS_<topic>.md` (timestamp via `date '+%Y-%m-%d_%H%M%S'`). If a plan was produced, include the plan content.
   - Template: Context, Decisions, Plan, Open Questions, References
 - **Worktree Notes**: Persist branch/worktree task context in `worktree_notes/<branchSlug>.md` (created by `scripts/worktree-new.ts`). Use it to answer progress/status questions without re-triage.
-- **Repo Skills**: Canonical skills live in `.claude/skills` (shared); `.codex/skills` is a symlink. Prefer `repo-dev-loop`, `task-slicer`, `small-step-commits`, `mes-triage`, `mes-implement`.
+- **Repo Skills**: Canonical skills live in `.claude/skills` (shared); `.codex/skills` and `.gemini/skills` are symlinks. Prefer `dev`, `task-split`, `small-step-commits`, `mes-next`, `mes-implement`.
 - **Worktree Cleanup**: When a worktree task is finished, remove the worktree and delete the branch (prefer `worktree-cleanup`).
 
 ## Worktree Bootstrap (Recommended)

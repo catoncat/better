@@ -1,5 +1,5 @@
 ---
-name: conversation-sync
+name: note
 description: "Create and maintain timestamped discussion notes in conversation/ (讨论/对话记录/计划/决策/结论). Use when a response includes a plan, decision, architecture discussion, workflow agreement, or any non-trivial reasoning that should be saved for future agents."
 trigger_examples:
   positive:
@@ -14,7 +14,7 @@ trigger_examples:
     - "进度怎么样" # → worktree-status (读取而非写入)
 ---
 
-# Conversation Sync
+# Note
 
 ## Workflow
 

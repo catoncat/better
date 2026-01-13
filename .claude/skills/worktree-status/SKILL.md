@@ -15,10 +15,10 @@ trigger_examples:
     - "what's left"
     - "progress"
   negative:
-    - "现在做什么" # → mes-triage
-    - "下一步做什么" # → mes-triage
-    - "帮我实现 XXX" # → mes-implement / repo-dev-loop
-    - "创建 worktree" # → worktree-bootstrap
+    - "现在做什么" # → mes-next
+    - "下一步做什么" # → mes-next
+    - "帮我实现 XXX" # → mes-implement / dev
+    - "创建 worktree" # → worktree-new
 ---
 
 # Worktree Status
@@ -38,5 +38,5 @@ trigger_examples:
 
 ## Guardrails
 
-- Do not run `mes-triage` / `task-slicer` for progress questions unless explicitly asked to "重新拆分/重新 triage".
+- Do not run `mes-next` / `task-split` for progress questions unless explicitly asked to "重新拆分/重新 triage".
 - Do not rewrite non-AUTO sections of the note without explicit user instruction.
