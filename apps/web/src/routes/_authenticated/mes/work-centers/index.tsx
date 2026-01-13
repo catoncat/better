@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
-import { format } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useQueryPresets } from "@/hooks/use-query-presets";
 import { useWorkCenterList, type WorkCenterListItem } from "@/hooks/use-work-centers";
+import { formatDateTime } from "@/lib/utils";
 
 interface WorkCenterFilters {
 	search: string;
@@ -44,11 +44,6 @@ export const Route = createFileRoute("/_authenticated/mes/work-centers/")({
 	}),
 	component: WorkCentersPage,
 });
-
-const formatTime = (value?: string | Date | null) => {
-	if (!value) return "-";
-	return format(value instanceof Date ? value : new Date(value), "yyyy-MM-dd HH:mm");
-};
 
 function WorkCentersPage() {
 	const viewPreferencesKey = "work-centers";
@@ -266,7 +261,7 @@ function WorkCentersPage() {
 			{
 				accessorKey: "sourceUpdatedAt",
 				header: "同步时间",
-				cell: ({ row }) => formatTime(row.original.sourceUpdatedAt),
+				cell: ({ row }) => formatDateTime(row.original.sourceUpdatedAt),
 			},
 		];
 	}, []);
@@ -379,7 +374,7 @@ function WorkCentersPage() {
 								{item.departmentCode ? `${item.departmentCode} ${item.departmentName || ""}` : "-"}
 							</div>
 							<div>产线：{item.lineCodes.length > 0 ? item.lineCodes.join(", ") : "-"}</div>
-							<div>同步时间：{formatTime(item.sourceUpdatedAt)}</div>
+							<div>同步时间：{formatDateTime(item.sourceUpdatedAt)}</div>
 						</CardContent>
 					</Card>
 				),
