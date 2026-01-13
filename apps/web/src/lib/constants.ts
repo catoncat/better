@@ -72,3 +72,26 @@ export const OQC_SAMPLING_TYPE_MAP: Record<string, string> = {
 	PERCENTAGE: "按比例 (%)",
 	FIXED: "固定数量",
 };
+
+export const AUDIT_STATUS_MAP: Record<string, string> = {
+	SUCCESS: "成功",
+	FAIL: "失败",
+};
+
+export const AUDIT_ENTITY_TYPE_MAP: Record<string, string> = {
+	WORK_ORDER: "工单",
+	RUN: "批次",
+	UNIT: "单件",
+	TRACK: "过站",
+	INSPECTION: "检验",
+	DEFECT: "缺陷",
+	DISPOSITION: "处置",
+	DATA_VALUE: "采集值",
+	MATERIAL_USE: "物料使用",
+	INTEGRATION: "集成",
+	USER: "用户",
+	SYSTEM_CONFIG: "系统配置",
+	NOTIFICATION: "通知",
+	SYSTEM: "系统",
+	READINESS_CHECK: "准备检查",
+};

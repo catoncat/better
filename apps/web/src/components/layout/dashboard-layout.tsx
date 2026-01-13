@@ -37,6 +37,7 @@ export function DashboardLayout({
 		system: "系统管理",
 		"user-management": "用户管理",
 		"role-management": "角色管理",
+		"audit-logs": "审计日志",
 		settings: "系统设置",
 		profile: "个人设置",
 	};
