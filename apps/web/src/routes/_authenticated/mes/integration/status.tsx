@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { type IntegrationJobStatus, useIntegrationStatus } from "@/hooks/use-integration-status";
+import { formatDateTime } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/mes/integration/status")({
 	component: IntegrationStatusPage,
@@ -137,7 +138,7 @@ function JobRow({ job }: { job: IntegrationJobStatus }) {
 								{formatDistanceToNow(lastSyncAt, { addSuffix: true, locale: zhCN })}
 							</span>
 						</TooltipTrigger>
-						<TooltipContent>{lastSyncAt.toLocaleString("zh-CN")}</TooltipContent>
+						<TooltipContent>{formatDateTime(lastSyncAt)}</TooltipContent>
 					</Tooltip>
 				) : (
 					<span className="text-muted-foreground">-</span>
