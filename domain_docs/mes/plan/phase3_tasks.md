@@ -1,8 +1,8 @@
 # Phase 3 Plan (M3 - Go-Live Readiness) — Consolidated
 
-> 状态：**规划中**
-> 更新时间：2026-01-07
-> 目标：把“流程已对齐”推进到“可上线/可验收/可运维”
+> 状态：**已完成** ✅
+> 更新时间：2026-01-13
+> 目标：把"流程已对齐"推进到"可上线/可验收/可运维"
 > 说明：**本文件是 M3 的唯一进度追踪入口**（勾选更新请在此文件完成）。
 
 ---
@@ -201,11 +201,12 @@ P1（应该）：
     - [x] 3.4.2.2 Demo Guide: DIP 全流程（按 `spec/process/01_end_to_end_flows.md` + `04_dip_flows.md` 走完）
     - [x] 3.4.2.3 Demo Guide: 失败分支示例（readiness fail/waive, NG/处置, OQC fail/MRB）
 
-- [~] 3.4.3 体验优化清单（仅收敛到 P1 阻断项）
+- [x] 3.4.3 体验优化清单（仅收敛到 P1 阻断项）
   - DoD：收集并分级：P0 阻断 / P1 重要 / P2 可延后；每项绑定到具体页面与期望行为
   - Touch points：`apps/web/src/routes/_authenticated/mes/*`
   - Subtasks:
-    - [ ] 3.4.3.1 Demo guide "dry run" 校验：按 `user_docs/demo/guide.md` 从头跑一次并修正文案/入口偏差
+    - [x] 3.4.3.1 Demo guide "dry run" 校验：按 `user_docs/demo/guide.md` 从头跑一次并修正文案/入口偏差
+      - As-built: 2026-01-13 验证通过，guide 与实际 UI 一致
     - [x] 3.4.3.2 Run detail → Execution：新增"开始执行"深链（预填 runNo/woNo，减少跳转成本）
       - As-built: `$runNo.tsx:331-345` PREP 状态显示"试产执行"，AUTHORIZED/IN_PROGRESS 显示"开始执行"
     - [x] 3.4.3.3 Execution：增加"待执行批次"列表（AUTHORIZED + PREP 可试产），点击即可带入表单

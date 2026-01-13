@@ -1,7 +1,7 @@
 # Development Plan & Milestones
 
-> **更新时间**: 2026-01-08
-> **状态**: M1~M2 已落地，M3 进行中（上线准备）
+> **更新时间**: 2026-01-13
+> **状态**: M1~M3 已落地，M4 待规划
 
 ## 1. Milestone Overview
 
@@ -61,7 +61,7 @@ This document outlines the development milestones for the MES system, focusing o
   * [x] OQC Sampling: 核心链路与 UI 已完成
   * [x] Final Confirmation: closeout API + UI 已落地
 
-### M3: Go-Live Readiness (IN PROGRESS)
+### M3: Go-Live Readiness (DONE, 2026-01-13)
 * **Goal**: Make the system truly deployable and acceptable for production rollout (SMT/DIP), not just “spec-aligned”.
 * **Features**:
   - E2E acceptance script + checklist (repeatable demo and regression)
