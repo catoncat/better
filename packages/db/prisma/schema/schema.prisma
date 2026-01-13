@@ -373,6 +373,7 @@ model Run {
   woId         String
   lineId       String?
   routeVersionId String?
+  planQty      Int       // 本批次计划生产数量
   status       RunStatus @default(PREP)
   shiftCode    String?
   changeoverNo String? // 换线/开班标识

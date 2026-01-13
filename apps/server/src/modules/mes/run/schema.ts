@@ -42,11 +42,19 @@ export const generateUnitsResponseSchema = t.Object({
 	}),
 });
 
+export const deleteUnitsResponseSchema = t.Object({
+	ok: t.Boolean(),
+	data: t.Object({
+		deleted: t.Number(),
+	}),
+});
+
 export const runDetailResponseSchema = t.Object({
 	run: t.Object({
 		id: t.String(),
 		runNo: t.String(),
 		status: t.String(),
+		planQty: t.Number(),
 		shiftCode: t.Union([t.String(), t.Null()]),
 		startedAt: t.Union([t.String(), t.Null()]),
 		endedAt: t.Union([t.String(), t.Null()]),

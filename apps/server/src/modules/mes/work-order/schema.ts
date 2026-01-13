@@ -35,6 +35,7 @@ export const workOrderReleaseSchema = t.Object({
 
 export const runCreateSchema = t.Object({
 	lineCode: t.String(),
+	planQty: t.Number({ minimum: 1 }),
 	shiftCode: t.Optional(t.String()),
 	changeoverNo: t.Optional(t.String()),
 });

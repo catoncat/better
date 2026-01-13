@@ -469,6 +469,7 @@ async function createReworkRun(
 			woId: parentRun.woId,
 			lineId: parentRun.lineId,
 			routeVersionId: parentRun.routeVersionId,
+			planQty: parentRun.planQty,
 			status: initialStatus,
 			shiftCode: parentRun.shiftCode,
 			parentRunId: parentRun.id,
