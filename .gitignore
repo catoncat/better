@@ -92,3 +92,4 @@ others/
 !.claude/skills/**
 .factory/
 .task-context.json
+user_docs/demo/screenshots
