@@ -1,7 +1,8 @@
 # Development Plan & Milestones
 
-> **更新时间**: 2026-01-13
-> **状态**: M1~M3 已落地，M4 待规划
+> **更新时间**: 2026-01-14
+> **状态**: M1~M3 已落地，M4 规划中（草案）
+> **当前紧急**: 先跑 UI 全流程验收（尤其前端集成），见 `user_docs/demo/acceptance_plan.md`；问题记录在 `user_docs/demo/acceptance_issues.md`。
 
 ## 1. Milestone Overview
 
@@ -81,10 +82,14 @@ This document outlines the development milestones for the MES system, focusing o
 * **Goal**: Extend the system to handle automated and batch processing scenarios.
 * **Features**: Automatic/BATCH/TEST event ingest, equipment integration for auto track-in/out, batch data collection.
 * **Acceptance Criteria**: System handles auto/batch/test events with consistent routing and data validation.
+* **Plan**:
+  - `domain_docs/mes/plan/phase4_tasks.md`
+* **Notes**:
+  - Outbound feedback (ERP/TPM) is tracked as an optional (TBD) workstream in the Phase 4 plan.
 
-## Future (Out of Current Scope)
+## Future (Optional / TBD)
 
-### Integration Outbound (ERP/TPM Feedback)
+### Integration Outbound (ERP/TPM Feedback) (TBD)
 * **Goal**: Push MES execution results back to ERP/TPM.
 * **Features**: Production completion, material consumption, quality outcomes, traceability summaries, retry with idempotency.
 * **Acceptance Criteria**: Outbound payloads are delivered reliably with replay support and auditability.

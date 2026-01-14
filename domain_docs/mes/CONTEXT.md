@@ -1,6 +1,6 @@
 # MES 文档索引
 
-> **更新时间**: 2026-01-08
+> **更新时间**: 2026-01-14
 
 ## 里程碑定义
 
@@ -15,7 +15,10 @@
 
 | 目的 | 文档 |
 |------|------|
-| 了解 M3 进度/待办 | `plan/phase3_tasks.md` |
+| 当前验收（前端集成/UI 全流程） | `user_docs/demo/acceptance_plan.md` |
+| 验收问题跟踪 | `user_docs/demo/acceptance_issues.md` |
+| 了解 M4 进度/待办 | `plan/phase4_tasks.md` |
+| 了解 M3 已交付范围 | `plan/phase3_tasks.md` |
 | 了解历史进度（M2） | `plan/phase2_tasks.md` |
 | 了解全局流程 | `spec/process/01_end_to_end_flows.md` |
 | 了解 SMT 流程 | `spec/process/03_smt_flows.md` |
@@ -24,7 +27,8 @@
 
 ## Triage（接下来做什么）
 
-- 以计划为准：优先从 `plan/phase3_tasks.md` 选择 `[ ]` / `[~]` 的条目。
+- 当前最紧急：按 `user_docs/demo/acceptance_plan.md` 跑全流程验收（尤其前端集成），问题记录在 `user_docs/demo/acceptance_issues.md`。
+- 验收通过后：再从 `plan/phase4_tasks.md` 选择 `[ ]` / `[~]` 的条目推进开发。
 - 可用确定性 triage 输出基线（含 worktree scan + 候选项 + 冲突提示）：
   - `bun scripts/workflow-run.ts agent_workflows/mes-triage.json`
   - 产物：`.spec-workflow/`（本地、gitignored）+ `conversation/`（可追溯记录）
@@ -45,5 +49,8 @@
 ## 任务追踪
 
 - `plan/01_milestones.md` - 里程碑概览
-- `plan/phase3_tasks.md` - **M3 当前任务分解（进度主入口）**
+- `user_docs/demo/acceptance_plan.md` - **当前验收计划（前端集成/UI 全流程）**
+- `user_docs/demo/acceptance_issues.md` - 验收问题跟踪
+- `plan/phase4_tasks.md` - **M4 当前任务分解（进度主入口）**
+- `plan/phase3_tasks.md` - M3 上线准备（已完成）
 - `plan/phase2_tasks.md` - M2 历史任务（已完成）
