@@ -1,7 +1,9 @@
 # MES 验收问题记录
 
 > 创建时间: 2026-01-14
-> 验收计划: `user_docs/demo/acceptance_plan.md`
+> 验收计划:
+> - `user_docs/demo/acceptance_plan.md`（SMT）
+> - `user_docs/demo/acceptance_plan_dip.md`（DIP）
 
 ---
 

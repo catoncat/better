@@ -2,7 +2,7 @@
 
 > **更新时间**: 2026-01-14
 > **状态**: M1~M3 已落地，M4 规划中（草案）
-> **当前紧急**: 先跑 UI 全流程验收（尤其前端集成），见 `user_docs/demo/acceptance_plan.md`；问题记录在 `user_docs/demo/acceptance_issues.md`。
+> **当前紧急**: 先跑 UI 全流程验收（尤其前端集成），见 `user_docs/demo/acceptance_plan.md`（SMT）与 `user_docs/demo/acceptance_plan_dip.md`（DIP）；问题记录在 `user_docs/demo/acceptance_issues.md`。
 
 ## 1. Milestone Overview
 

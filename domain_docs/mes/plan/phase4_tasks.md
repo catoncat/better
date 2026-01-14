@@ -11,6 +11,7 @@
 在开始本阶段开发前，当前最紧急任务是**跑全流程验收**（尤其前端集成/UI 操作链路），把阻断性问题收敛到可复现清单并修复/确认。
 
 - 验收计划：`user_docs/demo/acceptance_plan.md`
+- 验收计划（DIP）：`user_docs/demo/acceptance_plan_dip.md`
 - 问题跟踪：`user_docs/demo/acceptance_issues.md`
 
 原则：
