@@ -16,10 +16,13 @@
 - Update `user_docs/demo/acceptance_plan.md` checkboxes as steps complete; record any blockers in `user_docs/demo/acceptance_issues.md`.
 
 ## Findings
-- None yet.
+- Login via manual email/password hung once: after clicking Login, inputs became disabled and no navigation occurred; reload fixed it and test-account picker login succeeded.
+- `WO-MGMT-SMT-QUEUE` is visible in `/mes/work-orders`, but its UI status shows 「进行中」 (not the expected RECEIVED state from the demo plan).
 
 ## Progress
 - Environment check: services reachable on `localhost:3000` / `localhost:3001`.
+- Browser session: `mes-accept-20260114` created; login as `planner@example.com` confirmed via test-account picker; landed on `/mes/work-orders`.
+- Work orders: filtered to `WO-MGMT-SMT-QUEUE`; opened Create Run modal (LINE-A preselected, not editable); then moved to create a new external work order to cover the release path.
 
 ## Errors
 - None yet.
