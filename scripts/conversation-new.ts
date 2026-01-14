@@ -60,6 +60,15 @@ while (true) {
       "## Plan",
       "-",
       "",
+      "## Findings",
+      "-",
+      "",
+      "## Progress",
+      "-",
+      "",
+      "## Errors",
+      "-",
+      "",
       "## Open Questions",
       "-",
       "",
@@ -75,4 +84,3 @@ while (true) {
 
   counter += 1;
 }
-

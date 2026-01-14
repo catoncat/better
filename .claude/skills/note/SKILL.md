@@ -19,5 +19,5 @@ trigger_examples:
 ## Workflow
 
 1. Create: `bun scripts/conversation-new.ts "<topic>"` (prints the new file path)
-2. Fill: Context / Decisions / Plan / Open Questions / References
+2. Fill: Context / Decisions / Plan / Findings / Progress / Errors / Open Questions / References
 3. Paste structured output verbatim (tracks/tables/checklists) so another agent can resume without re-analysis

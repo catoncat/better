@@ -33,6 +33,15 @@ trigger_examples:
 | 5 | Verify before merge: `bun scripts/smart-verify.ts` |
 | 6 | After merge: clean up worktree if used |
 
+## Persistent Planning (Files As Memory)
+
+- Branch-scoped plan/progress lives in `worktree_notes/<branchSlug>.md` (Slices + checkboxes + Decisions + Errors).
+- Cross-cutting decisions/research live in `conversation/*.md` (paste plans/checklists verbatim so another agent can resume).
+- For MES work, keep canonical progress/status in `domain_docs/mes/plan/*` (worktree notes are branch-local execution context, not the source of truth).
+- After every ~2 read/view/search operations, write the takeaway to `Findings` in the relevant note.
+- Before major decisions (or after context switches), re-read the relevant plan/note.
+- On failures: log error + attempts + next approach; do not retry the exact same action repeatedly.
+
 ## MES-Specific Rules
 
 When touching `apps/server/src/modules/mes`, `apps/web/src/routes/_authenticated/mes`, or `domain_docs/mes`:

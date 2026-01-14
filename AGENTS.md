@@ -23,11 +23,15 @@
 - **Follow the Plan**: When implementing a feature/domain, verify if a specific plan exists (e.g., `domain_docs/mes/plan/phase2_tasks.md`).
 - **Mark Progress**: As you complete tasks in a plan file, update the file to mark them as done (e.g., `[x] Task 1.1`).
 - **Update the Plan**: If new tasks are discovered or priorities change, update the plan file to reflect the new reality.
+- **Files As Memory**: For any multi-step task (or >5 tool calls), persist plan/findings/progress/errors to disk (`worktree_notes/` for branch-scoped work; `conversation/` for decisions/findings) instead of relying on chat context. For MES, canonical status lives in `domain_docs/mes/plan/`.
+- **2-Action Rule**: After every ~2 read/view/search operations, write key findings to a file (don’t let research live only in chat context).
+- **Read Before Decide**: Before major decisions (or after a context switch), re-read the relevant plan/note so goals don’t drift.
+- **Never Repeat Failures**: When a step fails, write the error + attempts + next approach to a file; do not retry the exact same action. After 3 failed attempts, stop and ask for guidance.
 - **What Next (Triage)**: Group candidates into 2-4 parallelizable tracks and call out conflicts (shared touch points) explicitly.
 - **Worktree**: If `git status` is not clean or the task is high-churn, recommend a dedicated `git worktree` + branch. When a user picks a task/track, ask whether to set up a worktree now.
 - **Small-Step Commits**: Commit after each coherent slice (plan/docs/schema/api/ui) or completed plan checkbox; do not wait for full task completion. If you must stop mid-way, make a `wip:` commit and continue in the next commit.
-- **Conversation Sync**: If a response includes discussion/plan/decision, also write a note to `conversation/YYYY-MM-DD_HHMMSS_<topic>.md` (timestamp via `date '+%Y-%m-%d_%H%M%S'`). If a plan was produced, include the plan content.
-  - Template: Context, Decisions, Plan, Open Questions, References
+- **Conversation Sync**: If a response includes discussion/plan/decision, create a note via `bun scripts/conversation-new.ts "<topic>"` and paste the output (include any plan/checklists verbatim).
+  - Template: Context, Decisions, Plan, Findings, Progress, Errors, Open Questions, References
 - **Worktree Notes**: Persist branch/worktree task context in `worktree_notes/<branchSlug>.md` (created by `scripts/worktree-new.ts`). Use it to answer progress/status questions without re-triage.
 - **Repo Skills**: Canonical skills live in `.claude/skills` (shared); `.codex/skills` and `.gemini/skills` are symlinks.
   - User entry points: `mes-next` (what next), `dev` (implement), `worktree-status` (progress)

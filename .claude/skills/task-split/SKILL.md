@@ -40,7 +40,9 @@ Turn one task into a short sequence of independently committable slices.
 4. Ask the user to confirm the slice plan.
 5. After confirmation:
    - Commit after each slice. Do not wait for the entire task.
-   - If a `worktree_notes/<branchSlug>.md` exists, keep the slice checklist there so progress/status questions can be answered without re-triage.
+   - Persist the slice plan to disk:
+     - If a `worktree_notes/<branchSlug>.md` exists, keep the slice checklist there so progress/status questions can be answered without re-triage.
+     - Otherwise create a `conversation/` note (`bun scripts/conversation-new.ts "<topic>"`) and paste the slice plan verbatim.
 
 ## Output Format
 
