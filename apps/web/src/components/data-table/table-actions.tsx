@@ -27,7 +27,7 @@ export interface TableAction {
 function renderIcon(icon: TableAction["icon"], className?: string): ReactNode {
 	if (isLucideIcon(icon)) {
 		const Icon = icon;
-		return <Icon className={className} />;
+		return <Icon className={className} aria-hidden="true" />;
 	}
 	return icon;
 }
@@ -153,6 +153,7 @@ export function TableActions({
 								size="icon"
 								className={action.destructive ? "text-destructive hover:text-destructive" : ""}
 								onClick={action.onClick}
+								aria-label={action.label}
 							>
 								{renderIcon(action.icon, "h-4 w-4")}
 							</Button>
@@ -165,8 +166,8 @@ export function TableActions({
 			{hasOverflow && (
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Button variant="ghost" size="icon">
-							<MoreHorizontal className="h-4 w-4" />
+						<Button variant="ghost" size="icon" aria-label="更多操作">
+							<MoreHorizontal className="h-4 w-4" aria-hidden="true" />
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">

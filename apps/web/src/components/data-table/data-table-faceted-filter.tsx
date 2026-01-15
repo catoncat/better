@@ -41,7 +41,7 @@ export function DataTableFacetedFilter<TData, TValue>({
 		<Popover>
 			<PopoverTrigger asChild>
 				<Button variant="outline" size="sm" className="h-8 border-dashed">
-					<PlusCircle className="mr-2 h-4 w-4" />
+					<PlusCircle className="mr-2 h-4 w-4" aria-hidden="true" />
 					{title}
 					{selectedSet.size > 0 && (
 						<>
@@ -71,7 +71,7 @@ export function DataTableFacetedFilter<TData, TValue>({
 				<Command>
 					<CommandInput placeholder={title} />
 					<CommandList>
-						<CommandEmpty>No results found.</CommandEmpty>
+						<CommandEmpty>没有找到结果</CommandEmpty>
 						<CommandGroup>
 							{options.map((option) => {
 								const isSelected = selectedSet.has(option.value);
@@ -94,7 +94,7 @@ export function DataTableFacetedFilter<TData, TValue>({
 												isSelected ? "bg-primary text-white" : "opacity-50 [&_svg]:invisible",
 											)}
 										>
-											<Check className={cn("h-4 w-4 text-white")} />
+											<Check className={cn("h-4 w-4 text-white")} aria-hidden="true" />
 										</div>
 										{option.icon && <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />}
 										<span>{option.label}</span>

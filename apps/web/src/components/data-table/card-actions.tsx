@@ -30,7 +30,7 @@ function isLucideIcon(icon: CardAction["icon"]): icon is LucideIcon {
 function renderIcon(icon: CardAction["icon"], className?: string): ReactNode {
 	if (isLucideIcon(icon)) {
 		const Icon = icon;
-		return <Icon className={className} />;
+		return <Icon className={className} aria-hidden="true" />;
 	}
 	return icon;
 }
@@ -70,8 +70,13 @@ export function CardActions({ actions, primaryAction }: CardActionsProps) {
 					{/* Desktop: Dropdown Menu */}
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<Button variant="ghost" size="icon" className="hidden md:inline-flex">
-								<MoreHorizontal className="h-4 w-4" />
+							<Button
+								variant="ghost"
+								size="icon"
+								className="hidden md:inline-flex"
+								aria-label="更多操作"
+							>
+								<MoreHorizontal className="h-4 w-4" aria-hidden="true" />
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
@@ -103,8 +108,9 @@ export function CardActions({ actions, primaryAction }: CardActionsProps) {
 						size="icon"
 						className="md:hidden"
 						onClick={() => setSheetOpen(true)}
+						aria-label="更多操作"
 					>
-						<MoreHorizontal className="h-4 w-4" />
+						<MoreHorizontal className="h-4 w-4" aria-hidden="true" />
 					</Button>
 
 					<Sheet open={sheetOpen} onOpenChange={setSheetOpen}>

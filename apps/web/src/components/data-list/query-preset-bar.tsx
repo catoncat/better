@@ -128,8 +128,9 @@ export function QueryPresetBar<T>(props: QueryPresetBarProps<T>) {
 							variant={isActive ? "default" : "outline"}
 							size="sm"
 							className="shrink-0 rounded-l-none px-1.5"
+							aria-label="预设操作"
 						>
-							<MoreHorizontal className="h-3.5 w-3.5" />
+							<MoreHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
@@ -137,7 +138,7 @@ export function QueryPresetBar<T>(props: QueryPresetBarProps<T>) {
 							className="text-destructive focus:text-destructive"
 							onClick={() => onDeletePreset(preset.id)}
 						>
-							<Trash2 className="h-4 w-4 mr-2" />
+							<Trash2 className="h-4 w-4 mr-2" aria-hidden="true" />
 							删除
 						</DropdownMenuItem>
 					</DropdownMenuContent>
@@ -160,7 +161,7 @@ export function QueryPresetBar<T>(props: QueryPresetBarProps<T>) {
 						<DropdownMenuTrigger asChild>
 							<Button variant="outline" size="sm" className="shrink-0">
 								更多
-								<ChevronDown className="ml-1 h-3.5 w-3.5" />
+								<ChevronDown className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="start">
@@ -183,8 +184,9 @@ export function QueryPresetBar<T>(props: QueryPresetBarProps<T>) {
 													e.stopPropagation();
 													onDeletePreset(preset.id);
 												}}
+												aria-label="删除预设"
 											>
-												<Trash2 className="h-3.5 w-3.5 text-destructive" />
+												<Trash2 className="h-3.5 w-3.5 text-destructive" aria-hidden="true" />
 											</Button>
 										)}
 									</DropdownMenuItem>
@@ -202,9 +204,9 @@ export function QueryPresetBar<T>(props: QueryPresetBarProps<T>) {
 						variant="ghost"
 						size="sm"
 						onClick={() => setSaveDialogOpen(true)}
-						title="保存查询"
+						aria-label="保存查询"
 					>
-						<Plus className="h-4 w-4 md:mr-1" />
+						<Plus className="h-4 w-4 md:mr-1" aria-hidden="true" />
 						<span className="hidden md:inline">保存查询</span>
 					</Button>
 				</div>

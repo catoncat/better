@@ -46,18 +46,18 @@ export function ViewModeToggle({
 					size="sm"
 					className={cn("h-7 px-2 rounded-sm", viewMode === "table" && "bg-muted")}
 					onClick={() => onViewModeChange("table")}
-					title="表格视图"
+					aria-label="表格视图"
 				>
-					<TableIcon className="h-4 w-4" />
+					<TableIcon className="h-4 w-4" aria-hidden="true" />
 				</Button>
 				<Button
 					variant="ghost"
 					size="sm"
 					className={cn("h-7 px-2 rounded-sm", viewMode === "card" && "bg-muted")}
 					onClick={() => onViewModeChange("card")}
-					title="卡片视图"
+					aria-label="卡片视图"
 				>
-					<LayoutGrid className="h-4 w-4" />
+					<LayoutGrid className="h-4 w-4" aria-hidden="true" />
 				</Button>
 			</div>
 
@@ -68,7 +68,7 @@ export function ViewModeToggle({
 						<Button variant="outline" size="sm" className="h-8 px-2">
 							{(() => {
 								const Icon = columnOptions.find((o) => o.value === cardColumns)?.icon;
-								return Icon ? <Icon className="h-4 w-4 mr-1" /> : null;
+								return Icon ? <Icon className="h-4 w-4 mr-1" aria-hidden="true" /> : null;
 							})()}
 							{cardColumns} 列
 						</Button>
@@ -82,7 +82,7 @@ export function ViewModeToggle({
 								onClick={() => onCardColumnsChange(option.value)}
 								className={cn(cardColumns === option.value && "bg-accent")}
 							>
-								<option.icon className="h-4 w-4 mr-2" />
+								<option.icon className="h-4 w-4 mr-2" aria-hidden="true" />
 								{option.label}
 							</DropdownMenuItem>
 						))}

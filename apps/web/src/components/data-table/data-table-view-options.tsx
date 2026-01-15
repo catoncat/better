@@ -21,8 +21,13 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button variant="outline" size="sm" className="ml-auto hidden h-8 lg:flex">
-					<Settings2 className="h-4 w-4" />
+				<Button
+					variant="outline"
+					size="sm"
+					className="ml-auto hidden h-8 lg:flex"
+					aria-label="切换列显示"
+				>
+					<Settings2 className="h-4 w-4" aria-hidden="true" />
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-[150px]">
