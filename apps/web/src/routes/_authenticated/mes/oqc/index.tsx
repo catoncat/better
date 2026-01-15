@@ -1,6 +1,6 @@
 import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Can } from "@/components/ability/can";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,20 @@ interface OqcFilters {
 	runNo: string;
 	status: string[];
 }
+
+// 静态系统预设 - 提升到模块级别避免不必要的重新创建
+const OQC_SYSTEM_PRESETS: SystemPreset<OqcFilters>[] = [
+	{ id: "pending", name: "待开始", filters: { status: ["PENDING"] } },
+	{ id: "inspecting", name: "检验中", filters: { status: ["INSPECTING"] } },
+	{ id: "failed", name: "失败记录", filters: { status: ["FAIL"] } },
+	{ id: "done", name: "已完成", filters: { status: ["PASS", "FAIL"] } },
+];
+
+// 静态状态选项
+const STATUS_OPTIONS = Object.entries(INSPECTION_STATUS_MAP).map(([value, label]) => ({
+	label,
+	value,
+}));
 
 interface OqcSearchParams {
 	runNo?: string;
@@ -47,6 +61,10 @@ function OqcPage() {
 	const searchParams = Route.useSearch();
 	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
 
+	// 使用 ref 存储最新的 searchParams，避免 useCallback 依赖过大
+	const searchParamsRef = useRef(searchParams);
+	searchParamsRef.current = searchParams;
+
 	const [selectedOqcId, setSelectedOqcId] = useState<string | null>(null);
 	const [recordDialogOpen, setRecordDialogOpen] = useState(false);
 	const [recordReadOnly, setRecordReadOnly] = useState(false);
@@ -64,6 +82,7 @@ function OqcPage() {
 		return filters.runNo !== "" || filters.status.length > 0;
 	}, [filters]);
 
+	// Update URL with new filters - 使用 ref 避免依赖 searchParams
 	const setFilter = useCallback(
 		(key: string, value: unknown) => {
 			const serialized = Array.isArray(value)
@@ -75,19 +94,20 @@ function OqcPage() {
 			navigate({
 				to: ".",
 				search: {
-					...searchParams,
+					...searchParamsRef.current,
 					[key]: serialized,
 					page: 1,
 				},
 				replace: true,
 			});
 		},
-		[navigate, searchParams],
+		[navigate],
 	);
 
 	const setFilters = useCallback(
 		(newFilters: Partial<OqcFilters>) => {
-			const newSearch: OqcSearchParams = { ...searchParams, page: 1 };
+			const current = searchParamsRef.current;
+			const newSearch: OqcSearchParams = { ...current, page: 1 };
 			for (const [key, value] of Object.entries(newFilters)) {
 				if (Array.isArray(value)) {
 					(newSearch as Record<string, unknown>)[key] =
@@ -102,7 +122,7 @@ function OqcPage() {
 				replace: true,
 			});
 		},
-		[navigate, searchParams],
+		[navigate],
 	);
 
 	const resetFilters = useCallback(() => {
@@ -110,11 +130,11 @@ function OqcPage() {
 			to: ".",
 			search: {
 				page: 1,
-				pageSize: searchParams.pageSize,
+				pageSize: searchParamsRef.current.pageSize,
 			},
 			replace: true,
 		});
-	}, [navigate, searchParams.pageSize]);
+	}, [navigate]);
 
 	const [pageIndex, setPageIndex] = useState((searchParams.page || 1) - 1);
 	const [pageSize, setPageSize] = useState(searchParams.pageSize || 30);
@@ -136,19 +156,8 @@ function OqcPage() {
 		sortableArrayKeys: ["status"],
 	});
 
-	const systemPresets = useMemo((): SystemPreset<OqcFilters>[] => {
-		return [
-			{ id: "pending", name: "待开始", filters: { status: ["PENDING"] } },
-			{ id: "inspecting", name: "检验中", filters: { status: ["INSPECTING"] } },
-			{ id: "failed", name: "失败记录", filters: { status: ["FAIL"] } },
-			{ id: "done", name: "已完成", filters: { status: ["PASS", "FAIL"] } },
-		];
-	}, []);
-
-	const allPresets = useMemo(
-		() => [...systemPresets, ...userPresets],
-		[systemPresets, userPresets],
-	);
+	// All presets for matching - 使用模块级常量
+	const allPresets = useMemo(() => [...OQC_SYSTEM_PRESETS, ...userPresets], [userPresets]);
 
 	const currentActivePresetId = useMemo(() => {
 		return matchPreset(filters, allPresets);
@@ -185,11 +194,11 @@ function OqcPage() {
 			setPageSize(next.pageSize);
 			navigate({
 				to: ".",
-				search: { ...searchParams, page: next.pageIndex + 1, pageSize: next.pageSize },
+				search: { ...searchParamsRef.current, page: next.pageIndex + 1, pageSize: next.pageSize },
 				replace: true,
 			});
 		},
-		[navigate, searchParams],
+		[navigate],
 	);
 
 	const openRecordDialog = (oqcId: string, readOnlyMode: boolean) => {
@@ -239,15 +248,6 @@ function OqcPage() {
 		onView: (oqcId: string) => openRecordDialog(oqcId, true),
 	};
 
-	const statusOptions = useMemo(
-		() =>
-			Object.entries(INSPECTION_STATUS_MAP).map(([value, label]) => ({
-				label,
-				value,
-			})),
-		[],
-	);
-
 	return (
 		<div className="space-y-6">
 			<DataListLayout
@@ -281,7 +281,7 @@ function OqcPage() {
 					</div>
 				}
 				queryPresetBarProps={{
-					systemPresets,
+					systemPresets: OQC_SYSTEM_PRESETS,
 					userPresets,
 					matchedPresetId: currentActivePresetId,
 					onApplyPreset: handleApplyPreset,
@@ -300,7 +300,7 @@ function OqcPage() {
 							key: "status",
 							type: "multiSelect",
 							label: "状态",
-							options: statusOptions,
+							options: STATUS_OPTIONS,
 						},
 					],
 					filters,

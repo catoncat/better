@@ -2,7 +2,7 @@ import { Permission } from "@better-app/db/permissions";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Can } from "@/components/ability/can";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
@@ -21,6 +21,21 @@ interface RunFilters {
 	status: string[];
 	lineCode?: string;
 }
+
+// 静态系统预设 - 提升到模块级别避免不必要的重新创建
+const RUN_SYSTEM_PRESETS: SystemPreset<RunFilters>[] = [
+	{ id: "prep", name: "准备中批次", filters: { status: ["PREP"] } },
+	{ id: "running", name: "执行中批次", filters: { status: ["AUTHORIZED", "IN_PROGRESS"] } },
+	{ id: "on-hold", name: "隔离批次", filters: { status: ["ON_HOLD"] } },
+	{
+		id: "terminal",
+		name: "终态批次",
+		filters: { status: ["COMPLETED", "CLOSED_REWORK", "SCRAPPED"] },
+	},
+];
+
+// 静态初始排序
+const INITIAL_SORTING = [{ id: "createdAt", desc: true }];
 
 interface RunSearchParams {
 	search?: string;
@@ -56,6 +71,10 @@ function RunsPage() {
 	const [isBatchAuthorizing, setIsBatchAuthorizing] = useState(false);
 	const canBatchAuthorize = hasPermission(Permission.RUN_AUTHORIZE);
 
+	// 使用 ref 存储最新的 searchParams，避免 useCallback 依赖过大
+	const searchParamsRef = useRef(searchParams);
+	searchParamsRef.current = searchParams;
+
 	// Parse filters from URL
 	const filters: RunFilters = useMemo(
 		() => ({
@@ -70,7 +89,7 @@ function RunsPage() {
 		return filters.search !== "" || filters.status.length > 0 || Boolean(filters.lineCode);
 	}, [filters]);
 
-	// Update URL with new filters
+	// Update URL with new filters - 使用 ref 避免依赖 searchParams
 	const setFilter = useCallback(
 		(key: string, value: unknown) => {
 			const serialized = Array.isArray(value)
@@ -82,23 +101,24 @@ function RunsPage() {
 			navigate({
 				to: ".",
 				search: {
-					...searchParams,
+					...searchParamsRef.current,
 					[key]: serialized,
 					page: 1,
 				},
 				replace: true,
 			});
 		},
-		[navigate, searchParams],
+		[navigate],
 	);
 
 	const setFilters = useCallback(
 		(newFilters: Partial<RunFilters>) => {
+			const current = searchParamsRef.current;
 			const newSearch: RunSearchParams = {
-				...searchParams,
+				...current,
 				page: 1,
-				woNo: searchParams.woNo,
-				lineCode: searchParams.lineCode,
+				woNo: current.woNo,
+				lineCode: current.lineCode,
 			};
 			for (const [key, value] of Object.entries(newFilters)) {
 				if (Array.isArray(value)) {
@@ -114,20 +134,21 @@ function RunsPage() {
 				replace: true,
 			});
 		},
-		[navigate, searchParams],
+		[navigate],
 	);
 
 	const resetFilters = useCallback(() => {
+		const current = searchParamsRef.current;
 		navigate({
 			to: ".",
 			search: {
 				page: 1,
-				pageSize: searchParams.pageSize,
-				woNo: searchParams.woNo,
+				pageSize: current.pageSize,
+				woNo: current.woNo,
 			},
 			replace: true,
 		});
-	}, [navigate, searchParams.pageSize, searchParams.woNo]);
+	}, [navigate]);
 
 	// Pagination state (driven by URL via DataListLayout server mode)
 	const [pageIndex, setPageIndex] = useState((searchParams.page || 1) - 1);
@@ -152,25 +173,8 @@ function RunsPage() {
 		sortableArrayKeys: ["status"],
 	});
 
-	// System presets
-	const systemPresets = useMemo((): SystemPreset<RunFilters>[] => {
-		return [
-			{ id: "prep", name: "准备中批次", filters: { status: ["PREP"] } },
-			{ id: "running", name: "执行中批次", filters: { status: ["AUTHORIZED", "IN_PROGRESS"] } },
-			{ id: "on-hold", name: "隔离批次", filters: { status: ["ON_HOLD"] } },
-			{
-				id: "terminal",
-				name: "终态批次",
-				filters: { status: ["COMPLETED", "CLOSED_REWORK", "SCRAPPED"] },
-			},
-		];
-	}, []);
-
-	// All presets for matching
-	const allPresets = useMemo(
-		() => [...systemPresets, ...userPresets],
-		[systemPresets, userPresets],
-	);
+	// All presets for matching - 使用模块级常量
+	const allPresets = useMemo(() => [...RUN_SYSTEM_PRESETS, ...userPresets], [userPresets]);
 
 	// Find active preset based on current filters
 	const currentActivePresetId = useMemo(() => {
@@ -219,19 +223,17 @@ function RunsPage() {
 		});
 	}, [visibleRunNos]);
 
-	const initialSorting = useMemo(() => [{ id: "createdAt", desc: true }], []);
-
 	const handlePaginationChange = useCallback(
 		(next: { pageIndex: number; pageSize: number }) => {
 			setPageIndex(next.pageIndex);
 			setPageSize(next.pageSize);
 			navigate({
 				to: ".",
-				search: { ...searchParams, page: next.pageIndex + 1, pageSize: next.pageSize },
+				search: { ...searchParamsRef.current, page: next.pageIndex + 1, pageSize: next.pageSize },
 				replace: true,
 			});
 		},
-		[navigate, searchParams],
+		[navigate],
 	);
 
 	const handleSortingChange = useCallback(
@@ -242,11 +244,11 @@ function RunsPage() {
 					: undefined;
 			navigate({
 				to: ".",
-				search: { ...searchParams, sort: serialized, page: 1 },
+				search: { ...searchParamsRef.current, sort: serialized, page: 1 },
 				replace: true,
 			});
 		},
-		[navigate, searchParams],
+		[navigate],
 	);
 
 	const handleAuthorize = async (runNo: string) => {
@@ -325,7 +327,7 @@ function RunsPage() {
 			mode="server"
 			data={data?.items || []}
 			columns={runColumns}
-			initialSorting={initialSorting}
+			initialSorting={INITIAL_SORTING}
 			onSortingChange={handleSortingChange}
 			pageCount={data?.total ? Math.ceil(data.total / pageSize) : 1}
 			onPaginationChange={handlePaginationChange}
@@ -359,7 +361,7 @@ function RunsPage() {
 				</div>
 			}
 			queryPresetBarProps={{
-				systemPresets,
+				systemPresets: RUN_SYSTEM_PRESETS,
 				userPresets,
 				matchedPresetId: currentActivePresetId,
 				onApplyPreset: handleApplyPreset,

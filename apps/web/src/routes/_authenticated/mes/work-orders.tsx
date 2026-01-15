@@ -1,7 +1,7 @@
 import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Can } from "@/components/ability/can";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,23 @@ interface WorkOrderFilters {
 	routingId?: string[];
 }
 
+const WORK_ORDER_SYSTEM_PRESETS: SystemPreset<WorkOrderFilters>[] = [
+	{
+		id: "ready",
+		name: "可开工",
+		filters: { status: ["RELEASED"], erpPickStatus: ["2", "3", "4"] },
+	},
+	{
+		id: "waiting-material",
+		name: "待齐料",
+		filters: { status: ["RELEASED"], erpPickStatus: ["1"] },
+	},
+	{ id: "in-progress", name: "生产中", filters: { status: ["IN_PROGRESS"] } },
+	{ id: "completed", name: "已完成", filters: { status: ["COMPLETED"] } },
+];
+
+const INITIAL_SORTING = [{ id: "createdAt", desc: true }];
+
 interface WorkOrderSearchParams {
 	search?: string;
 	status?: string;
@@ -62,6 +79,9 @@ function WorkOrdersPage() {
 	const navigate = useNavigate();
 	const searchParams = useSearch({ from: "/_authenticated/mes/work-orders" });
 	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
+
+	const searchParamsRef = useRef(searchParams);
+	searchParamsRef.current = searchParams;
 
 	const [receiveDialogOpen, setReceiveDialogOpen] = useState(false);
 	const [runDialogOpen, setRunDialogOpen] = useState(false);
@@ -102,19 +122,20 @@ function WorkOrdersPage() {
 			navigate({
 				to: ".",
 				search: {
-					...searchParams,
+					...searchParamsRef.current,
 					[key]: serialized,
 					page: 1,
 				},
 				replace: true,
 			});
 		},
-		[navigate, searchParams],
+		[navigate],
 	);
 
 	const setFilters = useCallback(
 		(newFilters: Partial<WorkOrderFilters>) => {
-			const newSearch: WorkOrderSearchParams = { ...searchParams, page: 1 };
+			const current = searchParamsRef.current;
+			const newSearch: WorkOrderSearchParams = { ...current, page: 1 };
 			for (const [key, value] of Object.entries(newFilters)) {
 				if (Array.isArray(value)) {
 					(newSearch as Record<string, unknown>)[key] =
@@ -129,16 +150,16 @@ function WorkOrdersPage() {
 				replace: true,
 			});
 		},
-		[navigate, searchParams],
+		[navigate],
 	);
 
 	const resetFilters = useCallback(() => {
 		navigate({
 			to: ".",
-			search: { page: 1, pageSize: searchParams.pageSize },
+			search: { page: 1, pageSize: searchParamsRef.current.pageSize },
 			replace: true,
 		});
-	}, [navigate, searchParams.pageSize]);
+	}, [navigate]);
 
 	// Pagination state (driven by URL via DataListLayout server mode)
 	const [pageIndex, setPageIndex] = useState((searchParams.page || 1) - 1);
@@ -169,29 +190,8 @@ function WorkOrdersPage() {
 		sortableArrayKeys: ["status", "erpPickStatus", "routingId"],
 	});
 
-	// System presets
-	const systemPresets = useMemo((): SystemPreset<WorkOrderFilters>[] => {
-		return [
-			{
-				id: "ready",
-				name: "可开工",
-				filters: { status: ["RELEASED"], erpPickStatus: ["2", "3", "4"] },
-			},
-			{
-				id: "waiting-material",
-				name: "待齐料",
-				filters: { status: ["RELEASED"], erpPickStatus: ["1"] },
-			},
-			{ id: "in-progress", name: "生产中", filters: { status: ["IN_PROGRESS"] } },
-			{ id: "completed", name: "已完成", filters: { status: ["COMPLETED"] } },
-		];
-	}, []);
-
 	// All presets for matching
-	const allPresets = useMemo(
-		() => [...systemPresets, ...userPresets],
-		[systemPresets, userPresets],
-	);
+	const allPresets = useMemo(() => [...WORK_ORDER_SYSTEM_PRESETS, ...userPresets], [userPresets]);
 
 	// Find active preset based on current filters
 	const currentActivePresetId = useMemo(() => {
@@ -238,19 +238,17 @@ function WorkOrdersPage() {
 		sort: searchParams.sort,
 	});
 
-	const initialSorting = useMemo(() => [{ id: "createdAt", desc: true }], []);
-
 	const handlePaginationChange = useCallback(
 		(next: { pageIndex: number; pageSize: number }) => {
 			setPageIndex(next.pageIndex);
 			setPageSize(next.pageSize);
 			navigate({
 				to: ".",
-				search: { ...searchParams, page: next.pageIndex + 1, pageSize: next.pageSize },
+				search: { ...searchParamsRef.current, page: next.pageIndex + 1, pageSize: next.pageSize },
 				replace: true,
 			});
 		},
-		[navigate, searchParams],
+		[navigate],
 	);
 
 	const handleSortingChange = useCallback(
@@ -261,11 +259,11 @@ function WorkOrdersPage() {
 					: undefined;
 			navigate({
 				to: ".",
-				search: { ...searchParams, sort: serialized, page: 1 },
+				search: { ...searchParamsRef.current, sort: serialized, page: 1 },
 				replace: true,
 			});
 		},
-		[navigate, searchParams],
+		[navigate],
 	);
 
 	const handleReleaseOpen = useCallback((wo: WorkOrder) => {
@@ -337,7 +335,7 @@ function WorkOrdersPage() {
 			mode="server"
 			data={data?.items || []}
 			columns={workOrderColumns}
-			initialSorting={initialSorting}
+			initialSorting={INITIAL_SORTING}
 			onSortingChange={handleSortingChange}
 			pageCount={data?.total ? Math.ceil(data.total / pageSize) : 1}
 			onPaginationChange={handlePaginationChange}
@@ -380,7 +378,7 @@ function WorkOrdersPage() {
 				</div>
 			}
 			queryPresetBarProps={{
-				systemPresets,
+				systemPresets: WORK_ORDER_SYSTEM_PRESETS,
 				userPresets,
 				matchedPresetId: currentActivePresetId,
 				onApplyPreset: handleApplyPreset,
