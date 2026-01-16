@@ -8,9 +8,9 @@
 
 ## Tracking Policy
 - 本文件是 OQC/MRB 任务追踪的唯一来源。
-- 本 worktree 全部完成后，再回填 `domain_docs/mes/plan/phase2_tasks.md` 中 2.5.* 的勾选状态（高层汇总）。
+- 本 worktree 全部完成后，再回填 `domain_docs/mes/plan/tasks.md.md` 中 2.5.* 的勾选状态（高层汇总）。
 
-## Scope (从 phase2_tasks.md 拆分)
+## Scope (从 tasks.md.md 拆分)
 Status: [x] done, [~] in progress, [ ] pending
 
 - [x] 2.5.1 OQC 抽检规则模型 (比例/固定数量)
@@ -59,7 +59,7 @@ Status: [x] done, [~] in progress, [ ] pending
 - [x] OQC 抽检规则配置页（支持新增/编辑/停用）
 
 5) QA/Docs
-- [ ] 回填 `phase2_tasks.md` 勾选（本 worktree 全部完成后）
+- [ ] 回填 `tasks.md.md` 勾选（本 worktree 全部完成后）
 - [x] 必要的服务层测试或最小验收脚本
 
 6) Follow-up Fixes (post review)

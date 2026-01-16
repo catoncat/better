@@ -16,7 +16,7 @@ Implemented `POST /api/integration/inspection-result` endpoint to receive SPI/AO
 
 ### Modified Files
 - `apps/server/src/modules/mes/integration/routes.ts`: Added `/inspection-result` endpoint
-- `domain_docs/mes/plan/phase2_tasks.md`: Marked 2.6.4 and 2.6.8 as completed
+- `domain_docs/mes/plan/tasks.md.md`: Marked 2.6.4 and 2.6.8 as completed
 - `domain_docs/mes/spec/impl_align/01_e2e_align.md`: Added external integration section
 
 ## Key Features

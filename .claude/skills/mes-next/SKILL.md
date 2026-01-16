@@ -41,10 +41,10 @@ Select the next MES development target from the plan, then ask the user to choos
    - Use the touched areas/files as conflict signals when proposing parallel tracks.
 1. Read the minimum docs:
    - `domain_docs/mes/CONTEXT.md`
-   - `domain_docs/mes/plan/phase2_tasks.md`
+   - `domain_docs/mes/plan/tasks.md`
    - `domain_docs/mes/plan/01_milestones.md`
 2. Build a shortlist of 3-5 candidates:
-   - Prefer items that are `[ ]` or `[~]` in `phase2_tasks.md`
+   - Prefer items that are `[ ]` or `[~]` in `tasks.md`
    - Call out dependencies explicitly (what must be done first)
    - Keep each candidate one paragraph max
 3. Group the shortlist into 2-4 parallelizable tracks:

@@ -312,7 +312,7 @@ P1（应该）：
 ## 5. References
 
 - 计划：`domain_docs/mes/plan/01_milestones.md`
-- M2 现状：`domain_docs/mes/plan/phase2_tasks.md`
+- M2 现状：`domain_docs/mes/plan/tasks.md.md`
 - 验收用例：`domain_docs/mes/tests/01_acceptance_scenarios.md`
 - 演示脚本：`apps/server/scripts/test-mes-flow.ts`
 - 部署：`agent_docs/05_ops/single_binary_deployment.md`

@@ -39,7 +39,7 @@ branch: feat/mes/material-binding
 baseRef: origin/main
 task:
   title: Material Binding Validation
-  planPath: domain_docs/mes/plan/phase2_tasks.md
+  planPath: domain_docs/mes/plan/tasks.md.md
   planItem: 3.2
   triageNote: conversation/2026-01-13_080325_mes-triage_next-steps.md
 touchPoints:
@@ -84,7 +84,7 @@ touchPoints:
 ```bash
 bun scripts/worktree-new.ts <branch> <path> \
   --task "Material Binding Validation" \
-  --plan domain_docs/mes/plan/phase2_tasks.md \
+  --plan domain_docs/mes/plan/tasks.md.md \
   --plan-item 3.2 \
   --triage conversation/2026-01-13_080325_mes-triage_next-steps.md \
   --touch apps/server/src/modules/mes/execution/ \

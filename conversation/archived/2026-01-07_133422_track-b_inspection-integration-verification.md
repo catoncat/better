@@ -68,11 +68,11 @@ SPI/AOI 检测结果可能作为参考信息展示，但这是增强功能，不
 
 1. **确认 TrackOut 检测结果集成已完成** - 代码分析验证
 2. **FAI 不需要核心集成** - 人工检验流程设计
-3. **更新文档** - 移除 phase2_tasks.md Review Notes 中的矛盾说明
+3. **更新文档** - 移除 tasks.md.md Review Notes 中的矛盾说明
 
 ## Changes Made
 
-- `domain_docs/mes/plan/phase2_tasks.md`: 移除 "集成接口：FAI/TrackOut 读取检测结果尚未实现" 说明
+- `domain_docs/mes/plan/tasks.md.md`: 移除 "集成接口：FAI/TrackOut 读取检测结果尚未实现" 说明
 
 ## Open Questions
 

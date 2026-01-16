@@ -108,22 +108,22 @@
 1. 在 Run 详情页点击「创建 FAI」
 2. 进入 `/mes/fai`，找到该 Run 的 FAI，点击「开始」（进入 `INSPECTING`）
 3. 回到 Run 详情页，点击「试产执行」按钮跳转到执行页面（Run=PREP 时显示为"试产执行"）
-4. 在 `/mes/execution` 选择首工位（SMT 示例：`ST-PRINT-01`），对同一 SN 执行一次：
-   - Track In（进站）— **首次扫入新 SN 时系统自动创建 Unit**
+4. 在 Run 详情页「实际生产」卡片点击「生成单件」，生成 1 个 SN（例如 `SN-{runNo}-0001`）
+5. 在 `/mes/execution` 选择首工位（SMT 示例：`ST-PRINT-01`），对同一 SN 执行一次：
+   - Track In（进站）— 使用 Run 详情页「生成单件」预生成的 SN（未生成会返回 `UNIT_NOT_FOUND`）
    - Track Out（出站，PASS）
-5. 回到 `/mes/fai` 记录检验项（建议填写 `unitSn`）并「完成」为 `PASS`
+6. 回到 `/mes/fai` 记录检验项（建议填写 `unitSn`）并「完成」为 `PASS`
 
 **Unit 生成路径说明：**
 
-系统支持两种 Unit（产品单件）生成方式：
+系统仅支持在 Run 内批量预生成 Unit（产品单件），TrackIn 不会自动创建 Unit。
 
 | 方式 | 触发时机 | 适用场景 |
 |------|----------|----------|
-| **自动创建** | TrackIn 时扫入新 SN | 常规生产，边生产边创建 |
-| **批量预生成** | Run 详情页点击「生成单件」按钮 | 需要提前打印标签、批量准备 |
+| **批量预生成** | Run 详情页点击「生成单件」按钮 | 生产前批量准备、打印标签 |
 
-- 自动创建：首次 TrackIn 扫描一个不存在的 SN 时，系统自动在该 Run 下创建 Unit
 - 批量预生成：在 Run 详情页「实际生产」卡片点击「生成单件」，可一次性生成指定数量的 SN（格式：`SN-{runNo}-0001`）
+- TrackIn 仅允许使用已生成的 SN；未生成会返回 `UNIT_NOT_FOUND`。
 
 **注意：**
 - 当前实现里，**授权前试产只允许首工序**；若在 Run=PREP 时操作非首工位会返回 `FAI_TRIAL_STEP_NOT_ALLOWED`。

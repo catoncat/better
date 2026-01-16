@@ -20,7 +20,7 @@
 | 验收问题跟踪 | `user_docs/demo/acceptance_issues.md` |
 | 了解 M4 进度/待办 | `plan/phase4_tasks.md` |
 | 了解 M3 已交付范围 | `plan/phase3_tasks.md` |
-| 了解历史进度（M2） | `plan/phase2_tasks.md` |
+| 了解历史进度（M2） | `plan/tasks.md.md` |
 | 了解全局流程 | `spec/process/01_end_to_end_flows.md` |
 | 了解 SMT 流程 | `spec/process/03_smt_flows.md` |
 | 了解 DIP 流程 | `spec/process/04_dip_flows.md` |
@@ -55,4 +55,4 @@
 - `user_docs/demo/acceptance_issues.md` - 验收问题跟踪
 - `plan/phase4_tasks.md` - **M4 当前任务分解（进度主入口）**
 - `plan/phase3_tasks.md` - M3 上线准备（已完成）
-- `plan/phase2_tasks.md` - M2 历史任务（已完成）
+- `plan/tasks.md.md` - M2 历史任务（已完成）

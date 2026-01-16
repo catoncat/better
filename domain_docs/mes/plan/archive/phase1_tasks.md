@@ -340,4 +340,4 @@ Goal: Complete the basic production loop, from work order reception to unit comp
 ---
 
 ## Next Phase Planning
-*   See `domain_docs/mes/plan/phase2_tasks.md` for the detailed M2 task breakdown.
+*   See `domain_docs/mes/plan/tasks.md.md` for the detailed M2 task breakdown.

@@ -13,7 +13,7 @@
 |---|------|----------|------|------|
 | 1 | 1.1 | Minor | 登录页手动输入账号登录后页面卡住（输入框 disabled，无错误提示） | Open |
 | 2 | 1.3 | Major | 「接收外部工单」弹窗疑似无法滚动到底部，导致「接收工单」按钮无法点击/提交 | Open |
-| 3 | 4.3 | Major | 试产 TrackIn 扫入新 SN 报 `UNIT_NOT_FOUND`，与演示指南“自动创建 Unit”不一致 | Open |
+| 3 | 4.3 | Minor | 指南修正：TrackIn 不自动创建 Unit（需预生成） | Fixed |
 | 4 | 7.1 | Major | Run 收尾确认后无响应 / 未创建 OQC 任务 | Open |
 
 ---
@@ -37,42 +37,21 @@
 
 （验收过程中发现问题时在此记录）
 
-## 问题 #2: 「接收外部工单」弹窗疑似无法滚动到底部，导致「接收工单」按钮无法点击/提交
-- **阶段**: 1.3（用于覆盖“新建工单”路径）
-- **页面**: `/mes/work-orders` → 「接收工单」弹窗
-- **严重程度**: Major（阻断通过 UI 新建工单 → 下发 → 创建 Run 的验收路径）
-- **描述**:
-  - 通过「接收工单」打开「接收外部工单」弹窗后，表单底部提交按钮在可视区域外。
-  - 使用 `agent-browser` 尝试 `click` / `find role button click --name 接收工单` 多次失败，Playwright 日志提示 element outside viewport；多次 scroll/End 无法把按钮滚到可视区域。
-  - 最终关闭弹窗并回到列表搜索该工单号显示「暂无数据」，说明提交未成功。
-  - **待确认**：这是否为 UI 实际不可滚动/不可提交的问题，还是仅 `agent-browser` 的滚动/点击限制。
-- **截图**:
-  - `user_docs/demo/screenshots/phase1_receive_work_order_modal.png`
-  - `user_docs/demo/screenshots/phase1_receive_work_order_modal_after_end.png`
-  - `user_docs/demo/screenshots/phase1_receive_work_order_modal_submit_visible.png`
-- **复现步骤**:
-  1. 登录 `planner@example.com`
-  2. 打开 `/mes/work-orders` 点击「接收工单」
-  3. 填写工单号/产品/数量/路由/物料状态/到期日期
-  4. 尝试滚动到底部点击「接收工单」提交
-  5. 观察：无法把提交按钮滚到可视区域并点击成功（或点击无效），关闭后工单未创建
-- **状态**: Open
 
-## 问题 #3: 试产 TrackIn 扫入新 SN 报 `UNIT_NOT_FOUND`，与演示指南“自动创建 Unit”不一致
+
+## 问题 #3: 指南修正：TrackIn 不自动创建 Unit（需预生成）
 - **阶段**: 4.3（FAI 试产过站）
 - **页面**: `/mes/execution?runNo=...`
-- **严重程度**: Major（阻断按指南“首次扫入新 SN 自动创建 Unit”的主路径）
+- **严重程度**: Minor（文档说明不一致，功能行为符合预期）
 - **描述**:
-  - 按 `user_docs/demo/guide.md` 的说明，首次 TrackIn 扫入一个不存在的 SN 时应自动在该 Run 下创建 Unit。
-  - 实际在 `ST-PRINT-01` 执行 TrackIn 时返回错误：`UNIT_NOT_FOUND`，提示需要先在 Run 详情页「生成单件」。
-  - 通过 Run 详情页「生成单件」批量生成 SN 后，使用生成的 SN 可正常 TrackIn/TrackOut。
-- **截图**: （未截图；错误从 `agent-browser errors` 读取）
+  - 实际行为：TrackIn 不会自动创建 Unit；使用未生成的 SN 会返回 `UNIT_NOT_FOUND`。
+  - 修正：已在 `user_docs/demo/guide.md` 2.4 将说明改为“先在 Run 详情页生成单件，再 TrackIn”。
+- **截图**: （未截图）
 - **复现步骤**:
-  1. 确保 Run 处于 `PREP` 且 FAI 已开始（检验中）
-  2. 进入 `/mes/execution` 选择 `ST-PRINT-01`
-  3. 在 TrackIn 输入一个从未生成过的 SN（例如 `SN-RUN-WO-DEMO-SMT-001-0001`）并点击「确认进站」
-  4. 观察：返回 `UNIT_NOT_FOUND`，提示需要先生成 Unit
-- **状态**: Open
+  1. 在 Run 详情页先点击「生成单件」生成 SN
+  2. 使用该 SN 完成 TrackIn/TrackOut
+  3. 若输入未生成 SN，验证会返回 `UNIT_NOT_FOUND`（符合预期）
+- **状态**: Fixed
 
 ## 问题 #4: Run 收尾确认后无响应 / 未创建 OQC 任务
 - **阶段**: 7.1（Run 收尾）

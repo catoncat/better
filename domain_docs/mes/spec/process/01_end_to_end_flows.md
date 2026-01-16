@@ -86,4 +86,4 @@ flowchart TB
 - SMT 流程: `spec/process/03_smt_flows.md`
 - DIP 流程: `spec/process/04_dip_flows.md`
 - 实现对齐: `spec/impl_align/01_e2e_align.md`
-- 任务追踪: `plan/phase2_tasks.md`
+- 任务追踪: `plan/tasks.md.md`

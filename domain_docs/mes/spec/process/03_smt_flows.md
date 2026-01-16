@@ -104,4 +104,4 @@ flowchart TD
 ## References
 
 - 实现对齐: `spec/impl_align/03_smt_align.md`
-- 任务追踪: `plan/phase2_tasks.md`
+- 任务追踪: `plan/tasks.md.md`

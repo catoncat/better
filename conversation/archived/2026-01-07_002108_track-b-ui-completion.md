@@ -34,7 +34,7 @@
 
 ## 更新的文档
 
-- `domain_docs/mes/plan/phase2_tasks.md` - 标记 2.4.15、2.6.12、2.6.13 为已完成
+- `domain_docs/mes/plan/tasks.md.md` - 标记 2.4.15、2.6.12、2.6.13 为已完成
 
 ## 剩余工作
 

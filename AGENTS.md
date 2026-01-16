@@ -20,7 +20,7 @@
 - Read `agent_docs/00_onboarding/setup.md` and follow the steps.
 
 ## Workflow & Planning
-- **Follow the Plan**: When implementing a feature/domain, verify if a specific plan exists (e.g., `domain_docs/mes/plan/phase2_tasks.md`).
+- **Follow the Plan**: When implementing a feature/domain, verify if a specific plan exists (e.g., `domain_docs/mes/plan/phase3_tasks.md`).
 - **Mark Progress**: As you complete tasks in a plan file, update the file to mark them as done (e.g., `[x] Task 1.1`).
 - **Update the Plan**: If new tasks are discovered or priorities change, update the plan file to reflect the new reality.
 - **Files As Memory**: For any multi-step task (or >5 tool calls), persist plan/findings/progress/errors to disk (`worktree_notes/` for branch-scoped work; `conversation/` for decisions/findings) instead of relying on chat context. For MES, canonical status lives in `domain_docs/mes/plan/`.
@@ -164,7 +164,7 @@ Use the smallest set of docs needed for the task. Skip anything not required.
 
 ### Plan
 - Milestones: `domain_docs/mes/plan/01_milestones.md`
-- Current Tasks: `domain_docs/mes/plan/phase2_tasks.md`
+- Current Tasks: `domain_docs/mes/plan/phase3_tasks.md`
 
 ## References (Only When Needed)
 - `agent_docs/99_reference/elysia_reference.md`

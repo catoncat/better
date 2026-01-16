@@ -5,7 +5,7 @@
 
 ## Context
 
-M2 阶段接近收尾，根据 `phase2_tasks.md` 第 4 节 Review Notes/Gaps，剩余收尾项：
+M2 阶段接近收尾，根据 `tasks.md.md` 第 4 节 Review Notes/Gaps，剩余收尾项：
 - G1: Readiness 权限纳入默认角色
 - G2: Readiness 配置页 + 配置 API
 - G3: FAI/TrackOut 读取检测结果（SPI/AOI 集成）
@@ -17,7 +17,7 @@ M2 阶段接近收尾，根据 `phase2_tasks.md` 第 4 节 Review Notes/Gaps，�
 - M2 (Quality Control) 几乎全部完成
 - M3/M4 尚未启动
 
-待选任务分析 (phase2_tasks.md 第 4 节 Review Notes/Gaps):
+待选任务分析 (tasks.md.md 第 4 节 Review Notes/Gaps):
 
 | #  | 任务                                      | 依赖      | 主要触点                              |
 |----|-------------------------------------------|-----------|---------------------------------------|
@@ -86,6 +86,6 @@ Conflicts (不可并行):
 
 ## References
 
-- `domain_docs/mes/plan/phase2_tasks.md` 第 4 节
+- `domain_docs/mes/plan/tasks.md.md` 第 4 节
 - `packages/db/src/permissions/permissions.ts`
 - `packages/db/src/permissions/preset-roles.ts`
