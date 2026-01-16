@@ -2,7 +2,7 @@ import { Permission } from "@better-app/db/permissions";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Can } from "@/components/ability/can";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
@@ -71,10 +71,6 @@ function RunsPage() {
 	const [isBatchAuthorizing, setIsBatchAuthorizing] = useState(false);
 	const canBatchAuthorize = hasPermission(Permission.RUN_AUTHORIZE);
 
-	// 使用 ref 存储最新的 searchParams，避免 useCallback 依赖过大
-	const searchParamsRef = useRef(searchParams);
-	searchParamsRef.current = searchParams;
-
 	// Parse filters from URL
 	const filters: RunFilters = useMemo(
 		() => ({
@@ -89,7 +85,7 @@ function RunsPage() {
 		return filters.search !== "" || filters.status.length > 0 || Boolean(filters.lineCode);
 	}, [filters]);
 
-	// Update URL with new filters - 使用 ref 避免依赖 searchParams
+	// Update URL with new filters
 	const setFilter = useCallback(
 		(key: string, value: unknown) => {
 			const serialized = Array.isArray(value)
@@ -100,11 +96,11 @@ function RunsPage() {
 
 			navigate({
 				to: ".",
-				search: {
-					...searchParamsRef.current,
+				search: (prev) => ({
+					...prev,
 					[key]: serialized,
 					page: 1,
-				},
+				}),
 				replace: true,
 			});
 		},
@@ -113,24 +109,25 @@ function RunsPage() {
 
 	const setFilters = useCallback(
 		(newFilters: Partial<RunFilters>) => {
-			const current = searchParamsRef.current;
-			const newSearch: RunSearchParams = {
-				...current,
-				page: 1,
-				woNo: current.woNo,
-				lineCode: current.lineCode,
-			};
-			for (const [key, value] of Object.entries(newFilters)) {
-				if (Array.isArray(value)) {
-					(newSearch as Record<string, unknown>)[key] =
-						value.length > 0 ? value.join(",") : undefined;
-				} else {
-					(newSearch as Record<string, unknown>)[key] = value || undefined;
-				}
-			}
 			navigate({
 				to: ".",
-				search: newSearch,
+				search: (prev) => {
+					const nextSearch: RunSearchParams = {
+						...prev,
+						page: 1,
+						woNo: prev.woNo,
+						lineCode: prev.lineCode,
+					};
+					for (const [key, value] of Object.entries(newFilters)) {
+						if (Array.isArray(value)) {
+							(nextSearch as Record<string, unknown>)[key] =
+								value.length > 0 ? value.join(",") : undefined;
+						} else {
+							(nextSearch as Record<string, unknown>)[key] = value || undefined;
+						}
+					}
+					return nextSearch;
+				},
 				replace: true,
 			});
 		},
@@ -138,14 +135,13 @@ function RunsPage() {
 	);
 
 	const resetFilters = useCallback(() => {
-		const current = searchParamsRef.current;
 		navigate({
 			to: ".",
-			search: {
+			search: (prev) => ({
 				page: 1,
-				pageSize: current.pageSize,
-				woNo: current.woNo,
-			},
+				pageSize: prev.pageSize,
+				woNo: prev.woNo,
+			}),
 			replace: true,
 		});
 	}, [navigate]);
@@ -229,7 +225,11 @@ function RunsPage() {
 			setPageSize(next.pageSize);
 			navigate({
 				to: ".",
-				search: { ...searchParamsRef.current, page: next.pageIndex + 1, pageSize: next.pageSize },
+				search: (prev) => ({
+					...prev,
+					page: next.pageIndex + 1,
+					pageSize: next.pageSize,
+				}),
 				replace: true,
 			});
 		},
@@ -244,7 +244,7 @@ function RunsPage() {
 					: undefined;
 			navigate({
 				to: ".",
-				search: { ...searchParamsRef.current, sort: serialized, page: 1 },
+				search: (prev) => ({ ...prev, sort: serialized, page: 1 }),
 				replace: true,
 			});
 		},

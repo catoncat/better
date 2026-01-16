@@ -1,6 +1,6 @@
 import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
@@ -61,10 +61,6 @@ function OqcPage() {
 	const searchParams = Route.useSearch();
 	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
 
-	// 使用 ref 存储最新的 searchParams，避免 useCallback 依赖过大
-	const searchParamsRef = useRef(searchParams);
-	searchParamsRef.current = searchParams;
-
 	const [selectedOqcId, setSelectedOqcId] = useState<string | null>(null);
 	const [recordDialogOpen, setRecordDialogOpen] = useState(false);
 	const [recordReadOnly, setRecordReadOnly] = useState(false);
@@ -82,7 +78,7 @@ function OqcPage() {
 		return filters.runNo !== "" || filters.status.length > 0;
 	}, [filters]);
 
-	// Update URL with new filters - 使用 ref 避免依赖 searchParams
+	// Update URL with new filters
 	const setFilter = useCallback(
 		(key: string, value: unknown) => {
 			const serialized = Array.isArray(value)
@@ -93,11 +89,11 @@ function OqcPage() {
 
 			navigate({
 				to: ".",
-				search: {
-					...searchParamsRef.current,
+				search: (prev) => ({
+					...prev,
 					[key]: serialized,
 					page: 1,
-				},
+				}),
 				replace: true,
 			});
 		},
@@ -106,19 +102,20 @@ function OqcPage() {
 
 	const setFilters = useCallback(
 		(newFilters: Partial<OqcFilters>) => {
-			const current = searchParamsRef.current;
-			const newSearch: OqcSearchParams = { ...current, page: 1 };
-			for (const [key, value] of Object.entries(newFilters)) {
-				if (Array.isArray(value)) {
-					(newSearch as Record<string, unknown>)[key] =
-						value.length > 0 ? value.join(",") : undefined;
-				} else {
-					(newSearch as Record<string, unknown>)[key] = value || undefined;
-				}
-			}
 			navigate({
 				to: ".",
-				search: newSearch,
+				search: (prev) => {
+					const nextSearch: OqcSearchParams = { ...prev, page: 1 };
+					for (const [key, value] of Object.entries(newFilters)) {
+						if (Array.isArray(value)) {
+							(nextSearch as Record<string, unknown>)[key] =
+								value.length > 0 ? value.join(",") : undefined;
+						} else {
+							(nextSearch as Record<string, unknown>)[key] = value || undefined;
+						}
+					}
+					return nextSearch;
+				},
 				replace: true,
 			});
 		},
@@ -128,10 +125,10 @@ function OqcPage() {
 	const resetFilters = useCallback(() => {
 		navigate({
 			to: ".",
-			search: {
+			search: (prev) => ({
 				page: 1,
-				pageSize: searchParamsRef.current.pageSize,
-			},
+				pageSize: prev.pageSize,
+			}),
 			replace: true,
 		});
 	}, [navigate]);
@@ -194,7 +191,11 @@ function OqcPage() {
 			setPageSize(next.pageSize);
 			navigate({
 				to: ".",
-				search: { ...searchParamsRef.current, page: next.pageIndex + 1, pageSize: next.pageSize },
+				search: (prev) => ({
+					...prev,
+					page: next.pageIndex + 1,
+					pageSize: next.pageSize,
+				}),
 				replace: true,
 			});
 		},

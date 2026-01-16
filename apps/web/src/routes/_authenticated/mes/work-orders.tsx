@@ -1,7 +1,7 @@
 import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
@@ -80,9 +80,6 @@ function WorkOrdersPage() {
 	const searchParams = useSearch({ from: "/_authenticated/mes/work-orders" });
 	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
 
-	const searchParamsRef = useRef(searchParams);
-	searchParamsRef.current = searchParams;
-
 	const [receiveDialogOpen, setReceiveDialogOpen] = useState(false);
 	const [runDialogOpen, setRunDialogOpen] = useState(false);
 	const [pickStatusDialogOpen, setPickStatusDialogOpen] = useState(false);
@@ -121,11 +118,11 @@ function WorkOrdersPage() {
 
 			navigate({
 				to: ".",
-				search: {
-					...searchParamsRef.current,
+				search: (prev) => ({
+					...prev,
 					[key]: serialized,
 					page: 1,
-				},
+				}),
 				replace: true,
 			});
 		},
@@ -134,19 +131,20 @@ function WorkOrdersPage() {
 
 	const setFilters = useCallback(
 		(newFilters: Partial<WorkOrderFilters>) => {
-			const current = searchParamsRef.current;
-			const newSearch: WorkOrderSearchParams = { ...current, page: 1 };
-			for (const [key, value] of Object.entries(newFilters)) {
-				if (Array.isArray(value)) {
-					(newSearch as Record<string, unknown>)[key] =
-						value.length > 0 ? value.join(",") : undefined;
-				} else {
-					(newSearch as Record<string, unknown>)[key] = value || undefined;
-				}
-			}
 			navigate({
 				to: ".",
-				search: newSearch,
+				search: (prev) => {
+					const nextSearch: WorkOrderSearchParams = { ...prev, page: 1 };
+					for (const [key, value] of Object.entries(newFilters)) {
+						if (Array.isArray(value)) {
+							(nextSearch as Record<string, unknown>)[key] =
+								value.length > 0 ? value.join(",") : undefined;
+						} else {
+							(nextSearch as Record<string, unknown>)[key] = value || undefined;
+						}
+					}
+					return nextSearch;
+				},
 				replace: true,
 			});
 		},
@@ -156,7 +154,7 @@ function WorkOrdersPage() {
 	const resetFilters = useCallback(() => {
 		navigate({
 			to: ".",
-			search: { page: 1, pageSize: searchParamsRef.current.pageSize },
+			search: (prev) => ({ page: 1, pageSize: prev.pageSize }),
 			replace: true,
 		});
 	}, [navigate]);
@@ -244,7 +242,11 @@ function WorkOrdersPage() {
 			setPageSize(next.pageSize);
 			navigate({
 				to: ".",
-				search: { ...searchParamsRef.current, page: next.pageIndex + 1, pageSize: next.pageSize },
+				search: (prev) => ({
+					...prev,
+					page: next.pageIndex + 1,
+					pageSize: next.pageSize,
+				}),
 				replace: true,
 			});
 		},
@@ -259,7 +261,7 @@ function WorkOrdersPage() {
 					: undefined;
 			navigate({
 				to: ".",
-				search: { ...searchParamsRef.current, sort: serialized, page: 1 },
+				search: (prev) => ({ ...prev, sort: serialized, page: 1 }),
 				replace: true,
 			});
 		},
