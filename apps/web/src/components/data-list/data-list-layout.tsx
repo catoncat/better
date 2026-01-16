@@ -342,6 +342,7 @@ export function DataListLayout<TData, TValue>({
 
 	const hasRows = effectiveTable?.getRowModel().rows.length > 0;
 	const showLoadingOverlay = hasRows && (isFetching || isLoading);
+	const showList = !!effectiveTable && !(isLoading && !hasRows);
 
 	return (
 		<div className={cn("flex flex-col gap-4 w-full min-w-0", className)}>
@@ -356,7 +357,7 @@ export function DataListLayout<TData, TValue>({
 			{beforeList}
 			{error ? (
 				error
-			) : effectiveTable ? (
+			) : showList ? (
 				<div className="relative w-full min-w-0">
 					<DataListView table={effectiveTable} columns={columns} {...mergedDataListViewProps} />
 					{showLoadingOverlay && (
