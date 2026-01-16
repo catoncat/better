@@ -66,7 +66,7 @@ export function WorkOrderReceiveDialog({
 			woNo: "",
 			productCode: "",
 			plannedQty: 0,
-			routingCode: "PCBA-STD-V1",
+			routingCode: "",
 			pickStatus: "3" as "1" | "2" | "3" | "4",
 		} as {
 			woNo: string;
@@ -121,7 +121,7 @@ export function WorkOrderReceiveDialog({
 					<Field form={form} name="woNo" label="工单号">
 						{(field) => (
 							<Input
-								placeholder="WO-..."
+								placeholder="WO-"
 								value={field.state.value}
 								onBlur={field.handleBlur}
 								onChange={(e) => field.handleChange(e.target.value)}
@@ -131,7 +131,7 @@ export function WorkOrderReceiveDialog({
 					<Field form={form} name="productCode" label="产品编码">
 						{(field) => (
 							<Input
-								placeholder="P-..."
+								placeholder="P-"
 								value={field.state.value}
 								onBlur={field.handleBlur}
 								onChange={(e) => field.handleChange(e.target.value)}
