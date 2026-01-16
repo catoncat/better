@@ -40,3 +40,14 @@ trigger_examples:
 
 - Do not run `mes-next` / `task-split` for progress questions unless explicitly asked to "重新拆分/重新 triage".
 - Do not rewrite non-AUTO sections of the note without explicit user instruction.
+
+## Special: main branch
+
+**不要为 main 分支创建或更新 worktree note。**
+
+当检测到当前分支是 main 时：
+1. 提示用户：main 分支不使用 worktree_notes
+2. 建议替代方案：
+   - 调查/讨论 → 用 `conversation/` 记录（`bun scripts/conversation-new.ts "<topic>"`）
+   - 要写复杂代码 → 创建 feature 分支 + worktree（`bun scripts/worktree-new.ts <branch> <path>`）
+3. 不要尝试读取或创建 `worktree_notes/main.md`
