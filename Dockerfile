@@ -21,19 +21,30 @@ COPY . .
 ENV DATABASE_URL=file:./data/db.db
 RUN bun run build:single
 
-# Production stage - use bun image for prisma CLI
+# Prepare prisma deps for production stage (resolve symlinks)
+RUN mkdir -p /prisma-deps/node_modules && \
+    cp -rL packages/db/node_modules/prisma /prisma-deps/node_modules/prisma && \
+    cp -rL packages/db/node_modules/@prisma /prisma-deps/node_modules/@prisma
+
+# Production stage
 FROM oven/bun:1.3.1-slim
+
+# Install curl for health checks and init script
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Copy the single binary
 COPY --from=builder /app/apps/server/better-app ./better-app
 
-# Copy Prisma schema and migrations for db init
-COPY --from=builder /app/packages/db/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+# Copy Prisma schema for db init
+COPY --from=builder /app/packages/db/prisma/schema ./prisma/schema
+# Copy prisma CLI and dependencies (symlinks resolved in builder stage)
+COPY --from=builder /prisma-deps/node_modules ./node_modules
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
 
 # Create data directory for SQLite (Zeabur volume mounted at /db)
 RUN mkdir -p /db
@@ -43,5 +54,4 @@ ENV PORT=8080
 
 EXPOSE 8080
 
-# Startup script: run migrations then start server
-CMD sh -c "bunx prisma migrate deploy --schema=./prisma/schema/schema.prisma && ./better-app"
+CMD ["./docker-entrypoint.sh"]
