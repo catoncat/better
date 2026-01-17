@@ -31,8 +31,8 @@ WORKDIR /app
 # Copy the single binary
 COPY --from=builder /app/apps/server/better-app ./better-app
 
-# Create data directory for SQLite
-RUN mkdir -p /data
+# Create data directory for SQLite (Zeabur volume mounted at /db)
+RUN mkdir -p /db
 
 ENV DATABASE_URL=file:/db/db.db
 ENV PORT=8080
