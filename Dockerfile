@@ -21,15 +21,19 @@ COPY . .
 ENV DATABASE_URL=file:./data/db.db
 RUN bun run build:single
 
-# Production stage - minimal image
-FROM debian:bookworm-slim
-
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+# Production stage - use bun image for prisma CLI
+FROM oven/bun:1.3.1-slim
 
 WORKDIR /app
 
 # Copy the single binary
 COPY --from=builder /app/apps/server/better-app ./better-app
+
+# Copy Prisma schema and migrations for db init
+COPY --from=builder /app/packages/db/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
 # Create data directory for SQLite (Zeabur volume mounted at /db)
 RUN mkdir -p /db
@@ -39,4 +43,5 @@ ENV PORT=8080
 
 EXPOSE 8080
 
-CMD ["./better-app"]
+# Startup script: run migrations then start server
+CMD sh -c "bunx prisma migrate deploy --schema=./prisma/schema/schema.prisma && ./better-app"

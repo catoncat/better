@@ -15,6 +15,8 @@
 - Deploy path/service differ by branch: /opt/better-tpm or /opt/better-tpm-test; services better-tpm/better-tpm-test.
 - Remote steps: stop systemd service, backup old binary, upload to /tmp, install to target dir, chmod, chown if user exists, restart systemd service.
 - This repo already has .github/workflows/deploy.yml with the same structure, using better-app naming, paths (/opt/better-app*), and DATABASE_URL=file:./data/db.db; artifact path apps/server/better-app.
+- Seed script creates default admin user when `bun run db:seed` is run; defaults are admin@example.com / ChangeMe123! (override via SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD).
+- Seed script also creates test users (planner/engineer/quality/leader/operator) after seeding roles and master data.
 
 # Progress
 - Read better-tpm deployment workflow.
