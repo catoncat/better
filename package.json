@@ -15,8 +15,8 @@
   },
   "scripts": {
     "dev": "bun run --filter '*' dev",
-    "build-1": "bun run --filter '*' build",
-    "build": "DATABASE_URL=file:./data/db.db bun run db:generate && bun run --filter web build && bun run --filter server gen:web-embed && bun run --filter server compile:single",
+    "build": "bun run --filter '*' build",
+    "build:single": "DATABASE_URL=file:./data/db.db bun run db:generate && bun run --filter web build && bun run --filter server gen:web-embed && bun run --filter server compile:single",
     "check-types": "bun run db:generate && bun run --filter '*' check-types",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",

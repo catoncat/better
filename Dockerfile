@@ -34,7 +34,7 @@ COPY --from=builder /app/apps/server/better-app ./better-app
 # Create data directory for SQLite
 RUN mkdir -p /data
 
-ENV DATABASE_URL=file:/data/db.db
+ENV DATABASE_URL=file:/db/db.db
 ENV PORT=8080
 
 EXPOSE 8080
