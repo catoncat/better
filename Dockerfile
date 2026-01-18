@@ -33,15 +33,15 @@ WORKDIR /app
 COPY --from=builder /app/apps/server/better-app ./better-app
 
 # Copy database template
-COPY --from=builder /app/data/db.db ./db.db
+COPY --from=builder /app/data/db.db ./db-template.db
 
-# Create data directory
+# Create data directory (Zeabur mounts volume at /db)
 RUN mkdir -p /db
 
-ENV DATABASE_URL=file:/app/db.db
+ENV DATABASE_URL=file:/db/db.db
 ENV PORT=8080
 
 EXPOSE 8080
 
-# Run directly without entrypoint script
-CMD ["./better-app"]
+# Inline entrypoint: copy db template if needed, then run
+CMD sh -c 'test -f /db/db.db || cp ./db-template.db /db/db.db; exec ./better-app'
