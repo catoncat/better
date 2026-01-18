@@ -6,120 +6,16 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-single:
+  deploy-to-fly:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: "1.3.1"
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-action/setup-flyctl@master
 
-      - name: Install deps
-        run: bun install --frozen-lockfile
-
-      - name: Build single binary (linux/amd64)
+      - name: Deploy to Fly.io
+        run: flyctl deploy --remote-only
         env:
-          DATABASE_URL: file:./data/db.db
-        run: bun run build:single
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: better-app-linux-amd64
-          path: apps/server/better-app
-          retention-days: 1
-
-  deploy-to-vps:
-    needs: build-single
-    runs-on: ubuntu-latest
-    env:
-      VPS_HOST: ${{ secrets.VPS_HOST }}
-      VPS_USERNAME: ${{ secrets.VPS_USERNAME }}
-      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-      TARGET_DIR: ${{ github.ref == 'refs/heads/test' && '/opt/better-app-test' || '/opt/better-app' }}
-      SERVICE_NAME: ${{ github.ref == 'refs/heads/test' && 'better-app-test' || 'better-app' }}
-
-    steps:
-      - name: Download artifact
-        if: ${{ env.VPS_HOST != '' && env.VPS_USERNAME != '' && env.VPS_SSH_KEY != '' }}
-        uses: actions/download-artifact@v4
-        with:
-          name: better-app-linux-amd64
-          path: ./dist
-
-      - name: Prepare VPS
-        if: ${{ env.VPS_HOST != '' && env.VPS_USERNAME != '' && env.VPS_SSH_KEY != '' }}
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script_stop: true
-          script: |
-            SUDO=""
-            if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
-              SUDO="sudo"
-            fi
-
-            echo "Environment: ${{ github.ref_name }}"
-            echo "Target Directory: ${{ env.TARGET_DIR }}"
-            echo "Service Name: ${{ env.SERVICE_NAME }}"
-
-            echo "Stopping service..."
-            $SUDO systemctl stop ${{ env.SERVICE_NAME }} || true
-
-            echo "Backup old binary..."
-            $SUDO mkdir -p ${{ env.TARGET_DIR }}
-            $SUDO mv ${{ env.TARGET_DIR }}/better-app ${{ env.TARGET_DIR }}/better-app.bak || true
-
-            echo "Preparing upload directory..."
-            mkdir -p /tmp/better-app-deploy-${{ github.ref_name }}
-
-      - name: Upload Binary via SCP
-        if: ${{ env.VPS_HOST != '' && env.VPS_USERNAME != '' && env.VPS_SSH_KEY != '' }}
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          source: "./dist/better-app"
-          target: "/tmp/better-app-deploy-${{ github.ref_name }}"
-          strip_components: 2
-
-      - name: Install and Restart
-        if: ${{ env.VPS_HOST != '' && env.VPS_USERNAME != '' && env.VPS_SSH_KEY != '' }}
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script_stop: true
-          script: |
-            SUDO=""
-            if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
-              SUDO="sudo"
-            fi
-
-            echo "Installing new binary to ${{ env.TARGET_DIR }}..."
-            $SUDO cp /tmp/better-app-deploy-${{ github.ref_name }}/better-app ${{ env.TARGET_DIR }}/better-app
-            $SUDO chmod +x ${{ env.TARGET_DIR }}/better-app
-
-            if id -u better-app >/dev/null 2>&1; then
-              $SUDO chown better-app:better-app ${{ env.TARGET_DIR }}/better-app
-            fi
-
-            echo "Cleaning up..."
-            $SUDO rm -rf /tmp/better-app-deploy-${{ github.ref_name }}
-
-            echo "Restarting service ${{ env.SERVICE_NAME }}..."
-            $SUDO systemctl restart ${{ env.SERVICE_NAME }}
-            $SUDO systemctl status ${{ env.SERVICE_NAME }} --no-pager
-
-      - name: Skip deploy (missing secrets)
-        if: ${{ env.VPS_HOST == '' || env.VPS_USERNAME == '' || env.VPS_SSH_KEY == '' }}
-        run: |
-          echo "Skipping deploy: set secrets VPS_HOST, VPS_USERNAME, VPS_SSH_KEY to enable VPS deployment."
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
