@@ -1,35 +1,34 @@
 #!/bin/sh
 set -e
 
+echo "=== Database initialization ==="
+
 # Run Prisma db push (creates tables if not exist, updates schema)
 echo "Running database sync..."
-bunx prisma db push --schema=./prisma/schema/schema.prisma --skip-generate
+bunx prisma db push --schema=./prisma/schema/schema.prisma --skip-generate --accept-data-loss
 
-# Check if database has any users
-USER_COUNT=$(bunx prisma db execute --schema=./prisma/schema/schema.prisma --stdin <<< "SELECT COUNT(*) as count FROM User;" 2>/dev/null | grep -o '[0-9]*' | head -1 || echo "0")
+echo "Database sync complete."
 
-if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
-  echo "No users found, creating admin user..."
-
-  # Create admin user via API after server starts
-  # We'll use a background process
-  (
-    sleep 5  # Wait for server to start
-
-    ADMIN_EMAIL="${SEED_ADMIN_EMAIL:-admin@example.com}"
-    ADMIN_PASSWORD="${SEED_ADMIN_PASSWORD:-ChangeMe123!}"
-    ADMIN_NAME="${SEED_ADMIN_NAME:-Admin}"
-
-    echo "Creating admin user: $ADMIN_EMAIL"
-
-    curl -s -X POST "http://localhost:${PORT:-8080}/api/auth/sign-up/email" \
-      -H "Content-Type: application/json" \
-      -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\",\"name\":\"$ADMIN_NAME\"}" || true
-
-    echo "Admin user creation attempted"
-  ) &
-fi
-
-# Start the server
+# Start the server in background, then create admin user if needed
 echo "Starting server..."
-exec ./better-app
+./better-app &
+SERVER_PID=$!
+
+# Wait for server to be ready
+echo "Waiting for server to start..."
+sleep 8
+
+# Try to create admin user (will fail silently if already exists)
+ADMIN_EMAIL="${SEED_ADMIN_EMAIL:-admin@example.com}"
+ADMIN_PASSWORD="${SEED_ADMIN_PASSWORD:-ChangeMe123!}"
+ADMIN_NAME="${SEED_ADMIN_NAME:-Admin}"
+
+echo "Attempting to create admin user: $ADMIN_EMAIL"
+curl -s -X POST "http://localhost:${PORT:-8080}/api/auth/sign-up/email" \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\",\"name\":\"$ADMIN_NAME\"}" || true
+
+echo "=== Initialization complete ==="
+
+# Wait for server process
+wait $SERVER_PID
