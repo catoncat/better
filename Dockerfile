@@ -32,19 +32,16 @@ WORKDIR /app
 # Copy the single binary
 COPY --from=builder /app/apps/server/better-app ./better-app
 
-# Copy database template (will be copied to volume on first run)
-COPY --from=builder /app/data/db.db ./db-template.db
+# Copy database template
+COPY --from=builder /app/data/db.db ./db.db
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh ./docker-entrypoint.sh
-RUN chmod +x ./docker-entrypoint.sh
-
-# Create data directory for SQLite
+# Create data directory
 RUN mkdir -p /db
 
-ENV DATABASE_URL=file:/db/db.db
+ENV DATABASE_URL=file:/app/db.db
 ENV PORT=8080
 
 EXPOSE 8080
 
-CMD ["./docker-entrypoint.sh"]
+# Run directly without entrypoint script
+CMD ["./better-app"]
