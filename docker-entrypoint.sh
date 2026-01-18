@@ -3,9 +3,9 @@ set -e
 
 echo "=== Database initialization ==="
 
-# Run Prisma db push (creates tables if not exist, updates schema)
+# Run Prisma db push using local prisma CLI (not bunx which downloads)
 echo "Running database sync..."
-bunx prisma db push --schema=./prisma/schema/schema.prisma --skip-generate --accept-data-loss
+bun ./node_modules/prisma/build/index.js db push --schema=./prisma/schema/schema.prisma --skip-generate --accept-data-loss
 
 echo "Database sync complete."
 
