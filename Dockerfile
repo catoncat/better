@@ -21,6 +21,9 @@ COPY . .
 ENV DATABASE_URL=file:./data/db.db
 RUN bun run build:single
 
+# Create empty database template with schema
+RUN mkdir -p ./data && bun run db:push
+
 # Production stage
 FROM oven/bun:1.3.1-slim
 
@@ -28,6 +31,9 @@ WORKDIR /app
 
 # Copy the single binary
 COPY --from=builder /app/apps/server/better-app ./better-app
+
+# Copy database template (will be copied to volume on first run)
+COPY --from=builder /app/data/db.db ./db-template.db
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
