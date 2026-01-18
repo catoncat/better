@@ -24,11 +24,14 @@ RUN bun run build:single
 # Create empty database template with schema
 RUN mkdir -p ./data && bun run db:push
 
+# Seed preset roles into template
+RUN bun apps/server/scripts/seed-roles.ts
+
 # Production stage
 FROM oven/bun:1.3.1-slim
 
-# Install curl for admin user creation
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Install curl and sqlite3 for admin user creation
+RUN apt-get update && apt-get install -y curl sqlite3 && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

@@ -60,3 +60,10 @@ export async function assignAdminRoleToUser(userId: string) {
 
 	console.log(`Assigned admin role to user ${userId}`);
 }
+
+// Run if executed directly
+if (import.meta.main) {
+	await seedRoles();
+	await prisma.$disconnect();
+	console.log("Seed roles completed");
+}
