@@ -24,25 +24,16 @@ RUN bun run build:single
 # Production stage
 FROM oven/bun:1.3.1-slim
 
-# Install curl for health checks and init script
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
-
-# Install prisma CLI directly (clean install, no symlink issues)
-RUN bun add prisma@7.2.0
 
 # Copy the single binary
 COPY --from=builder /app/apps/server/better-app ./better-app
-
-# Copy Prisma schema for db push
-COPY --from=builder /app/packages/db/prisma/schema ./prisma/schema
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
-# Create data directory for SQLite (Fly/Zeabur volume mounted at /db)
+# Create data directory for SQLite
 RUN mkdir -p /db
 
 ENV DATABASE_URL=file:/db/db.db
