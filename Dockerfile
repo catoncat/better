@@ -22,6 +22,7 @@ ENV DATABASE_URL=file:./data/db.db
 RUN bun run build:single
 
 # Create empty database template with schema
+# Cache buster: 2026-01-18-v1
 RUN mkdir -p ./data && bun run db:push
 
 # Seed preset roles into template
