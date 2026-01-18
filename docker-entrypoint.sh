@@ -2,12 +2,20 @@
 
 echo "=== Starting application ==="
 
-# Check if database file is valid (has content)
+# Function to check if database has valid schema
+db_has_schema() {
+  if [ ! -f /db/db.db ]; then
+    return 1
+  fi
+  # Check if user table exists
+  TABLE_COUNT=$(sqlite3 /db/db.db "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='user';" 2>/dev/null || echo "0")
+  [ "$TABLE_COUNT" = "1" ]
+}
+
+# Check if database file is valid (has schema)
 if [ -f /db/db.db ]; then
-  DB_SIZE=$(stat -c%s /db/db.db 2>/dev/null || stat -f%z /db/db.db 2>/dev/null || echo "0")
-  # If db is too small (< 10KB), it's probably empty/corrupted
-  if [ "$DB_SIZE" -lt 10000 ]; then
-    echo "Database exists but is too small ($DB_SIZE bytes), reinitializing..."
+  if ! db_has_schema; then
+    echo "Database exists but has no valid schema, reinitializing..."
     rm -f /db/db.db
   fi
 fi
@@ -18,6 +26,7 @@ if [ ! -f /db/db.db ]; then
   cp ./db-template.db /db/db.db
   echo "Database initialized."
 else
+  DB_SIZE=$(stat -c%s /db/db.db 2>/dev/null || stat -f%z /db/db.db 2>/dev/null || echo "0")
   echo "Database already exists (size: $DB_SIZE bytes)."
 fi
 
