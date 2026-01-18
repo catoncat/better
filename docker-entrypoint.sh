@@ -2,31 +2,45 @@
 
 echo "=== Starting application ==="
 
+# Get database path from DATABASE_URL (format: file:/path/to/db.db)
+# Default to /db/db.db if not set
+if [ -n "$DATABASE_URL" ]; then
+  DB_PATH=$(echo "$DATABASE_URL" | sed 's|^file:||')
+else
+  DB_PATH="/db/db.db"
+fi
+
+# Ensure parent directory exists
+DB_DIR=$(dirname "$DB_PATH")
+mkdir -p "$DB_DIR"
+
+echo "Database path: $DB_PATH"
+
 # Function to check if database has valid schema
 db_has_schema() {
-  if [ ! -f /db/db.db ]; then
+  if [ ! -f "$DB_PATH" ]; then
     return 1
   fi
   # Check if user table exists
-  TABLE_COUNT=$(sqlite3 /db/db.db "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='user';" 2>/dev/null || echo "0")
+  TABLE_COUNT=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='user';" 2>/dev/null || echo "0")
   [ "$TABLE_COUNT" = "1" ]
 }
 
 # Check if database file is valid (has schema)
-if [ -f /db/db.db ]; then
+if [ -f "$DB_PATH" ]; then
   if ! db_has_schema; then
     echo "Database exists but has no valid schema, reinitializing..."
-    rm -f /db/db.db
+    rm -f "$DB_PATH"
   fi
 fi
 
 # Initialize database from template if not exists
-if [ ! -f /db/db.db ]; then
+if [ ! -f "$DB_PATH" ]; then
   echo "Initializing database from template..."
-  cp ./db-template.db /db/db.db
+  cp ./db-template.db "$DB_PATH"
   echo "Database initialized."
 else
-  DB_SIZE=$(stat -c%s /db/db.db 2>/dev/null || stat -f%z /db/db.db 2>/dev/null || echo "0")
+  DB_SIZE=$(stat -c%s "$DB_PATH" 2>/dev/null || stat -f%z "$DB_PATH" 2>/dev/null || echo "0")
   echo "Database already exists (size: $DB_SIZE bytes)."
 fi
 
@@ -41,7 +55,7 @@ sleep 5
 # Create or fix admin user if environment variables are set
 if [ -n "$SEED_ADMIN_EMAIL" ] && [ -n "$SEED_ADMIN_PASSWORD" ]; then
   # Check if admin already exists
-  USER_ID=$(sqlite3 /db/db.db "SELECT id FROM user WHERE email='${SEED_ADMIN_EMAIL}';" 2>/dev/null)
+  USER_ID=$(sqlite3 "$DB_PATH" "SELECT id FROM user WHERE email='${SEED_ADMIN_EMAIL}';" 2>/dev/null)
 
   if [ -z "$USER_ID" ]; then
     # User doesn't exist, create via sign-up API
@@ -62,7 +76,7 @@ if [ -n "$SEED_ADMIN_EMAIL" ] && [ -n "$SEED_ADMIN_PASSWORD" ]; then
     echo "Sign-up response: $RESPONSE"
 
     # Get the newly created user ID
-    USER_ID=$(sqlite3 /db/db.db "SELECT id FROM user WHERE email='${SEED_ADMIN_EMAIL}';" 2>/dev/null)
+    USER_ID=$(sqlite3 "$DB_PATH" "SELECT id FROM user WHERE email='${SEED_ADMIN_EMAIL}';" 2>/dev/null)
   else
     echo "Admin user already exists with ID: $USER_ID"
   fi
@@ -72,24 +86,24 @@ if [ -n "$SEED_ADMIN_EMAIL" ] && [ -n "$SEED_ADMIN_PASSWORD" ]; then
     echo "Ensuring admin permissions for user: $USER_ID"
 
     # Update user role to admin and set as active
-    sqlite3 /db/db.db "UPDATE user SET role='admin', isActive=1, emailVerified=1 WHERE id='${USER_ID}';"
+    sqlite3 "$DB_PATH" "UPDATE user SET role='admin', isActive=1, emailVerified=1 WHERE id='${USER_ID}';"
     echo "  -> user.role set to 'admin'"
 
     # Get admin role ID
-    ADMIN_ROLE_ID=$(sqlite3 /db/db.db "SELECT id FROM roles WHERE code='admin';" 2>/dev/null)
+    ADMIN_ROLE_ID=$(sqlite3 "$DB_PATH" "SELECT id FROM roles WHERE code='admin';" 2>/dev/null)
 
     if [ -n "$ADMIN_ROLE_ID" ]; then
       echo "  -> Admin role ID: $ADMIN_ROLE_ID"
 
       # Check if assignment already exists
-      EXISTING_ASSIGNMENT=$(sqlite3 /db/db.db "SELECT COUNT(*) FROM user_role_assignments WHERE userId='${USER_ID}' AND roleId='${ADMIN_ROLE_ID}';" 2>/dev/null || echo "0")
+      EXISTING_ASSIGNMENT=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM user_role_assignments WHERE userId='${USER_ID}' AND roleId='${ADMIN_ROLE_ID}';" 2>/dev/null || echo "0")
 
       if [ "$EXISTING_ASSIGNMENT" = "0" ]; then
         # Generate a unique ID using timestamp and random
         ASSIGNMENT_ID="ura_$(date +%s)_$$"
 
         # Create userRoleAssignment
-        sqlite3 /db/db.db "INSERT INTO user_role_assignments (id, userId, roleId, createdAt) VALUES ('${ASSIGNMENT_ID}', '${USER_ID}', '${ADMIN_ROLE_ID}', datetime('now'));"
+        sqlite3 "$DB_PATH" "INSERT INTO user_role_assignments (id, userId, roleId, createdAt) VALUES ('${ASSIGNMENT_ID}', '${USER_ID}', '${ADMIN_ROLE_ID}', datetime('now'));"
         echo "  -> userRoleAssignment created"
       else
         echo "  -> userRoleAssignment already exists"
@@ -98,7 +112,7 @@ if [ -n "$SEED_ADMIN_EMAIL" ] && [ -n "$SEED_ADMIN_PASSWORD" ]; then
       echo "Warning: Admin role not found in roles table. Roles may not be seeded."
       # List existing roles for debugging
       echo "Existing roles:"
-      sqlite3 /db/db.db "SELECT code FROM roles;" 2>/dev/null
+      sqlite3 "$DB_PATH" "SELECT code FROM roles;" 2>/dev/null
     fi
 
     echo "Admin user setup completed."
