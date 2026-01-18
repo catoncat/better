@@ -27,6 +27,9 @@ RUN mkdir -p ./data && bun run db:push
 # Production stage
 FROM oven/bun:1.3.1-slim
 
+# Install curl for admin user creation
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy the single binary
@@ -35,7 +38,11 @@ COPY --from=builder /app/apps/server/better-app ./better-app
 # Copy database template
 COPY --from=builder /app/data/db.db ./db-template.db
 
-# Create data directory (Zeabur mounts volume at /db)
+# Copy entrypoint script
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
+
+# Create data directory
 RUN mkdir -p /db
 
 ENV DATABASE_URL=file:/db/db.db
@@ -43,5 +50,4 @@ ENV PORT=8080
 
 EXPOSE 8080
 
-# Inline entrypoint: copy db template if needed, then run
-CMD sh -c 'test -f /db/db.db || cp ./db-template.db /db/db.db; exec ./better-app'
+CMD ["./docker-entrypoint.sh"]
