@@ -29,10 +29,13 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
+# Install prisma CLI directly (clean install, no symlink issues)
+RUN bun add prisma@7.2.0
+
 # Copy the single binary
 COPY --from=builder /app/apps/server/better-app ./better-app
 
-# Copy Prisma schema for db push (bunx will download prisma CLI at runtime)
+# Copy Prisma schema for db push
 COPY --from=builder /app/packages/db/prisma/schema ./prisma/schema
 
 # Copy entrypoint script
