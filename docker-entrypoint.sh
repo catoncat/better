@@ -39,9 +39,19 @@ if [ -n "$SEED_ADMIN_EMAIL" ] && [ -n "$SEED_ADMIN_PASSWORD" ]; then
     echo "Creating admin user: $SEED_ADMIN_EMAIL"
     ADMIN_NAME="${SEED_ADMIN_NAME:-Admin}"
 
+    # Write JSON to temp file to avoid shell escaping issues
+    JSON_FILE=$(mktemp)
+    cat > "$JSON_FILE" << EOJSON
+{"email":"${SEED_ADMIN_EMAIL}","password":"${SEED_ADMIN_PASSWORD}","name":"${ADMIN_NAME}"}
+EOJSON
+
+    echo "Request body: $(cat $JSON_FILE)"
+
     RESPONSE=$(curl -s -X POST "http://localhost:${PORT:-8080}/api/auth/sign-up/email" \
       -H "Content-Type: application/json" \
-      --data-raw "{\"email\":\"${SEED_ADMIN_EMAIL}\",\"password\":\"${SEED_ADMIN_PASSWORD}\",\"name\":\"${ADMIN_NAME}\"}" 2>&1)
+      -d @"$JSON_FILE" 2>&1)
+    rm -f "$JSON_FILE"
+
     echo "Sign-up response: $RESPONSE"
 
     # Get the newly created user ID
