@@ -25,13 +25,11 @@ RUN bun run build:single
 RUN mkdir -p /prisma-deps/node_modules/@prisma && \
     cp -rL packages/db/node_modules/prisma /prisma-deps/node_modules/prisma && \
     cp -rL packages/db/node_modules/@prisma/client /prisma-deps/node_modules/@prisma/client 2>/dev/null || true && \
-    # Copy engines from bun's hoisted location
-    for dir in node_modules/.bun/@prisma+engines@*/node_modules/@prisma/engines; do \
-      if [ -d "$dir" ]; then cp -rL "$dir" /prisma-deps/node_modules/@prisma/engines; break; fi \
-    done && \
-    # Copy @prisma/debug (required by engines)
-    for dir in node_modules/.bun/@prisma+debug@7.*/node_modules/@prisma/debug; do \
-      if [ -d "$dir" ]; then cp -rL "$dir" /prisma-deps/node_modules/@prisma/debug; break; fi \
+    # Copy all @prisma/* packages from bun's hoisted location
+    for pkg in engines debug engines-version fetch-engine get-platform; do \
+      for dir in node_modules/.bun/@prisma+${pkg}@*/node_modules/@prisma/${pkg}; do \
+        if [ -d "$dir" ]; then cp -rL "$dir" /prisma-deps/node_modules/@prisma/${pkg}; break; fi \
+      done \
     done
 
 # Production stage
