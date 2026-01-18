@@ -21,17 +21,6 @@ COPY . .
 ENV DATABASE_URL=file:./data/db.db
 RUN bun run build:single
 
-# Prepare prisma deps for production stage
-RUN mkdir -p /prisma-deps/node_modules/@prisma && \
-    cp -rL packages/db/node_modules/prisma /prisma-deps/node_modules/prisma && \
-    cp -rL packages/db/node_modules/@prisma/client /prisma-deps/node_modules/@prisma/client 2>/dev/null || true && \
-    # Copy all @prisma/* packages from bun's hoisted location
-    for pkg in engines debug engines-version fetch-engine get-platform; do \
-      for dir in node_modules/.bun/@prisma+${pkg}@*/node_modules/@prisma/${pkg}; do \
-        if [ -d "$dir" ]; then cp -rL "$dir" /prisma-deps/node_modules/@prisma/${pkg}; break; fi \
-      done \
-    done
-
 # Production stage
 FROM oven/bun:1.3.1-slim
 
@@ -43,16 +32,14 @@ WORKDIR /app
 # Copy the single binary
 COPY --from=builder /app/apps/server/better-app ./better-app
 
-# Copy Prisma schema for db init
+# Copy Prisma schema for db push (bunx will download prisma CLI at runtime)
 COPY --from=builder /app/packages/db/prisma/schema ./prisma/schema
-# Copy prisma CLI and dependencies (symlinks resolved in builder stage)
-COPY --from=builder /prisma-deps/node_modules ./node_modules
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
-# Create data directory for SQLite (Zeabur volume mounted at /db)
+# Create data directory for SQLite (Fly/Zeabur volume mounted at /db)
 RUN mkdir -p /db
 
 ENV DATABASE_URL=file:/db/db.db
