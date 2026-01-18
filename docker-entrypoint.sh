@@ -39,11 +39,9 @@ if [ -n "$SEED_ADMIN_EMAIL" ] && [ -n "$SEED_ADMIN_PASSWORD" ]; then
     echo "Creating admin user: $SEED_ADMIN_EMAIL"
     ADMIN_NAME="${SEED_ADMIN_NAME:-Admin}"
 
-    # Write JSON to temp file to avoid shell escaping issues
+    # Build JSON safely using printf (handles special chars in password)
     JSON_FILE=$(mktemp)
-    cat > "$JSON_FILE" << EOJSON
-{"email":"${SEED_ADMIN_EMAIL}","password":"${SEED_ADMIN_PASSWORD}","name":"${ADMIN_NAME}"}
-EOJSON
+    printf '{"email":"%s","password":"%s","name":"%s"}' "$SEED_ADMIN_EMAIL" "$SEED_ADMIN_PASSWORD" "$ADMIN_NAME" > "$JSON_FILE"
 
     echo "Request body: $(cat $JSON_FILE)"
 
