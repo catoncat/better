@@ -21,10 +21,13 @@ COPY . .
 ENV DATABASE_URL=file:./data/db.db
 RUN bun run build:single
 
-# Prepare prisma deps for production stage (resolve symlinks)
-RUN mkdir -p /prisma-deps/node_modules && \
+# Prepare prisma deps for production stage (resolve symlinks and include engines)
+RUN mkdir -p /prisma-deps/node_modules/@prisma && \
     cp -rL packages/db/node_modules/prisma /prisma-deps/node_modules/prisma && \
-    cp -rL packages/db/node_modules/@prisma /prisma-deps/node_modules/@prisma
+    cp -rL packages/db/node_modules/@prisma/* /prisma-deps/node_modules/@prisma/ && \
+    cp -rL node_modules/.bun/@prisma+engines@*/node_modules/@prisma/engines /prisma-deps/node_modules/@prisma/engines && \
+    cp -rL node_modules/.bun/@prisma+config@*/node_modules/@prisma/config /prisma-deps/node_modules/@prisma/config && \
+    cp -rL node_modules/.bun/@prisma+debug@7.*/node_modules/@prisma/debug /prisma-deps/node_modules/@prisma/debug
 
 # Production stage
 FROM oven/bun:1.3.1-slim
