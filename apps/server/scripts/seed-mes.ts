@@ -4,7 +4,12 @@ import dotenv from "dotenv";
 
 dotenv.config({ path: path.resolve(import.meta.dirname, "../.env") });
 
-import prisma, { StationType } from "@better-app/db";
+import prisma, {
+	StationType,
+	StencilStatus,
+	SolderPasteStatus,
+	IntegrationSource,
+} from "@better-app/db";
 
 export const seedMESMasterData = async () => {
 	console.log("Seeding MES Master Data...");
@@ -61,10 +66,16 @@ export const seedMESMasterData = async () => {
 		},
 	});
 
-	// 1.2 Seed go-live defaults for Readiness checks (min set for demo/acceptance script)
-	// Note: Readiness runs ALL checks when `meta.readinessChecks.enabled` is unset.
-	// For M3 acceptance, we default to ROUTE + (optional) LOADING to avoid relying on external integrations.
-	await ensureLineReadinessEnabled(lineA.id, ["ROUTE", "LOADING"]);
+	// 1.2 Seed go-live defaults for Readiness checks
+	// For full SMT E2E acceptance, enable all six checks
+	await ensureLineReadinessEnabled(lineA.id, [
+		"ROUTE",
+		"LOADING",
+		"EQUIPMENT",
+		"MATERIAL",
+		"STENCIL",
+		"SOLDER_PASTE",
+	]);
 	await ensureLineReadinessEnabled(dipLineA.id, ["ROUTE"]);
 
 	// 2. Create Station Group
@@ -266,6 +277,113 @@ export const seedMESMasterData = async () => {
 			isAlternate: false,
 		},
 	});
+
+	// 8. Seed Equipment data for EQUIPMENT readiness check
+	const equipmentCodes = ["PRINTER-001", "SPI-001", "MOUNTER-001", "REFLOW-001", "AOI-001"];
+	for (const code of equipmentCodes) {
+		await prisma.tpmEquipment.upsert({
+			where: { equipmentCode: code },
+			update: { status: "normal" },
+			create: {
+				equipmentCode: code,
+				name: `${code} Equipment`,
+				status: "normal",
+				workshopCode: "LINE-A",
+				location: "SMT Area",
+			},
+		});
+	}
+	console.log("  -> Equipment data seeded");
+
+	// 9. Seed Material and BomItem data for MATERIAL readiness check
+	const materials = [
+		{ code: "MAT-001", name: "Chip Resistor 10K", category: "SMD", unit: "PCS" },
+		{ code: "MAT-002", name: "MLCC Capacitor 100nF", category: "SMD", unit: "PCS" },
+		{ code: "MAT-003", name: "IC Chip MCU", category: "IC", unit: "PCS" },
+	];
+	for (const mat of materials) {
+		await prisma.material.upsert({
+			where: { code: mat.code },
+			update: {},
+			create: mat,
+		});
+	}
+
+	// BOM: P-1001 requires MAT-001, MAT-002, MAT-003
+	const bomItems = [
+		{ parentCode: "P-1001", childCode: "MAT-001", qty: 10 },
+		{ parentCode: "P-1001", childCode: "MAT-002", qty: 5 },
+		{ parentCode: "P-1001", childCode: "MAT-003", qty: 1 },
+	];
+	for (const bom of bomItems) {
+		await prisma.bomItem.upsert({
+			where: { parentCode_childCode: { parentCode: bom.parentCode, childCode: bom.childCode } },
+			update: {},
+			create: { ...bom, unit: "PCS" },
+		});
+	}
+	console.log("  -> Material & BOM data seeded");
+
+	// 10. Seed Stencil data for STENCIL readiness check
+	const stencilId = "STENCIL-001";
+	await prisma.lineStencil.upsert({
+		where: { lineId_stencilId_boundAt: { lineId: lineA.id, stencilId, boundAt: new Date("2024-01-01") } },
+		update: { isCurrent: true },
+		create: {
+			lineId: lineA.id,
+			stencilId,
+			isCurrent: true,
+			boundAt: new Date("2024-01-01"),
+			boundBy: "system",
+		},
+	});
+	// StencilStatusRecord: READY status
+	await prisma.stencilStatusRecord.upsert({
+		where: { eventId: `stencil-ready-${stencilId}` },
+		update: { status: StencilStatus.READY },
+		create: {
+			eventId: `stencil-ready-${stencilId}`,
+			eventTime: new Date(),
+			stencilId,
+			status: StencilStatus.READY,
+			tensionValue: 45.0,
+			lastCleanedAt: new Date(),
+			source: IntegrationSource.MANUAL,
+		},
+	});
+	console.log("  -> Stencil data seeded");
+
+	// 11. Seed Solder Paste data for SOLDER_PASTE readiness check
+	const solderPasteLotId = "SP-LOT-001";
+	await prisma.lineSolderPaste.upsert({
+		where: { lineId_lotId_boundAt: { lineId: lineA.id, lotId: solderPasteLotId, boundAt: new Date("2024-01-01") } },
+		update: { isCurrent: true },
+		create: {
+			lineId: lineA.id,
+			lotId: solderPasteLotId,
+			isCurrent: true,
+			boundAt: new Date("2024-01-01"),
+			boundBy: "system",
+		},
+	});
+	// SolderPasteStatusRecord: COMPLIANT status with valid expiry
+	const expiresAt = new Date();
+	expiresAt.setDate(expiresAt.getDate() + 30); // expires in 30 days
+	await prisma.solderPasteStatusRecord.upsert({
+		where: { eventId: `solder-paste-compliant-${solderPasteLotId}` },
+		update: { status: SolderPasteStatus.COMPLIANT, expiresAt },
+		create: {
+			eventId: `solder-paste-compliant-${solderPasteLotId}`,
+			eventTime: new Date(),
+			lotId: solderPasteLotId,
+			status: SolderPasteStatus.COMPLIANT,
+			expiresAt,
+			thawedAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // thawed 2 hours ago
+			stirredAt: new Date(Date.now() - 1 * 60 * 60 * 1000), // stirred 1 hour ago
+			source: IntegrationSource.MANUAL,
+		},
+	});
+	console.log("  -> Solder Paste data seeded");
 
 	console.log("MES Master Data Seeded Successfully.");
 };
