@@ -28,6 +28,10 @@ RUN mkdir -p /prisma-deps/node_modules/@prisma && \
     # Copy engines from bun's hoisted location
     for dir in node_modules/.bun/@prisma+engines@*/node_modules/@prisma/engines; do \
       if [ -d "$dir" ]; then cp -rL "$dir" /prisma-deps/node_modules/@prisma/engines; break; fi \
+    done && \
+    # Copy @prisma/debug (required by engines)
+    for dir in node_modules/.bun/@prisma+debug@7.*/node_modules/@prisma/debug; do \
+      if [ -d "$dir" ]; then cp -rL "$dir" /prisma-deps/node_modules/@prisma/debug; break; fi \
     done
 
 # Production stage
