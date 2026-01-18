@@ -1,34 +1,23 @@
+# fly.toml app configuration file generated for better-app on 2026-01-18T08:48:28Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
 app = 'better-app'
 primary_region = 'sin'
 
 [build]
-  dockerfile = 'Dockerfile'
-
-[env]
-  PORT = '8080'
-  DATABASE_URL = 'file:/db/db.db'
-  # Set these via `fly secrets set`:
-  # BETTER_AUTH_SECRET, APP_URL, SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = 'suspend'
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
   processes = ['app']
 
-  [http_service.concurrency]
-    type = 'connections'
-    hard_limit = 100
-    soft_limit = 80
-
-# Mount persistent volume for SQLite at /db
-[mounts]
-  source = 'db_data'
-  destination = '/db'
-
 [[vm]]
-  memory = '512mb'
+  memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
+  memory_mb = 256
