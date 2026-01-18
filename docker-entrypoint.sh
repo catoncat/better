@@ -2,11 +2,23 @@
 
 echo "=== Starting application ==="
 
+# Check if database file is valid (has content)
+if [ -f /db/db.db ]; then
+  DB_SIZE=$(stat -c%s /db/db.db 2>/dev/null || stat -f%z /db/db.db 2>/dev/null || echo "0")
+  # If db is too small (< 10KB), it's probably empty/corrupted
+  if [ "$DB_SIZE" -lt 10000 ]; then
+    echo "Database exists but is too small ($DB_SIZE bytes), reinitializing..."
+    rm -f /db/db.db
+  fi
+fi
+
 # Initialize database from template if not exists
 if [ ! -f /db/db.db ]; then
   echo "Initializing database from template..."
   cp ./db-template.db /db/db.db
   echo "Database initialized."
+else
+  echo "Database already exists (size: $DB_SIZE bytes)."
 fi
 
 # Start the server in background
