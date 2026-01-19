@@ -466,6 +466,8 @@ model SlotMaterialMapping {
   materialCode String
   priority     Int      @default(1)
   isAlternate  Boolean  @default(false)
+  unitConsumption Float?
+  isCommonMaterial Boolean @default(false)
 
   meta         Json?
   createdAt    DateTime @default(now())
@@ -516,6 +518,9 @@ model LoadingRecord {
   failReason           String?
   loadedAt             DateTime            @default(now())
   loadedBy             String
+  packageQty           Int?
+  reviewedBy           String?
+  reviewedAt           DateTime?
   unloadedAt           DateTime?
   unloadedBy           String?
 
