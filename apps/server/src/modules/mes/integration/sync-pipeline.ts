@@ -70,6 +70,13 @@ export type SyncPipelineConfig<TRaw, TItem> = {
 	 * - reapply-mark: Apply and mark as reapplied
 	 */
 	dedupeStrategy: DedupeStrategy;
+
+	/**
+	 * Batch size for apply transactions.
+	 * If set, items will be applied in batches to reduce memory usage.
+	 * Default: undefined (all items in one transaction)
+	 */
+	applyBatchSize?: number;
 };
 
 type SyncOptions = {
@@ -115,6 +122,7 @@ const parseCursorMeta = (meta: unknown): { nextStartRow?: number; since?: string
  *
  * B1 Fix: Removed businessKey-based early return that caused polling to stop.
  * B3 Fix: Cursor does not advance when no items are returned.
+ * B6 Fix: Added batch processing support to reduce memory usage.
  */
 export const createSyncPipeline = <TRaw, TItem extends { updatedAt?: string }>(
 	config: SyncPipelineConfig<TRaw, TItem>,
@@ -123,7 +131,8 @@ export const createSyncPipeline = <TRaw, TItem extends { updatedAt?: string }>(
 		db: PrismaClient,
 		options: SyncOptions,
 	): Promise<ServiceResult<SyncResult<TItem>>> => {
-		const { sourceSystem, entityType, pull, normalize, apply, dedupeStrategy } = config;
+		const { sourceSystem, entityType, pull, normalize, apply, dedupeStrategy, applyBatchSize } =
+			config;
 
 		// Read existing cursor
 		const cursor = await db.integrationSyncCursor.findUnique({
@@ -171,33 +180,53 @@ export const createSyncPipeline = <TRaw, TItem extends { updatedAt?: string }>(
 		const payload = buildEnvelope(sourceSystem, entityType, items, nextSyncAt, hasMore);
 		const dedupeKey = `${sourceSystem}:${entityType}:${hashPayload(payload)}`;
 
-		// Execute sync in transaction
-		const syncResult = await db.$transaction(async (tx: Prisma.TransactionClient) => {
-			// Check for duplicate
-			const duplicate = await tx.integrationMessage.findFirst({
-				where: {
-					direction: "IN",
-					system: sourceSystem,
-					entityType,
-					dedupeKey,
-					status: "SUCCESS",
-				},
-				orderBy: { createdAt: "desc" },
-			});
+		// Check for duplicate before apply
+		const duplicate = await db.integrationMessage.findFirst({
+			where: {
+				direction: "IN",
+				system: sourceSystem,
+				entityType,
+				dedupeKey,
+				status: "SUCCESS",
+			},
+			orderBy: { createdAt: "desc" },
+		});
 
-			let skippedApply = false;
+		let skippedApply = false;
 
-			// Determine whether to apply based on strategy
-			const shouldApply =
-				items.length > 0 &&
-				(dedupeStrategy === "reapply" || dedupeStrategy === "reapply-mark" || !duplicate);
+		// Determine whether to apply based on strategy
+		const shouldApply =
+			items.length > 0 &&
+			(dedupeStrategy === "reapply" || dedupeStrategy === "reapply-mark" || !duplicate);
 
-			if (shouldApply) {
-				await apply(tx, items, dedupeKey);
-			} else if (duplicate && dedupeStrategy === "skip") {
-				skippedApply = true;
+		// B6 Fix: Apply items in batches to reduce memory usage
+		if (shouldApply) {
+			if (applyBatchSize && applyBatchSize > 0 && items.length > applyBatchSize) {
+				// Batch processing: each batch in its own transaction
+				for (let i = 0; i < items.length; i += applyBatchSize) {
+					const batch = items.slice(i, i + applyBatchSize);
+					await db.$transaction(
+						async (tx: Prisma.TransactionClient) => {
+							await apply(tx, batch, dedupeKey);
+						},
+						{ timeout: 60000 },
+					);
+				}
+			} else {
+				// Single transaction for all items
+				await db.$transaction(
+					async (tx: Prisma.TransactionClient) => {
+						await apply(tx, items, dedupeKey);
+					},
+					{ timeout: 60000 },
+				);
 			}
+		} else if (duplicate && dedupeStrategy === "skip") {
+			skippedApply = true;
+		}
 
+		// Update cursor and create message in final transaction
+		const syncResult = await db.$transaction(async (tx: Prisma.TransactionClient) => {
 			// Update cursor
 			if (!hasMore) {
 				await tx.integrationSyncCursor.upsert({

@@ -24,6 +24,7 @@ const workOrdersSyncPipeline = createSyncPipeline<unknown, ErpWorkOrder>({
 	normalize: (raw) => raw as ErpWorkOrder[], // Already normalized in pull
 	apply: applyWorkOrders,
 	dedupeStrategy: "reapply", // Always apply to ensure status sync
+	applyBatchSize: 50, // B6 Fix: Process in batches to reduce memory usage
 });
 
 export const syncErpWorkOrders = async (

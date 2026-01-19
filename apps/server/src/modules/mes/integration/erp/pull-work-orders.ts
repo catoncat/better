@@ -3,7 +3,7 @@ import type { KingdeeConfig } from "../kingdee";
 import { getKingdeeConfig, kingdeeExecuteBillQuery, kingdeeLogin } from "../kingdee";
 import { mockErpWorkOrders } from "../mock-data";
 import type { PullResult, SyncCursor } from "../sync-pipeline";
-import { buildSinceFilter, getCell, toIso, toNumber } from "../utils";
+import { buildDateRangeFilter, getCell, toIso, toNumber } from "../utils";
 import { getErpMasterConfig } from "./config";
 import type { ErpWorkOrder } from "./types";
 
@@ -190,7 +190,8 @@ export const pullWorkOrders = async (
 	const routingField = config.workOrderRoutingField ?? WORK_ORDER_ROUTING_FIELD_DEFAULT;
 	const fields = Array.from(new Set([...WORK_ORDER_FIELDS_BASE, routingField]));
 	const routingFieldIndex = fields.indexOf(routingField);
-	const filterString = buildSinceFilter("FModifyDate", since);
+	// Only sync work orders from the last 3 months to reduce memory usage
+	const filterString = buildDateRangeFilter("FModifyDate", since, 3);
 
 	const rowsResult = await fetchKingdeeRows(
 		sessionResult.data,

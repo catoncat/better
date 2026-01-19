@@ -94,6 +94,42 @@ export const buildSinceFilter = (field: string, since?: string | null): string =
 	return `${field} >= '${formatKingdeeDate(since)}'`;
 };
 
+/**
+ * Build a date range filter for Kingdee queries.
+ * Used to limit sync to recent data (e.g., last 3 months).
+ */
+export const buildDateRangeFilter = (
+	field: string,
+	since?: string | null,
+	monthsBack?: number,
+): string => {
+	const conditions: string[] = [];
+
+	// Add since filter if provided
+	if (since) {
+		conditions.push(`${field} >= '${formatKingdeeDate(since)}'`);
+	}
+
+	// Add months-back filter if provided
+	if (monthsBack && monthsBack > 0) {
+		const minDate = new Date();
+		minDate.setMonth(minDate.getMonth() - monthsBack);
+		const minDateStr = formatKingdeeDate(minDate.toISOString());
+		// Only add if no since or since is older than minDate
+		if (!since || new Date(since) < minDate) {
+			// Replace or add the minimum date constraint
+			if (conditions.length > 0) {
+				// since exists but is older, use minDate instead
+				conditions[0] = `${field} >= '${minDateStr}'`;
+			} else {
+				conditions.push(`${field} >= '${minDateStr}'`);
+			}
+		}
+	}
+
+	return conditions.join(" AND ");
+};
+
 // ==========================================
 // Cell Parsing (for Kingdee row data)
 // ==========================================
