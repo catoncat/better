@@ -1002,7 +1002,7 @@ export async function getRunLoadingRecords(
 		orderBy: { loadedAt: "desc" },
 	});
 
-	return { success: true, data: { items: records.map(mapLoadingRecord) } };
+	return { success: true, data: { items: records.map((record) => mapLoadingRecord(record)) } };
 }
 
 export async function getRunLoadingExpectations(
@@ -1017,7 +1017,9 @@ export async function getRunLoadingExpectations(
 	const expectations = await db.runSlotExpectation.findMany({
 		where: { runId: run.id },
 		include: {
-			slot: { select: { id: true, slotCode: true, slotName: true, position: true, isLocked: true } },
+			slot: {
+				select: { id: true, slotCode: true, slotName: true, position: true, isLocked: true },
+			},
 		},
 		orderBy: { slot: { position: "asc" } },
 	});
