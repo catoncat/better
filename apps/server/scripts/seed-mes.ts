@@ -97,25 +97,151 @@ export const seedMESMasterData = async () => {
 		},
 	});
 
+	const smtGroupSpi = await prisma.stationGroup.upsert({
+		where: { code: "SMT-SPI-A" },
+		update: {},
+		create: {
+			code: "SMT-SPI-A",
+			name: "SMT SPI Group",
+		},
+	});
+
+	const smtGroupMount = await prisma.stationGroup.upsert({
+		where: { code: "SMT-MOUNT-A" },
+		update: {},
+		create: {
+			code: "SMT-MOUNT-A",
+			name: "SMT Mounting Group",
+		},
+	});
+
+	const smtGroupReflow = await prisma.stationGroup.upsert({
+		where: { code: "SMT-REFLOW-A" },
+		update: {},
+		create: {
+			code: "SMT-REFLOW-A",
+			name: "SMT Reflow Group",
+		},
+	});
+
+	const smtGroupAoi = await prisma.stationGroup.upsert({
+		where: { code: "SMT-AOI-A" },
+		update: {},
+		create: {
+			code: "SMT-AOI-A",
+			name: "SMT AOI Group",
+		},
+	});
+
+	const dipGroupWave = await prisma.stationGroup.upsert({
+		where: { code: "DIP-WAVE-A" },
+		update: {},
+		create: {
+			code: "DIP-WAVE-A",
+			name: "DIP Wave Solder Group",
+		},
+	});
+
+	const dipGroupPost = await prisma.stationGroup.upsert({
+		where: { code: "DIP-POST-A" },
+		update: {},
+		create: {
+			code: "DIP-POST-A",
+			name: "DIP Post Solder Group",
+		},
+	});
+
+	const dipGroupTest = await prisma.stationGroup.upsert({
+		where: { code: "DIP-TEST-A" },
+		update: {},
+		create: {
+			code: "DIP-TEST-A",
+			name: "DIP Functional Test Group",
+		},
+	});
+
 	// 3. Create Stations
 	const stations = [
-		{ code: "ST-PRINT-01", name: "Stencil Printer 01", type: StationType.MANUAL },
-		{ code: "ST-SPI-01", name: "SPI 01", type: StationType.MANUAL },
-		{ code: "ST-MOUNT-01", name: "Pick & Place 01", type: StationType.MANUAL },
-		{ code: "ST-REFLOW-01", name: "Reflow Oven 01", type: StationType.MANUAL },
-		{ code: "ST-AOI-01", name: "AOI 01", type: StationType.MANUAL },
+		{
+			code: "ST-PRINT-01",
+			name: "Stencil Printer 01",
+			type: StationType.MANUAL,
+			lineId: lineA.id,
+			groupId: smtGroupA.id,
+		},
+		{
+			code: "ST-SPI-01",
+			name: "SPI 01",
+			type: StationType.MANUAL,
+			lineId: lineA.id,
+			groupId: smtGroupSpi.id,
+		},
+		{
+			code: "ST-MOUNT-01",
+			name: "Pick & Place 01",
+			type: StationType.MANUAL,
+			lineId: lineA.id,
+			groupId: smtGroupMount.id,
+		},
+		{
+			code: "ST-REFLOW-01",
+			name: "Reflow Oven 01",
+			type: StationType.MANUAL,
+			lineId: lineA.id,
+			groupId: smtGroupReflow.id,
+		},
+		{
+			code: "ST-AOI-01",
+			name: "AOI 01",
+			type: StationType.MANUAL,
+			lineId: lineA.id,
+			groupId: smtGroupAoi.id,
+		},
+		{
+			code: "ST-DIP-INSERT-01",
+			name: "DIP Insert 01",
+			type: StationType.MANUAL,
+			lineId: dipLineA.id,
+			groupId: dipGroupA.id,
+		},
+		{
+			code: "ST-DIP-WAVE-01",
+			name: "DIP Wave Solder 01",
+			type: StationType.MANUAL,
+			lineId: dipLineA.id,
+			groupId: dipGroupWave.id,
+		},
+		{
+			code: "ST-DIP-POST-01",
+			name: "DIP Post Solder 01",
+			type: StationType.MANUAL,
+			lineId: dipLineA.id,
+			groupId: dipGroupPost.id,
+		},
+		{
+			code: "ST-DIP-TEST-01",
+			name: "DIP Functional Test 01",
+			type: StationType.MANUAL,
+			lineId: dipLineA.id,
+			groupId: dipGroupTest.id,
+		},
 	];
 
 	for (const s of stations) {
 		await prisma.station.upsert({
 			where: { code: s.code },
-			update: { lineId: lineA.id, groupId: smtGroupA.id },
+			update: {
+				name: s.name,
+				stationType: s.type,
+				lineId: s.lineId,
+				groupId: s.groupId,
+			},
 			create: {
 				code: s.code,
 				name: s.name,
 				stationType: s.type,
-				lineId: lineA.id,
-				groupId: smtGroupA.id,
+				lineId: s.lineId,
+				groupId: s.groupId,
 			},
 		});
 	}
@@ -187,6 +313,13 @@ export const seedMESMasterData = async () => {
 		{ stepNo: 4, opCode: "REFLOW" },
 		{ stepNo: 5, opCode: "AOI", isLast: true },
 	];
+	const smtGroupByOp: Record<string, string> = {
+		PRINTING: smtGroupA.id,
+		SPI: smtGroupSpi.id,
+		MOUNTING: smtGroupMount.id,
+		REFLOW: smtGroupReflow.id,
+		AOI: smtGroupAoi.id,
+	};
 
 	for (const step of steps) {
 		await prisma.routingStep.upsert({
@@ -201,7 +334,7 @@ export const seedMESMasterData = async () => {
 				routingId: routing.id,
 				stepNo: step.stepNo,
 				operationId: opRecords[step.opCode].id,
-				stationGroupId: smtGroupA.id,
+				stationGroupId: smtGroupByOp[step.opCode] ?? smtGroupA.id,
 				stationType: opRecords[step.opCode].defaultType,
 				requiresFAI: step.requiresFAI || false,
 				isLast: step.isLast || false,
@@ -226,6 +359,12 @@ export const seedMESMasterData = async () => {
 		{ stepNo: 3, opCode: "POST_SOLDER" },
 		{ stepNo: 4, opCode: "FUNC_TEST", isLast: true },
 	];
+	const dipGroupByOp: Record<string, string> = {
+		DIP_INSERT: dipGroupA.id,
+		WAVE_SOLDER: dipGroupWave.id,
+		POST_SOLDER: dipGroupPost.id,
+		FUNC_TEST: dipGroupTest.id,
+	};
 
 	for (const step of dipSteps) {
 		await prisma.routingStep.upsert({
@@ -240,7 +379,7 @@ export const seedMESMasterData = async () => {
 				routingId: dipRouting.id,
 				stepNo: step.stepNo,
 				operationId: opRecords[step.opCode].id,
-				stationGroupId: dipGroupA.id,
+				stationGroupId: dipGroupByOp[step.opCode] ?? dipGroupA.id,
 				stationType: opRecords[step.opCode].defaultType,
 				requiresFAI: step.requiresFAI || false,
 				isLast: step.isLast || false,

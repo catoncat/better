@@ -134,6 +134,12 @@ task:
 ## Progress (2026-01-19 slice3)
 - Added failure step metadata in defect service and surfaced step/station in defects UI; added rework flow guidance card; marked 5.5.2/5.5.4 complete in tasks.md.
 
+## Findings (2026-01-19 slice4)
+- Seed data uses a single SMT/DIP station group for all routing steps; needs per-step station groups and stations to simulate real flow (5.2.20).
+
+## Progress (2026-01-19 slice4)
+- Added per-step station groups/stations in `seed-mes.ts` and mapped SMT/DIP steps to distinct groups; marked 5.2.20 complete.
+
 ## Errors (2026-01-19 slice2)
 - `bun run format -- apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` failed due to `$runNo` path expansion; will rerun `bun run format` without path filtering.
 

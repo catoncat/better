@@ -351,7 +351,7 @@ P1（应该）：
 | 5.2.17 | **BUG**: FAI 完成后"试产执行"按钮仍显示 | 当 FAI=PASS 时，批次详情页仍显示"试产执行"按钮；应根据 FAI 状态决定：FAI=INSPECTING 显示"试产执行"，FAI=PASS/无 FAI 时隐藏或显示"等待授权" | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx:331-345` | **P1** | [x] |
 | 5.2.18 | 试产流程入口不清晰，需手动跳转执行页 | 点击"试产执行"应引导用户完成试产流程：检查/生成 Unit → 跳转执行页（预填参数）→ 完成后返回 FAI 判定；当前只是简单跳转 | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx`, 执行页 | P1 | [x] |
 | 5.2.19 | 执行页面未显示当前步骤信息 | 当多个步骤可在同一工位执行时，用户无法区分当前是哪个步骤；应在 TrackIn/TrackOut 时明确显示"当前步骤：Step 2 SPI 检验"，而不仅是工位代码 | `apps/web/src/routes/_authenticated/mes/execution.tsx` | **P1** | [x] |
-| 5.2.20 | Seed 数据：演示路由所有步骤指向同一工位组 | 演示数据过于简化，所有 5 个步骤的 `stationGroupId` 相同，导致无法体验真实的多工位流转；应为每个步骤配置不同的工位组 | `apps/server/scripts/seed-mes.ts` | P2 | [ ] |
+| 5.2.20 | Seed 数据：演示路由所有步骤指向同一工位组 | 演示数据过于简化，所有 5 个步骤的 `stationGroupId` 相同，导致无法体验真实的多工位流转；应为每个步骤配置不同的工位组 | `apps/server/scripts/seed-mes.ts` | P2 | [x] |
 | 5.2.21 | FAI 创建和"开始"应合并为一个操作 | 当前创建 FAI 后需要返回列表再点"开始"，操作不直观；应在创建时自动开始，或创建成功后直接跳转到 FAI 详情页并显示"开始"按钮 | `apps/web/src/routes/_authenticated/mes/fai.tsx`, `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` | P1 | [x] |
 | 5.2.22 | FAI 流程应端到端连贯 | 创建 FAI → 检查/生成 Unit → 开始试产 应在一个引导流程中完成，而非在多个页面间跳转；建议使用向导式对话框或步骤提示 | FAI 创建流程 | P1 | [x] |
 
