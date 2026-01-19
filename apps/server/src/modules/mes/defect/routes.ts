@@ -24,7 +24,7 @@ import {
 
 const defectInclude = {
 	unit: true,
-	track: true,
+	track: { include: { station: true } },
 	disposition: { include: { reworkTask: true } },
 };
 

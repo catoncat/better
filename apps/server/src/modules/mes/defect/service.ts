@@ -14,8 +14,29 @@ type ReleaseHoldInput = Static<typeof releaseHoldSchema>;
 type CompleteReworkInput = Static<typeof completeReworkSchema>;
 
 type DefectWithRelations = Prisma.DefectGetPayload<{
-	include: { unit: true; track: true; disposition: { include: { reworkTask: true } } };
+	include: {
+		unit: true;
+		track: { include: { station: true } };
+		disposition: { include: { reworkTask: true } };
+	};
 }>;
+
+type SnapshotStep = {
+	stepNo: number;
+	operationId: string;
+};
+
+type FailureStepMeta = {
+	stepNo: number;
+	operationCode: string;
+	operationName: string | null;
+	stationCode: string | null;
+	stationName: string | null;
+};
+
+type DefectWithFailureStep = DefectWithRelations & {
+	failureStep: FailureStepMeta | null;
+};
 
 type ReworkTaskWithRelations = Prisma.ReworkTaskGetPayload<{
 	include: { unit: true; disposition: { include: { defect: true } } };
@@ -32,6 +53,75 @@ const REWORK_STATUS = {
 	DONE: "DONE",
 	CANCELLED: "CANCELLED",
 } as const;
+
+const getSnapshotSteps = (snapshot: Prisma.JsonValue | null | undefined): SnapshotStep[] => {
+	if (!snapshot || typeof snapshot !== "object") return [];
+	const record = snapshot as { steps?: unknown };
+	if (!Array.isArray(record.steps)) return [];
+	return record.steps.filter((step): step is SnapshotStep => !!step && typeof step === "object");
+};
+
+const attachFailureStepMeta = async (
+	db: PrismaClient,
+	defects: DefectWithRelations[],
+): Promise<DefectWithFailureStep[]> => {
+	if (defects.length === 0) return [];
+
+	const runIds = [
+		...new Set(
+			defects
+				.map((defect) => defect.unit?.runId)
+				.filter((runId): runId is string => Boolean(runId)),
+		),
+	];
+
+	const runs = runIds.length
+		? await db.run.findMany({
+				where: { id: { in: runIds } },
+				select: { id: true, routeVersion: true },
+			})
+		: [];
+
+	const stepsByRunId = new Map<string, Map<number, SnapshotStep>>();
+	const operationIds = new Set<string>();
+
+	for (const run of runs) {
+		const steps = getSnapshotSteps(run.routeVersion?.snapshotJson);
+		const stepMap = new Map<number, SnapshotStep>();
+		for (const step of steps) {
+			stepMap.set(step.stepNo, step);
+			operationIds.add(step.operationId);
+		}
+		stepsByRunId.set(run.id, stepMap);
+	}
+
+	const operations = operationIds.size
+		? await db.operation.findMany({
+				where: { id: { in: [...operationIds] } },
+				select: { id: true, code: true, name: true },
+			})
+		: [];
+	const operationById = new Map(operations.map((operation) => [operation.id, operation]));
+
+	return defects.map((defect) => {
+		const stepNo = defect.track?.stepNo ?? defect.unit?.currentStepNo ?? null;
+		const runId = defect.unit?.runId ?? null;
+		const step = stepNo && runId ? stepsByRunId.get(runId)?.get(stepNo) : undefined;
+		const operation = step ? operationById.get(step.operationId) : null;
+		const station = defect.track?.station ?? null;
+		const failureStep = stepNo
+			? {
+					stepNo,
+					operationCode: operation?.code ?? "-",
+					operationName: operation?.name ?? null,
+					stationCode: station?.code ?? null,
+					stationName: station?.name ?? null,
+				}
+			: null;
+
+		return { ...defect, failureStep };
+	});
+};
 
 /**
  * Create a defect record for a unit.
@@ -72,7 +162,7 @@ export async function createDefect(
 		},
 		include: {
 			unit: true,
-			track: true,
+			track: { include: { station: true } },
 			disposition: { include: { reworkTask: true } },
 		},
 	});
@@ -196,7 +286,7 @@ export async function assignDisposition(
 			where: { id: defectId },
 			include: {
 				unit: true,
-				track: true,
+				track: { include: { station: true } },
 				disposition: { include: { reworkTask: true } },
 			},
 		});
@@ -280,7 +370,7 @@ export async function releaseHold(
 			where: { id: defectId },
 			include: {
 				unit: true,
-				track: true,
+				track: { include: { station: true } },
 				disposition: { include: { reworkTask: true } },
 			},
 		});
@@ -378,12 +468,12 @@ export async function completeRework(
 export async function getDefect(
 	db: PrismaClient,
 	defectId: string,
-): Promise<ServiceResult<DefectWithRelations>> {
+): Promise<ServiceResult<DefectWithFailureStep>> {
 	const defect = await db.defect.findUnique({
 		where: { id: defectId },
 		include: {
 			unit: true,
-			track: true,
+			track: { include: { station: true } },
 			disposition: { include: { reworkTask: true } },
 		},
 	});
@@ -397,7 +487,11 @@ export async function getDefect(
 		};
 	}
 
-	return { success: true as const, data: defect };
+	const [enriched] = await attachFailureStepMeta(db, [defect]);
+	return {
+		success: true as const,
+		data: enriched ?? { ...defect, failureStep: null },
+	};
 }
 
 /**
@@ -414,7 +508,7 @@ export async function listDefects(
 		pageSize?: number;
 	},
 ): Promise<{
-	items: DefectWithRelations[];
+	items: DefectWithFailureStep[];
 	total: number;
 	page: number;
 	pageSize: number;
@@ -461,14 +555,15 @@ export async function listDefects(
 			take: pageSize,
 			include: {
 				unit: true,
-				track: true,
+				track: { include: { station: true } },
 				disposition: { include: { reworkTask: true } },
 			},
 		}),
 		db.defect.count({ where }),
 	]);
 
-	return { items, total, page, pageSize };
+	const enrichedItems = await attachFailureStepMeta(db, items);
+	return { items: enrichedItems, total, page, pageSize };
 }
 
 /**

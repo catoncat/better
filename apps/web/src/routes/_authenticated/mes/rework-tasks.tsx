@@ -144,6 +144,18 @@ function ReworkTasksPage() {
 				</CardContent>
 			</Card>
 
+			<Card>
+				<CardHeader>
+					<CardTitle className="text-base">返工流程指引</CardTitle>
+					<CardDescription>完成返工任务后的下一步操作说明</CardDescription>
+				</CardHeader>
+				<CardContent className="space-y-2 text-sm text-muted-foreground">
+					<p>1. 按目标工步重新执行返工（TrackIn/TrackOut）。</p>
+					<p>2. 目标工步通过后系统会自动关闭返工任务。</p>
+					<p>3. 若未自动关闭，可在任务列表中点击“完成”手动结束。</p>
+				</CardContent>
+			</Card>
+
 			{/* Rework Task List */}
 			<Card>
 				<CardHeader>

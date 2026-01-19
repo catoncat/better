@@ -126,5 +126,16 @@ task:
 - Implemented trial-flow guidance in run detail: gated CTA, auto create+start FAI, generate-units gating, and process-stage progress card.
 - Updated tasks.md status for 5.1.9/5.2.17/5.2.18/5.2.21/5.2.22.
 
+## Findings (2026-01-19 slice3)
+- Defect list/detail UI (`apps/web/src/routes/_authenticated/mes/defects.tsx`) currently shows code/location/qty/status only; no failure step/operation/station details (5.5.2).
+- Defect API returns `unit` and `track` but no step/operation metadata; need to enrich list/detail responses with failure step + station info.
+- Track model includes `stepNo` and `stationId` with `station` relation; can derive operation name via run route snapshot.
+
+## Progress (2026-01-19 slice3)
+- Added failure step metadata in defect service and surfaced step/station in defects UI; added rework flow guidance card; marked 5.5.2/5.5.4 complete in tasks.md.
+
 ## Errors (2026-01-19 slice2)
 - `bun run format -- apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` failed due to `$runNo` path expansion; will rerun `bun run format` without path filtering.
+
+## Errors (2026-01-19 slice3)
+- `bun scripts/smart-verify.ts` failed: `defect/service.ts` returned `DefectWithFailureStep | null` in `getDefect`; fixed by providing fallback `{ ...defect, failureStep: null }`.

@@ -120,8 +120,16 @@ function DefectsPage() {
 	const [releaseReason, setReleaseReason] = useState("");
 
 	// Cast to include unit relation
+	type FailureStep = {
+		stepNo: number;
+		operationCode?: string;
+		operationName?: string | null;
+		stationCode?: string | null;
+		stationName?: string | null;
+	};
 	type DefectWithUnit = NonNullable<typeof data>["items"][number] & {
 		unit?: { sn: string; runId?: string } | null;
+		failureStep?: FailureStep | null;
 	};
 	const items = (data?.items ?? []) as DefectWithUnit[];
 	const total = data?.total ?? 0;
@@ -150,6 +158,17 @@ function DefectsPage() {
 		if (type === "HOLD") variant = "outline";
 
 		return <Badge variant={variant}>{label}</Badge>;
+	};
+
+	const formatFailureStep = (step?: FailureStep | null) => {
+		if (!step) return "-";
+		const operationLabel = step.operationName ?? step.operationCode;
+		return operationLabel ? `Step ${step.stepNo} ${operationLabel}` : `Step ${step.stepNo}`;
+	};
+
+	const formatFailureStation = (step?: FailureStep | null) => {
+		if (!step) return "-";
+		return step.stationCode ?? step.stationName ?? "-";
 	};
 
 	const handleAssignDisposition = () => {
@@ -202,7 +221,10 @@ function DefectsPage() {
 		} | null;
 	};
 	const defectDetailTyped = defectDetail as
-		| (NonNullable<typeof defectDetail> & { disposition?: DispositionDetail | null })
+		| (NonNullable<typeof defectDetail> & {
+				disposition?: DispositionDetail | null;
+				failureStep?: FailureStep | null;
+		  })
 		| null;
 
 	const selectedUnitSn = useMemo(() => {
@@ -314,6 +336,7 @@ function DefectsPage() {
 									<TableHead>缺陷代码</TableHead>
 									<TableHead>位置</TableHead>
 									<TableHead>数量</TableHead>
+									<TableHead>失败步骤</TableHead>
 									<TableHead>状态</TableHead>
 									<TableHead>处置</TableHead>
 									<TableHead>创建时间</TableHead>
@@ -327,6 +350,14 @@ function DefectsPage() {
 										<TableCell>{defect.code}</TableCell>
 										<TableCell>{defect.location ?? "-"}</TableCell>
 										<TableCell>{defect.qty ?? 1}</TableCell>
+										<TableCell>
+											<div className="space-y-1">
+												<div className="text-sm">{formatFailureStep(defect.failureStep)}</div>
+												<div className="text-xs text-muted-foreground">
+													{formatFailureStation(defect.failureStep)}
+												</div>
+											</div>
+										</TableCell>
 										<TableCell>{getStatusBadge(defect.status)}</TableCell>
 										<TableCell>
 											{(defect as { disposition?: { type?: string } | null }).disposition?.type
@@ -429,7 +460,7 @@ function DefectsPage() {
 							</div>
 						) : (
 							<div className="space-y-4">
-								<div className="grid grid-cols-4 gap-4 text-sm">
+								<div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-3">
 									<div>
 										<span className="text-muted-foreground">状态：</span>
 										{getStatusBadge(defectDetailTyped.status)}
@@ -445,6 +476,14 @@ function DefectsPage() {
 									<div>
 										<span className="text-muted-foreground">数量：</span>
 										{defectDetailTyped.qty ?? 1}
+									</div>
+									<div>
+										<span className="text-muted-foreground">失败步骤：</span>
+										{formatFailureStep(defectDetailTyped.failureStep)}
+									</div>
+									<div>
+										<span className="text-muted-foreground">失败工位：</span>
+										{formatFailureStation(defectDetailTyped.failureStep)}
 									</div>
 								</div>
 
