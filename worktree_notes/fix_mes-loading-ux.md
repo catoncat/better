@@ -25,7 +25,7 @@ task:
 - [x] Slice 4: update plan status + MES emoji check.
 - [x] Slice 5: FAI completion guard requires trial TrackIn/TrackOut (5.2.2).
 - [x] Slice 6: loading run selector uses searchable list of PREP runs (5.1.3).
-- [ ] Slice 7: update plan status + verification.
+- [x] Slice 7: update plan status + verification.
 
 <!-- AUTO:BEGIN status -->
 
@@ -61,6 +61,7 @@ task:
 - `fai/service.ts` lacks any guard to require trial TrackIn/TrackOut before recording items or completing FAI.
 - `useRunList` can filter runs by status and search, suitable for a PREP-only run selector on the loading page.
 - FAI completion now needs a server-side trial-unit count check to block skipping trial TrackIn/TrackOut.
+- `bun scripts/smart-verify.ts` passes for the updated FAI + loading selector changes.
 
 ## Open Questions
 -
