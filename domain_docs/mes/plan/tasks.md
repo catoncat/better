@@ -421,9 +421,9 @@ FAI 试产说明：
 | 上料防错 | `/api/mes/loading/*` | [x] |
 | FAI 首件检验 | `/api/mes/fai/*` | [x] |
 | 执行 (TrackIn/Out) | `/api/mes/execution/*` | [x] |
-| OQC 出货检验 | `/api/mes/oqc/*` | [ ] |
-| MRB 不良处置 | `/api/mes/mrb/*` | [ ] |
-| 追溯查询 | `/api/mes/trace/*` | [ ] |
+| OQC 出货检验 | `/api/mes/oqc/*` | [x] |
+| MRB 不良处置 | `/api/mes/mrb/*` | [x] |
+| 追溯查询 | `/api/mes/trace/*` | [x] |
 
 #### 5.3.2 审查清单（每个 API）
 

@@ -167,6 +167,7 @@ task:
 - Loading routes follow the same `{ ok: false, error: { code, message } }` pattern with status and audit logging; audit focus should be on service message clarity and frontend toast handling.
 - `use-readiness.ts` uses generic toast messages for precheck/formal/waive and doesn't surface ApiError details; `use-loading.ts` handles verify errors well but lacks onError for load-table/replace/unlock mutations.
 - Readiness/loading services already emit distinct error codes/messages (mostly English). Slice2 can focus on surfacing `ApiError.message` and code in toasts rather than changing backend text.
+- `use-oqc.ts` lacks onError handling for start/record/complete/mrb mutations; `use-defects.ts` throws generic errors without unwrap/ApiError detail; trace page shows inline error but no toast.
 
 ## Progress (2026-01-19 slice6)
 - Marked 5.3 audit status as in-progress in `domain_docs/mes/plan/tasks.md` (scaffold only).
@@ -176,6 +177,9 @@ task:
 
 ## Progress (2026-01-19 slice8)
 - Switched run/FAI/execution mutations to use `getApiErrorMessage` and `unwrap` for consistent error codes in toasts.
+
+## Progress (2026-01-19 slice9)
+- Added ApiError-based toasts for OQC/MRB/defect workflows and surfaced trace query errors with code-aware messaging; marked OQC/MRB/trace audit rows as complete.
 
 ## Errors (2026-01-19 next)
 - Failed to overwrite conversation note with `cat > file` due to `noclobber` shell setting; next attempt will use `tee` to write the plan.

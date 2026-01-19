@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { client, unwrap } from "@/lib/eden";
 
 // Infer types from API responses
@@ -85,6 +86,11 @@ export function useStartOqc() {
 			toast.success("OQC 检验已开始");
 			queryClient.invalidateQueries({ queryKey: ["mes", "oqc"] });
 		},
+		onError: (error: unknown) => {
+			toast.error("开始 OQC 失败", {
+				description: getApiErrorMessage(error, "请重试或联系管理员"),
+			});
+		},
 	});
 }
 
@@ -103,6 +109,11 @@ export function useRecordOqcItem() {
 			toast.success("检验项已记录");
 			queryClient.invalidateQueries({ queryKey: ["mes", "oqc", "detail", variables.oqcId] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "oqc", "list"] });
+		},
+		onError: (error: unknown) => {
+			toast.error("记录检验项失败", {
+				description: getApiErrorMessage(error, "请重试或联系管理员"),
+			});
 		},
 	});
 }
@@ -124,6 +135,11 @@ export function useCompleteOqc() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "run-detail"] });
 		},
+		onError: (error: unknown) => {
+			toast.error("完成 OQC 失败", {
+				description: getApiErrorMessage(error, "请重试或联系管理员"),
+			});
+		},
 	});
 }
 
@@ -143,6 +159,11 @@ export function useMrbDecision() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "run-detail"] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "oqc"] });
+		},
+		onError: (error: unknown) => {
+			toast.error("MRB 决策提交失败", {
+				description: getApiErrorMessage(error, "请重试或联系管理员"),
+			});
 		},
 	});
 }

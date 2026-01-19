@@ -22,6 +22,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { useUnitTrace } from "@/hooks/use-trace";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { UNIT_STATUS_MAP } from "@/lib/constants";
 import { formatDateTime } from "@/lib/utils";
 
@@ -127,7 +128,7 @@ function TracePage() {
 
 			{error && (
 				<div className="rounded-md border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
-					查询失败：{error instanceof Error ? error.message : "未知错误"}
+					查询失败：{getApiErrorMessage(error, "未知错误")}
 				</div>
 			)}
 
