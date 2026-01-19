@@ -187,6 +187,9 @@ task:
 ## Errors (2026-01-19 next)
 - Failed to overwrite conversation note with `cat > file` due to `noclobber` shell setting; next attempt will use `tee` to write the plan.
 
+## Findings (2026-01-19 validation)
+- Emoji scan (`rg -nP "\\p{Extended_Pictographic}" domain_docs/mes`) reports matches in `domain_docs/mes/spec/process/compair/*` and existing test docs; these are user-owned files and remain untouched.
+
 ## Errors (2026-01-19 slice2)
 - `bun run format -- apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` failed due to `$runNo` path expansion; will rerun `bun run format` without path filtering.
 
