@@ -61,3 +61,4 @@ task:
 - `rg` on `.../runs/$runNo.tsx` failed due to shell expansion; will retry with quoted path.
 - Second `rg` still expanded `$runNo` due to double quotes; next try will escape `$` or use single quotes.
 - `git add` failed for `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` due to shell expansion; will re-run with quoted path.
+- `bun scripts/smart-verify.ts` failed on Biome format for `apps/web/src/routes/_authenticated/mes/-components/work-order-field-meta.tsx`; fixed formatting to retry.

@@ -117,9 +117,7 @@ export const workOrderFieldMeta: DataListFieldMeta<WorkOrder>[] = [
 			return (
 				<div className="flex max-w-[220px] flex-col">
 					<span className="truncate">{workOrder.productCode}</span>
-					{detail ? (
-						<span className="truncate text-xs text-muted-foreground">{detail}</span>
-					) : null}
+					{detail ? <span className="truncate text-xs text-muted-foreground">{detail}</span> : null}
 				</div>
 			);
 		},
