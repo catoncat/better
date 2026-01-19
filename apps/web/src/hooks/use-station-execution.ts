@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api-error";
 import { client, unwrap } from "@/lib/eden";
 
 type TrackInInput = Parameters<ReturnType<typeof client.api.stations>["track-in"]["post"]>[0];
@@ -65,17 +66,27 @@ export function useTrackIn() {
 
 	return useMutation({
 		mutationFn: async ({ stationCode, ...body }: TrackInInput & { stationCode: string }) => {
-			const { data, error } = await client.api.stations({ stationCode })["track-in"].post(body);
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "进站失败");
-			}
-
-			return data;
+			const response = await client.api.stations({ stationCode })["track-in"].post(body);
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			toast.success("进站成功");
 			queryClient.invalidateQueries({ queryKey: ["mes"] });
+		},
+		onError: (error: unknown) => {
+			if (error instanceof ApiError) {
+				toast.error("进站失败", {
+					description: error.message
+						? `${error.message}${error.code ? `（${error.code}）` : ""}`
+						: error.code,
+				});
+				return;
+			}
+			if (error instanceof Error) {
+				toast.error("进站失败", { description: error.message });
+				return;
+			}
+			toast.error("进站失败", { description: "请重试或联系管理员" });
 		},
 	});
 }
@@ -85,17 +96,27 @@ export function useTrackOut() {
 
 	return useMutation({
 		mutationFn: async ({ stationCode, ...body }: TrackOutInput & { stationCode: string }) => {
-			const { data, error } = await client.api.stations({ stationCode })["track-out"].post(body);
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "出站失败");
-			}
-
-			return data;
+			const response = await client.api.stations({ stationCode })["track-out"].post(body);
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			toast.success("出站成功");
 			queryClient.invalidateQueries({ queryKey: ["mes"] });
+		},
+		onError: (error: unknown) => {
+			if (error instanceof ApiError) {
+				toast.error("出站失败", {
+					description: error.message
+						? `${error.message}${error.code ? `（${error.code}）` : ""}`
+						: error.code,
+				});
+				return;
+			}
+			if (error instanceof Error) {
+				toast.error("出站失败", { description: error.message });
+				return;
+			}
+			toast.error("出站失败", { description: "请重试或联系管理员" });
 		},
 	});
 }

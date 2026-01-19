@@ -7,14 +7,6 @@ import * as z from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
 import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
 import {
@@ -40,7 +32,6 @@ import {
 	useStationQueue,
 	useStations,
 	useTrackIn,
-	useTrackOut,
 } from "@/hooks/use-station-execution";
 import { useUserProfile } from "@/hooks/use-users";
 import { formatDateTime } from "@/lib/utils";
@@ -71,11 +62,15 @@ const trackOutSchema = z.object({
 function ExecutionPage() {
 	const searchParams = Route.useSearch();
 	const [selectedStation, setSelectedStation] = useState<string>("");
-	const [ngDialogOpen, setNgDialogOpen] = useState(false);
-	const [ngItem, setNgItem] = useState<{ sn: string; runNo: string } | null>(null);
 	// State for TrackOut dialog with data collection
 	const [trackOutDialogOpen, setTrackOutDialogOpen] = useState(false);
-	const [trackOutItem, setTrackOutItem] = useState<{ sn: string; runNo: string } | null>(null);
+	const [trackOutItem, setTrackOutItem] = useState<{
+		sn: string;
+		runNo: string;
+		initialResult?: "PASS" | "FAIL";
+		lockResult?: boolean;
+	} | null>(null);
+	const isOutPending = trackOutDialogOpen;
 	const stationStorageKey = "mes.execution.station";
 	// Track if we've applied search params to avoid re-applying on re-renders
 	const appliedSearchParamsRef = useRef(false);
@@ -93,7 +88,6 @@ function ExecutionPage() {
 		sort: "-updatedAt",
 	});
 	const { mutateAsync: trackIn, isPending: isInPending } = useTrackIn();
-	const { mutateAsync: trackOut, isPending: isOutPending } = useTrackOut();
 	const { mutateAsync: resolveUnitBySn, isPending: isResolvingSn } = useResolveUnitBySn();
 	const { hasPermission } = useAbility();
 	const canTrackIn = hasPermission(Permission.EXEC_TRACK_IN);
@@ -124,14 +118,11 @@ function ExecutionPage() {
 		},
 		onSubmit: async ({ value: values }) => {
 			if (!selectedStation || !canTrackOut) return;
-			if (values.result === "FAIL") {
-				await trackOut({ stationCode: selectedStation, ...values });
-				outForm.reset({ sn: "", runNo: values.runNo, result: "PASS" });
-				refetchQueue();
-				return;
-			}
-
-			handleOpenTrackOutDialog({ sn: values.sn, runNo: values.runNo });
+			handleOpenTrackOutDialog({
+				sn: values.sn,
+				runNo: values.runNo,
+				initialResult: values.result,
+			});
 		},
 	});
 
@@ -191,7 +182,12 @@ function ExecutionPage() {
 	}, [availableStations, selectedStation]);
 
 	// Open TrackOut dialog with data collection
-	const handleOpenTrackOutDialog = (item: { sn: string; runNo: string }) => {
+	const handleOpenTrackOutDialog = (item: {
+		sn: string;
+		runNo: string;
+		initialResult?: "PASS" | "FAIL";
+		lockResult?: boolean;
+	}) => {
 		setTrackOutItem(item);
 		setTrackOutDialogOpen(true);
 	};
@@ -199,24 +195,6 @@ function ExecutionPage() {
 	const handleTrackOutSuccess = () => {
 		setTrackOutItem(null);
 		outForm.reset({ sn: "", runNo: "", result: "PASS" });
-		refetchQueue();
-	};
-
-	const handleOpenNgDialog = (item: { sn: string; runNo: string }) => {
-		setNgItem(item);
-		setNgDialogOpen(true);
-	};
-
-	const handleConfirmNg = async () => {
-		if (!selectedStation || !canTrackOut || isOutPending || !ngItem) return;
-		await trackOut({
-			stationCode: selectedStation,
-			sn: ngItem.sn,
-			runNo: ngItem.runNo,
-			result: "FAIL",
-		});
-		setNgDialogOpen(false);
-		setNgItem(null);
 		refetchQueue();
 	};
 
@@ -422,7 +400,11 @@ function ExecutionPage() {
 															size="sm"
 															disabled={!canTrackOut || isOutPending}
 															onClick={() =>
-																handleOpenTrackOutDialog({ sn: item.sn, runNo: item.runNo })
+																handleOpenTrackOutDialog({
+																	sn: item.sn,
+																	runNo: item.runNo,
+																	initialResult: "PASS",
+																})
 															}
 														>
 															出站
@@ -431,7 +413,14 @@ function ExecutionPage() {
 															variant="outline"
 															size="sm"
 															disabled={!canTrackOut || isOutPending}
-															onClick={() => handleOpenNgDialog({ sn: item.sn, runNo: item.runNo })}
+															onClick={() =>
+																handleOpenTrackOutDialog({
+																	sn: item.sn,
+																	runNo: item.runNo,
+																	initialResult: "FAIL",
+																	lockResult: true,
+																})
+															}
 														>
 															报不良
 														</Button>
@@ -615,29 +604,11 @@ function ExecutionPage() {
 					stationCode={selectedStation}
 					sn={trackOutItem.sn}
 					runNo={trackOutItem.runNo}
+					initialResult={trackOutItem.initialResult}
+					lockResult={trackOutItem.lockResult}
 					onSuccess={handleTrackOutSuccess}
 				/>
 			)}
-
-			{/* NG Confirmation Dialog */}
-			<Dialog open={ngDialogOpen} onOpenChange={setNgDialogOpen}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>确认报不良</DialogTitle>
-						<DialogDescription>
-							SN: {ngItem?.sn ?? "-"} · 批次号: {ngItem?.runNo ?? "-"}
-						</DialogDescription>
-					</DialogHeader>
-					<DialogFooter>
-						<Button variant="outline" onClick={() => setNgDialogOpen(false)}>
-							取消
-						</Button>
-						<Button onClick={handleConfirmNg} disabled={!canTrackOut || isOutPending}>
-							{isOutPending ? "处理中..." : "确认报不良"}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
 		</div>
 	);
 }

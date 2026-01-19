@@ -526,6 +526,7 @@ export async function createDefectFromTrackOut(
 	trackId: string,
 	defectCode: string,
 	location?: string,
+	remark?: string,
 ): Promise<ServiceResult<DefectWithRelations>> {
 	const track = await db.track.findUnique({
 		where: { id: trackId },
@@ -547,6 +548,7 @@ export async function createDefectFromTrackOut(
 			unitSn: track.unit.sn,
 			code: defectCode,
 			location,
+			remark,
 		},
 		trackId,
 	);

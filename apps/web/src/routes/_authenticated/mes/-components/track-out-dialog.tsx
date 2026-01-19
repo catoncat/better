@@ -24,6 +24,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { type DataSpecItem, useTrackOut, useUnitDataSpecs } from "@/hooks/use-station-execution";
 
 interface TrackOutDialogProps {
@@ -32,6 +33,8 @@ interface TrackOutDialogProps {
 	stationCode: string;
 	sn: string;
 	runNo: string;
+	initialResult?: "PASS" | "FAIL";
+	lockResult?: boolean;
 	onSuccess?: () => void;
 }
 
@@ -43,6 +46,8 @@ export function TrackOutDialog({
 	stationCode,
 	sn,
 	runNo,
+	initialResult,
+	lockResult,
 	onSuccess,
 }: TrackOutDialogProps) {
 	const { data: specsData, isLoading: isLoadingSpecs } = useUnitDataSpecs(
@@ -50,6 +55,7 @@ export function TrackOutDialog({
 		open ? sn : "",
 	);
 	const { mutateAsync: trackOut, isPending: isSubmitting } = useTrackOut();
+	const resolvedInitialResult = initialResult ?? "PASS";
 
 	const specs = specsData?.specs ?? [];
 	const hasSpecs = specs.length > 0;
@@ -71,8 +77,11 @@ export function TrackOutDialog({
 
 	const form = useForm({
 		defaultValues: {
-			result: "PASS" as "PASS" | "FAIL",
+			result: resolvedInitialResult,
 			data: initialData,
+			defectCode: "",
+			defectLocation: "",
+			defectRemark: "",
 		},
 		onSubmit: async ({ value }) => {
 			// Build data array from form values
@@ -112,12 +121,23 @@ export function TrackOutDialog({
 
 			if (jsonParseFailed) return;
 
+			const trimmedDefectCode = value.defectCode?.trim();
+			if (value.result === "FAIL" && !trimmedDefectCode) {
+				toast.error("请填写缺陷代码");
+				return;
+			}
+
 			await trackOut({
 				stationCode,
 				sn,
 				runNo,
 				result: value.result,
 				data: dataArray.length > 0 ? dataArray : undefined,
+				defectCode: value.result === "FAIL" ? trimmedDefectCode : undefined,
+				defectLocation:
+					value.result === "FAIL" ? value.defectLocation?.trim() || undefined : undefined,
+				defectRemark:
+					value.result === "FAIL" ? value.defectRemark?.trim() || undefined : undefined,
 			});
 
 			onOpenChange(false);
@@ -129,15 +149,21 @@ export function TrackOutDialog({
 	useEffect(() => {
 		if (open) {
 			form.reset({
-				result: "PASS",
+				result: resolvedInitialResult,
 				data: initialData,
+				defectCode: "",
+				defectLocation: "",
+				defectRemark: "",
 			});
 		}
-	}, [open, form, initialData]);
+	}, [open, form, initialData, resolvedInitialResult]);
 
 	// Validate required fields
 	const validateRequired = () => {
-		if (form.getFieldValue("result") === "FAIL") return true;
+		if (form.getFieldValue("result") === "FAIL") {
+			const defectCode = form.getFieldValue("defectCode");
+			return Boolean(defectCode && defectCode.trim());
+		}
 		for (const spec of specs) {
 			if (spec.isRequired) {
 				const val = form.getFieldValue(`data.${spec.name}` as never);
@@ -292,7 +318,7 @@ export function TrackOutDialog({
 										}
 									}}
 								>
-									<SelectTrigger>
+									<SelectTrigger disabled={lockResult}>
 										<SelectValue />
 									</SelectTrigger>
 									<SelectContent>
@@ -302,6 +328,49 @@ export function TrackOutDialog({
 								</Select>
 							)}
 						</Field>
+
+						<form.Subscribe selector={(state) => [state.values.result]}>
+							{([result]) =>
+								result === "FAIL" && (
+									<div className="space-y-4 rounded-lg border p-4">
+										<h4 className="font-medium text-sm">不良信息</h4>
+										<div className="grid gap-3 md:grid-cols-2">
+											<Field form={form} name="defectCode" label="缺陷代码">
+												{(field) => (
+													<Input
+														value={field.state.value}
+														onBlur={field.handleBlur}
+														onChange={(event) => field.handleChange(event.target.value)}
+														placeholder="必填"
+													/>
+												)}
+											</Field>
+											<Field form={form} name="defectLocation" label="缺陷位置">
+												{(field) => (
+													<Input
+														value={field.state.value}
+														onBlur={field.handleBlur}
+														onChange={(event) => field.handleChange(event.target.value)}
+														placeholder="可选"
+													/>
+												)}
+											</Field>
+										</div>
+										<Field form={form} name="defectRemark" label="备注">
+											{(field) => (
+												<Textarea
+													value={field.state.value}
+													onBlur={field.handleBlur}
+													onChange={(event) => field.handleChange(event.target.value)}
+													placeholder="补充说明"
+													className="min-h-[80px]"
+												/>
+											)}
+										</Field>
+									</div>
+								)
+							}
+						</form.Subscribe>
 
 						{/* Dynamic data collection fields */}
 						{hasSpecs && (

@@ -128,6 +128,21 @@ const resolveFaiTrialGate = async (
 	});
 
 	if (!activeFai || !activeFai.startedAt) {
+		const passedFai = await db.inspection.findFirst({
+			where: {
+				runId: run.id,
+				type: InspectionType.FAI,
+				status: InspectionStatus.PASS,
+			},
+			select: { id: true },
+		});
+		if (passedFai) {
+			return {
+				allowed: false,
+				code: "RUN_NOT_AUTHORIZED",
+				message: "Run is not authorized or in progress",
+			};
+		}
 		return {
 			allowed: false,
 			code: "FAI_TRIAL_NOT_READY",
@@ -756,7 +771,13 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 			// Auto-create defect record when TrackOut result is FAIL
 			if (result === TrackResult.FAIL) {
 				const defectCode = data.defectCode ?? "STATION_FAIL";
-				createDefectFromTrackOut(db, track.id, defectCode, data.defectLocation).catch((err) => {
+				createDefectFromTrackOut(
+					db,
+					track.id,
+					defectCode,
+					data.defectLocation,
+					data.defectRemark,
+				).catch((err) => {
 					console.error(`[TrackOut FAIL] Auto defect creation failed for track ${track.id}:`, err);
 				});
 			}
