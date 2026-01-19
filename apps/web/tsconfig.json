@@ -13,6 +13,8 @@
 		"paths": {
 			"*": ["./*"],
 			"@/*": ["./src/*"],
+			"@better-app/shared": ["../../packages/shared/src/index.ts"],
+			"@better-app/shared/*": ["../../packages/shared/src/*"],
 			"elysia": ["./node_modules/elysia"]
 		}
 	}

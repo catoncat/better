@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { getApiErrorMessage } from "@/lib/api-error";
+import { useApiError } from "@/hooks/use-api-error";
 import { client, unwrap } from "@/lib/eden";
 
 // Infer types from API responses
@@ -73,6 +73,7 @@ export function useDefectDetail(defectId: string | undefined) {
  */
 export function useCreateDefect() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async (data: {
@@ -89,11 +90,7 @@ export function useCreateDefect() {
 			toast.success("缺陷已记录");
 			queryClient.invalidateQueries({ queryKey: ["mes", "defects"] });
 		},
-		onError: (error: unknown) => {
-			toast.error("记录缺陷失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
-		},
+		onError: (error: unknown) => showError("记录缺陷失败", error),
 	});
 }
 
@@ -102,6 +99,7 @@ export function useCreateDefect() {
  */
 export function useAssignDisposition() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({
@@ -124,11 +122,7 @@ export function useAssignDisposition() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "defects", "list"] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "rework-tasks"] });
 		},
-		onError: (error: unknown) => {
-			toast.error("分配处置失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
-		},
+		onError: (error: unknown) => showError("分配处置失败", error),
 	});
 }
 
@@ -137,6 +131,7 @@ export function useAssignDisposition() {
  */
 export function useReleaseHold() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({ defectId, reason }: { defectId: string; reason: string }) => {
@@ -148,11 +143,7 @@ export function useReleaseHold() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "defects", "detail", variables.defectId] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "defects", "list"] });
 		},
-		onError: (error: unknown) => {
-			toast.error("解除隔离失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
-		},
+		onError: (error: unknown) => showError("解除隔离失败", error),
 	});
 }
 
@@ -196,6 +187,7 @@ export function useReworkTaskList(query: ReworkQuery) {
  */
 export function useCompleteRework() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({ taskId, remark }: { taskId: string; remark?: string }) => {
@@ -209,10 +201,6 @@ export function useCompleteRework() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "rework-tasks"] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "defects"] });
 		},
-		onError: (error: unknown) => {
-			toast.error("完成返工失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
-		},
+		onError: (error: unknown) => showError("完成返工失败", error),
 	});
 }

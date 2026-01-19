@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { getApiErrorMessage } from "@/lib/api-error";
+import { useApiError } from "@/hooks/use-api-error";
 import { client, unwrap } from "@/lib/eden";
 
 // Infer types from API responses
@@ -118,6 +118,7 @@ export function useFaiGate(runNo: string | undefined) {
  */
 export function useCreateFai() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({ runNo, sampleQty }: { runNo: string; sampleQty: number }) => {
@@ -129,11 +130,7 @@ export function useCreateFai() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "fai"] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "run-detail", variables.runNo] });
 		},
-		onError: (error: unknown) => {
-			toast.error("创建 FAI 任务失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
-		},
+		onError: (error: unknown) => showError("创建 FAI 任务失败", error),
 	});
 }
 
@@ -142,6 +139,7 @@ export function useCreateFai() {
  */
 export function useStartFai() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async (faiId: string) => {
@@ -152,11 +150,7 @@ export function useStartFai() {
 			toast.success("FAI 检验已开始");
 			queryClient.invalidateQueries({ queryKey: ["mes", "fai"] });
 		},
-		onError: (error: unknown) => {
-			toast.error("开始 FAI 失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
-		},
+		onError: (error: unknown) => showError("开始 FAI 失败", error),
 	});
 }
 
@@ -165,6 +159,7 @@ export function useStartFai() {
  */
 export function useRecordFaiItem() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({
@@ -190,11 +185,7 @@ export function useRecordFaiItem() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "fai", "detail", variables.faiId] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "fai", "list"] });
 		},
-		onError: (error: unknown) => {
-			toast.error("记录检验项失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
-		},
+		onError: (error: unknown) => showError("记录检验项失败", error),
 	});
 }
 
@@ -203,6 +194,7 @@ export function useRecordFaiItem() {
  */
 export function useCompleteFai() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({
@@ -231,10 +223,6 @@ export function useCompleteFai() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "fai"] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
 		},
-		onError: (error: unknown) => {
-			toast.error("完成 FAI 失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
-		},
+		onError: (error: unknown) => showError("完成 FAI 失败", error),
 	});
 }

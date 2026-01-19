@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { getApiErrorMessage } from "@/lib/api-error";
+import { useApiError } from "@/hooks/use-api-error";
 import { client, unwrap } from "@/lib/eden";
 
 // Infer types from the API using Eden Treaty
@@ -81,6 +81,7 @@ export function useWorkOrderList(params: UseWorkOrderListParams) {
 
 export function useReceiveWorkOrder() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async (body: WorkOrderReceiveInput) => {
@@ -91,16 +92,13 @@ export function useReceiveWorkOrder() {
 			toast.success("工单已接收");
 			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
 		},
-		onError: (error: unknown) => {
-			toast.error("接收工单失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
-		},
+		onError: (error: unknown) => showError("接收工单失败", error),
 	});
 }
 
 export function useReleaseWorkOrder() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({ woNo, ...body }: WorkOrderReleaseInput & { woNo: string }) => {
@@ -111,14 +109,13 @@ export function useReleaseWorkOrder() {
 			toast.success("工单已发布");
 			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
 		},
-		onError: (error: unknown) => {
-			toast.error(getApiErrorMessage(error, "发布工单失败"));
-		},
+		onError: (error: unknown) => showError("发布工单失败", error),
 	});
 }
 
 export function useUpdatePickStatus() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({ woNo, pickStatus }: { woNo: string; pickStatus: string }) => {
@@ -131,16 +128,13 @@ export function useUpdatePickStatus() {
 			toast.success("领料状态已更新");
 			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
 		},
-		onError: (error: unknown) => {
-			toast.error("更新领料状态失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
-		},
+		onError: (error: unknown) => showError("更新领料状态失败", error),
 	});
 }
 
 export function useCloseWorkOrder() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({ woNo }: { woNo: string }) => {
@@ -151,8 +145,6 @@ export function useCloseWorkOrder() {
 			toast.success("工单已收尾");
 			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
 		},
-		onError: (error: unknown) => {
-			toast.error(getApiErrorMessage(error, "工单收尾失败"));
-		},
+		onError: (error: unknown) => showError("工单收尾失败", error),
 	});
 }

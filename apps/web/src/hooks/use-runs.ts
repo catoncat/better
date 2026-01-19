@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ApiError, getApiErrorMessage } from "@/lib/api-error";
+import { useApiError } from "@/hooks/use-api-error";
+import { ApiError } from "@/lib/api-error";
 import { client, unwrap } from "@/lib/eden";
 
 // Infer types from the API using Eden Treaty
@@ -113,6 +114,7 @@ export function useRunUnits(params: {
 
 export function useCreateRun() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({ woNo, ...body }: RunCreateInput & { woNo: string }) => {
@@ -124,14 +126,13 @@ export function useCreateRun() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
 		},
-		onError: (error: unknown) => {
-			toast.error(getApiErrorMessage(error, "创建批次失败"));
-		},
+		onError: (error: unknown) => showError("创建批次失败", error),
 	});
 }
 
 export function useAuthorizeRun() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({ runNo, ...body }: RunAuthorizeInput & { runNo: string }) => {
@@ -143,14 +144,13 @@ export function useAuthorizeRun() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "run-detail", runNo] });
 		},
-		onError: (error: unknown) => {
-			toast.error(getApiErrorMessage(error, "授权失败"));
-		},
+		onError: (error: unknown) => showError("授权失败", error),
 	});
 }
 
 export function useCloseRun() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({ runNo }: { runNo: string }) => {
@@ -166,13 +166,14 @@ export function useCloseRun() {
 			if (error instanceof ApiError && error.code === "OQC_REQUIRED") {
 				queryClient.invalidateQueries({ queryKey: ["mes", "oqc", "run", runNo] });
 			}
-			toast.error(getApiErrorMessage(error, "收尾失败"));
+			showError("收尾失败", error);
 		},
 	});
 }
 
 export function useGenerateUnits() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({
@@ -195,8 +196,6 @@ export function useGenerateUnits() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "run-detail", runNo] });
 		},
-		onError: (error: unknown) => {
-			toast.error(getApiErrorMessage(error, "生成单件失败"));
-		},
+		onError: (error: unknown) => showError("生成单件失败", error),
 	});
 }

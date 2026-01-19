@@ -184,11 +184,19 @@ task:
 ## Progress (2026-01-19 slice10)
 - Applied ApiError-based toasts for work order actions and marked 5.3 audit as completed in `domain_docs/mes/plan/tasks.md`.
 
+## Progress (2026-01-19 slice11)
+- Added `@better-app/shared` package with `error-codes` registry and centralized `useApiError` hook; refactored MES hooks to use the new hook.
+
 ## Errors (2026-01-19 next)
 - Failed to overwrite conversation note with `cat > file` due to `noclobber` shell setting; next attempt will use `tee` to write the plan.
 
 ## Findings (2026-01-19 validation)
 - Emoji scan (`rg -nP "\\p{Extended_Pictographic}" domain_docs/mes`) reports matches in `domain_docs/mes/spec/process/compair/*` and existing test docs; these are user-owned files and remain untouched.
+
+## Findings (2026-01-19 error-codes)
+- No existing `packages/shared` package; new shared error-code registry will require adding a workspace package and dependencies in `apps/web`/`apps/server` if used.
+- Many error codes already appear in `apps/server/src/modules/mes/execution/service.ts` spans; registry can start with a focused subset plus a generic fallback.
+- `apps/web` uses Vite alias only for `@`, so workspace package imports need an alias or install step; updating `apps/web/tsconfig.json` + `apps/web/vite.config.ts` avoids requiring `bun install` for resolution.
 
 ## Errors (2026-01-19 slice2)
 - `bun run format -- apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` failed due to `$runNo` path expansion; will rerun `bun run format` without path filtering.

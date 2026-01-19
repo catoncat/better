@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { getApiErrorMessage } from "@/lib/api-error";
+import { useApiError } from "@/hooks/use-api-error";
 import { client, unwrap } from "@/lib/eden";
 
 type ReadinessCheckResponse = Awaited<
@@ -54,6 +54,7 @@ export function useReadinessConfig(lineId: string | undefined) {
 
 export function useUpdateReadinessConfig() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({ lineId, enabled }: { lineId: string; enabled: ReadinessItemType[] }) => {
@@ -66,11 +67,7 @@ export function useUpdateReadinessConfig() {
 				queryKey: ["mes", "lines", variables.lineId, "readiness-config"],
 			});
 		},
-		onError: (error: unknown) => {
-			toast.error("保存配置失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
-		},
+		onError: (error: unknown) => showError("保存配置失败", error),
 	});
 }
 
@@ -112,6 +109,7 @@ export function useReadinessHistory(runNo: string) {
 
 export function usePerformPrecheck() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async (runNo: string) => {
@@ -122,16 +120,13 @@ export function usePerformPrecheck() {
 			toast.success("预检完成");
 			queryClient.invalidateQueries({ queryKey: ["mes", "readiness", runNo] });
 		},
-		onError: (error: unknown) => {
-			toast.error("预检失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
-		},
+		onError: (error: unknown) => showError("预检失败", error),
 	});
 }
 
 export function usePerformFormalCheck() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async (runNo: string) => {
@@ -143,16 +138,13 @@ export function usePerformFormalCheck() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "readiness", runNo] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "run-detail", runNo] });
 		},
-		onError: (error: unknown) => {
-			toast.error("正式检查失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
-		},
+		onError: (error: unknown) => showError("正式检查失败", error),
 	});
 }
 
 export function useWaiveItem() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({
@@ -174,11 +166,7 @@ export function useWaiveItem() {
 			toast.success("检查项已豁免");
 			queryClient.invalidateQueries({ queryKey: ["mes", "readiness", variables.runNo] });
 		},
-		onError: (error: unknown) => {
-			toast.error("豁免失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
-		},
+		onError: (error: unknown) => showError("豁免失败", error),
 	});
 }
 

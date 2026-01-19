@@ -16,6 +16,7 @@
   "dependencies": {
     "@better-app/auth": "workspace:*",
     "@better-app/db": "workspace:*",
+    "@better-app/shared": "workspace:*",
     "@elysiajs/cors": "^1.4.1",
     "@elysiajs/cron": "^1.4.1",
     "@elysiajs/openapi": "^1.4.13",

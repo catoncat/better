@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ApiError, getApiErrorMessage } from "@/lib/api-error";
+import { useApiError } from "@/hooks/use-api-error";
+import { ApiError } from "@/lib/api-error";
 import { client, unwrap } from "@/lib/eden";
 
 export type LoadingExpectation = {
@@ -92,6 +93,7 @@ export function useLoadingRecords(runNo: string | undefined) {
  */
 export function useLoadTable() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async (runNo: string) => {
@@ -102,11 +104,7 @@ export function useLoadTable() {
 			toast.success("站位表加载成功");
 			queryClient.invalidateQueries({ queryKey: ["mes", "loading", "expectations", runNo] });
 		},
-		onError: (error: unknown) => {
-			toast.error("站位表加载失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
-		},
+		onError: (error: unknown) => showError("站位表加载失败", error),
 	});
 }
 
@@ -115,6 +113,7 @@ export function useLoadTable() {
  */
 export function useVerifyLoading() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async (data: VerifyLoadingInput) => {
@@ -144,26 +143,8 @@ export function useVerifyLoading() {
 					});
 					return;
 				}
-
-				toast.error("上料验证失败", {
-					description: error.message
-						? `${error.message}${error.code ? `（${error.code}）` : ""}`
-						: error.code,
-				});
-				return;
 			}
-
-			if (error && typeof error === "object" && "message" in error) {
-				const message = (error as { message?: unknown }).message;
-				toast.error("上料验证失败", {
-					description: typeof message === "string" ? message : undefined,
-				});
-				return;
-			}
-
-			toast.error("上料验证失败", {
-				description: "请重试或联系管理员",
-			});
+			showError("上料验证失败", error);
 		},
 	});
 }
@@ -173,6 +154,7 @@ export function useVerifyLoading() {
  */
 export function useReplaceLoading() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async (data: ReplaceLoadingInput) => {
@@ -188,11 +170,7 @@ export function useReplaceLoading() {
 				queryKey: ["mes", "loading", "records", variables.runNo],
 			});
 		},
-		onError: (error: unknown) => {
-			toast.error("换料失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
-		},
+		onError: (error: unknown) => showError("换料失败", error),
 	});
 }
 
@@ -201,6 +179,7 @@ export function useReplaceLoading() {
  */
 export function useUnlockSlot() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({ slotId, reason }: { slotId: string; reason: string }) => {
@@ -211,10 +190,6 @@ export function useUnlockSlot() {
 			toast.success("站位已解锁");
 			queryClient.invalidateQueries({ queryKey: ["mes", "loading"] });
 		},
-		onError: (error: unknown) => {
-			toast.error("解锁失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
-		},
+		onError: (error: unknown) => showError("解锁失败", error),
 	});
 }

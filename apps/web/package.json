@@ -13,6 +13,7 @@
   "dependencies": {
     "@better-app/auth": "workspace:*",
     "@better-app/db": "workspace:*",
+    "@better-app/shared": "workspace:*",
     "@elysiajs/eden": "^1.4.6",
     "@fontsource-variable/inter": "^5.2.8",
     "@hookform/resolvers": "^5.2.2",

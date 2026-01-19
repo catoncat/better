@@ -469,6 +469,7 @@ function useApiError() {
 **错误码注册表**：
 - 建议创建 `packages/shared/src/error-codes.ts`，统一定义所有错误码及其描述
 - 前后端共用，避免硬编码
+- 已实现：`packages/shared/src/error-codes.ts`、`apps/web/src/hooks/use-api-error.ts`
 
 ---
 

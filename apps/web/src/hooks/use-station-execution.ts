@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { getApiErrorMessage } from "@/lib/api-error";
+import { useApiError } from "@/hooks/use-api-error";
 import { client, unwrap } from "@/lib/eden";
 
 type TrackInInput = Parameters<ReturnType<typeof client.api.stations>["track-in"]["post"]>[0];
@@ -63,6 +63,7 @@ export function useUnitDataSpecs(stationCode: string, sn: string) {
 
 export function useTrackIn() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({ stationCode, ...body }: TrackInInput & { stationCode: string }) => {
@@ -74,15 +75,14 @@ export function useTrackIn() {
 			queryClient.invalidateQueries({ queryKey: ["mes"] });
 		},
 		onError: (error: unknown) => {
-			toast.error("进站失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
+			showError("进站失败", error);
 		},
 	});
 }
 
 export function useTrackOut() {
 	const queryClient = useQueryClient();
+	const showError = useApiError();
 
 	return useMutation({
 		mutationFn: async ({ stationCode, ...body }: TrackOutInput & { stationCode: string }) => {
@@ -94,9 +94,7 @@ export function useTrackOut() {
 			queryClient.invalidateQueries({ queryKey: ["mes"] });
 		},
 		onError: (error: unknown) => {
-			toast.error("出站失败", {
-				description: getApiErrorMessage(error, "请重试或联系管理员"),
-			});
+			showError("出站失败", error);
 		},
 	});
 }
