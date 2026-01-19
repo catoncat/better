@@ -20,6 +20,44 @@ type InspectionRecord = Prisma.InspectionGetPayload<{
 
 const buildInspectionActiveKey = (runId: string, type: InspectionType) => `${runId}:${type}`;
 
+const ensureFaiTrialCompleted = async (
+	db: PrismaClient,
+	fai: { runId: string; startedAt: Date | null; sampleQty: number | null },
+	context: "record" | "complete",
+): Promise<ServiceResult<null>> => {
+	if (!fai.startedAt) {
+		return {
+			success: false as const,
+			code: "FAI_TRIAL_NOT_STARTED",
+			message: "FAI trial requires the inspection to be started first",
+			status: 400,
+		};
+	}
+
+	const requiredQty = typeof fai.sampleQty === "number" && fai.sampleQty > 0 ? fai.sampleQty : 1;
+	const trackedUnits = await db.track.findMany({
+		where: {
+			unit: { runId: fai.runId },
+			outAt: { not: null },
+			createdAt: { gte: fai.startedAt },
+		},
+		distinct: ["unitId"],
+		select: { unitId: true },
+	});
+
+	if (trackedUnits.length < requiredQty) {
+		const action = context === "record" ? "record inspection items" : "complete FAI";
+		return {
+			success: false as const,
+			code: "FAI_TRIAL_REQUIRED",
+			message: `FAI trial TrackIn/TrackOut is required before ${action} (${trackedUnits.length}/${requiredQty}).`,
+			status: 400,
+		};
+	}
+
+	return { success: true as const, data: null };
+};
+
 /**
  * Create a FAI (First Article Inspection) task for a run.
  * FAI is required before run authorization when the routing requires it.
@@ -78,6 +116,16 @@ export async function createFai(
 			success: false as const,
 			code: "FAI_ALREADY_EXISTS",
 			message: "An active FAI task already exists for this run",
+			status: 400,
+		};
+	}
+
+	const existingUnitCount = await db.unit.count({ where: { runId: run.id } });
+	if (existingUnitCount < data.sampleQty) {
+		return {
+			success: false as const,
+			code: "FAI_SAMPLE_UNITS_INSUFFICIENT",
+			message: `Run has insufficient units for FAI sample quantity (${existingUnitCount}/${data.sampleQty}).`,
 			status: 400,
 		};
 	}
@@ -157,6 +205,16 @@ export async function startFai(
 		};
 	}
 
+	const existingUnitCount = await db.unit.count({ where: { runId: fai.runId } });
+	if (existingUnitCount === 0) {
+		return {
+			success: false as const,
+			code: "FAI_UNITS_REQUIRED",
+			message: "Run has no units. Generate units before starting FAI.",
+			status: 400,
+		};
+	}
+
 	const updated = await db.inspection.update({
 		where: { id: faiId },
 		data: {
@@ -206,6 +264,11 @@ export async function recordFaiItem(
 			message: `FAI must be in INSPECTING status to record items`,
 			status: 400,
 		};
+	}
+
+	const trialCheck = await ensureFaiTrialCompleted(db, fai, "record");
+	if (!trialCheck.success) {
+		return trialCheck;
 	}
 
 	const item = await db.inspectionItem.create({
@@ -265,6 +328,11 @@ export async function completeFai(
 			message: `FAI must be in INSPECTING status to complete`,
 			status: 400,
 		};
+	}
+
+	const trialCheck = await ensureFaiTrialCompleted(db, fai, "complete");
+	if (!trialCheck.success) {
+		return trialCheck;
 	}
 
 	const sampleQty = fai.sampleQty;

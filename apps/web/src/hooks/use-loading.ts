@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api-error";
 import { client, unwrap } from "@/lib/eden";
 
 export type LoadingExpectation = {
@@ -8,6 +9,7 @@ export type LoadingExpectation = {
 	slotCode: string;
 	slotName: string | null;
 	position: number;
+	isLocked: boolean;
 	expectedMaterialCode: string;
 	alternates: string[];
 	status: "PENDING" | "LOADED" | "MISMATCH";
@@ -30,6 +32,7 @@ export type LoadingRecord = {
 	status: "LOADED" | "UNLOADED" | "REPLACED";
 	verifyResult: "PASS" | "FAIL" | "WARNING";
 	failReason: string | null;
+	isIdempotent?: boolean;
 	loadedAt: string;
 	loadedBy: string;
 	unloadedAt: string | null;
@@ -114,7 +117,9 @@ export function useVerifyLoading() {
 			return unwrap(response);
 		},
 		onSuccess: (data, variables) => {
-			if (data.verifyResult === "PASS") {
+			if (data.isIdempotent) {
+				toast.success("已上料（重复扫描）");
+			} else if (data.verifyResult === "PASS") {
 				toast.success("上料验证通过");
 			} else if (data.verifyResult === "WARNING") {
 				toast.warning("上料验证警告");
@@ -127,18 +132,33 @@ export function useVerifyLoading() {
 			});
 		},
 		onError: (error: unknown) => {
-			if (error && typeof error === "object" && "code" in error) {
-				const code = (error as { code?: unknown }).code;
-				const message = (error as { message?: unknown }).message;
-				if (code === "SLOT_LOCKED") {
+			if (error instanceof ApiError) {
+				if (error.code === "SLOT_LOCKED") {
 					toast.error("站位已锁定", {
-						description: typeof message === "string" ? message : undefined,
+						description: error.message || "站位已锁定，请先解锁",
 					});
 					return;
 				}
+
+				toast.error("上料验证失败", {
+					description: error.message
+						? `${error.message}${error.code ? `（${error.code}）` : ""}`
+						: error.code,
+				});
+				return;
 			}
 
-			toast.error("上料验证失败");
+			if (error && typeof error === "object" && "message" in error) {
+				const message = (error as { message?: unknown }).message;
+				toast.error("上料验证失败", {
+					description: typeof message === "string" ? message : undefined,
+				});
+				return;
+			}
+
+			toast.error("上料验证失败", {
+				description: "请重试或联系管理员",
+			});
 		},
 	});
 }

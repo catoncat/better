@@ -514,6 +514,14 @@ function RunDetailPage() {
 										)}
 										正式检查
 									</Button>
+									{readinessData?.status === "PASSED" && (
+										<Button variant="secondary" size="sm" asChild>
+											<Link to="/mes/loading" search={{ runNo }}>
+												<Package className="mr-2 h-4 w-4" />
+												前往上料
+											</Link>
+										</Button>
+									)}
 								</div>
 							)}
 						</div>

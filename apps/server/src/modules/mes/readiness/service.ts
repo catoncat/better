@@ -469,8 +469,27 @@ export async function checkLoading(db: PrismaClient, run: Run): Promise<CheckIte
 	});
 
 	if (expectations.length === 0) {
-		// No loading requirements configured - pass
-		return [];
+		if (!run.lineId) {
+			return [];
+		}
+
+		const slotCount = await db.feederSlot.count({ where: { lineId: run.lineId } });
+		if (slotCount === 0) {
+			return [];
+		}
+
+		return [
+			{
+				itemType: ReadinessItemType.LOADING,
+				itemKey: "SLOT_TABLE",
+				status: ReadinessItemStatus.FAILED,
+				failReason: "请先加载站位表",
+				evidenceJson: {
+					code: "SLOT_TABLE_MISSING",
+					slotCount,
+				},
+			},
+		];
 	}
 
 	const results: CheckItemResult[] = [];
