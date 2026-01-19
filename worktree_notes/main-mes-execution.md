@@ -159,6 +159,17 @@ task:
 ## Progress (2026-01-19 slice5)
 - Implemented DataCollectionSpec-driven FAI record templates and surfaced trial TrackOut + SPI/AOI evidence in FAI detail; updated tasks + align docs.
 
+## Findings (2026-01-19 next)
+- 5.3 API error handling audit is still marked "待启动" in `domain_docs/mes/plan/tasks.md` and is the next cross-module workstream.
+- Current working tree has user changes in `domain_docs/mes/spec/process/compair/`; avoid touching those files while addressing 5.3.
+- Frontend `unwrap` helper in `apps/web/src/lib/eden.ts` already throws `ApiError` with `code/message/details/status` for both HTTP and business errors; audit can focus on ensuring hooks/routes catch and toast these errors consistently.
+
+## Progress (2026-01-19 slice6)
+- Marked 5.3 audit status as in-progress in `domain_docs/mes/plan/tasks.md` (scaffold only).
+
+## Errors (2026-01-19 next)
+- Failed to overwrite conversation note with `cat > file` due to `noclobber` shell setting; next attempt will use `tee` to write the plan.
+
 ## Errors (2026-01-19 slice2)
 - `bun run format -- apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` failed due to `$runNo` path expansion; will rerun `bun run format` without path filtering.
 
