@@ -187,6 +187,9 @@ task:
 ## Progress (2026-01-19 slice11)
 - Added `@better-app/shared` package with `error-codes` registry and centralized `useApiError` hook; refactored MES hooks to use the new hook.
 
+## Errors (2026-01-19 slice11)
+- Vite oxc failed to resolve `@better-app/config/tsconfig.base.json` from `packages/shared/tsconfig.json`; fixed by switching to relative `../config/tsconfig.base.json`.
+
 ## Errors (2026-01-19 next)
 - Failed to overwrite conversation note with `cat > file` due to `noclobber` shell setting; next attempt will use `tee` to write the plan.
 
