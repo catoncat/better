@@ -36,12 +36,12 @@ export function useDynamicFavicon() {
 		const animate = (time: number) => {
 			ctx.clearRect(0, 0, 32, 32);
 
-			// 配色
-			const bgShell = isDark ? "#1e293b" : "#334155";
-			const bgWindow = isDark ? "#0f172a" : "#f1f5f9";
-			const colorPending = "#94a3b8"; // 灰
-			const colorBusy = "#f59e0b"; // 琥珀
-			const colorDone = "#22c55e"; // 绿
+			// 配色 - 纯灰色调 (slate 系)
+			const bgShell = isDark ? "#1e293b" : "#475569";
+			const bgWindow = isDark ? "#0f172a" : "#e2e8f0";
+			const colorPending = isDark ? "#334155" : "#cbd5e1"; // slate-800 / slate-300
+			const colorBusy = isDark ? "#64748b" : "#64748b"; // slate-500
+			const colorDone = isDark ? "#94a3b8" : "#475569"; // slate-400 / slate-600
 
 			// 节奏控制
 			const CYCLE_TIME = 2200;
@@ -68,9 +68,9 @@ export function useDynamicFavicon() {
 			let barColor = isMoving ? colorBusy : colorDone;
 
 			if (!isMoving) {
-				// 闪烁一下白，表示"加工完成"
+				// 闪烁效果，表示"加工完成"
 				const processT = globalT - MOVE_TIME;
-				if (processT > 200 && processT < 400) barColor = "#ffffff";
+				if (processT > 200 && processT < 400) barColor = isDark ? "#cbd5e1" : "#334155"; // 闪烁成更亮/暗的灰
 			}
 
 			ctx.fillStyle = barColor;

@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRootRouteWithContext, HeadContent, Link, Outlet } from "@tanstack/react-router";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { StyleProvider } from "@/components/style-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { useDynamicFavicon } from "@/hooks/use-dynamic-favicon";
@@ -56,8 +57,10 @@ function RootComponent() {
 				disableTransitionOnChange
 				storageKey="vite-ui-theme"
 			>
-				<Outlet />
-				<Toaster richColors />
+				<StyleProvider>
+					<Outlet />
+					<Toaster richColors />
+				</StyleProvider>
 			</ThemeProvider>
 			{/* <TanStackRouterDevtools position="bottom-right" /> */}
 		</QueryClientProvider>
