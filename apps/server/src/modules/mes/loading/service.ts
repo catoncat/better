@@ -15,6 +15,8 @@ type VerifyLoadingInput = {
 	slotCode: string;
 	materialLotBarcode: string;
 	operatorId: string;
+	packageQty?: number;
+	reviewedBy?: string;
 };
 
 type LoadSlotTableResult = {
@@ -37,6 +39,9 @@ type LoadingRecordDetail = {
 	verifyResult: LoadingVerifyResult;
 	failReason: string | null;
 	isIdempotent?: boolean;
+	packageQty: number | null;
+	reviewedBy: string | null;
+	reviewedAt: string | null;
 	loadedAt: string;
 	loadedBy: string;
 	unloadedAt: string | null;
@@ -82,6 +87,8 @@ type SlotMaterialMappingDetail = {
 	materialCode: string;
 	priority: number;
 	isAlternate: boolean;
+	unitConsumption: number | null;
+	isCommonMaterial: boolean;
 };
 
 type SlotMappingQuery = {
@@ -158,6 +165,8 @@ const mapSlotMapping = (mapping: {
 	routingId: string | null;
 	priority: number;
 	isAlternate: boolean;
+	unitConsumption: number | null;
+	isCommonMaterial: boolean;
 	slot: { slotCode: string; slotName: string | null; position: number };
 }): SlotMaterialMappingDetail => ({
 	id: mapping.id,
@@ -170,6 +179,8 @@ const mapSlotMapping = (mapping: {
 	materialCode: mapping.materialCode,
 	priority: mapping.priority,
 	isAlternate: mapping.isAlternate,
+	unitConsumption: mapping.unitConsumption,
+	isCommonMaterial: mapping.isCommonMaterial,
 });
 
 const mapLoadingRecord = (
@@ -182,6 +193,9 @@ const mapLoadingRecord = (
 		status: LoadingRecordStatus;
 		verifyResult: LoadingVerifyResult;
 		failReason: string | null;
+		packageQty: number | null;
+		reviewedBy: string | null;
+		reviewedAt: Date | null;
 		loadedAt: Date;
 		loadedBy: string;
 		unloadedAt: Date | null;
@@ -203,6 +217,9 @@ const mapLoadingRecord = (
 	verifyResult: record.verifyResult,
 	failReason: record.failReason,
 	...(options?.isIdempotent ? { isIdempotent: true } : {}),
+	packageQty: record.packageQty,
+	reviewedBy: record.reviewedBy,
+	reviewedAt: record.reviewedAt ? record.reviewedAt.toISOString() : null,
 	loadedAt: record.loadedAt.toISOString(),
 	loadedBy: record.loadedBy,
 	unloadedAt: record.unloadedAt ? record.unloadedAt.toISOString() : null,
@@ -590,6 +607,9 @@ export async function verifyLoading(
 		let recordStatus: LoadingRecordStatus;
 		let failReason: string | null = null;
 		const now = new Date();
+		const reviewer = input.reviewedBy?.trim();
+		const reviewedBy = reviewer ? reviewer : null;
+		const reviewedAt = reviewedBy ? now : null;
 
 		if (!materialLot) {
 			return {
@@ -658,6 +678,9 @@ export async function verifyLoading(
 				failReason,
 				loadedAt: now,
 				loadedBy: operatorCheck.data,
+				packageQty: input.packageQty ?? null,
+				reviewedBy,
+				reviewedAt,
 			},
 			include: {
 				run: { select: { runNo: true } },
@@ -727,6 +750,8 @@ type ReplaceLoadingInput = {
 	newMaterialLotBarcode: string;
 	operatorId: string;
 	reason: string;
+	packageQty?: number;
+	reviewedBy?: string;
 };
 
 export async function replaceLoading(
@@ -827,6 +852,11 @@ export async function replaceLoading(
 			};
 		}
 
+		const now = new Date();
+		const reviewer = input.reviewedBy?.trim();
+		const reviewedBy = reviewer ? reviewer : null;
+		const reviewedAt = reviewedBy ? now : null;
+
 		// Mark previous LOADED record as REPLACED
 		await tx.loadingRecord.updateMany({
 			where: {
@@ -836,7 +866,7 @@ export async function replaceLoading(
 			},
 			data: {
 				status: LoadingRecordStatus.REPLACED,
-				unloadedAt: new Date(),
+				unloadedAt: now,
 				unloadedBy: operatorCheck.data,
 			},
 		});
@@ -901,7 +931,6 @@ export async function replaceLoading(
 
 		let verifyResult: LoadingVerifyResult;
 		let failReason: string | null = null;
-		const now = new Date();
 
 		if (isExpected || isAlternate) {
 			verifyResult = isExpected ? LoadingVerifyResult.PASS : LoadingVerifyResult.WARNING;
@@ -970,6 +999,9 @@ export async function replaceLoading(
 				failReason,
 				loadedAt: now,
 				loadedBy: operatorCheck.data,
+				packageQty: input.packageQty ?? null,
+				reviewedBy,
+				reviewedAt,
 				meta: { replaceReason: input.reason },
 			},
 			include: {
@@ -1164,6 +1196,8 @@ export async function createSlotMaterialMapping(
 		routingId?: string;
 		priority?: number;
 		isAlternate?: boolean;
+		unitConsumption?: number;
+		isCommonMaterial?: boolean;
 	},
 ): Promise<ServiceResult<SlotMaterialMappingDetail>> {
 	const slot = await db.feederSlot.findUnique({ where: { id: input.slotId } });
@@ -1196,6 +1230,8 @@ export async function createSlotMaterialMapping(
 			routingId: input.routingId ?? null,
 			priority: input.priority ?? 1,
 			isAlternate: input.isAlternate ?? false,
+			unitConsumption: input.unitConsumption ?? null,
+			isCommonMaterial: input.isCommonMaterial ?? false,
 		},
 		include: { slot: { select: { slotCode: true, slotName: true, position: true } } },
 	});
@@ -1212,6 +1248,8 @@ export async function updateSlotMaterialMapping(
 		routingId?: string | null;
 		priority?: number;
 		isAlternate?: boolean;
+		unitConsumption?: number | null;
+		isCommonMaterial?: boolean;
 	},
 ): Promise<ServiceResult<SlotMaterialMappingDetail>> {
 	const mapping = await db.slotMaterialMapping.findUnique({ where: { id } });
@@ -1244,6 +1282,8 @@ export async function updateSlotMaterialMapping(
 			routingId: input.routingId === undefined ? undefined : input.routingId,
 			priority: input.priority ?? undefined,
 			isAlternate: input.isAlternate ?? undefined,
+			unitConsumption: input.unitConsumption === undefined ? undefined : input.unitConsumption,
+			isCommonMaterial: input.isCommonMaterial ?? undefined,
 		},
 		include: { slot: { select: { slotCode: true, slotName: true, position: true } } },
 	});

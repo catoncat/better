@@ -9,6 +9,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { Label } from "@/components/ui/label";
 import { useLoadingExpectations, useLoadTable } from "@/hooks/use-loading";
 import { useRunDetail, useRunList } from "@/hooks/use-runs";
+import { LoadingHistory } from "./-components/loading-history";
 import { ScanPanel } from "./-components/scan-panel";
 import { SlotList } from "./-components/slot-list";
 
@@ -152,6 +153,8 @@ function LoadingPage() {
 					</div>
 				</div>
 			)}
+
+			{runNo && run && <LoadingHistory runNo={runNo} />}
 		</div>
 	);
 }

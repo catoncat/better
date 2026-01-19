@@ -274,27 +274,29 @@ function SlotConfigPage() {
 										<TableHead>站位名称</TableHead>
 										<TableHead>物料编码</TableHead>
 										<TableHead>产品编码</TableHead>
+										<TableHead className="w-[100px]">单机用量</TableHead>
 										<TableHead className="w-[80px]">优先级</TableHead>
 										<TableHead className="w-[80px]">类型</TableHead>
+										<TableHead className="w-[80px]">通用料</TableHead>
 										<TableHead className="w-[80px]" />
 									</TableRow>
 								</TableHeader>
 								<TableBody>
 									{mappingsLoading ? (
 										<TableRow>
-											<TableCell colSpan={7} className="h-24 text-center">
+											<TableCell colSpan={9} className="h-24 text-center">
 												<Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
 											</TableCell>
 										</TableRow>
 									) : !selectedLineId ? (
 										<TableRow>
-											<TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+											<TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
 												请先选择产线
 											</TableCell>
 										</TableRow>
 									) : mappingsData?.items.length === 0 ? (
 										<TableRow>
-											<TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+											<TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
 												暂无物料映射
 											</TableCell>
 										</TableRow>
@@ -310,6 +312,11 @@ function SlotConfigPage() {
 													)}
 												</TableCell>
 												<TableCell>
+													{mapping.unitConsumption ?? (
+														<span className="text-muted-foreground">-</span>
+													)}
+												</TableCell>
+												<TableCell>
 													<Badge variant="outline">{mapping.priority}</Badge>
 												</TableCell>
 												<TableCell>
@@ -317,6 +324,13 @@ function SlotConfigPage() {
 														<Badge variant="secondary">替代</Badge>
 													) : (
 														<Badge>主料</Badge>
+													)}
+												</TableCell>
+												<TableCell>
+													{mapping.isCommonMaterial ? (
+														<Badge variant="secondary">通用</Badge>
+													) : (
+														<Badge variant="outline">专用</Badge>
 													)}
 												</TableCell>
 												<TableCell>

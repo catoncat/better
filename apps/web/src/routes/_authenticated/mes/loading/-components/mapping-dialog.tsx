@@ -37,6 +37,8 @@ const mappingSchema = z.object({
 	routingId: z.string(),
 	priority: z.number().int().min(0),
 	isAlternate: z.boolean(),
+	unitConsumption: z.union([z.number().min(0), z.undefined()]),
+	isCommonMaterial: z.boolean(),
 });
 
 interface MappingDialogProps {
@@ -62,6 +64,8 @@ export function MappingDialog({ open, onOpenChange, slots, mapping }: MappingDia
 			routingId: mapping?.routingId ?? "ALL",
 			priority: mapping?.priority ?? 0,
 			isAlternate: mapping?.isAlternate ?? false,
+			unitConsumption: mapping?.unitConsumption ?? undefined,
+			isCommonMaterial: mapping?.isCommonMaterial ?? false,
 		},
 		onSubmit: async ({ value }) => {
 			const data = {
@@ -71,6 +75,8 @@ export function MappingDialog({ open, onOpenChange, slots, mapping }: MappingDia
 				routingId: value.routingId === "ALL" ? undefined : value.routingId,
 				priority: value.priority,
 				isAlternate: value.isAlternate,
+				unitConsumption: value.unitConsumption,
+				isCommonMaterial: value.isCommonMaterial,
 			};
 
 			if (isEdit && mapping) {
@@ -82,6 +88,8 @@ export function MappingDialog({ open, onOpenChange, slots, mapping }: MappingDia
 						routingId: data.routingId || null,
 						priority: data.priority,
 						isAlternate: data.isAlternate,
+						unitConsumption: data.unitConsumption ?? null,
+						isCommonMaterial: data.isCommonMaterial,
 					},
 				});
 			} else {
@@ -103,6 +111,8 @@ export function MappingDialog({ open, onOpenChange, slots, mapping }: MappingDia
 				routingId: mapping?.routingId ?? "ALL",
 				priority: mapping?.priority ?? 0,
 				isAlternate: mapping?.isAlternate ?? false,
+				unitConsumption: mapping?.unitConsumption ?? undefined,
+				isCommonMaterial: mapping?.isCommonMaterial ?? false,
 			});
 		}
 	}, [open, mapping, form]);
@@ -225,6 +235,35 @@ export function MappingDialog({ open, onOpenChange, slots, mapping }: MappingDia
 									<Switch checked={field.state.value} onCheckedChange={field.handleChange} />
 									<span className="text-sm text-muted-foreground">
 										{field.state.value ? "替代料" : "主料"}
+									</span>
+								</div>
+							)}
+						</Field>
+					</div>
+
+					<div className="grid grid-cols-2 gap-4">
+						<Field form={form} name="unitConsumption" label="单机用量">
+							{(field) => (
+								<Input
+									type="number"
+									min={0}
+									placeholder="例如: 1.2"
+									value={field.state.value ?? ""}
+									onBlur={field.handleBlur}
+									onChange={(e) => {
+										const raw = e.target.value;
+										field.handleChange(raw === "" ? undefined : Number(raw));
+									}}
+								/>
+							)}
+						</Field>
+
+						<Field form={form} name="isCommonMaterial" label="通用料">
+							{(field) => (
+								<div className="flex items-center gap-2 pt-2">
+									<Switch checked={field.state.value} onCheckedChange={field.handleChange} />
+									<span className="text-sm text-muted-foreground">
+										{field.state.value ? "通用料" : "专用料"}
 									</span>
 								</div>
 							)}

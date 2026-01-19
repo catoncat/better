@@ -23,6 +23,8 @@ type CreateSlotMappingInput = {
 	routingId?: string;
 	priority?: number;
 	isAlternate?: boolean;
+	unitConsumption?: number;
+	isCommonMaterial?: boolean;
 };
 
 type UpdateSlotMappingInput = {
@@ -31,6 +33,8 @@ type UpdateSlotMappingInput = {
 	routingId?: string | null;
 	priority?: number;
 	isAlternate?: boolean;
+	unitConsumption?: number | null;
+	isCommonMaterial?: boolean;
 };
 
 /**

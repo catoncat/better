@@ -59,6 +59,8 @@ export const loadingModule = new Elysia({ prefix: "/loading" })
 				slotCode: body.slotCode,
 				materialLotBarcode: body.materialLotBarcode,
 				operatorId: operatorId ?? "",
+				packageQty: body.packageQty,
+				reviewedBy: body.reviewedBy,
 			});
 			if (!result.success) {
 				await recordAuditEvent(db, {
@@ -116,6 +118,8 @@ export const loadingModule = new Elysia({ prefix: "/loading" })
 				newMaterialLotBarcode: body.newMaterialLotBarcode,
 				operatorId: operatorId ?? "",
 				reason: body.reason,
+				packageQty: body.packageQty,
+				reviewedBy: body.reviewedBy,
 			});
 			if (!result.success) {
 				await recordAuditEvent(db, {

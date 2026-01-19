@@ -15,6 +15,8 @@ const scanSchema = z
 		materialLotBarcode: z.string().min(1, "请输入物料条码"),
 		isReplaceMode: z.boolean(),
 		replaceReason: z.string(),
+		packageQty: z.string(),
+		reviewedBy: z.string(),
 	})
 	.superRefine((values, ctx) => {
 		if (values.isReplaceMode && !values.replaceReason.trim()) {
@@ -23,6 +25,16 @@ const scanSchema = z
 				path: ["replaceReason"],
 				message: "请输入换料原因",
 			});
+		}
+		if (values.isReplaceMode && values.packageQty.trim()) {
+			const parsed = Number(values.packageQty);
+			if (!Number.isFinite(parsed) || parsed <= 0) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["packageQty"],
+					message: "包装数量需为正数",
+				});
+			}
 		}
 	});
 
@@ -40,17 +52,24 @@ export function ScanPanel({ runNo }: ScanPanelProps) {
 			materialLotBarcode: "",
 			isReplaceMode: false,
 			replaceReason: "",
+			packageQty: "",
+			reviewedBy: "",
 		},
 		validators: {
 			onChange: scanSchema,
 		},
 		onSubmit: async ({ value: values }) => {
+			const packageQty = values.packageQty.trim() ? Number(values.packageQty.trim()) : undefined;
+			const reviewedBy = values.reviewedBy.trim() || undefined;
+
 			if (values.isReplaceMode) {
 				await replaceLoading.mutateAsync({
 					runNo,
 					slotCode: values.slotCode,
 					newMaterialLotBarcode: values.materialLotBarcode,
 					reason: values.replaceReason || "Manual Replacement",
+					packageQty,
+					reviewedBy,
 				});
 			} else {
 				await verifyLoading.mutateAsync({
@@ -127,16 +146,44 @@ export function ScanPanel({ runNo }: ScanPanelProps) {
 					<form.Subscribe selector={(state) => [state.values.isReplaceMode]}>
 						{([isReplaceMode]) =>
 							isReplaceMode && (
-								<Field form={form} name="replaceReason" label="换料原因">
-									{(field) => (
-										<Input
-											placeholder="耗尽/损坏..."
-											value={field.state.value}
-											onBlur={field.handleBlur}
-											onChange={(e) => field.handleChange(e.target.value)}
-										/>
-									)}
-								</Field>
+								<>
+									<Field form={form} name="replaceReason" label="换料原因">
+										{(field) => (
+											<Input
+												placeholder="耗尽/损坏..."
+												value={field.state.value}
+												onBlur={field.handleBlur}
+												onChange={(e) => field.handleChange(e.target.value)}
+											/>
+										)}
+									</Field>
+
+									<div className="grid grid-cols-2 gap-4">
+										<Field form={form} name="packageQty" label="包装数量">
+											{(field) => (
+												<Input
+													type="number"
+													min={1}
+													placeholder="例如: 500"
+													value={field.state.value}
+													onBlur={field.handleBlur}
+													onChange={(e) => field.handleChange(e.target.value)}
+												/>
+											)}
+										</Field>
+
+										<Field form={form} name="reviewedBy" label="审核人">
+											{(field) => (
+												<Input
+													placeholder="工号/姓名"
+													value={field.state.value}
+													onBlur={field.handleBlur}
+													onChange={(e) => field.handleChange(e.target.value)}
+												/>
+											)}
+										</Field>
+									</div>
+								</>
 							)
 						}
 					</form.Subscribe>

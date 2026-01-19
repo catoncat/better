@@ -40,6 +40,8 @@ export const verifyLoadingBodySchema = t.Object({
 	slotCode: t.String(),
 	materialLotBarcode: t.String({ minLength: 1 }),
 	operatorId: t.Optional(t.String()),
+	packageQty: t.Optional(t.Number({ minimum: 0 })),
+	reviewedBy: t.Optional(t.String()),
 });
 
 export const replaceLoadingBodySchema = t.Object({
@@ -48,6 +50,8 @@ export const replaceLoadingBodySchema = t.Object({
 	newMaterialLotBarcode: t.String({ minLength: 1 }),
 	operatorId: t.Optional(t.String()),
 	reason: t.String({ minLength: 1 }),
+	packageQty: t.Optional(t.Number({ minimum: 0 })),
+	reviewedBy: t.Optional(t.String()),
 });
 
 export const loadSlotTableResponseSchema = t.Object({
@@ -73,6 +77,9 @@ const loadingRecordSchema = t.Object({
 	verifyResult: loadingVerifyResultSchema,
 	failReason: t.Union([t.String(), t.Null()]),
 	isIdempotent: t.Optional(t.Boolean()),
+	packageQty: t.Union([t.Number(), t.Null()]),
+	reviewedBy: t.Union([t.String(), t.Null()]),
+	reviewedAt: t.Union([t.String(), t.Null()]),
 	loadedAt: t.String(),
 	loadedBy: t.String(),
 	unloadedAt: t.Union([t.String(), t.Null()]),
@@ -165,6 +172,8 @@ const slotMappingSchema = t.Object({
 	materialCode: t.String(),
 	priority: t.Number(),
 	isAlternate: t.Boolean(),
+	unitConsumption: t.Union([t.Number(), t.Null()]),
+	isCommonMaterial: t.Boolean(),
 });
 
 export const slotMappingsResponseSchema = t.Object({
@@ -186,6 +195,8 @@ export const slotMappingCreateBodySchema = t.Object({
 	routingId: t.Optional(t.String()),
 	priority: t.Optional(t.Number()),
 	isAlternate: t.Optional(t.Boolean()),
+	unitConsumption: t.Optional(t.Number({ minimum: 0 })),
+	isCommonMaterial: t.Optional(t.Boolean()),
 });
 
 export const slotMappingUpdateBodySchema = t.Object({
@@ -194,6 +205,8 @@ export const slotMappingUpdateBodySchema = t.Object({
 	routingId: t.Optional(t.Union([t.String(), t.Null()])),
 	priority: t.Optional(t.Number()),
 	isAlternate: t.Optional(t.Boolean()),
+	unitConsumption: t.Optional(t.Union([t.Number({ minimum: 0 }), t.Null()])),
+	isCommonMaterial: t.Optional(t.Boolean()),
 });
 
 export const slotMappingQuerySchema = t.Object({

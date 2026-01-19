@@ -34,6 +34,9 @@ export type LoadingRecord = {
 	verifyResult: "PASS" | "FAIL" | "WARNING";
 	failReason: string | null;
 	isIdempotent?: boolean;
+	packageQty: number | null;
+	reviewedBy: string | null;
+	reviewedAt: string | null;
 	loadedAt: string;
 	loadedBy: string;
 	unloadedAt: string | null;
