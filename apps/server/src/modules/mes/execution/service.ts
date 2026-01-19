@@ -325,6 +325,20 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 				span.setAttribute("mes.error_code", "UNIT_ALREADY_DONE");
 				return { success: false, code: "UNIT_ALREADY_DONE", message: "Unit already completed" };
 			}
+			if (unit?.status === UnitStatus.OUT_FAILED) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "UNIT_OUT_FAILED");
+				return {
+					success: false,
+					code: "UNIT_OUT_FAILED",
+					message: "Unit failed last track-out; disposition required before re-entry",
+				};
+			}
+			if (unit?.status === UnitStatus.SCRAPPED) {
+				span.setStatus({ code: SpanStatusCode.ERROR });
+				span.setAttribute("mes.error_code", "UNIT_SCRAPPED");
+				return { success: false, code: "UNIT_SCRAPPED", message: "Unit already scrapped" };
+			}
 
 			const snapshotSteps = getSnapshotSteps(run.routeVersion.snapshotJson);
 			const steps = snapshotSteps ? [...snapshotSteps].sort((a, b) => a.stepNo - b.stepNo) : [];
@@ -746,26 +760,54 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 					});
 				}
 
+				let nextUnit: typeof unit;
 				if (result === TrackResult.PASS) {
 					if (!nextStep) {
-						return await tx.unit.update({
+						nextUnit = await tx.unit.update({
 							where: { id: unit.id },
 							data: { status: UnitStatus.DONE },
 						});
+					} else {
+						nextUnit = await tx.unit.update({
+							where: { id: unit.id },
+							data: {
+								status: UnitStatus.QUEUED,
+								currentStepNo: nextStep.stepNo,
+							},
+						});
 					}
-					return await tx.unit.update({
+				} else {
+					nextUnit = await tx.unit.update({
 						where: { id: unit.id },
-						data: {
-							status: UnitStatus.QUEUED,
-							currentStepNo: nextStep.stepNo,
-						},
+						data: { status: UnitStatus.OUT_FAILED },
 					});
 				}
 
-				return await tx.unit.update({
-					where: { id: unit.id },
-					data: { status: UnitStatus.OUT_FAILED },
-				});
+				if (result === TrackResult.PASS) {
+					const openReworkTask = await tx.reworkTask.findFirst({
+						where: { unitId: unit.id, status: "OPEN" },
+						include: { disposition: { include: { defect: true } } },
+					});
+
+					if (openReworkTask && unit.currentStepNo >= openReworkTask.fromStepNo) {
+						await tx.reworkTask.update({
+							where: { id: openReworkTask.id },
+							data: {
+								status: "DONE",
+								doneBy: data.operatorId,
+								doneAt: now,
+								remark: "Auto-closed after rework step completed",
+							},
+						});
+
+						await tx.defect.update({
+							where: { id: openReworkTask.disposition.defect.id },
+							data: { status: "CLOSED" },
+						});
+					}
+				}
+
+				return nextUnit;
 			});
 
 			// Auto-create defect record when TrackOut result is FAIL

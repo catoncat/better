@@ -476,7 +476,7 @@ function useApiError() {
 
 | # | 问题描述 | 期望行为 | 涉及文件 | 优先级 | 状态 |
 |---|----------|----------|----------|--------|------|
-| 5.4.1 | **BUG**: TrackOut FAIL 后 Unit 仍可进站 | TrackIn 应检查 `OUT_FAILED`/`SCRAPPED` 状态并拒绝进站；当前只检查 `IN_STATION` 和 `DONE` | `apps/server/src/modules/mes/execution/service.ts:314-327` | **P0** | [ ] |
+| 5.4.1 | **BUG**: TrackOut FAIL 后 Unit 仍可进站 | TrackIn 应检查 `OUT_FAILED`/`SCRAPPED` 状态并拒绝进站；当前只检查 `IN_STATION` 和 `DONE` | `apps/server/src/modules/mes/execution/service.ts:314-327` | **P0** | [x] |
 
 ---
 
@@ -484,9 +484,9 @@ function useApiError() {
 
 | # | 问题描述 | 期望行为 | 涉及文件 | 优先级 | 状态 |
 |---|----------|----------|----------|--------|------|
-| 5.5.1 | **BUG**: 返工步骤可任意选择 | 返工步骤应 ≤ Unit 当前失败步骤（如 Step 3 失败只能选 1/2/3）；当前可选择任意步骤包括未执行过的步骤 | 不良处置页面, `apps/server/src/modules/mes/defect/service.ts` | **P1** | [ ] |
+| 5.5.1 | **BUG**: 返工步骤可任意选择 | 返工步骤应 ≤ Unit 当前失败步骤（如 Step 3 失败只能选 1/2/3）；当前可选择任意步骤包括未执行过的步骤 | 不良处置页面, `apps/server/src/modules/mes/defect/service.ts` | **P1** | [x] |
 | 5.5.2 | 缺陷页面未显示失败步骤信息 | 应显示 Unit 在哪个步骤失败（如 "Step 3 SPI 检验"）、失败工位、缺陷代码，用户才能判断返工到哪个步骤 | 缺陷列表/详情页面 | **P1** | [ ] |
-| 5.5.3 | 返工任务与工位执行未联动 | Unit 完成返工步骤后，Rework Task 仍显示"进行中"；应自动关闭或明确提示用户需要手动确认完成 | 返工处置页面, `apps/server/src/modules/mes/rework` | **P1** | [ ] |
+| 5.5.3 | 返工任务与工位执行未联动 | Unit 完成返工步骤后，Rework Task 仍显示"进行中"；应自动关闭或明确提示用户需要手动确认完成 | 返工处置页面, `apps/server/src/modules/mes/rework` | **P1** | [x] |
 | 5.5.4 | 返工完成流程不清晰 | 用户不知道返工后是否需要手动点击"完成"并填写内容；应有明确的流程指引和状态提示 | 返工处置页面 | P1 | [ ] |
 
 ---

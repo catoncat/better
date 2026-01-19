@@ -104,3 +104,15 @@ task:
 - Plan: commit existing slice-3 UX changes, then start P0/P1 backend fixes (5.4.1, 5.5.1, 5.5.3).
 ## Progress (2026-01-19 current)
 - Slice-3 UX changes ready to commit with tasks.md + conversation notes.
+## Progress (2026-01-19 slice1)
+- Implemented track-in guards for `OUT_FAILED`/`SCRAPPED`, rework step validation, and auto-close of open rework tasks on successful rework track-out.
+- Marked 5.4.1/5.5.1/5.5.3 as completed in `domain_docs/mes/plan/tasks.md`.
+
+## Findings (2026-01-19 slice1)
+- `trackIn` in `apps/server/src/modules/mes/execution/service.ts` currently blocks only `IN_STATION` and `DONE` statuses; missing `OUT_FAILED`/`SCRAPPED` guards (5.4.1).
+- `assignDisposition` in `apps/server/src/modules/mes/defect/service.ts` creates rework tasks without validating `toStepNo` against unit failure step; unit is moved directly to requested step (5.5.1).
+- Rework completion is only explicit via `completeRework`; no auto-close path tied to execution completion (5.5.3).
+- `trackOut` sets failed units to `OUT_FAILED` without changing `currentStepNo`; this is the failure step to bound rework range.
+- `assignDispositionSchema` only validates `toStepNo >= 1`; no upper-bound check in service.
+- `ReworkTask` model has `doneBy`/`doneAt` fields and status string; can auto-close in execution flow.
+- `trackOut` flow has no rework-task checks; needs a pass-path hook to close open tasks when the unit reworks past the failed step.

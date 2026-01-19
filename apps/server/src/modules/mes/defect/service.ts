@@ -113,6 +113,22 @@ export async function assignDisposition(
 	}
 
 	const dispositionType = data.type as DispositionType;
+	const reworkStep =
+		dispositionType === DispositionType.REWORK
+			? {
+					fromStepNo: defect.unit.currentStepNo,
+					toStepNo: data.toStepNo ?? 1,
+				}
+			: null;
+
+	if (reworkStep && reworkStep.toStepNo > reworkStep.fromStepNo) {
+		return {
+			success: false as const,
+			code: "REWORK_STEP_INVALID",
+			message: "Rework step must be less than or equal to the failure step",
+			status: 400,
+		};
+	}
 
 	const result = await db.$transaction(async (tx) => {
 		// Create disposition
@@ -135,8 +151,8 @@ export async function assignDisposition(
 		// Handle each disposition type
 		if (dispositionType === DispositionType.REWORK) {
 			// Create rework task
-			const fromStepNo = defect.unit.currentStepNo;
-			const toStepNo = data.toStepNo ?? 1;
+			const fromStepNo = reworkStep?.fromStepNo ?? defect.unit.currentStepNo;
+			const toStepNo = reworkStep?.toStepNo ?? data.toStepNo ?? 1;
 
 			await tx.reworkTask.create({
 				data: {
