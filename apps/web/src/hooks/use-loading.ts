@@ -9,6 +9,7 @@ export type LoadingExpectation = {
 	slotCode: string;
 	slotName: string | null;
 	position: number;
+	isLocked: boolean;
 	expectedMaterialCode: string;
 	alternates: string[];
 	status: "PENDING" | "LOADED" | "MISMATCH";
@@ -31,6 +32,7 @@ export type LoadingRecord = {
 	status: "LOADED" | "UNLOADED" | "REPLACED";
 	verifyResult: "PASS" | "FAIL" | "WARNING";
 	failReason: string | null;
+	isIdempotent?: boolean;
 	loadedAt: string;
 	loadedBy: string;
 	unloadedAt: string | null;
@@ -115,7 +117,9 @@ export function useVerifyLoading() {
 			return unwrap(response);
 		},
 		onSuccess: (data, variables) => {
-			if (data.verifyResult === "PASS") {
+			if (data.isIdempotent) {
+				toast.success("已上料（重复扫描）");
+			} else if (data.verifyResult === "PASS") {
 				toast.success("上料验证通过");
 			} else if (data.verifyResult === "WARNING") {
 				toast.warning("上料验证警告");

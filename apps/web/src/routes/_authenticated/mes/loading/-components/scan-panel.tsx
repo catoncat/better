@@ -115,7 +115,7 @@ export function ScanPanel({ runNo }: ScanPanelProps) {
 						<Field form={form} name="materialLotBarcode" label="物料条码 (Reel/Lot)">
 							{(field) => (
 								<Input
-									placeholder="扫描物料..."
+									placeholder="物料编码|批次号"
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}

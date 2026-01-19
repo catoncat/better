@@ -23,21 +23,6 @@ export function SlotList({ runNo }: SlotListProps) {
 	const { data: expectations } = useLoadingExpectations(runNo);
 	const unlockSlot = useUnlockSlot();
 
-	// Merge expectations and records to get full slot status
-	// But actually, expectation contains `status`, `loadedMaterialCode` etc.
-	// The `records` are the history logs mostly, but let's stick to expectations for the current state view.
-	// Wait, schema says `RunSlotExpectation` has `status` (PENDING/LOADED/MISMATCH) and `loadedMaterialCode`.
-	// So `expectations` is enough for the main list.
-
-	// However, `FeederSlot` has `isLocked`. The expectation doesn't explicitly say if the SLOT is locked.
-	// The backend `getRunLoadingExpectations` might not return lock status of the slot.
-	// Let's assume for now we just show what we have. If a verification failed, the user will see error toast.
-	// If we need to show lock icon, we might need to fetch feeder slots or rely on error handling.
-	// Actually, `expectations` usually join the slot info. Let's check schema...
-	// `RunSlotExpectation` schema has: slotId, slotCode... but no isLocked.
-
-	// For MVP, I will just list the expectations.
-
 	const sortedItems = useMemo(() => {
 		if (!expectations) return [];
 		return [...expectations].sort((a, b) => a.position - b.position);
@@ -98,24 +83,25 @@ export function SlotList({ runNo }: SlotListProps) {
 									)}
 								</TableCell>
 								<TableCell>
-									{/* Placeholder for unlock button if we knew it was locked */}
-									<TooltipProvider>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<Button
-													variant="ghost"
-													size="icon"
-													className="h-8 w-8"
-													onClick={() => handleUnlock(item.slotId)}
-												>
-													<Unlock className="h-4 w-4" />
-												</Button>
-											</TooltipTrigger>
-											<TooltipContent>
-												<p>解锁站位</p>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
+									{item.isLocked ? (
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<Button
+														variant="ghost"
+														size="icon"
+														className="h-8 w-8"
+														onClick={() => handleUnlock(item.slotId)}
+													>
+														<Unlock className="h-4 w-4" />
+													</Button>
+												</TooltipTrigger>
+												<TooltipContent>
+													<p>解锁站位</p>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									) : null}
 								</TableCell>
 							</TableRow>
 						))}
