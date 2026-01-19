@@ -9,6 +9,21 @@
 - `--scenario oqc-fail-mrb-release`：OQC FAIL → ON_HOLD → MRB RELEASE → COMPLETED
 - `--scenario oqc-fail-mrb-scrap`：OQC FAIL → ON_HOLD → MRB SCRAP → SCRAPPED
 
+## 0. 手工验收准备数据（db:seed）
+
+运行 `bun run db:seed` 会重置本地 DB 并生成以下基线数据，供 DIP 端到端手工验收使用：
+
+- DIP 产线：`LINE-DIP-A`（readiness 启用 `ROUTE` / `EQUIPMENT` / `MATERIAL`）
+- DIP 站点：`ST-DIP-INS-01` → `ST-DIP-WAVE-01` → `ST-DIP-POST-01` → `ST-DIP-TEST-01`
+- DIP 路由：`PCBA-DIP-V1`（step1 `requiresFAI=true`）
+- 演示工单/批次：
+  - WO：`WO-DEMO-DIP-RUN-001`
+  - Run：`RUN-DEMO-DIP-001`（初始 `PREP`）
+  - Unit：`SN-DEMO-DIP-0001`、`SN-DEMO-DIP-0002`（初始 `QUEUED`）
+- OQC 抽检规则（用于触发 OQC）：`productCode=P-1001` + `line=LINE-DIP-A` + `routing=PCBA-DIP-V1`，`samplingType=FIXED`，`sampleValue=1`，`priority=10`
+
+说明：OQC 仅在 Run 为 `IN_PROGRESS` 且所有 Unit 终态（DONE/SCRAPPED）时触发；若无抽检规则或 sampleSize=0，则 Run 会直接 `COMPLETED`。
+
 ## 1. E2E 场景测试
 
 ### 场景 1：工单接收与释放

@@ -274,7 +274,7 @@ const seedMesMasterData = async (prisma: Db["default"], db: Db) => {
 		data: {
 			code: "LINE-DIP-A",
 			name: "DIP Production Line A",
-			meta: { readinessChecks: { enabled: ["ROUTE"] } },
+			meta: { readinessChecks: { enabled: ["ROUTE", "EQUIPMENT", "MATERIAL"] } },
 		},
 	});
 
@@ -430,16 +430,29 @@ const seedMesMasterData = async (prisma: Db["default"], db: Db) => {
 		},
 	});
 
-	// Seed Equipment data for EQUIPMENT readiness check
-	const equipmentCodes = ["PRINTER-001", "SPI-001", "MOUNTER-001", "REFLOW-001", "AOI-001"];
-	for (const code of equipmentCodes) {
+	const equipmentSeeds = [
+		...smtStations.map((station) => ({
+			equipmentCode: station.code,
+			name: `${station.name} Equipment`,
+			workshopCode: lineA.code,
+			location: lineA.name,
+		})),
+		...dipStations.map((station) => ({
+			equipmentCode: station.code,
+			name: `${station.name} Equipment`,
+			workshopCode: dipLineA.code,
+			location: dipLineA.name,
+		})),
+	];
+
+	for (const equipment of equipmentSeeds) {
 		await prisma.tpmEquipment.create({
 			data: {
-				equipmentCode: code,
-				name: `${code} Equipment`,
+				equipmentCode: equipment.equipmentCode,
+				name: equipment.name,
 				status: "normal",
-				workshopCode: "LINE-A",
-				location: "SMT Area",
+				workshopCode: equipment.workshopCode,
+				location: equipment.location,
 			},
 		});
 	}
@@ -516,6 +529,18 @@ const seedMesMasterData = async (prisma: Db["default"], db: Db) => {
 		},
 	});
 	console.log("  -> Solder Paste data seeded");
+
+	await prisma.oqcSamplingRule.create({
+		data: {
+			productCode: "P-1001",
+			lineId: dipLineA.id,
+			routingId: dipRouting.id,
+			samplingType: db.OqcSamplingType.FIXED,
+			sampleValue: 1,
+			priority: 10,
+			isActive: true,
+		},
+	});
 
 	console.log("MES master data seeded.");
 	return { lineA, dipLineA, smtRouting, dipRouting };

@@ -10,6 +10,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import { DataTableRow } from "./data-table-row";
 
 interface DataTableProps<TData, TValue> {
@@ -39,8 +40,13 @@ export function DataTable<TData, TValue>({
 									header.column.getCanSort() &&
 									typeof headerDef !== "function";
 								const sorted = header.column.getIsSorted();
+								const meta = header.column.columnDef.meta as { sticky?: "right" } | undefined;
+								const stickyClass =
+									meta?.sticky === "right"
+										? "sticky right-0 z-20 bg-background border-l"
+										: undefined;
 								return (
-									<TableHead key={header.id}>
+									<TableHead key={header.id} className={cn(stickyClass)}>
 										{canSort ? (
 											<Button
 												variant="ghost"

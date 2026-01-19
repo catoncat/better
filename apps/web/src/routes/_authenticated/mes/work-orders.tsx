@@ -49,6 +49,13 @@ const WORK_ORDER_SYSTEM_PRESETS: SystemPreset<WorkOrderFilters>[] = [
 	{ id: "completed", name: "已完成", filters: { status: ["COMPLETED"] } },
 ];
 
+const PICK_STATUS_OPTIONS = [
+	{ label: "未领料", value: "1" },
+	{ label: "部分领料", value: "2" },
+	{ label: "全部领料", value: "3" },
+	{ label: "超额领料", value: "4" },
+];
+
 const INITIAL_SORTING = [{ id: "createdAt", desc: true }];
 
 interface WorkOrderSearchParams {
@@ -405,6 +412,12 @@ function WorkOrdersPage() {
 							{ label: "进行中", value: "IN_PROGRESS" },
 							{ label: "已完成", value: "COMPLETED" },
 						],
+					},
+					{
+						key: "erpPickStatus",
+						type: "multiSelect",
+						label: "领料状态",
+						options: PICK_STATUS_OPTIONS,
 					},
 					{
 						key: "routingId",

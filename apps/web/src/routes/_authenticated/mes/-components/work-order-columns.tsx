@@ -16,6 +16,7 @@ export type WorkOrderTableMeta = {
 
 const actionsColumn: ColumnDef<WorkOrder> = {
 	id: "actions",
+	meta: { sticky: "right" },
 	cell: ({ row, table }) => {
 		const wo = row.original;
 		const meta = table.options.meta as WorkOrderTableMeta | undefined;

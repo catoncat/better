@@ -18,6 +18,7 @@ import type { WorkOrder } from "@/hooks/use-work-orders";
 const runSchema = z.object({
 	lineCode: z.string().min(1, "线体编码不能为空"),
 	planQty: z.number().int().min(1, "计划数量必须大于 0"),
+	// NOTE: shiftCode 和 changeoverNo 暂时隐藏，待流程定义后再启用
 	shiftCode: z.string().optional(),
 	changeoverNo: z.string().optional(),
 });
@@ -121,25 +122,7 @@ export function RunCreateDialog({
 							/>
 						)}
 					</Field>
-					<Field form={form} name="shiftCode" label="班次编码">
-						{(field) => (
-							<Input
-								placeholder="Day / Night"
-								value={field.state.value ?? ""}
-								onBlur={field.handleBlur}
-								onChange={(e) => field.handleChange(e.target.value)}
-							/>
-						)}
-					</Field>
-					<Field form={form} name="changeoverNo" label="换线单号 (可选)">
-						{(field) => (
-							<Input
-								value={field.state.value ?? ""}
-								onBlur={field.handleBlur}
-								onChange={(e) => field.handleChange(e.target.value)}
-							/>
-						)}
-					</Field>
+					{/* NOTE: shiftCode 和 changeoverNo 暂时隐藏，待流程定义后再启用 */}
 					<DialogFooter>
 						<Button type="submit" disabled={isSubmitting}>
 							{isSubmitting ? "正在创建..." : "创建批次"}

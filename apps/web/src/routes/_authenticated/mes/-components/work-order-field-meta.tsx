@@ -115,9 +115,11 @@ export const workOrderFieldMeta: DataListFieldMeta<WorkOrder>[] = [
 		tableCell: (workOrder) => {
 			const detail = getProductDetail(getErpMeta(workOrder));
 			return (
-				<div className="flex flex-col">
-					<span>{workOrder.productCode}</span>
-					{detail ? <span className="text-xs text-muted-foreground">{detail}</span> : null}
+				<div className="flex max-w-[220px] flex-col">
+					<span className="truncate">{workOrder.productCode}</span>
+					{detail ? (
+						<span className="truncate text-xs text-muted-foreground">{detail}</span>
+					) : null}
 				</div>
 			);
 		},
@@ -133,6 +135,8 @@ export const workOrderFieldMeta: DataListFieldMeta<WorkOrder>[] = [
 		key: "routingName",
 		label: "工艺路线",
 		sortable: false,
+		tableHidden: true,
+		cardDetail: true,
 		accessorFn: (workOrder) => getRoutingLabel(getErpMeta(workOrder)),
 		tableCell: (workOrder) => getRoutingLabel(getErpMeta(workOrder)),
 	},
@@ -142,7 +146,9 @@ export const workOrderFieldMeta: DataListFieldMeta<WorkOrder>[] = [
 		sortable: false,
 		cardDetail: true,
 		cardValue: (workOrder) => renderRoutingValue(workOrder),
-		tableCell: (workOrder) => renderRoutingValue(workOrder),
+		tableCell: (workOrder) => (
+			<div className="max-w-[220px] truncate">{renderRoutingValue(workOrder)}</div>
+		),
 	},
 	{
 		key: "plannedQty",
