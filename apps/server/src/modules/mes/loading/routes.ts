@@ -76,17 +76,19 @@ export const loadingModule = new Elysia({ prefix: "/loading" })
 				set.status = result.status ?? 400;
 				return { ok: false, error: { code: result.code, message: result.message } };
 			}
-			await recordAuditEvent(db, {
-				entityType: AuditEntityType.MATERIAL_USE,
-				entityId: result.data.id,
-				entityDisplay: `Loading ${result.data.id}`,
-				action: "LOADING_VERIFY",
-				actor,
-				status: "SUCCESS",
-				after: result.data,
-				request: requestMeta,
-				payload: body,
-			});
+			if (!result.data.isIdempotent) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.MATERIAL_USE,
+					entityId: result.data.id,
+					entityDisplay: `Loading ${result.data.id}`,
+					action: "LOADING_VERIFY",
+					actor,
+					status: "SUCCESS",
+					after: result.data,
+					request: requestMeta,
+					payload: body,
+				});
+			}
 			return { ok: true, data: result.data };
 		},
 		{

@@ -36,6 +36,7 @@ type LoadingRecordDetail = {
 	status: LoadingRecordStatus;
 	verifyResult: LoadingVerifyResult;
 	failReason: string | null;
+	isIdempotent?: boolean;
 	loadedAt: string;
 	loadedBy: string;
 	unloadedAt: string | null;
@@ -48,6 +49,7 @@ type RunSlotExpectationDetail = {
 	slotCode: string;
 	slotName: string | null;
 	position: number;
+	isLocked: boolean;
 	expectedMaterialCode: string;
 	alternates: string[];
 	status: "PENDING" | "LOADED" | "MISMATCH";
@@ -170,20 +172,23 @@ const mapSlotMapping = (mapping: {
 	isAlternate: mapping.isAlternate,
 });
 
-const mapLoadingRecord = (record: {
-	id: string;
-	run: { runNo: string };
-	slot: { id: string; slotCode: string; slotName: string | null; position: number };
-	materialLot: { id: string; lotNo: string; materialCode: string };
-	expectedCode: string | null;
-	status: LoadingRecordStatus;
-	verifyResult: LoadingVerifyResult;
-	failReason: string | null;
-	loadedAt: Date;
-	loadedBy: string;
-	unloadedAt: Date | null;
-	unloadedBy: string | null;
-}): LoadingRecordDetail => ({
+const mapLoadingRecord = (
+	record: {
+		id: string;
+		run: { runNo: string };
+		slot: { id: string; slotCode: string; slotName: string | null; position: number };
+		materialLot: { id: string; lotNo: string; materialCode: string };
+		expectedCode: string | null;
+		status: LoadingRecordStatus;
+		verifyResult: LoadingVerifyResult;
+		failReason: string | null;
+		loadedAt: Date;
+		loadedBy: string;
+		unloadedAt: Date | null;
+		unloadedBy: string | null;
+	},
+	options?: { isIdempotent?: boolean },
+): LoadingRecordDetail => ({
 	id: record.id,
 	runNo: record.run.runNo,
 	slotId: record.slot.id,
@@ -197,6 +202,7 @@ const mapLoadingRecord = (record: {
 	status: record.status,
 	verifyResult: record.verifyResult,
 	failReason: record.failReason,
+	...(options?.isIdempotent ? { isIdempotent: true } : {}),
 	loadedAt: record.loadedAt.toISOString(),
 	loadedBy: record.loadedBy,
 	unloadedAt: record.unloadedAt ? record.unloadedAt.toISOString() : null,
@@ -211,13 +217,20 @@ const mapExpectation = (expectation: {
 	loadedMaterialCode: string | null;
 	loadedAt: Date | null;
 	loadedBy: string | null;
-	slot: { id: string; slotCode: string; slotName: string | null; position: number };
+	slot: {
+		id: string;
+		slotCode: string;
+		slotName: string | null;
+		position: number;
+		isLocked: boolean;
+	};
 }): RunSlotExpectationDetail => ({
 	id: expectation.id,
 	slotId: expectation.slot.id,
 	slotCode: expectation.slot.slotCode,
 	slotName: expectation.slot.slotName,
 	position: expectation.slot.position,
+	isLocked: expectation.slot.isLocked,
 	expectedMaterialCode: expectation.expectedMaterialCode,
 	alternates: parseAlternates(expectation.alternates),
 	status: expectation.status as "PENDING" | "LOADED" | "MISMATCH",
@@ -510,7 +523,10 @@ export async function verifyLoading(
 					},
 				});
 				if (existingRecord) {
-					return { success: true as const, data: mapLoadingRecord(existingRecord) };
+					return {
+						success: true as const,
+						data: mapLoadingRecord(existingRecord, { isIdempotent: true }),
+					};
 				}
 			}
 
@@ -1000,7 +1016,9 @@ export async function getRunLoadingExpectations(
 
 	const expectations = await db.runSlotExpectation.findMany({
 		where: { runId: run.id },
-		include: { slot: { select: { id: true, slotCode: true, slotName: true, position: true } } },
+		include: {
+			slot: { select: { id: true, slotCode: true, slotName: true, position: true, isLocked: true } },
+		},
 		orderBy: { slot: { position: "asc" } },
 	});
 
