@@ -28,6 +28,8 @@
 | 扫码验证 | `POST /api/loading/verify` | `apps/server/src/modules/mes/loading/service.ts` | `apps/web/src/routes/_authenticated/mes/loading/-components/scan-panel.tsx` |
 | 确认上料 | `POST /api/loading/verify` | `apps/server/src/modules/mes/loading/service.ts` | `apps/web/src/routes/_authenticated/mes/loading/-components/scan-panel.tsx` |
 | 报警/锁定/重试 | `POST /api/loading/verify`, `POST /api/loading/replace` | `apps/server/src/modules/mes/loading/service.ts` | `apps/web/src/routes/_authenticated/mes/loading/-components/scan-panel.tsx` |
+| 换料记录 | `POST /api/loading/replace` | `apps/server/src/modules/mes/loading/service.ts` | `apps/web/src/routes/_authenticated/mes/loading/-components/scan-panel.tsx` |
+| 换料记录查询 | `GET /api/runs/:runNo/loading` | `apps/server/src/modules/mes/loading/service.ts` | `apps/web/src/routes/_authenticated/mes/loading/-components/loading-history.tsx` |
 | 创建 FAI (FAI=PENDING) | `POST /api/fai/run/:runNo` | `apps/server/src/modules/mes/fai/service.ts` | `apps/web/src/routes/_authenticated/mes/fai.tsx` |
 | 首件生产(试产) | `POST /api/fai/:faiId/start`, `POST /api/stations/:stationCode/track-in`, `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/fai/service.ts`, `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/fai.tsx` |
 | 记录首件检验项 | `POST /api/fai/:faiId/items` | `apps/server/src/modules/mes/fai/service.ts` | `apps/web/src/routes/_authenticated/mes/fai.tsx` |
