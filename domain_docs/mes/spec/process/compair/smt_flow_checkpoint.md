@@ -1,3 +1,6 @@
+下面 smt 流程中具体的各种记录表都解析在 domain_docs/mes/spec/process/compair/smt_forms/ 里面了
+
+
 物料	备注			
 产品烘烤时间记录表，QR-Pro-057	包括PCB和潮敏零件烘烤记录	潮敏等级带出，车间剩余寿命的计算		
 SMT转拉前检查项目，QR-Pro-133				
