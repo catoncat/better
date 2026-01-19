@@ -399,6 +399,72 @@ FAI 试产说明：
 
 ---
 
+### 5.3 系统性改进：API 错误处理审查
+
+> 背景：验收过程中发现多处 API 错误未在前端显示，或错误提示不准确。需要系统性审查所有 MES API 的错误处理机制。
+> 状态：[ ] 待启动
+
+#### 5.3.1 审查范围
+
+| 模块 | API 路径 | 审查状态 |
+|------|----------|----------|
+| 工单管理 | `/api/mes/work-orders/*` | [ ] |
+| 批次管理 | `/api/mes/runs/*` | [ ] |
+| 就绪检查 | `/api/mes/readiness/*` | [ ] |
+| 上料防错 | `/api/mes/loading/*` | [ ] |
+| FAI 首件检验 | `/api/mes/fai/*` | [ ] |
+| 执行 (TrackIn/Out) | `/api/mes/execution/*` | [ ] |
+| OQC 出货检验 | `/api/mes/oqc/*` | [ ] |
+| MRB 不良处置 | `/api/mes/mrb/*` | [ ] |
+| 追溯查询 | `/api/mes/trace/*` | [ ] |
+
+#### 5.3.2 审查清单（每个 API）
+
+| # | 检查项 | 说明 |
+|---|--------|------|
+| 1 | **错误码完整性** | 所有业务错误是否有明确的错误码（如 `FAI_NOT_FOUND`、`RUN_NOT_AUTHORIZED`） |
+| 2 | **错误消息准确性** | 错误消息是否准确描述问题和解决方案（如 5.2.16 的 "start FAI first" 应改为 "请先授权批次"） |
+| 3 | **错误消息可国际化** | 错误消息是否支持中英文（当前大部分是英文） |
+| 4 | **前端 Toast 显示** | 前端是否对 API 错误显示 toast 提示，而非静默失败 |
+| 5 | **前端错误解析** | 前端是否正确解析 `error.code` 和 `error.message`，并显示用户友好信息 |
+| 6 | **边界条件覆盖** | 是否覆盖所有边界条件（如 5.2.16：FAI=PASS + Run=PREP 的组合） |
+
+#### 5.3.3 已发现问题汇总
+
+| 来源 | 问题 | 关联编号 |
+|------|------|----------|
+| 5.1.7 | 上料验证失败时前端只显示"失败"，无具体原因 | P1 |
+| 5.2.10 | `FAI_TRIAL_STEP_NOT_ALLOWED` 等错误只返回 JSON，页面无 toast | P1 |
+| 5.2.16 | FAI 完成后 TrackIn 错误提示不准确（应提示授权而非 start FAI） | P1 |
+
+#### 5.3.4 修复方案（建议）
+
+**后端统一错误格式**：
+```typescript
+interface ApiError {
+  code: string;           // 机器可读（如 "RUN_NOT_AUTHORIZED"）
+  message: string;        // 用户可读（如 "批次未授权，请先完成授权"）
+  details?: object;       // 可选：额外上下文（如 { runNo, currentStatus }）
+}
+```
+
+**前端统一错误处理**：
+```typescript
+// hooks/use-api-error.ts
+function useApiError() {
+  return (error: ApiError) => {
+    toast.error(error.message || "操作失败，请重试");
+    // 可选：根据 code 做特殊处理（如跳转、刷新）
+  };
+}
+```
+
+**错误码注册表**：
+- 建议创建 `packages/shared/src/error-codes.ts`，统一定义所有错误码及其描述
+- 前后端共用，避免硬编码
+
+---
+
 ## 6. References
 
 - 计划：`domain_docs/mes/plan/01_milestones.md`
