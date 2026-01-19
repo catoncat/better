@@ -82,7 +82,7 @@ P0（必须）：
 
 ## 3. Conflicts / Shared Touch Points
 
-- Track B ↔ Track C：共享触点（执行服务/追溯聚合），建议不要在同一分支并行推进。
+- Track B <-> Track C：共享触点（执行服务/追溯聚合），建议不要在同一分支并行推进。
 - Track A → Track B/C：合约/映射结构会决定 DB/API 设计，建议先落地最小合约再实现。
 - Track E：与集成/审计/幂等基础设施共享触点，建议后置到 ingest 闭环稳定后推进。
 

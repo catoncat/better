@@ -1,6 +1,6 @@
 # Phase 3 Plan (M3 - Go-Live Readiness) — Consolidated
 
-> 状态：**已完成** ✅
+> 状态：**已完成**
 > 更新时间：2026-01-13
 > 目标：把"流程已对齐"推进到"可上线/可验收/可运维"
 > 说明：**本文件是 M3 的唯一进度追踪入口**（勾选更新请在此文件完成）。
@@ -325,6 +325,77 @@ P1（应该）：
 | 5.1.5 | 重复扫描同一物料无法区分首次成功和幂等返回 | UI 应区分显示"上料成功"vs"已上料（重复扫描）"；API 可返回 `isIdempotent` 标记 | `apps/server/src/modules/mes/loading/service.ts`, `apps/web/src/routes/_authenticated/mes/loading/-components/scan-panel.tsx` | P2 | [ ] |
 | 5.1.6 | 幂等返回时仍创建审计日志 | 幂等返回不应重复创建审计记录，或标记为 `idempotent: true` | `apps/server/src/modules/mes/loading/routes.ts` | P2 | [ ] |
 | 5.1.7 | 上料验证失败时前端只显示"失败"，无具体原因 | 前端应显示后端返回的错误信息，如"站位已上料，请使用换料模式" | `apps/web/src/routes/_authenticated/mes/loading/-components/scan-panel.tsx`, `apps/web/src/hooks/use-loading.ts` | P1 | [ ] |
+| 5.1.8 | **BUG**: LOADING 就绪检查在未加载站位表时错误通过 | 当产线有 FeederSlot 但 RunSlotExpectation 为空时，应失败并提示"请先加载站位表"，而非跳过 | `apps/server/src/modules/mes/readiness/service.ts:471-474` | **P0** | [ ] |
+
+### 5.2 阶段4：首件检验 (FAI)
+
+| # | 问题描述 | 期望行为 | 涉及文件 | 优先级 | 状态 |
+|---|----------|----------|----------|--------|------|
+| 5.2.1 | FAI 列表页 Run 编号筛选是手动输入 | 应改为带搜索的下拉选择，列出有 FAI 任务的批次 | `apps/web/src/routes/_authenticated/mes/fai/index.tsx` | P1 | [ ] |
+| 5.2.2 | **BUG**: FAI 可跳过试产直接完成判定 | 根据流程规范，FAI 必须先进行"首件生产（试产）"即 TrackIn/TrackOut，才能记录检验项和完成判定；当前可直接跳过 | `apps/server/src/modules/mes/fai/service.ts`, `apps/web/src/routes/_authenticated/mes/fai.tsx` | **P0** | [ ] |
+| 5.2.3 | FAI 开始时无提示生成 Unit | FAI 开始（start）时应检查 Run 是否已有 Unit，若无则提示或自动生成 sampleQty 个 Unit | `apps/server/src/modules/mes/fai/service.ts` (startFai), `apps/web/src/routes/_authenticated/mes/fai.tsx` | P1 | [ ] |
+| 5.2.4 | FAI sampleQty 与 Unit 生成脱节 | 创建 FAI 时应检查 Run 是否已有足够 Unit（≥sampleQty）；设计决策：FAI 复用生产 Unit 池（首批试产 Unit 即正式生产 Unit），非独立池 | `apps/server/src/modules/mes/fai/service.ts` (createFai) | P1 | [ ] |
+| 5.2.5 | 执行页面缺少待进站 Unit 列表 | 应在批次卡片展开后显示 QUEUED 状态的 Unit，支持一键进站；FAI 模式下显示试产进度 | `apps/web/src/routes/_authenticated/mes/execution.tsx` | P1 | [ ] |
+| 5.2.6 | 执行页面工单号/批次号是手动输入 | 应改为带搜索的下拉选择器 | `apps/web/src/routes/_authenticated/mes/execution.tsx` | P2 | [ ] |
+| 5.2.7 | 执行页面无 FAI 模式提示 | 批次状态为 PREP 时应显示"FAI 试产"标签和进度（如"已试产 0/2"） | `apps/web/src/routes/_authenticated/mes/execution.tsx` | P2 | [ ] |
+| 5.2.8 | 当前队列表格需横向滚动才能看到操作按钮 | SN 列太长导致操作按钮被挤出视口；应截断 SN 或使用响应式布局 | `apps/web/src/routes/_authenticated/mes/execution.tsx` | P2 | [ ] |
+| 5.2.9 | **BUG**: 报不良缺少不良信息记录 | 当前只传 `result: FAIL`，无缺陷代码/位置/备注；应弹出完整的不良记录对话框 | `apps/web/src/routes/_authenticated/mes/execution.tsx` | **P1** | [ ] |
+| 5.2.10 | API 错误未在页面显示 | 如 `FAI_TRIAL_STEP_NOT_ALLOWED` 等错误只返回 JSON，页面无 toast 提示 | `apps/web/src/routes/_authenticated/mes/execution.tsx` | P1 | [ ] |
+| 5.2.11 | 不知道 Unit 下一步工序/工位 | 用户需要手动查路由推断工位，应在 Unit 详情或执行页面显示"下一步：Step 2 SPI → 工位 ST-SPI-01" | `apps/web/src/routes/_authenticated/mes/execution.tsx`, 批次详情 | P1 | [ ] |
+| 5.2.12 | 批次详情缺少路由步骤信息 | 应显示完整路由（Step 1 PRINTING → Step 2 SPI → ...）及各 Unit 的当前进度 | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` | P1 | [ ] |
+| 5.2.13 | FAI 试产规则无前端提示 | 用户不知道"FAI 只在第一工序"，应在 FAI 页面或执行页面明确说明 | FAI 页面 + 执行页面 | P2 | [ ] |
+| 5.2.14 | FAI「记录」字段固定，无动态配置 | FAI 检验项应可关联 `DataCollectionSpec` 或 FAI 专用检验清单模板（如首件检验 checklist），而非每次手动填写 | `apps/web/src/routes/_authenticated/mes/fai.tsx`, `apps/server/src/modules/mes/fai/service.ts` | P2 | [ ] |
+| 5.2.15 | FAI 未关联 TrackOut 检验结果 | FAI 完成判定时应能查看该批次试产 Unit 的 TrackOut 数据采集结果和 SPI/AOI 检验记录，作为判定依据 | FAI 详情页, `apps/server/src/modules/mes/fai/service.ts` | P2 | [ ] |
+| 5.2.16 | **BUG**: FAI 完成后 TrackIn 错误提示不准确 | 当 Run=PREP + FAI=PASS 时，TrackIn 返回 `FAI_TRIAL_NOT_READY`（提示 start FAI first），但实际应返回 `RUN_NOT_AUTHORIZED`（提示请先授权批次） | `apps/server/src/modules/mes/execution/service.ts:241-247` | **P1** | [ ] |
+
+#### 5.2.A UI 设计参考（关联 5.2.5 ~ 5.2.13）
+
+**1. 执行页面增强（5.2.5, 5.2.8, 5.2.11）**
+
+```
+当前队列（改进后）：
+┌──────────────────────────────────────────────────────────┐
+│ SN               │ 当前步骤      │ 下一步          │ 操作   │
+├──────────────────┼──────────────┼────────────────┼────────┤
+│ SN-...-0001     │ Step 1 印刷  │ Step 2 SPI    │ [出站] │
+│                 │ (ST-PRINT-01)│ (ST-SPI-01)   │        │
+└──────────────────────────────────────────────────────────┘
+```
+
+**2. 批次详情增强（5.2.12）**
+
+```
+路由进度：
+┌──────────────────────────────────────────────────────────┐
+│ Step 1: 印刷 (PRINTING)     ●━━━━━━━━━━━━━━○ 2/4 完成    │
+│ Step 2: SPI 检验            ○─────────────○ 0/4 完成    │
+│ Step 3: 贴片 (MOUNTING)     ○─────────────○ 0/4 完成    │
+│ Step 4: 回流焊 (REFLOW)     ○─────────────○ 0/4 完成    │
+│ Step 5: AOI 检验            ○─────────────○ 0/4 完成    │
+└──────────────────────────────────────────────────────────┘
+
+Unit 列表：
+│ SN           │ 状态       │ 当前步骤  │ 操作              │
+├──────────────┼───────────┼──────────┼──────────────────┤
+│ ...-0001    │ QUEUED    │ Step 2   │ [去 ST-SPI-01]   │
+│ ...-0002    │ IN_STATION│ Step 1   │ [在 ST-PRINT-01] │
+```
+
+**3. FAI 页面增强（5.2.7, 5.2.13）**
+
+```
+FAI 试产说明：
+┌──────────────────────────────────────────────────────────┐
+│ NOTE: FAI 试产规则                                          │
+│ - 仅在第一工序 (PRINTING) 进行                             │
+│ - 需完成 2 个 Unit 的 TrackIn/TrackOut                    │
+│ - 完成后返回此页面记录检验项并判定                           │
+│                                                          │
+│ 试产进度：1/2 ========--------                            │
+│ - Unit 1: DONE 已完成 TrackOut                            │
+│ - Unit 2: PENDING 待 TrackIn                              │
+└──────────────────────────────────────────────────────────┘
+```
 
 ---
 
