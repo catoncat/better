@@ -12,6 +12,12 @@ const runDetailApi = (runNo: string) => client.api.runs({ runNo });
 type RunDetailResponse = Awaited<ReturnType<ReturnType<typeof runDetailApi>["get"]>>["data"];
 export type RunDetail = NonNullable<RunDetailResponse>;
 
+type UnwrapEnvelope<T> = T extends { data: infer D } ? D : T;
+const runUnitsApi = (runNo: string) => client.api.runs({ runNo }).units;
+type RunUnitsEnvelope = Awaited<ReturnType<ReturnType<typeof runUnitsApi>["get"]>>["data"];
+export type RunUnitList = UnwrapEnvelope<NonNullable<RunUnitsEnvelope>>;
+export type RunUnitItem = RunUnitList["items"][number];
+
 type RunCreateInput = Parameters<ReturnType<(typeof client.api)["work-orders"]>["runs"]["post"]>[0];
 type RunAuthorizeInput = Parameters<ReturnType<typeof client.api.runs>["authorize"]["post"]>[0];
 
@@ -70,6 +76,35 @@ export function useRunDetail(runNo: string) {
 		enabled: Boolean(runNo),
 		queryFn: async () => {
 			const response = await client.api.runs({ runNo }).get();
+			return unwrap(response);
+		},
+		staleTime: 10_000,
+	});
+}
+
+export function useRunUnits(params: {
+	runNo: string | undefined;
+	status?: string;
+	stationCode?: string;
+	page?: number;
+	pageSize?: number;
+}) {
+	const { runNo, status, stationCode, page = 1, pageSize = 50 } = params;
+	return useQuery<RunUnitList>({
+		queryKey: ["mes", "run-units", runNo, status, stationCode, page, pageSize],
+		enabled: Boolean(runNo),
+		queryFn: async () => {
+			if (!runNo) {
+				throw new Error("Run number is required");
+			}
+			const response = await runUnitsApi(runNo).get({
+				query: {
+					status: status || undefined,
+					stationCode: stationCode || undefined,
+					page,
+					pageSize,
+				},
+			});
 			return unwrap(response);
 		},
 		staleTime: 10_000,

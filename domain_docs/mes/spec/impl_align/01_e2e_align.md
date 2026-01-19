@@ -50,7 +50,7 @@
 
 | 节点 | API | Server | Web |
 |------|-----|--------|-----|
-| 选择/确认下一工序 | - | - | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
+| 选择/确认下一工序 | `GET /api/runs/:runNo/units`, `GET /api/stations/:stationCode/queue` | `apps/server/src/modules/mes/run/service.ts`, `apps/server/src/modules/mes/run/routes.ts`, `apps/server/src/modules/mes/station/routes.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
 | 人工进站 | `POST /api/stations/:stationCode/track-in` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
 | 数据采集/校验 | `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
 | 出站判定 | `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |

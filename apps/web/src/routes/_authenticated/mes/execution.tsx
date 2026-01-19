@@ -1,5 +1,5 @@
 import { Permission } from "@better-app/db/permissions";
-import { useForm } from "@tanstack/react-form";
+import { useForm, useStore } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
 import { ChevronRight, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
 	Select,
 	SelectContent,
@@ -26,7 +27,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAbility } from "@/hooks/use-ability";
-import { useRunList } from "@/hooks/use-runs";
+import { useRunDetail, useRunList, useRunUnits } from "@/hooks/use-runs";
 import {
 	useResolveUnitBySn,
 	useStationQueue,
@@ -108,6 +109,9 @@ function ExecutionPage() {
 			await trackIn({ stationCode: selectedStation, ...values });
 			inForm.reset({ sn: "", woNo: values.woNo, runNo: values.runNo }); // Keep context
 			refetchQueue();
+			if (selectedRunNo) {
+				refetchQueuedUnits();
+			}
 		},
 	});
 
@@ -124,6 +128,21 @@ function ExecutionPage() {
 				initialResult: values.result,
 			});
 		},
+	});
+
+	const selectedRunNo = useStore(inForm.store, (state) => state.values.runNo);
+	const selectedWoNo = useStore(inForm.store, (state) => state.values.woNo);
+
+	const { data: selectedRunDetail } = useRunDetail(selectedRunNo);
+	const {
+		data: queuedUnits,
+		refetch: refetchQueuedUnits,
+		isFetching: isQueuedFetching,
+	} = useRunUnits({
+		runNo: selectedRunNo || undefined,
+		status: "QUEUED",
+		stationCode: selectedStation || undefined,
+		pageSize: 50,
 	});
 
 	useEffect(() => {
@@ -196,6 +215,34 @@ function ExecutionPage() {
 		setTrackOutItem(null);
 		outForm.reset({ sn: "", runNo: "", result: "PASS" });
 		refetchQueue();
+		if (selectedRunNo) {
+			refetchQueuedUnits();
+		}
+	};
+
+	const formatStepLabel = (
+		step:
+			| { stepNo: number; operationCode: string; operationName: string | null }
+			| null
+			| undefined,
+	) => {
+		if (!step) return "-";
+		const operationLabel = step.operationName ?? step.operationCode;
+		return `Step ${step.stepNo} ${operationLabel}`;
+	};
+
+	const formatStepStation = (
+		step:
+			| {
+					stationCodes: string[];
+					stationGroup: { code: string; name: string } | null;
+			  }
+			| null
+			| undefined,
+	) => {
+		if (!step) return "-";
+		if (step.stationCodes.length > 0) return step.stationCodes.join(", ");
+		return step.stationGroup?.code ?? "-";
 	};
 
 	// Select a run from the executable list and prefill forms
@@ -355,84 +402,217 @@ function ExecutionPage() {
 
 			{selectedStation && (
 				<div className="grid gap-6 lg:grid-cols-2">
-					<Card>
-						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<div>
-								<CardTitle>当前队列</CardTitle>
-								<CardDescription>{queueData?.station.name} - 在站产品</CardDescription>
-							</div>
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => refetchQueue()}
-								disabled={isQueueFetching}
-							>
-								<RefreshCw className={`h-4 w-4 ${isQueueFetching ? "animate-spin" : ""}`} />
-							</Button>
-						</CardHeader>
-						<CardContent>
-							{queueData?.queue.length === 0 ? (
-								<div className="py-8 text-center text-muted-foreground">当前工位没有在站产品</div>
-							) : (
-								<Table>
-									<TableHeader>
-										<TableRow>
-											<TableHead>SN</TableHead>
-											<TableHead>步骤</TableHead>
-											<TableHead>进站时间</TableHead>
-											<TableHead>操作</TableHead>
-										</TableRow>
-									</TableHeader>
-									<TableBody>
-										{queueData?.queue.map((item) => (
-											<TableRow key={item.sn}>
-												<TableCell className="font-mono text-sm">{item.sn}</TableCell>
-												<TableCell>
-													<Badge variant="outline">Step {item.currentStepNo}</Badge>
-												</TableCell>
-												<TableCell className="text-muted-foreground">
-													{formatDateTime(item.inAt)}
-												</TableCell>
-												<TableCell>
-													<div className="flex flex-wrap gap-2">
+					<div className="space-y-6">
+						<Card>
+							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+								<div>
+									<CardTitle>当前队列</CardTitle>
+									<CardDescription>{queueData?.station.name} - 在站产品</CardDescription>
+								</div>
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() => refetchQueue()}
+									disabled={isQueueFetching}
+								>
+									<RefreshCw className={`h-4 w-4 ${isQueueFetching ? "animate-spin" : ""}`} />
+								</Button>
+							</CardHeader>
+							<CardContent>
+								{queueData?.queue.length === 0 ? (
+									<div className="py-8 text-center text-muted-foreground">当前工位没有在站产品</div>
+								) : (
+									<Table>
+										<TableHeader>
+											<TableRow>
+												<TableHead>SN</TableHead>
+												<TableHead>步骤</TableHead>
+												<TableHead>进站时间</TableHead>
+												<TableHead>操作</TableHead>
+											</TableRow>
+										</TableHeader>
+										<TableBody>
+											{queueData?.queue.map((item) => (
+												<TableRow key={item.sn}>
+													<TableCell className="font-mono text-sm">{item.sn}</TableCell>
+													<TableCell>
+														<div className="space-y-1">
+															<div>
+																<div className="text-sm font-medium">
+																	{formatStepLabel(item.currentStep)}
+																</div>
+																<div className="text-xs text-muted-foreground">
+																	{formatStepStation(item.currentStep)}
+																</div>
+															</div>
+															<div className="text-xs text-muted-foreground">
+																下一步: {formatStepLabel(item.nextStep)}
+																{formatStepStation(item.nextStep) !== "-" && (
+																	<span> · {formatStepStation(item.nextStep)}</span>
+																)}
+															</div>
+														</div>
+													</TableCell>
+													<TableCell className="text-muted-foreground">
+														{formatDateTime(item.inAt)}
+													</TableCell>
+													<TableCell>
+														<div className="flex flex-wrap gap-2">
+															<Button
+																variant="secondary"
+																size="sm"
+																disabled={!canTrackOut || isOutPending}
+																onClick={() =>
+																	handleOpenTrackOutDialog({
+																		sn: item.sn,
+																		runNo: item.runNo,
+																		initialResult: "PASS",
+																	})
+																}
+															>
+																出站
+															</Button>
+															<Button
+																variant="outline"
+																size="sm"
+																disabled={!canTrackOut || isOutPending}
+																onClick={() =>
+																	handleOpenTrackOutDialog({
+																		sn: item.sn,
+																		runNo: item.runNo,
+																		initialResult: "FAIL",
+																		lockResult: true,
+																	})
+																}
+															>
+																报不良
+															</Button>
+														</div>
+													</TableCell>
+												</TableRow>
+											))}
+										</TableBody>
+									</Table>
+								)}
+							</CardContent>
+						</Card>
+
+						<Card>
+							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+								<div>
+									<CardTitle>待进站</CardTitle>
+									<CardDescription>
+										{selectedRunNo ? `批次 ${selectedRunNo}` : "请选择批次"}
+									</CardDescription>
+								</div>
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() => {
+										if (selectedRunNo) refetchQueuedUnits();
+									}}
+									disabled={!selectedRunNo || isQueuedFetching}
+								>
+									<RefreshCw className={`h-4 w-4 ${isQueuedFetching ? "animate-spin" : ""}`} />
+								</Button>
+							</CardHeader>
+							<CardContent>
+								{selectedRunDetail?.faiTrial && selectedRunDetail.run.status === "PREP" && (
+									<div className="mb-4 rounded-lg border bg-muted/30 p-3">
+										<div className="flex flex-wrap items-center justify-between gap-2">
+											<div className="flex items-center gap-2 text-sm">
+												<Badge variant="secondary">FAI 试产</Badge>
+												<span className="text-muted-foreground">
+													已试产 {selectedRunDetail.faiTrial.trackedQty}/
+													{selectedRunDetail.faiTrial.sampleQty}
+												</span>
+											</div>
+											<span className="text-xs text-muted-foreground">
+												{selectedRunDetail.faiTrial.status}
+											</span>
+										</div>
+										<Progress
+											className="mt-2"
+											value={
+												selectedRunDetail.faiTrial.sampleQty > 0
+													? (selectedRunDetail.faiTrial.trackedQty /
+															selectedRunDetail.faiTrial.sampleQty) *
+														100
+													: 0
+											}
+										/>
+									</div>
+								)}
+
+								{!selectedRunNo ? (
+									<div className="py-8 text-center text-muted-foreground">
+										请选择批次以查看待进站产品
+									</div>
+								) : isQueuedFetching && !queuedUnits ? (
+									<div className="py-8 text-center text-muted-foreground">加载中...</div>
+								) : !queuedUnits || queuedUnits.items.length === 0 ? (
+									<div className="py-8 text-center text-muted-foreground">暂无待进站产品</div>
+								) : (
+									<Table>
+										<TableHeader>
+											<TableRow>
+												<TableHead>SN</TableHead>
+												<TableHead>步骤</TableHead>
+												<TableHead>操作</TableHead>
+											</TableRow>
+										</TableHeader>
+										<TableBody>
+											{queuedUnits?.items.map((item) => (
+												<TableRow key={item.sn}>
+													<TableCell className="font-mono text-sm">{item.sn}</TableCell>
+													<TableCell>
+														<div className="space-y-1">
+															<div>
+																<div className="text-sm font-medium">
+																	{formatStepLabel(item.currentStep)}
+																</div>
+																<div className="text-xs text-muted-foreground">
+																	{formatStepStation(item.currentStep)}
+																</div>
+															</div>
+															<div className="text-xs text-muted-foreground">
+																下一步: {formatStepLabel(item.nextStep)}
+																{formatStepStation(item.nextStep) !== "-" && (
+																	<span> · {formatStepStation(item.nextStep)}</span>
+																)}
+															</div>
+														</div>
+													</TableCell>
+													<TableCell>
 														<Button
 															variant="secondary"
 															size="sm"
-															disabled={!canTrackOut || isOutPending}
-															onClick={() =>
-																handleOpenTrackOutDialog({
+															disabled={!canTrackIn || isInPending}
+															onClick={async () => {
+																if (!selectedStation || !selectedRunNo) return;
+																const woNo = queuedUnits?.workOrder.woNo || selectedWoNo;
+																if (!woNo) return;
+																await trackIn({
+																	stationCode: selectedStation,
 																	sn: item.sn,
-																	runNo: item.runNo,
-																	initialResult: "PASS",
-																})
-															}
+																	runNo: selectedRunNo,
+																	woNo,
+																});
+																refetchQueue();
+																refetchQueuedUnits();
+															}}
 														>
-															出站
+															进站
 														</Button>
-														<Button
-															variant="outline"
-															size="sm"
-															disabled={!canTrackOut || isOutPending}
-															onClick={() =>
-																handleOpenTrackOutDialog({
-																	sn: item.sn,
-																	runNo: item.runNo,
-																	initialResult: "FAIL",
-																	lockResult: true,
-																})
-															}
-														>
-															报不良
-														</Button>
-													</div>
-												</TableCell>
-											</TableRow>
-										))}
-									</TableBody>
-								</Table>
-							)}
-						</CardContent>
-					</Card>
+													</TableCell>
+												</TableRow>
+											))}
+										</TableBody>
+									</Table>
+								)}
+							</CardContent>
+						</Card>
+					</div>
 
 					<Tabs defaultValue="in" className="w-full">
 						<TabsList className="grid w-full grid-cols-2">

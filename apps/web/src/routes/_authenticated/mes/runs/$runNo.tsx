@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
 	Table,
 	TableBody,
@@ -45,7 +46,13 @@ import {
 	useReadinessLatest,
 	useWaiveItem,
 } from "@/hooks/use-readiness";
-import { useAuthorizeRun, useCloseRun, useGenerateUnits, useRunDetail } from "@/hooks/use-runs";
+import {
+	useAuthorizeRun,
+	useCloseRun,
+	useGenerateUnits,
+	useRunDetail,
+	useRunUnits,
+} from "@/hooks/use-runs";
 import {
 	FAI_STATUS_MAP,
 	INSPECTION_STATUS_MAP,
@@ -72,6 +79,13 @@ function RunDetailPage() {
 	const authorizeRun = useAuthorizeRun();
 	const closeRun = useCloseRun();
 	const generateUnits = useGenerateUnits();
+	const [unitsPage, setUnitsPage] = useState(1);
+	const unitsPageSize = 50;
+	const {
+		data: runUnits,
+		isLoading: runUnitsLoading,
+		isFetching: runUnitsFetching,
+	} = useRunUnits({ runNo, page: unitsPage, pageSize: unitsPageSize });
 	const {
 		data: readinessData,
 		isLoading: readinessLoading,
@@ -111,6 +125,11 @@ function RunDetailPage() {
 		if (!data?.run.planQty) return;
 		setGenerateUnitsQty((current) => Math.min(current, data.run.planQty));
 	}, [data?.run.planQty]);
+
+	useEffect(() => {
+		if (!runNo) return;
+		setUnitsPage(1);
+	}, [runNo]);
 	const getStatusBadge = (status: string) => {
 		const label = RUN_STATUS_MAP[status] || status;
 		let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
@@ -178,6 +197,31 @@ function RunDetailPage() {
 		if (status === "FAIL") variant = "destructive";
 
 		return <Badge variant={variant}>{label}</Badge>;
+	};
+
+	const formatStepLabel = (
+		step:
+			| { stepNo: number; operationCode: string; operationName: string | null }
+			| null
+			| undefined,
+	) => {
+		if (!step) return "-";
+		const operationLabel = step.operationName ?? step.operationCode;
+		return `Step ${step.stepNo} ${operationLabel}`;
+	};
+
+	const formatStepStation = (
+		step:
+			| {
+					stationCodes: string[];
+					stationGroup: { code: string; name: string } | null;
+			  }
+			| null
+			| undefined,
+	) => {
+		if (!step) return "-";
+		if (step.stationCodes.length > 0) return step.stationCodes.join(", ");
+		return step.stationGroup?.code ?? "-";
 	};
 
 	const handleWaive = (item: ReadinessCheckItem) => {
@@ -751,13 +795,51 @@ function RunDetailPage() {
 			<Card>
 				<CardHeader className="flex flex-row items-center justify-between">
 					<div>
-						<CardTitle>最近生产的产品</CardTitle>
-						<CardDescription>显示最近更新的 20 个产品单元</CardDescription>
+						<CardTitle>路由进度</CardTitle>
+						<CardDescription>查看各工序完成情况</CardDescription>
 					</div>
 					<Package className="h-5 w-5 text-muted-foreground" />
 				</CardHeader>
 				<CardContent>
-					{data.recentUnits.length === 0 ? (
+					{data.routeSteps.length === 0 ? (
+						<div className="py-6 text-center text-muted-foreground">暂无路由步骤</div>
+					) : (
+						<div className="space-y-4">
+							{data.routeSteps.map((step) => {
+								const progress =
+									step.total > 0 ? Math.min((step.completed / step.total) * 100, 100) : 0;
+								return (
+									<div key={step.stepNo} className="space-y-2">
+										<div className="flex flex-wrap items-center justify-between gap-2">
+											<div>
+												<p className="text-sm font-medium">{formatStepLabel(step)}</p>
+												<p className="text-xs text-muted-foreground">{formatStepStation(step)}</p>
+											</div>
+											<p className="text-sm text-muted-foreground">
+												{step.completed}/{step.total} 完成
+											</p>
+										</div>
+										<Progress value={progress} />
+									</div>
+								);
+							})}
+						</div>
+					)}
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader className="flex flex-row items-center justify-between">
+					<div>
+						<CardTitle>Unit 列表</CardTitle>
+						<CardDescription>展示批次下产品当前进度</CardDescription>
+					</div>
+					<Package className="h-5 w-5 text-muted-foreground" />
+				</CardHeader>
+				<CardContent>
+					{runUnitsLoading ? (
+						<div className="py-8 text-center text-muted-foreground">加载中...</div>
+					) : !runUnits || runUnits.items.length === 0 ? (
 						<div className="py-8 text-center text-muted-foreground">暂无生产记录</div>
 					) : (
 						<Table>
@@ -765,17 +847,33 @@ function RunDetailPage() {
 								<TableRow>
 									<TableHead>序列号 (SN)</TableHead>
 									<TableHead>当前步骤</TableHead>
+									<TableHead>下一步</TableHead>
 									<TableHead>状态</TableHead>
 									<TableHead>更新时间</TableHead>
 									<TableHead>操作</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
-								{data.recentUnits.map((unit) => (
+								{runUnits.items.map((unit) => (
 									<TableRow key={unit.sn}>
 										<TableCell className="font-mono">{unit.sn}</TableCell>
 										<TableCell>
-											<Badge variant="outline">Step {unit.currentStepNo}</Badge>
+											<div className="space-y-1">
+												<div className="text-sm font-medium">
+													{formatStepLabel(unit.currentStep)}
+												</div>
+												<div className="text-xs text-muted-foreground">
+													{formatStepStation(unit.currentStep)}
+												</div>
+											</div>
+										</TableCell>
+										<TableCell>
+											<div className="space-y-1">
+												<div className="text-sm font-medium">{formatStepLabel(unit.nextStep)}</div>
+												<div className="text-xs text-muted-foreground">
+													{formatStepStation(unit.nextStep)}
+												</div>
+											</div>
 										</TableCell>
 										<TableCell>{getUnitStatusBadge(unit.status)}</TableCell>
 										<TableCell className="text-muted-foreground">
@@ -792,6 +890,40 @@ function RunDetailPage() {
 								))}
 							</TableBody>
 						</Table>
+					)}
+
+					{runUnits && runUnits.total > 0 && (
+						<div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+							<span>
+								共 {runUnits.total} 条 · 第 {unitsPage}/
+								{Math.max(1, Math.ceil(runUnits.total / unitsPageSize))} 页
+							</span>
+							<div className="flex items-center gap-2">
+								<Button
+									variant="outline"
+									size="sm"
+									disabled={unitsPage <= 1 || runUnitsFetching}
+									onClick={() => setUnitsPage((current) => Math.max(1, current - 1))}
+								>
+									上一页
+								</Button>
+								<Button
+									variant="outline"
+									size="sm"
+									disabled={
+										runUnitsFetching ||
+										unitsPage >= Math.max(1, Math.ceil(runUnits.total / unitsPageSize))
+									}
+									onClick={() =>
+										setUnitsPage((current) =>
+											Math.min(Math.max(1, Math.ceil(runUnits.total / unitsPageSize)), current + 1),
+										)
+									}
+								>
+									下一页
+								</Button>
+							</div>
+						</div>
 					)}
 				</CardContent>
 			</Card>

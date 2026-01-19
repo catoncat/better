@@ -136,8 +136,7 @@ export function TrackOutDialog({
 				defectCode: value.result === "FAIL" ? trimmedDefectCode : undefined,
 				defectLocation:
 					value.result === "FAIL" ? value.defectLocation?.trim() || undefined : undefined,
-				defectRemark:
-					value.result === "FAIL" ? value.defectRemark?.trim() || undefined : undefined,
+				defectRemark: value.result === "FAIL" ? value.defectRemark?.trim() || undefined : undefined,
 			});
 
 			onOpenChange(false);
@@ -162,7 +161,7 @@ export function TrackOutDialog({
 	const validateRequired = () => {
 		if (form.getFieldValue("result") === "FAIL") {
 			const defectCode = form.getFieldValue("defectCode");
-			return Boolean(defectCode && defectCode.trim());
+			return Boolean(defectCode?.trim());
 		}
 		for (const spec of specs) {
 			if (spec.isRequired) {

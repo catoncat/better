@@ -34,6 +34,23 @@ export const generateUnitsSchema = t.Object({
 	snPrefix: t.Optional(t.String()),
 });
 
+const routeStepMetaSchema = t.Object({
+	stepNo: t.Number(),
+	operationCode: t.String(),
+	operationName: t.Union([t.String(), t.Null()]),
+	stationType: t.String(),
+	stationGroup: t.Union([t.Object({ code: t.String(), name: t.String() }), t.Null()]),
+	stationCodes: t.Array(t.String()),
+});
+
+const routeStepProgressSchema = t.Intersect([
+	routeStepMetaSchema,
+	t.Object({
+		completed: t.Number(),
+		total: t.Number(),
+	}),
+]);
+
 export const generateUnitsResponseSchema = t.Object({
 	ok: t.Boolean(),
 	data: t.Object({
@@ -46,6 +63,40 @@ export const deleteUnitsResponseSchema = t.Object({
 	ok: t.Boolean(),
 	data: t.Object({
 		deleted: t.Number(),
+	}),
+});
+
+export const runUnitListQuerySchema = t.Object({
+	status: t.Optional(t.String()),
+	stationCode: t.Optional(t.String()),
+	page: t.Optional(t.Numeric({ default: 1 })),
+	pageSize: t.Optional(t.Numeric({ default: 50 })),
+});
+
+export const runUnitListResponseSchema = t.Object({
+	ok: t.Boolean(),
+	data: t.Object({
+		run: t.Object({
+			runNo: t.String(),
+			status: t.String(),
+		}),
+		workOrder: t.Object({
+			woNo: t.String(),
+			productCode: t.String(),
+		}),
+		items: t.Array(
+			t.Object({
+				sn: t.String(),
+				status: t.String(),
+				currentStepNo: t.Number(),
+				updatedAt: t.String(),
+				currentStep: t.Union([routeStepMetaSchema, t.Null()]),
+				nextStep: t.Union([routeStepMetaSchema, t.Null()]),
+			}),
+		),
+		total: t.Number(),
+		page: t.Number(),
+		pageSize: t.Number(),
 	}),
 });
 
@@ -74,6 +125,7 @@ export const runDetailResponseSchema = t.Object({
 		}),
 		t.Null(),
 	]),
+	routeSteps: t.Array(routeStepProgressSchema),
 	unitStats: t.Object({
 		total: t.Number(),
 		queued: t.Number(),
@@ -81,6 +133,17 @@ export const runDetailResponseSchema = t.Object({
 		done: t.Number(),
 		failed: t.Number(),
 	}),
+	faiTrial: t.Union(
+		[
+			t.Object({
+				status: t.String(),
+				sampleQty: t.Number(),
+				trackedQty: t.Number(),
+			}),
+			t.Null(),
+		],
+		{ default: null },
+	),
 	recentUnits: t.Array(
 		t.Object({
 			sn: t.String(),

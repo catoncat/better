@@ -19,9 +19,9 @@ task:
 
 ## Slices
 - [x] Slice 1: execution correctness + error surfacing (5.2.9/5.2.16/5.2.10).
-- [ ] Slice 2: execution visibility (5.2.5/5.2.11/5.2.12).
+- [x] Slice 2: execution visibility (5.2.5/5.2.11/5.2.12).
 - [ ] Slice 3: UX polish (5.2.6/5.2.7/5.2.8/5.2.13).
-- [ ] Slice 4: update tasks.md status + verification.
+- [x] Slice 4: update tasks.md status + verification.
 
 ## Decisions
 - Follow user order: 1 -> 2 -> 3.
@@ -42,14 +42,45 @@ task:
 - Defect service supports `location` and `remark` (stored in meta) for createDefect; track-out helper currently only accepts code/location.
 - `unwrap` throws structured `ApiError` with code/message/status; use-station-execution can switch to `unwrap` to surface errors via toast.
 - TrackOut form on the execution page submits FAIL directly; NG dialog path is separate from TrackOut dialog.
+- API patterns doc mandates envelope responses and ServiceResult for new endpoints; new run-units API should follow this.
+- `stations/:stationCode/queue` returns IN_STATION units only (no QUEUED list or next-step info); likely need new API for run-queued units.
+- `/runs/:runNo` exists but there is no run-units list/route-steps endpoint surfaced in routes; likely need to extend run detail or add a new route.
+- `getRunDetail` only returns unitStats + recentUnits (20), with routeVersion metadata but no routing steps or per-unit progress.
+- `getSnapshotSteps` helpers already exist in `execution/service.ts` and `trace/service.ts`; can reuse to surface routing steps/next-step info.
+- Run detail UI relies on `useRunDetail` data (unitStats + recentUnits) and has no routing steps/progress section yet.
+- Run detail UI shows recent units with `currentStepNo` only; no next-step or route progress display.
+- `runDetailResponseSchema` is not wrapped in an `{ ok, data }` envelope, unlike API pattern doc.
+- `unwrap` in `apps/web/src/lib/eden.ts` supports legacy non-enveloped endpoints; `useRunDetail` uses `unwrap`.
+- Execution page “当前队列” uses station queue (IN_STATION only) and has no queued-unit list or next-step info.
+- `trackIn` uses `getSnapshotSteps` + `isValidStationForStep` (stationType + allowedStationIds + stationGroupId) to gate which station can process a unit.
+- Station queue schema/hook exposes only sn/status/currentStepNo/woNo/runNo/inAt; any next-step or queued-unit view needs API + schema + hook updates.
+- Execution page pulls run list (AUTHORIZED/PREP/IN_PROGRESS) and station queue only; no FAI progress or queued-unit list yet.
+- Run routes already define DELETE `/:runNo/units`; can add GET `/:runNo/units` for unit listings/queued filtering.
+- Run service has generate/delete units only; no list/progress helper yet. Units are created QUEUED with `currentStepNo` from first routing step.
+- Prisma schema provides StationGroup(code/name) and Operation(code/name) for labeling steps and stations in UI.
+- Execution page has no selectedRun state; `handleSelectRun` only populates in/out form values (runNo/woNo).
+- Other MES dialogs use `useStore(form.store, selector)` from TanStack Form to read reactive values; can use this for selected run/wo.
+- UI has a `Progress` component (Radix) we can reuse for route step completion display.
+- FAI hooks include `useFaiByRun` and `useFaiGate`; execution page can reuse these for trial progress display.
+- `getFaiByRun` returns an Inspection record with items only; no explicit trial-unit progress counts provided.
+- Align updated: execution step now references `GET /api/runs/:runNo/units` and station queue API in `domain_docs/mes/spec/impl_align/01_e2e_align.md`.
+- Repo scripts: `bun run format` uses `biome format --write .`; lint uses `biome check .` (import ordering must be fixed explicitly).
 
 ## Progress
 - Added TrackOut defect capture fields and routed FAIL flows to TrackOutDialog.
 - Added ApiError-based toasts for track-in/out failures.
 - Adjusted FAI trial gate messaging for PREP + FAI PASS.
+- Added run unit listing endpoint with step meta + station queue step info; execution page now shows queued units and next step labels.
+- Added run detail route progress + unit list with next-step info and pagination controls.
+- Updated tasks/align docs and ran smart-verify (lint + typecheck + prisma generate).
 
 ## Open Questions
 -
 
 ## Errors
 -
+
+## Findings (2025-09-30)
+- tasks.md新增: 5.2.17/5.2.18/5.2.19/5.2.20, 5.3 错误处理审查区块
+- tasks.md仍标未完成: 5.2.9/5.2.10/5.2.16 (已实现, 待更新状态)
+- 计划仍按 slice2(5.2.5/5.2.11/5.2.12) -> slice3(5.2.6/5.2.7/5.2.8/5.2.13 + 5.2.19 待定)

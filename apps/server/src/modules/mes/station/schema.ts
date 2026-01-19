@@ -27,6 +27,15 @@ export const stationGroupListResponseSchema = t.Object({
 	),
 });
 
+const queueStepSchema = t.Object({
+	stepNo: t.Number(),
+	operationCode: t.String(),
+	operationName: t.Union([t.String(), t.Null()]),
+	stationType: t.String(),
+	stationGroup: t.Union([t.Object({ code: t.String(), name: t.String() }), t.Null()]),
+	stationCodes: t.Array(t.String()),
+});
+
 export const stationQueueResponseSchema = t.Object({
 	station: t.Object({
 		code: t.String(),
@@ -37,6 +46,8 @@ export const stationQueueResponseSchema = t.Object({
 			sn: t.String(),
 			status: t.String(),
 			currentStepNo: t.Number(),
+			currentStep: t.Union([queueStepSchema, t.Null()]),
+			nextStep: t.Union([queueStepSchema, t.Null()]),
 			woNo: t.String(),
 			runNo: t.String(),
 			inAt: t.Union([t.String(), t.Null()]),
