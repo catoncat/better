@@ -78,6 +78,43 @@ P0（必须）：
 - [ ] 4.5.1 定义回传 payload 合约（完成/质量/追溯摘要；幂等键）
 - [ ] 4.5.2 Outbox/重试策略（失败回放、死信、审计）
 
+### 2.6 Track F — SMT Traceability & Compliance Hardening（Post Go-Live）
+
+> 基于 `compair/codex_smt_flow_deep_analysis.md` 的工作包拆分与验收要求，聚焦 SMT 追溯合规与表单电子化。
+
+- [ ] 4.6.1 前置确认：表单字段对齐 + 时间窗口起止事件 + 数据来源确认
+  - DoD：`smt_forms/*.md` 字段版本确认；`QR-Pro-012` 字段补齐；“印锡→焊接 <4h”“锡膏暴露 <24h”起止事件与违规策略明确
+
+- [ ] 4.6.2 时间窗口规则（WP-1）
+  - DoD：时间窗口规则可配置；超时自动标记并阻断（或需豁免审批）；Trace 可回溯规则命中
+
+- [ ] 4.6.3 烘烤记录（WP-2）
+  - DoD：BakeRecord 数据结构 + UI 表单；可关联 Run 与物料批次
+
+- [ ] 4.6.4 锡膏生命周期（WP-3）
+  - DoD：锡膏解冻/回温/搅拌/领用/回收可追溯；冷藏温度记录可落地
+
+- [ ] 4.6.5 钢网/刮刀寿命（WP-4）
+  - DoD：使用次数累计 + 寿命阈值预警；点检记录可追溯
+
+- [ ] 4.6.6 转拉前检查模板化（WP-5）
+  - DoD：ReadinessCheck 支持模板化检查项与多签确认
+
+- [ ] 4.6.7 FAI 多签与末件（WP-6）
+  - DoD：生产/技术/质量多方确认可追溯；末件检查类型可配置
+
+- [ ] 4.6.8 设备点检（WP-7）
+  - DoD：AOI/SPI 设备每日点检表单与异常反馈链路
+
+- [ ] 4.6.9 炉温程式记录（WP-8）
+  - DoD：炉温程式使用记录可落地（集成或人工）
+
+- [ ] 4.6.10 换料记录增强（WP-9）
+  - DoD：包装数量、审核人字段落地；换料历史可查询
+
+- [ ] 4.6.11 日常 QC 与异常（WP-10）
+  - DoD：班次/时间段统计可生成；生产异常报告可记录停机与措施
+
 ---
 
 ## 3. Conflicts / Shared Touch Points
@@ -85,6 +122,7 @@ P0（必须）：
 - Track B <-> Track C：共享触点（执行服务/追溯聚合），建议不要在同一分支并行推进。
 - Track A → Track B/C：合约/映射结构会决定 DB/API 设计，建议先落地最小合约再实现。
 - Track E：与集成/审计/幂等基础设施共享触点，建议后置到 ingest 闭环稳定后推进。
+- Track F：共享触点（readiness/execution/inspection/loading/trace），与 Track B/C 并行时需避免冲突。
 
 ---
 
@@ -97,3 +135,4 @@ P0（必须）：
 - `conversation/2026-01-14_115848_mes-next_triage.md`
 - `user_docs/demo/acceptance_plan.md`
 - `user_docs/demo/acceptance_issues.md`
+- `domain_docs/mes/spec/process/compair/codex_smt_flow_deep_analysis.md`
