@@ -120,6 +120,16 @@ export async function createFai(
 		};
 	}
 
+	const existingUnitCount = await db.unit.count({ where: { runId: run.id } });
+	if (existingUnitCount < data.sampleQty) {
+		return {
+			success: false as const,
+			code: "FAI_SAMPLE_UNITS_INSUFFICIENT",
+			message: `Run has insufficient units for FAI sample quantity (${existingUnitCount}/${data.sampleQty}).`,
+			status: 400,
+		};
+	}
+
 	let fai: InspectionRecord;
 	try {
 		fai = await db.$transaction(async (tx) => {
@@ -191,6 +201,16 @@ export async function startFai(
 			success: false as const,
 			code: "INVALID_FAI_STATUS",
 			message: `FAI status ${fai.status} cannot be started`,
+			status: 400,
+		};
+	}
+
+	const existingUnitCount = await db.unit.count({ where: { runId: fai.runId } });
+	if (existingUnitCount === 0) {
+		return {
+			success: false as const,
+			code: "FAI_UNITS_REQUIRED",
+			message: "Run has no units. Generate units before starting FAI.",
 			status: 400,
 		};
 	}
