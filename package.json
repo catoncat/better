@@ -27,7 +27,7 @@
     "dev:server:acceptance": "DATABASE_URL=file:./data/acceptance.db PORT=3002 HOST=127.0.0.1 bun run --filter server dev",
     "db:push": "bun run --filter @better-app/db db:push",
     "db:studio": "bun run --filter @better-app/db db:studio",
-    "db:generate": "bun run --filter @better-app/db db:generate",
+    "db:generate": "bun scripts/safe-generate.ts",
     "db:migrate": "bun run --filter @better-app/db db:migrate",
     "db:deploy": "bun run --filter @better-app/db db:deploy",
     "db:seed": "bun run --filter server db:seed",

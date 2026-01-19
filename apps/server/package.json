@@ -9,8 +9,7 @@
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
     "compile:single": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile better-app",
     "db:seed": "bun scripts/seed.ts",
-    "dev2": "bun run scripts/dev-server.ts",
-    "dev": "bun run --hot src/index.ts",
+    "dev": "bun run scripts/dev-server.ts",
     "kpi:regenerate": "bun scripts/regenerate-kpi-snapshots.ts",
     "start": "bun run dist/index.mjs"
   },
