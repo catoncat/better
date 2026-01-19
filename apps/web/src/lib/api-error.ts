@@ -9,3 +9,20 @@ export class ApiError extends Error {
 		this.name = "ApiError";
 	}
 }
+
+export const getApiErrorMessage = (error: unknown, fallback: string) => {
+	if (error instanceof ApiError) {
+		const base = error.message?.trim() ? error.message : fallback;
+		return error.code ? `${base}（${error.code}）` : base;
+	}
+	if (error instanceof Error) {
+		return error.message?.trim() ? error.message : fallback;
+	}
+	if (error && typeof error === "object" && "message" in error) {
+		const value = error as { message?: unknown };
+		if (typeof value.message === "string" && value.message.trim()) {
+			return value.message;
+		}
+	}
+	return fallback;
+};

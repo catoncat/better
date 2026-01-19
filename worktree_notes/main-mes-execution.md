@@ -163,9 +163,16 @@ task:
 - 5.3 API error handling audit is still marked "待启动" in `domain_docs/mes/plan/tasks.md` and is the next cross-module workstream.
 - Current working tree has user changes in `domain_docs/mes/spec/process/compair/`; avoid touching those files while addressing 5.3.
 - Frontend `unwrap` helper in `apps/web/src/lib/eden.ts` already throws `ApiError` with `code/message/details/status` for both HTTP and business errors; audit can focus on ensuring hooks/routes catch and toast these errors consistently.
+- Readiness routes already return structured `{ ok: false, error: { code, message } }` with status; gaps likely in frontend toast usage or error message text in services.
+- Loading routes follow the same `{ ok: false, error: { code, message } }` pattern with status and audit logging; audit focus should be on service message clarity and frontend toast handling.
+- `use-readiness.ts` uses generic toast messages for precheck/formal/waive and doesn't surface ApiError details; `use-loading.ts` handles verify errors well but lacks onError for load-table/replace/unlock mutations.
+- Readiness/loading services already emit distinct error codes/messages (mostly English). Slice2 can focus on surfacing `ApiError.message` and code in toasts rather than changing backend text.
 
 ## Progress (2026-01-19 slice6)
 - Marked 5.3 audit status as in-progress in `domain_docs/mes/plan/tasks.md` (scaffold only).
+
+## Progress (2026-01-19 slice7)
+- Added shared `getApiErrorMessage` helper and wired readiness/loading mutations to surface ApiError details; marked readiness/loading audit rows as complete in `domain_docs/mes/plan/tasks.md`.
 
 ## Errors (2026-01-19 next)
 - Failed to overwrite conversation note with `cat > file` due to `noclobber` shell setting; next attempt will use `tee` to write the plan.

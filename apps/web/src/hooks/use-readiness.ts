@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { client, unwrap } from "@/lib/eden";
 
 type ReadinessCheckResponse = Awaited<
@@ -65,8 +66,10 @@ export function useUpdateReadinessConfig() {
 				queryKey: ["mes", "lines", variables.lineId, "readiness-config"],
 			});
 		},
-		onError: () => {
-			toast.error("保存配置失败");
+		onError: (error: unknown) => {
+			toast.error("保存配置失败", {
+				description: getApiErrorMessage(error, "请重试或联系管理员"),
+			});
 		},
 	});
 }
@@ -119,8 +122,10 @@ export function usePerformPrecheck() {
 			toast.success("预检完成");
 			queryClient.invalidateQueries({ queryKey: ["mes", "readiness", runNo] });
 		},
-		onError: () => {
-			toast.error("预检失败");
+		onError: (error: unknown) => {
+			toast.error("预检失败", {
+				description: getApiErrorMessage(error, "请重试或联系管理员"),
+			});
 		},
 	});
 }
@@ -138,8 +143,10 @@ export function usePerformFormalCheck() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "readiness", runNo] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "run-detail", runNo] });
 		},
-		onError: () => {
-			toast.error("正式检查失败");
+		onError: (error: unknown) => {
+			toast.error("正式检查失败", {
+				description: getApiErrorMessage(error, "请重试或联系管理员"),
+			});
 		},
 	});
 }
@@ -167,8 +174,10 @@ export function useWaiveItem() {
 			toast.success("检查项已豁免");
 			queryClient.invalidateQueries({ queryKey: ["mes", "readiness", variables.runNo] });
 		},
-		onError: () => {
-			toast.error("豁免失败");
+		onError: (error: unknown) => {
+			toast.error("豁免失败", {
+				description: getApiErrorMessage(error, "请重试或联系管理员"),
+			});
 		},
 	});
 }

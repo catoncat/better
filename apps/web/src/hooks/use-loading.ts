@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ApiError } from "@/lib/api-error";
+import { ApiError, getApiErrorMessage } from "@/lib/api-error";
 import { client, unwrap } from "@/lib/eden";
 
 export type LoadingExpectation = {
@@ -102,6 +102,11 @@ export function useLoadTable() {
 			toast.success("站位表加载成功");
 			queryClient.invalidateQueries({ queryKey: ["mes", "loading", "expectations", runNo] });
 		},
+		onError: (error: unknown) => {
+			toast.error("站位表加载失败", {
+				description: getApiErrorMessage(error, "请重试或联系管理员"),
+			});
+		},
 	});
 }
 
@@ -183,6 +188,11 @@ export function useReplaceLoading() {
 				queryKey: ["mes", "loading", "records", variables.runNo],
 			});
 		},
+		onError: (error: unknown) => {
+			toast.error("换料失败", {
+				description: getApiErrorMessage(error, "请重试或联系管理员"),
+			});
+		},
 	});
 }
 
@@ -200,6 +210,11 @@ export function useUnlockSlot() {
 		onSuccess: () => {
 			toast.success("站位已解锁");
 			queryClient.invalidateQueries({ queryKey: ["mes", "loading"] });
+		},
+		onError: (error: unknown) => {
+			toast.error("解锁失败", {
+				description: getApiErrorMessage(error, "请重试或联系管理员"),
+			});
 		},
 	});
 }

@@ -417,8 +417,8 @@ FAI 试产说明：
 |------|----------|----------|
 | 工单管理 | `/api/mes/work-orders/*` | [ ] |
 | 批次管理 | `/api/mes/runs/*` | [ ] |
-| 就绪检查 | `/api/mes/readiness/*` | [ ] |
-| 上料防错 | `/api/mes/loading/*` | [ ] |
+| 就绪检查 | `/api/mes/readiness/*` | [x] |
+| 上料防错 | `/api/mes/loading/*` | [x] |
 | FAI 首件检验 | `/api/mes/fai/*` | [ ] |
 | 执行 (TrackIn/Out) | `/api/mes/execution/*` | [ ] |
 | OQC 出货检验 | `/api/mes/oqc/*` | [ ] |
