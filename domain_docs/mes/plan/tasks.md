@@ -337,20 +337,20 @@ P1（应该）：
 | 5.2.3 | FAI 开始时无提示生成 Unit | FAI 开始（start）时应检查 Run 是否已有 Unit，若无则提示或自动生成 sampleQty 个 Unit | `apps/server/src/modules/mes/fai/service.ts` (startFai), `apps/web/src/routes/_authenticated/mes/fai.tsx` | P1 | [x] |
 | 5.2.4 | FAI sampleQty 与 Unit 生成脱节 | 创建 FAI 时应检查 Run 是否已有足够 Unit（≥sampleQty）；设计决策：FAI 复用生产 Unit 池（首批试产 Unit 即正式生产 Unit），非独立池 | `apps/server/src/modules/mes/fai/service.ts` (createFai) | P1 | [x] |
 | 5.2.5 | 执行页面缺少待进站 Unit 列表 | 应在批次卡片展开后显示 QUEUED 状态的 Unit，支持一键进站；FAI 模式下显示试产进度 | `apps/web/src/routes/_authenticated/mes/execution.tsx` | P1 | [x] |
-| 5.2.6 | 执行页面工单号/批次号是手动输入 | 应改为带搜索的下拉选择器 | `apps/web/src/routes/_authenticated/mes/execution.tsx` | P2 | [ ] |
-| 5.2.7 | 执行页面无 FAI 模式提示 | 批次状态为 PREP 时应显示"FAI 试产"标签和进度（如"已试产 0/2"） | `apps/web/src/routes/_authenticated/mes/execution.tsx` | P2 | [ ] |
-| 5.2.8 | 当前队列表格需横向滚动才能看到操作按钮 | SN 列太长导致操作按钮被挤出视口；应截断 SN 或使用响应式布局 | `apps/web/src/routes/_authenticated/mes/execution.tsx` | P2 | [ ] |
+| 5.2.6 | 执行页面工单号/批次号是手动输入 | 应改为带搜索的下拉选择器 | `apps/web/src/routes/_authenticated/mes/execution.tsx` | P2 | [x] |
+| 5.2.7 | 执行页面无 FAI 模式提示 | 批次状态为 PREP 时应显示"FAI 试产"标签和进度（如"已试产 0/2"） | `apps/web/src/routes/_authenticated/mes/execution.tsx` | P2 | [x] |
+| 5.2.8 | 当前队列表格需横向滚动才能看到操作按钮 | SN 列太长导致操作按钮被挤出视口；应截断 SN 或使用响应式布局 | `apps/web/src/routes/_authenticated/mes/execution.tsx` | P2 | [x] |
 | 5.2.9 | **BUG**: 报不良缺少不良信息记录 | 当前只传 `result: FAIL`，无缺陷代码/位置/备注；应弹出完整的不良记录对话框 | `apps/web/src/routes/_authenticated/mes/execution.tsx` | **P1** | [x] |
 | 5.2.10 | API 错误未在页面显示 | 如 `FAI_TRIAL_STEP_NOT_ALLOWED` 等错误只返回 JSON，页面无 toast 提示 | `apps/web/src/routes/_authenticated/mes/execution.tsx` | P1 | [x] |
 | 5.2.11 | 不知道 Unit 下一步工序/工位 | 用户需要手动查路由推断工位，应在 Unit 详情或执行页面显示"下一步：Step 2 SPI → 工位 ST-SPI-01" | `apps/web/src/routes/_authenticated/mes/execution.tsx`, 批次详情 | P1 | [x] |
 | 5.2.12 | 批次详情缺少路由步骤信息 | 应显示完整路由（Step 1 PRINTING → Step 2 SPI → ...）及各 Unit 的当前进度 | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` | P1 | [x] |
-| 5.2.13 | FAI 试产规则无前端提示 | 用户不知道"FAI 只在第一工序"，应在 FAI 页面或执行页面明确说明 | FAI 页面 + 执行页面 | P2 | [ ] |
+| 5.2.13 | FAI 试产规则无前端提示 | 用户不知道"FAI 只在第一工序"，应在 FAI 页面或执行页面明确说明 | FAI 页面 + 执行页面 | P2 | [x] |
 | 5.2.14 | FAI「记录」字段固定，无动态配置 | FAI 检验项应可关联 `DataCollectionSpec` 或 FAI 专用检验清单模板（如首件检验 checklist），而非每次手动填写 | `apps/web/src/routes/_authenticated/mes/fai.tsx`, `apps/server/src/modules/mes/fai/service.ts` | P2 | [ ] |
 | 5.2.15 | FAI 未关联 TrackOut 检验结果 | FAI 完成判定时应能查看该批次试产 Unit 的 TrackOut 数据采集结果和 SPI/AOI 检验记录，作为判定依据 | FAI 详情页, `apps/server/src/modules/mes/fai/service.ts` | P2 | [ ] |
 | 5.2.16 | **BUG**: FAI 完成后 TrackIn 错误提示不准确 | 当 Run=PREP + FAI=PASS 时，TrackIn 返回 `FAI_TRIAL_NOT_READY`（提示 start FAI first），但实际应返回 `RUN_NOT_AUTHORIZED`（提示请先授权批次） | `apps/server/src/modules/mes/execution/service.ts:241-247` | **P1** | [x] |
 | 5.2.17 | **BUG**: FAI 完成后"试产执行"按钮仍显示 | 当 FAI=PASS 时，批次详情页仍显示"试产执行"按钮；应根据 FAI 状态决定：FAI=INSPECTING 显示"试产执行"，FAI=PASS/无 FAI 时隐藏或显示"等待授权" | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx:331-345` | **P1** | [ ] |
 | 5.2.18 | 试产流程入口不清晰，需手动跳转执行页 | 点击"试产执行"应引导用户完成试产流程：检查/生成 Unit → 跳转执行页（预填参数）→ 完成后返回 FAI 判定；当前只是简单跳转 | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx`, 执行页 | P1 | [ ] |
-| 5.2.19 | 执行页面未显示当前步骤信息 | 当多个步骤可在同一工位执行时，用户无法区分当前是哪个步骤；应在 TrackIn/TrackOut 时明确显示"当前步骤：Step 2 SPI 检验"，而不仅是工位代码 | `apps/web/src/routes/_authenticated/mes/execution.tsx` | **P1** | [ ] |
+| 5.2.19 | 执行页面未显示当前步骤信息 | 当多个步骤可在同一工位执行时，用户无法区分当前是哪个步骤；应在 TrackIn/TrackOut 时明确显示"当前步骤：Step 2 SPI 检验"，而不仅是工位代码 | `apps/web/src/routes/_authenticated/mes/execution.tsx` | **P1** | [x] |
 | 5.2.20 | Seed 数据：演示路由所有步骤指向同一工位组 | 演示数据过于简化，所有 5 个步骤的 `stationGroupId` 相同，导致无法体验真实的多工位流转；应为每个步骤配置不同的工位组 | `apps/server/scripts/seed-mes.ts` | P2 | [ ] |
 | 5.2.21 | FAI 创建和"开始"应合并为一个操作 | 当前创建 FAI 后需要返回列表再点"开始"，操作不直观；应在创建时自动开始，或创建成功后直接跳转到 FAI 详情页并显示"开始"按钮 | `apps/web/src/routes/_authenticated/mes/fai.tsx`, `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` | P1 | [ ] |
 | 5.2.22 | FAI 流程应端到端连贯 | 创建 FAI → 检查/生成 Unit → 开始试产 应在一个引导流程中完成，而非在多个页面间跳转；建议使用向导式对话框或步骤提示 | FAI 创建流程 | P1 | [ ] |

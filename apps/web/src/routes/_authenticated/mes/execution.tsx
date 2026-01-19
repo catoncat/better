@@ -7,6 +7,7 @@ import * as z from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Combobox } from "@/components/ui/combobox";
 import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -85,7 +86,7 @@ function ExecutionPage() {
 	// Fetch executable runs (AUTHORIZED or PREP with active FAI for trial production)
 	const { data: executableRuns, isFetching: isRunsFetching } = useRunList({
 		status: ["AUTHORIZED", "PREP", "IN_PROGRESS"],
-		pageSize: 10,
+		pageSize: 50,
 		sort: "-updatedAt",
 	});
 	const { mutateAsync: trackIn, isPending: isInPending } = useTrackIn();
@@ -132,6 +133,8 @@ function ExecutionPage() {
 
 	const selectedRunNo = useStore(inForm.store, (state) => state.values.runNo);
 	const selectedWoNo = useStore(inForm.store, (state) => state.values.woNo);
+	const inSn = useStore(inForm.store, (state) => state.values.sn);
+	const outSn = useStore(outForm.store, (state) => state.values.sn);
 
 	const { data: selectedRunDetail } = useRunDetail(selectedRunNo);
 	const {
@@ -192,6 +195,62 @@ function ExecutionPage() {
 		return items.filter((station) => boundStationIds.has(station.id));
 	}, [stations?.items, userProfile?.stationIds]);
 
+	const runItems = executableRuns?.items ?? [];
+
+	const runOptions = useMemo(() => {
+		const options = runItems.map((run) => ({
+			value: run.runNo,
+			label: [
+				run.runNo,
+				run.workOrder.woNo ? `WO:${run.workOrder.woNo}` : null,
+				run.workOrder.productCode ? run.workOrder.productCode : null,
+			]
+				.filter(Boolean)
+				.join(" · "),
+		}));
+
+		if (selectedRunNo && !options.some((option) => option.value === selectedRunNo)) {
+			options.unshift({ value: selectedRunNo, label: selectedRunNo });
+		}
+
+		return options;
+	}, [runItems, selectedRunNo]);
+
+	const runByNo = useMemo(() => {
+		return new Map(runItems.map((run) => [run.runNo, run] as const));
+	}, [runItems]);
+
+	const runsByWorkOrder = useMemo(() => {
+		const map = new Map<string, typeof runItems>();
+		for (const run of runItems) {
+			const list = map.get(run.workOrder.woNo) ?? [];
+			list.push(run);
+			map.set(run.workOrder.woNo, list);
+		}
+		return map;
+	}, [runItems]);
+
+	const workOrderOptions = useMemo(() => {
+		const seen = new Set<string>();
+		const options =
+			runItems
+				.map((run) => {
+					if (seen.has(run.workOrder.woNo)) return null;
+					seen.add(run.workOrder.woNo);
+					return {
+						value: run.workOrder.woNo,
+						label: [run.workOrder.woNo, run.workOrder.productCode].filter(Boolean).join(" · "),
+					};
+				})
+				.filter((option): option is { value: string; label: string } => Boolean(option)) ?? [];
+
+		if (selectedWoNo && !options.some((option) => option?.value === selectedWoNo)) {
+			options.unshift({ value: selectedWoNo, label: selectedWoNo });
+		}
+
+		return options;
+	}, [runItems, selectedWoNo]);
+
 	useEffect(() => {
 		if (!selectedStation) return;
 		const isStillAvailable = availableStations.some((station) => station.code === selectedStation);
@@ -245,11 +304,73 @@ function ExecutionPage() {
 		return step.stationGroup?.code ?? "-";
 	};
 
+	const formatStepDetail = (
+		step:
+			| {
+					stepNo: number;
+					operationCode: string;
+					operationName: string | null;
+					stationCodes: string[];
+					stationGroup: { code: string; name: string } | null;
+			  }
+			| null
+			| undefined,
+	) => {
+		const label = formatStepLabel(step);
+		const station = formatStepStation(step);
+		return station !== "-" ? `${label} · ${station}` : label;
+	};
+
+	const inUnitHint = useMemo(() => {
+		const sn = inSn.trim();
+		if (!sn) return null;
+		return queuedUnits?.items.find((item) => item.sn === sn) ?? null;
+	}, [inSn, queuedUnits?.items]);
+
+	const outUnitHint = useMemo(() => {
+		const sn = outSn.trim();
+		if (!sn) return null;
+		return queueData?.queue.find((item) => item.sn === sn) ?? null;
+	}, [outSn, queueData?.queue]);
+
 	// Select a run from the executable list and prefill forms
 	const handleSelectRun = (run: { runNo: string; woNo: string }) => {
 		inForm.setFieldValue("runNo", run.runNo);
 		inForm.setFieldValue("woNo", run.woNo);
 		outForm.setFieldValue("runNo", run.runNo);
+	};
+
+	const handleRunValueChange = (value: string) => {
+		if (!value) {
+			inForm.setFieldValue("runNo", "");
+			outForm.setFieldValue("runNo", "");
+			return;
+		}
+		const run = runByNo.get(value);
+		if (run) {
+			handleSelectRun({ runNo: run.runNo, woNo: run.workOrder.woNo });
+			return;
+		}
+		inForm.setFieldValue("runNo", value);
+		outForm.setFieldValue("runNo", value);
+	};
+
+	const handleWorkOrderValueChange = (value: string) => {
+		if (!value) {
+			inForm.setFieldValue("woNo", "");
+			return;
+		}
+		inForm.setFieldValue("woNo", value);
+		const runs = runsByWorkOrder.get(value) ?? [];
+		if (runs.length === 1) {
+			handleSelectRun({ runNo: runs[0].runNo, woNo: value });
+			return;
+		}
+		if (selectedRunNo && runs.some((run) => run.runNo === selectedRunNo)) {
+			return;
+		}
+		inForm.setFieldValue("runNo", "");
+		outForm.setFieldValue("runNo", "");
 	};
 
 	const parseScanValue = (raw: string) => {
@@ -307,7 +428,7 @@ function ExecutionPage() {
 					}
 				}
 			} catch {
-				// Ignore resolve errors; users can still manually input WO/Run.
+				// Ignore resolve errors; users can still select WO/Run manually.
 			}
 		}, 250);
 	};
@@ -434,7 +555,12 @@ function ExecutionPage() {
 										<TableBody>
 											{queueData?.queue.map((item) => (
 												<TableRow key={item.sn}>
-													<TableCell className="font-mono text-sm">{item.sn}</TableCell>
+													<TableCell
+														className="font-mono text-sm max-w-[160px] truncate"
+														title={item.sn}
+													>
+														{item.sn}
+													</TableCell>
 													<TableCell>
 														<div className="space-y-1">
 															<div>
@@ -543,6 +669,22 @@ function ExecutionPage() {
 										/>
 									</div>
 								)}
+								{selectedRunDetail && selectedRunDetail.run.status === "PREP" && (
+									<div className="mb-4 rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+										<p className="font-medium text-foreground">FAI 试产规则</p>
+										<ul className="mt-2 list-disc space-y-1 pl-4">
+											<li>仅在第一工序进行首件试产</li>
+											<li>
+												需完成{" "}
+												{selectedRunDetail.faiTrial?.sampleQty
+													? `${selectedRunDetail.faiTrial.sampleQty} 个`
+													: "指定数量的"}{" "}
+												Unit TrackIn/TrackOut
+											</li>
+											<li>试产完成后返回 FAI 页面记录检验项并判定</li>
+										</ul>
+									</div>
+								)}
 
 								{!selectedRunNo ? (
 									<div className="py-8 text-center text-muted-foreground">
@@ -564,7 +706,12 @@ function ExecutionPage() {
 										<TableBody>
 											{queuedUnits?.items.map((item) => (
 												<TableRow key={item.sn}>
-													<TableCell className="font-mono text-sm">{item.sn}</TableCell>
+													<TableCell
+														className="font-mono text-sm max-w-[160px] truncate"
+														title={item.sn}
+													>
+														{item.sn}
+													</TableCell>
 													<TableCell>
 														<div className="space-y-1">
 															<div>
@@ -665,22 +812,32 @@ function ExecutionPage() {
 												/>
 											)}
 										</Field>
+										{inSn.trim() && (
+											<div className="text-xs text-muted-foreground">
+												当前步骤:{" "}
+												{inUnitHint ? formatStepDetail(inUnitHint.currentStep) : "未在待进站列表中"}
+											</div>
+										)}
 										<div className="grid grid-cols-2 gap-4">
 											<Field form={inForm} name="woNo" label="工单号">
 												{(field) => (
-													<Input
+													<Combobox
+														options={workOrderOptions}
 														value={field.state.value}
-														onBlur={field.handleBlur}
-														onChange={(e) => field.handleChange(e.target.value)}
+														onValueChange={handleWorkOrderValueChange}
+														placeholder="选择工单..."
+														emptyText={isRunsFetching ? "加载中..." : "未找到工单"}
 													/>
 												)}
 											</Field>
 											<Field form={inForm} name="runNo" label="批次号 (Run)">
 												{(field) => (
-													<Input
+													<Combobox
+														options={runOptions}
 														value={field.state.value}
-														onBlur={field.handleBlur}
-														onChange={(e) => field.handleChange(e.target.value)}
+														onValueChange={handleRunValueChange}
+														placeholder="选择批次..."
+														emptyText={isRunsFetching ? "加载中..." : "未找到批次"}
 													/>
 												)}
 											</Field>
@@ -729,12 +886,20 @@ function ExecutionPage() {
 												/>
 											)}
 										</Field>
+										{outSn.trim() && (
+											<div className="text-xs text-muted-foreground">
+												当前步骤:{" "}
+												{outUnitHint ? formatStepDetail(outUnitHint.currentStep) : "未在当前队列中"}
+											</div>
+										)}
 										<Field form={outForm} name="runNo" label="批次号 (Run)">
 											{(field) => (
-												<Input
+												<Combobox
+													options={runOptions}
 													value={field.state.value}
-													onBlur={field.handleBlur}
-													onChange={(e) => field.handleChange(e.target.value)}
+													onValueChange={handleRunValueChange}
+													placeholder="选择批次..."
+													emptyText={isRunsFetching ? "加载中..." : "未找到批次"}
 												/>
 											)}
 										</Field>

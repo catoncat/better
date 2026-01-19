@@ -20,7 +20,7 @@ task:
 ## Slices
 - [x] Slice 1: execution correctness + error surfacing (5.2.9/5.2.16/5.2.10).
 - [x] Slice 2: execution visibility (5.2.5/5.2.11/5.2.12).
-- [ ] Slice 3: UX polish (5.2.6/5.2.7/5.2.8/5.2.13).
+- [x] Slice 3: UX polish (5.2.6/5.2.7/5.2.8/5.2.13 + 5.2.19).
 - [x] Slice 4: update tasks.md status + verification.
 
 ## Decisions
@@ -73,6 +73,8 @@ task:
 - Added run unit listing endpoint with step meta + station queue step info; execution page now shows queued units and next step labels.
 - Added run detail route progress + unit list with next-step info and pagination controls.
 - Updated tasks/align docs and ran smart-verify (lint + typecheck + prisma generate).
+- Execution page now uses searchable run/WO comboboxes, shows current-step hints in TrackIn/Out, and truncates long SNs.
+- Added FAI trial rule callouts in execution and FAI pages.
 
 ## Open Questions
 -
@@ -84,3 +86,21 @@ task:
 - tasks.md新增: 5.2.17/5.2.18/5.2.19/5.2.20, 5.3 错误处理审查区块
 - tasks.md仍标未完成: 5.2.9/5.2.10/5.2.16 (已实现, 待更新状态)
 - 计划仍按 slice2(5.2.5/5.2.11/5.2.12) -> slice3(5.2.6/5.2.7/5.2.8/5.2.13 + 5.2.19 待定)
+
+## Findings (2026-01-19)
+- tasks.md新增: 5.2.21/5.2.22 (FAI 创建/开始流程联动需求)
+- 5.2.6/5.2.7/5.2.8/5.2.13 仍待处理，5.2.19 仍待决定是否并入 slice3
+- Combobox component is available at `apps/web/src/components/ui/combobox.tsx` and used in FAI filters.
+- Execution page still uses plain Inputs for runNo/woNo in track-in/out forms; will switch to Combobox + step hints.
+- FAI page has no trial-rule callout yet; add note card per 5.2.13.
+
+## Findings (2026-01-19 later)
+- tasks.md pending items now include 5.1.9, 5.2.14, 5.2.15, 5.2.17, 5.2.18, 5.2.20, 5.2.21, 5.2.22.
+- tasks.md pending bug items: 5.4.1, 5.5.1, 5.5.2, 5.5.3, 5.5.4.
+- tasks.md API coverage table (5.3) shows all endpoints still pending.
+
+## Findings (2026-01-19 current)
+- User wants to continue on main branch, no worktree; do not touch their uncommitted files.
+- Plan: commit existing slice-3 UX changes, then start P0/P1 backend fixes (5.4.1, 5.5.1, 5.5.3).
+## Progress (2026-01-19 current)
+- Slice-3 UX changes ready to commit with tasks.md + conversation notes.

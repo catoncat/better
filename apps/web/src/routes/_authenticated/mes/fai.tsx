@@ -292,6 +292,19 @@ function FaiPage() {
 				</div>
 			</div>
 
+			<Card>
+				<CardHeader>
+					<CardTitle className="text-base">FAI 试产说明</CardTitle>
+					<CardDescription>首件试产仅在第一工序进行</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<ul className="list-disc space-y-1 pl-4 text-sm text-muted-foreground">
+						<li>需完成指定数量的 Unit TrackIn/TrackOut</li>
+						<li>试产完成后回到此页记录检验项并完成判定</li>
+					</ul>
+				</CardContent>
+			</Card>
+
 			{/* Filters */}
 			<Card>
 				<CardHeader>
