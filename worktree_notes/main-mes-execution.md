@@ -18,7 +18,7 @@ task:
 - Risks: execution UX changes touch operator flows; ensure error codes + toasts are consistent.
 
 ## Slices
-- [~] Slice 1: execution correctness + error surfacing (5.2.9/5.2.16/5.2.10).
+- [x] Slice 1: execution correctness + error surfacing (5.2.9/5.2.16/5.2.10).
 - [ ] Slice 2: execution visibility (5.2.5/5.2.11/5.2.12).
 - [ ] Slice 3: UX polish (5.2.6/5.2.7/5.2.8/5.2.13).
 - [ ] Slice 4: update tasks.md status + verification.
