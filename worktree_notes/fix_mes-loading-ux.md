@@ -99,3 +99,4 @@ task:
 - `bun scripts/smart-verify.ts` failed on Biome format for `apps/web/src/routes/_authenticated/mes/-components/work-order-field-meta.tsx`; fixed formatting to retry.
 - `bun scripts/smart-verify.ts` failed: Biome format error in `apps/server/src/modules/mes/loading/service.ts` (multi-line select). Fixed formatting and will re-run.
 - `bun scripts/smart-verify.ts` failed: typecheck error in `apps/server/src/modules/mes/loading/service.ts` (`records.map(mapLoadingRecord)` passing index as options). Updated to arrow function and will re-run.
+- Conversation note write failed due to `noclobber` (`file exists`); will retry with `>|` redirection.
