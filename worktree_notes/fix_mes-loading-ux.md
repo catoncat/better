@@ -53,6 +53,7 @@ task:
 - Main worktree `domain_docs/mes/plan/tasks.md` includes new 5.1.8 + 5.2 FAI items; worktree copy needs those additions preserved when updating statuses.
 - Emoji check found existing non-ASCII symbols in `domain_docs/mes/plan/tasks.md` and `domain_docs/mes/plan/phase4_tasks.md`; will replace to satisfy MES doc rule.
 - `rg -nP "\\p{Extended_Pictographic}" domain_docs/mes` now returns no matches.
+- `bun scripts/smart-verify.ts` passes after formatting fix.
 
 ## Open Questions
 -
