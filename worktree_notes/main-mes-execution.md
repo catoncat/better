@@ -116,3 +116,15 @@ task:
 - `assignDispositionSchema` only validates `toStepNo >= 1`; no upper-bound check in service.
 - `ReworkTask` model has `doneBy`/`doneAt` fields and status string; can auto-close in execution flow.
 - `trackOut` flow has no rework-task checks; needs a pass-path hook to close open tasks when the unit reworks past the failed step.
+## Findings (2026-01-19 slice2)
+- `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` controls the "试产执行" CTA and FAI card; will be the primary surface for 5.2.17/5.2.18/5.2.21/5.2.22 and 5.1.9.
+- Current CTA shows "试产执行" for all PREP runs regardless of FAI status; needs gating by FAI status (INSPECTING only).
+- Run detail already has FAI creation dialog and a generate-units dialog; trial flow can reuse these dialogs plus a new guided entry action.
+- `handleCreateFai` currently only creates FAI and closes dialog; no auto-start or trial guidance.
+- `useStartFai` hook exists in `apps/web/src/hooks/use-fai.ts` for starting inspection; can be chained after create.
+## Progress (2026-01-19 slice2)
+- Implemented trial-flow guidance in run detail: gated CTA, auto create+start FAI, generate-units gating, and process-stage progress card.
+- Updated tasks.md status for 5.1.9/5.2.17/5.2.18/5.2.21/5.2.22.
+
+## Errors (2026-01-19 slice2)
+- `bun run format -- apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` failed due to `$runNo` path expansion; will rerun `bun run format` without path filtering.

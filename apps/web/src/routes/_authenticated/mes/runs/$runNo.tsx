@@ -1,5 +1,5 @@
 import { Permission } from "@better-app/db/permissions";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
 	AlertTriangle,
 	ArrowLeft,
@@ -14,6 +14,7 @@ import {
 	XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Can } from "@/components/ability/can";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { useCreateFai, useFaiByRun, useFaiGate } from "@/hooks/use-fai";
+import { useCreateFai, useFaiByRun, useFaiGate, useStartFai } from "@/hooks/use-fai";
 import { useMrbDecision, useOqcByRun } from "@/hooks/use-oqc";
 import {
 	type ReadinessCheckItem,
@@ -53,6 +54,7 @@ import {
 	useRunDetail,
 	useRunUnits,
 } from "@/hooks/use-runs";
+import { ApiError } from "@/lib/api-error";
 import {
 	FAI_STATUS_MAP,
 	INSPECTION_STATUS_MAP,
@@ -75,6 +77,7 @@ export const Route = createFileRoute("/_authenticated/mes/runs/$runNo")({
 
 function RunDetailPage() {
 	const { runNo } = Route.useParams();
+	const navigate = useNavigate();
 	const { data, isLoading, refetch, isFetching } = useRunDetail(runNo);
 	const authorizeRun = useAuthorizeRun();
 	const closeRun = useCloseRun();
@@ -96,6 +99,7 @@ function RunDetailPage() {
 	const { data: faiGate, isLoading: faiGateLoading } = useFaiGate(runNo);
 	const { data: existingFai, isLoading: faiLoading, refetch: refetchFai } = useFaiByRun(runNo);
 	const createFai = useCreateFai();
+	const startFai = useStartFai();
 
 	// OQC & MRB hooks
 	const { data: oqcDetail, isLoading: oqcLoading } = useOqcByRun(runNo);
@@ -112,6 +116,12 @@ function RunDetailPage() {
 	// FAI creation dialog state
 	const [faiDialogOpen, setFaiDialogOpen] = useState(false);
 	const [faiSampleQty, setFaiSampleQty] = useState(1);
+	const [pendingTrialLaunch, setPendingTrialLaunch] = useState(false);
+	const [pendingCreateFai, setPendingCreateFai] = useState<{
+		sampleQty: number;
+		launchTrial: boolean;
+	} | null>(null);
+	const [pendingTrialNavigate, setPendingTrialNavigate] = useState(false);
 
 	// MRB dialog state
 	const [mrbDialogOpen, setMrbDialogOpen] = useState(false);
@@ -254,12 +264,145 @@ function RunDetailPage() {
 		refetchReadiness();
 	};
 
-	const handleCreateFai = async () => {
-		if (faiSampleQty < 1) return;
-		await createFai.mutateAsync({ runNo, sampleQty: faiSampleQty });
+	const navigateToExecution = () => {
+		if (!data) return;
+		navigate({
+			to: "/mes/execution",
+			search: { runNo: data.run.runNo, woNo: data.workOrder.woNo },
+		});
+	};
+
+	const openGenerateUnitsDialog = (quantity: number) => {
+		if (!data) return;
+		setGenerateUnitsQty(Math.min(quantity, data.run.planQty));
+		setGenerateUnitsDialogOpen(true);
+	};
+
+	const createAndStartFai = async (sampleQty: number, launchTrial: boolean) => {
+		if (!data) return;
+		let created: { id: string; sampleQty?: number } | null = null;
+
+		try {
+			created = (await createFai.mutateAsync({ runNo, sampleQty })) as {
+				id: string;
+				sampleQty?: number;
+			};
+		} catch {
+			return;
+		}
+
 		setFaiDialogOpen(false);
 		setFaiSampleQty(1);
-		refetchFai();
+
+		try {
+			await startFai.mutateAsync(created.id);
+			refetchFai();
+		} catch (error: unknown) {
+			if (error instanceof ApiError) {
+				toast.error("开始 FAI 检验失败", {
+					description: error.message
+						? `${error.message}${error.code ? `（${error.code}）` : ""}`
+						: error.code,
+				});
+				return;
+			}
+			toast.error("开始 FAI 检验失败", { description: "请重试或联系管理员" });
+			return;
+		}
+
+		if (launchTrial) {
+			const requiredQty =
+				created.sampleQty && created.sampleQty > 0 ? created.sampleQty : sampleQty;
+			const missing = Math.max(requiredQty - (data.unitStats.total ?? 0), 0);
+			if (missing > 0) {
+				setPendingTrialNavigate(true);
+				openGenerateUnitsDialog(missing);
+				return;
+			}
+			navigateToExecution();
+		}
+	};
+
+	const handleCreateFai = async () => {
+		if (!data || faiSampleQty < 1) return;
+		const launchTrial = pendingTrialLaunch;
+		setPendingTrialLaunch(false);
+
+		const missing = Math.max(faiSampleQty - (data.unitStats.total ?? 0), 0);
+		if (missing > 0) {
+			setPendingCreateFai({ sampleQty: faiSampleQty, launchTrial });
+			openGenerateUnitsDialog(missing);
+			setFaiDialogOpen(false);
+			return;
+		}
+
+		await createAndStartFai(faiSampleQty, launchTrial);
+	};
+
+	const handleTrialExecution = () => {
+		if (!data) return;
+		if (!existingFai) {
+			setPendingTrialLaunch(true);
+			setFaiDialogOpen(true);
+			return;
+		}
+		if (existingFai.status !== "INSPECTING") {
+			if (existingFai.status === "PASS") {
+				toast.info("FAI 已通过，请先授权批次");
+				return;
+			}
+			if (existingFai.status === "FAIL") {
+				toast.error("FAI 未通过，无法进入试产执行");
+				return;
+			}
+			toast.info("FAI 尚未开始");
+			return;
+		}
+
+		const requiredQty =
+			existingFai.sampleQty && existingFai.sampleQty > 0 ? existingFai.sampleQty : 1;
+		const missing = Math.max(requiredQty - (data.unitStats.total ?? 0), 0);
+		if (missing > 0) {
+			setPendingTrialNavigate(true);
+			openGenerateUnitsDialog(missing);
+			return;
+		}
+
+		navigateToExecution();
+	};
+
+	const handleGenerateUnitsConfirm = async () => {
+		if (!data) return;
+		await generateUnits.mutateAsync({ runNo, quantity: generateUnitsQty });
+		setGenerateUnitsDialogOpen(false);
+		refetch();
+
+		if (pendingCreateFai) {
+			const { sampleQty, launchTrial } = pendingCreateFai;
+			setPendingCreateFai(null);
+			await createAndStartFai(sampleQty, launchTrial);
+			return;
+		}
+
+		if (pendingTrialNavigate) {
+			setPendingTrialNavigate(false);
+			navigateToExecution();
+		}
+	};
+
+	const handleFaiDialogOpenChange = (open: boolean) => {
+		setFaiDialogOpen(open);
+		if (!open) {
+			setPendingTrialLaunch(false);
+		}
+	};
+
+	const handleGenerateUnitsDialogChange = (open: boolean) => {
+		setGenerateUnitsDialogOpen(open);
+		if (!open) {
+			setPendingCreateFai(null);
+			setPendingTrialNavigate(false);
+		}
 	};
 
 	const handleMrbDecision = async (values: MrbDecisionFormValues) => {
@@ -313,6 +456,89 @@ function RunDetailPage() {
 		data.unitStats.total > 0 ? Math.round((data.unitStats.done / data.unitStats.total) * 100) : 0;
 
 	const canShowReadinessActions = data.run.status === "PREP";
+	const readinessStatus = readinessData?.status ?? "PENDING";
+	const readinessStageLabel = readinessLoading
+		? "加载中"
+		: readinessStatus === "PASSED"
+			? "已完成"
+			: readinessStatus === "FAILED"
+				? "未通过"
+				: "待开始";
+	const readinessStageVariant =
+		readinessStatus === "PASSED"
+			? "secondary"
+			: readinessStatus === "FAILED"
+				? "destructive"
+				: "outline";
+	const requiresFai = faiGate?.requiresFai ?? false;
+	const faiStage = (() => {
+		if (faiGateLoading || faiLoading) {
+			return { label: "加载中", variant: "outline" as const };
+		}
+		if (!requiresFai && !existingFai) {
+			return { label: "不需要", variant: "outline" as const };
+		}
+		if (!existingFai) {
+			return { label: "待开始", variant: "outline" as const };
+		}
+		if (existingFai.status === "INSPECTING") {
+			return { label: "进行中", variant: "default" as const };
+		}
+		if (existingFai.status === "PASS") {
+			return { label: "已完成", variant: "secondary" as const };
+		}
+		if (existingFai.status === "FAIL") {
+			return { label: "失败", variant: "destructive" as const };
+		}
+		return { label: "待开始", variant: "outline" as const };
+	})();
+	const authorizedStage = ["AUTHORIZED", "IN_PROGRESS", "COMPLETED", "CLOSED_REWORK"].includes(
+		data.run.status,
+	);
+	const executionStage = ["IN_PROGRESS", "COMPLETED", "CLOSED_REWORK"].includes(data.run.status);
+	const closeoutStage = ["COMPLETED", "CLOSED_REWORK"].includes(data.run.status);
+	const nextAction = (() => {
+		if (readinessStatus === "FAILED") return "处理就绪检查失败项";
+		if (readinessStatus !== "PASSED") return "完成就绪检查";
+		if (requiresFai || existingFai) {
+			if (!existingFai) return "创建并开始 FAI";
+			if (existingFai.status === "INSPECTING") return "完成试产并记录检验";
+			if (existingFai.status === "FAIL") return "复核 FAI 失败原因";
+			if (existingFai.status !== "PASS") return "完成 FAI";
+		}
+		if (data.run.status === "PREP") return "授权生产";
+		if (data.run.status === "AUTHORIZED") return "开始执行";
+		if (data.run.status === "IN_PROGRESS") return "收尾";
+		return null;
+	})();
+	const trialCta =
+		data.run.status === "PREP"
+			? (() => {
+					if (faiGateLoading || faiLoading) {
+						return { label: "试产执行", disabled: true };
+					}
+					if (!requiresFai && !existingFai) {
+						return { label: "等待授权", disabled: true };
+					}
+					if (!existingFai) {
+						return {
+							label: "创建并开始试产",
+							disabled: false,
+							onClick: () => {
+								setPendingTrialLaunch(true);
+								setFaiDialogOpen(true);
+							},
+						};
+					}
+					if (existingFai.status === "INSPECTING") {
+						return { label: "试产执行", disabled: false, onClick: handleTrialExecution };
+					}
+					if (existingFai.status === "FAIL") {
+						return { label: "FAI 未通过", disabled: true };
+					}
+					return { label: "等待授权", disabled: true };
+				})()
+			: null;
 
 	return (
 		<div className="space-y-6">
@@ -372,9 +598,20 @@ function RunDetailPage() {
 							</Button>
 						</Can>
 					)}
-					{(data.run.status === "PREP" ||
-						data.run.status === "AUTHORIZED" ||
-						data.run.status === "IN_PROGRESS") && (
+					{trialCta && (
+						<Can permissions={Permission.EXEC_TRACK_IN}>
+							<Button
+								variant="default"
+								size="sm"
+								onClick={trialCta.onClick}
+								disabled={trialCta.disabled}
+							>
+								<Play className="mr-2 h-4 w-4" />
+								{trialCta.label}
+							</Button>
+						</Can>
+					)}
+					{(data.run.status === "AUTHORIZED" || data.run.status === "IN_PROGRESS") && (
 						<Can permissions={Permission.EXEC_TRACK_IN}>
 							<Button variant="default" size="sm" asChild>
 								<Link
@@ -382,7 +619,7 @@ function RunDetailPage() {
 									search={{ runNo: data.run.runNo, woNo: data.workOrder.woNo }}
 								>
 									<Play className="mr-2 h-4 w-4" />
-									{data.run.status === "PREP" ? "试产执行" : "开始执行"}
+									开始执行
 								</Link>
 							</Button>
 						</Can>
@@ -393,6 +630,61 @@ function RunDetailPage() {
 					</Button>
 				</div>
 			</div>
+
+			<Card>
+				<CardHeader className="pb-3">
+					<CardTitle>流程进度</CardTitle>
+					<CardDescription>就绪检查 → 首件检验 → 授权生产 → 批次执行 → 收尾</CardDescription>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					<div className="grid gap-3 md:grid-cols-5">
+						<div className="space-y-1">
+							<p className="text-sm text-muted-foreground">就绪检查</p>
+							<Badge variant={readinessStageVariant}>{readinessStageLabel}</Badge>
+						</div>
+						<div className="space-y-1">
+							<p className="text-sm text-muted-foreground">首件检验</p>
+							<Badge variant={faiStage.variant}>{faiStage.label}</Badge>
+						</div>
+						<div className="space-y-1">
+							<p className="text-sm text-muted-foreground">授权生产</p>
+							<Badge variant={authorizedStage ? "secondary" : "outline"}>
+								{authorizedStage ? "已完成" : "待开始"}
+							</Badge>
+						</div>
+						<div className="space-y-1">
+							<p className="text-sm text-muted-foreground">批次执行</p>
+							<Badge
+								variant={
+									executionStage
+										? data.run.status === "IN_PROGRESS"
+											? "default"
+											: "secondary"
+										: "outline"
+								}
+							>
+								{executionStage
+									? data.run.status === "IN_PROGRESS"
+										? "进行中"
+										: "已完成"
+									: "待开始"}
+							</Badge>
+						</div>
+						<div className="space-y-1">
+							<p className="text-sm text-muted-foreground">收尾</p>
+							<Badge variant={closeoutStage ? "secondary" : "outline"}>
+								{closeoutStage ? "已完成" : "待开始"}
+							</Badge>
+						</div>
+					</div>
+					{nextAction && (
+						<div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
+							<span className="text-muted-foreground">下一步</span>
+							<span className="font-medium">{nextAction}</span>
+						</div>
+					)}
+				</CardContent>
+			</Card>
 
 			<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
 				<Card>
@@ -673,9 +965,16 @@ function RunDetailPage() {
 								首件检验 (FAI)
 							</CardTitle>
 							{canShowReadinessActions && !existingFai && (
-								<Button variant="default" size="sm" onClick={() => setFaiDialogOpen(true)}>
+								<Button
+									variant="default"
+									size="sm"
+									onClick={() => {
+										setPendingTrialLaunch(false);
+										setFaiDialogOpen(true);
+									}}
+								>
 									<Plus className="mr-2 h-4 w-4" />
-									创建 FAI
+									创建并开始试产
 								</Button>
 							)}
 							{existingFai && (
@@ -692,25 +991,36 @@ function RunDetailPage() {
 						{faiLoading || faiGateLoading ? (
 							<p className="text-muted-foreground">加载中...</p>
 						) : existingFai ? (
-							<div className="grid gap-4 md:grid-cols-4">
-								<div>
-									<p className="text-sm text-muted-foreground">状态</p>
-									{getFaiStatusBadge(existingFai.status)}
+							<div className="space-y-4">
+								<div className="grid gap-4 md:grid-cols-4">
+									<div>
+										<p className="text-sm text-muted-foreground">状态</p>
+										{getFaiStatusBadge(existingFai.status)}
+									</div>
+									<div>
+										<p className="text-sm text-muted-foreground">抽样数量</p>
+										<p className="font-medium">{existingFai.sampleQty ?? "-"}</p>
+									</div>
+									<div>
+										<p className="text-sm text-muted-foreground">通过/失败</p>
+										<p className="font-medium">
+											{existingFai.passedQty ?? 0} / {existingFai.failedQty ?? 0}
+										</p>
+									</div>
+									<div>
+										<p className="text-sm text-muted-foreground">创建时间</p>
+										<p className="font-medium">{formatDateTime(existingFai.createdAt)}</p>
+									</div>
 								</div>
-								<div>
-									<p className="text-sm text-muted-foreground">抽样数量</p>
-									<p className="font-medium">{existingFai.sampleQty ?? "-"}</p>
-								</div>
-								<div>
-									<p className="text-sm text-muted-foreground">通过/失败</p>
-									<p className="font-medium">
-										{existingFai.passedQty ?? 0} / {existingFai.failedQty ?? 0}
-									</p>
-								</div>
-								<div>
-									<p className="text-sm text-muted-foreground">创建时间</p>
-									<p className="font-medium">{formatDateTime(existingFai.createdAt)}</p>
-								</div>
+								{existingFai.status === "INSPECTING" && (
+									<div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-dashed px-3 py-2 text-sm">
+										<span className="text-muted-foreground">完成试产后返回 FAI 判定。</span>
+										<Button variant="outline" size="sm" onClick={handleTrialExecution}>
+											<Play className="mr-2 h-4 w-4" />
+											进入试产执行
+										</Button>
+									</div>
+								)}
 							</div>
 						) : (
 							<div className="py-4 text-center text-muted-foreground">
@@ -967,11 +1277,11 @@ function RunDetailPage() {
 			</Dialog>
 
 			{/* FAI Creation Dialog */}
-			<Dialog open={faiDialogOpen} onOpenChange={setFaiDialogOpen}>
+			<Dialog open={faiDialogOpen} onOpenChange={handleFaiDialogOpenChange}>
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>创建首件检验 (FAI)</DialogTitle>
-						<DialogDescription>为批次 {runNo} 创建首件检验任务</DialogDescription>
+						<DialogDescription>为批次 {runNo} 创建首件检验任务并开始试产</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-4 py-4">
 						<div className="space-y-2">
@@ -988,19 +1298,19 @@ function RunDetailPage() {
 						</div>
 					</div>
 					<DialogFooter>
-						<Button variant="outline" onClick={() => setFaiDialogOpen(false)}>
+						<Button variant="outline" onClick={() => handleFaiDialogOpenChange(false)}>
 							取消
 						</Button>
 						<Button onClick={handleCreateFai} disabled={faiSampleQty < 1 || createFai.isPending}>
 							{createFai.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-							创建
+							创建并开始试产
 						</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
 
 			{/* Generate Units Dialog */}
-			<Dialog open={generateUnitsDialogOpen} onOpenChange={setGenerateUnitsDialogOpen}>
+			<Dialog open={generateUnitsDialogOpen} onOpenChange={handleGenerateUnitsDialogChange}>
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>生成单件</DialogTitle>
@@ -1026,15 +1336,11 @@ function RunDetailPage() {
 						</div>
 					</div>
 					<DialogFooter>
-						<Button variant="outline" onClick={() => setGenerateUnitsDialogOpen(false)}>
+						<Button variant="outline" onClick={() => handleGenerateUnitsDialogChange(false)}>
 							取消
 						</Button>
 						<Button
-							onClick={async () => {
-								await generateUnits.mutateAsync({ runNo, quantity: generateUnitsQty });
-								setGenerateUnitsDialogOpen(false);
-								refetch();
-							}}
+							onClick={handleGenerateUnitsConfirm}
 							disabled={
 								generateUnitsQty < 1 ||
 								generateUnitsQty > data.run.planQty ||
