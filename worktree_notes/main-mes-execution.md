@@ -116,6 +116,18 @@ task:
 - `assignDispositionSchema` only validates `toStepNo >= 1`; no upper-bound check in service.
 - `ReworkTask` model has `doneBy`/`doneAt` fields and status string; can auto-close in execution flow.
 - `trackOut` flow has no rework-task checks; needs a pass-path hook to close open tasks when the unit reworks past the failed step.
+- Current working changes focus on 5.2.14/5.2.15 with edits in `apps/server/src/modules/mes/fai/service.ts` and `apps/web/src/routes/_authenticated/mes/fai.tsx`; `domain_docs/mes/plan/tasks.md` still pending for those items.
+- `domain_docs/mes/plan/tasks.md` includes 5.2.14/5.2.15 in the P2 issue table; both are still unchecked and need status updates when changes land.
+- Added `buildFaiTrialSummary` in `apps/server/src/modules/mes/fai/service.ts` to surface trial unit TrackOut data and SPI/AOI inspection records in `getFai`; need to confirm payload aligns with UI formatting and date serialization.
+- FAI record dialog now pulls `DataCollectionSpec` list by first routing step, auto-fills itemName/itemSpec, and adapts actualValue input by dataType; verify record payload types and `formatDateTime` usage for trial summary tables.
+- `recordFaiItemSchema` expects `actualValue` as string; UI still posts strings for boolean/number/json inputs, so no server schema change needed. `useRunDetail` is gated by `enabled: Boolean(runNo)`, so empty runNo in FAI page should not trigger requests.
+- `getFai` route does not declare an explicit response schema in `apps/server/src/modules/mes/fai/routes.ts`, so adding `trialSummary` in service should not break schema validation, but web types still need confirmation.
+- `FaiDetail` is inferred from Eden response in `apps/web/src/hooks/use-fai.ts`; FAI page currently casts `trialSummary` from the response, so no type export changes are required unless we want stricter typing.
+- `formatDateTime` accepts string or Date, so server Date serialization is safe for trial summary tables; `DataCollectionSpec` type exposes dataType/spec fields used by the new record dialog.
+- `listFai` already includes `run: { runNo }`, so using `selectedFai?.run?.runNo` in the FAI page to fetch route steps and specs is safe.
+- `domain_docs/mes/spec/impl_align/01_e2e_align.md` lists FAI create/start/record endpoints but does not mention `GET /api/fai/:faiId`; consider adding a row for FAI detail evidence view.
+- Biome lint failures addressed by moving FAI helper formatters out of component scope and adjusting Map type formatting in `apps/server/src/modules/mes/fai/service.ts`.
+- Combobox props require `options`; updated new FAI record dialog combobox to match `apps/web/src/components/ui/combobox.tsx`.
 ## Findings (2026-01-19 slice2)
 - `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` controls the "试产执行" CTA and FAI card; will be the primary surface for 5.2.17/5.2.18/5.2.21/5.2.22 and 5.1.9.
 - Current CTA shows "试产执行" for all PREP runs regardless of FAI status; needs gating by FAI status (INSPECTING only).
@@ -139,6 +151,13 @@ task:
 
 ## Progress (2026-01-19 slice4)
 - Added per-step station groups/stations in `seed-mes.ts` and mapped SMT/DIP steps to distinct groups; marked 5.2.20 complete.
+
+## Findings (2026-01-19 slice5)
+- FAI record dialog uses manual text fields only; no DataCollectionSpec linkage (5.2.14).
+- FAI detail API lacks trial-unit TrackOut data and SPI/AOI inspection records (5.2.15).
+
+## Progress (2026-01-19 slice5)
+- Implemented DataCollectionSpec-driven FAI record templates and surfaced trial TrackOut + SPI/AOI evidence in FAI detail; updated tasks + align docs.
 
 ## Errors (2026-01-19 slice2)
 - `bun run format -- apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` failed due to `$runNo` path expansion; will rerun `bun run format` without path filtering.

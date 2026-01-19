@@ -44,6 +44,10 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import {
+	type DataCollectionSpec,
+	useDataCollectionSpecList,
+} from "@/hooks/use-data-collection-specs";
+import {
 	type FaiQuery,
 	useCompleteFai,
 	useFaiDetail,
@@ -51,10 +55,35 @@ import {
 	useRecordFaiItem,
 	useStartFai,
 } from "@/hooks/use-fai";
-import { useGenerateUnits, useRunList } from "@/hooks/use-runs";
+import { useGenerateUnits, useRunDetail, useRunList } from "@/hooks/use-runs";
 import { ApiError } from "@/lib/api-error";
 import { FAI_STATUS_MAP } from "@/lib/constants";
 import { formatDateTime } from "@/lib/utils";
+
+const formatSpecDetail = (spec: DataCollectionSpec | null) => {
+	if (!spec?.spec || typeof spec.spec !== "object") return "";
+	const detail = spec.spec as Record<string, unknown>;
+	const parts: string[] = [];
+	if (typeof detail.min === "number") parts.push(`min ${detail.min}`);
+	if (typeof detail.max === "number") parts.push(`max ${detail.max}`);
+	if (typeof detail.target === "number") parts.push(`target ${detail.target}`);
+	if (typeof detail.lsl === "number") parts.push(`LSL ${detail.lsl}`);
+	if (typeof detail.usl === "number") parts.push(`USL ${detail.usl}`);
+	if (typeof detail.unit === "string") parts.push(`单位 ${detail.unit}`);
+	return parts.join(" / ");
+};
+
+const formatDataValue = (value: unknown) => {
+	if (value === null || value === undefined) return "-";
+	if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+		return String(value);
+	}
+	try {
+		return JSON.stringify(value);
+	} catch {
+		return String(value);
+	}
+};
 
 interface FaiSearchParams {
 	runNo?: string;
@@ -89,6 +118,8 @@ function FaiPage() {
 	const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
 	const [runSearch, setRunSearch] = useState("");
 	const [runInput, setRunInput] = useState(query.runNo ?? "");
+	const [specSearch, setSpecSearch] = useState("");
+	const [selectedSpecId, setSelectedSpecId] = useState<string | null>(null);
 
 	const { data, isLoading, refetch } = useFaiList(query);
 	const { data: faiDetail, isLoading: detailLoading } = useFaiDetail(selectedFaiId ?? undefined);
@@ -165,8 +196,42 @@ function FaiPage() {
 	type FaiItemWithRun = NonNullable<typeof data>["items"][number] & {
 		run?: { runNo: string } | null;
 	};
+	type FaiTrialSummary = {
+		units: Array<{
+			sn: string;
+			trackOuts: Array<{
+				stepNo: number;
+				stationCode: string | null;
+				outAt: string | null;
+				result: string | null;
+				dataValues: Array<{
+					name: string;
+					value: unknown;
+					judge: string | null;
+					collectedAt: string;
+				}>;
+			}>;
+			inspections: Array<{
+				inspectionType: string;
+				result: string;
+				stationCode: string;
+				stepNo: number;
+				eventTime: string;
+			}>;
+		}>;
+	};
 	const items = (data?.items ?? []) as FaiItemWithRun[];
 	const selectedFai = items.find((fai) => fai.id === selectedFaiId);
+	const selectedRunNo = selectedFai?.run?.runNo ?? "";
+	const { data: runDetail } = useRunDetail(selectedRunNo);
+	const firstStep = runDetail?.routeSteps?.[0] ?? null;
+	const { data: specList, isLoading: specLoading } = useDataCollectionSpecList({
+		operationCode: firstStep?.operationCode,
+		isActive: "true",
+		pageSize: 50,
+	});
+	const availableSpecs = specList?.items ?? [];
+	const selectedSpec = availableSpecs.find((spec) => spec.id === selectedSpecId) ?? null;
 	const sampleQty = faiDetail?.sampleQty ?? selectedFai?.sampleQty ?? null;
 	const total = data?.total ?? 0;
 	const currentPage = query.page ?? 1;
@@ -179,6 +244,58 @@ function FaiPage() {
 		isFailDecision &&
 		(completeForm.failedQty <= 0 ||
 			(typeof sampleQty === "number" && completeForm.failedQty > sampleQty));
+	const trialSummary = useMemo(
+		() => (faiDetail as { trialSummary?: FaiTrialSummary | null } | null)?.trialSummary ?? null,
+		[faiDetail],
+	);
+	const trialUnits = trialSummary?.units ?? [];
+	const trackValueRows = useMemo(
+		() =>
+			trialUnits.flatMap((unit) =>
+				unit.trackOuts.flatMap((track) =>
+					track.dataValues.map((value) => ({
+						sn: unit.sn,
+						stepNo: track.stepNo,
+						stationCode: track.stationCode,
+						name: value.name,
+						value: value.value,
+						judge: value.judge,
+						collectedAt: value.collectedAt,
+					})),
+				),
+			),
+		[trialUnits],
+	);
+	const inspectionRows = useMemo(
+		() =>
+			trialUnits.flatMap((unit) =>
+				unit.inspections.map((record) => ({
+					sn: unit.sn,
+					stepNo: record.stepNo,
+					stationCode: record.stationCode,
+					inspectionType: record.inspectionType,
+					result: record.result,
+					eventTime: record.eventTime,
+				})),
+			),
+		[trialUnits],
+	);
+
+	useEffect(() => {
+		if (!selectedSpec) return;
+		setItemForm((current) => ({
+			...current,
+			itemName: selectedSpec.name,
+			itemSpec: formatSpecDetail(selectedSpec),
+		}));
+	}, [selectedSpec]);
+
+	useEffect(() => {
+		if (!recordDialogOpen) {
+			setSelectedSpecId(null);
+			setSpecSearch("");
+		}
+	}, [recordDialogOpen]);
 
 	const getStatusBadge = (status: string) => {
 		const label = FAI_STATUS_MAP[status] || status;
@@ -246,6 +363,8 @@ function FaiPage() {
 			{
 				onSuccess: () => {
 					setRecordDialogOpen(false);
+					setSelectedSpecId(null);
+					setSpecSearch("");
 					setItemForm({
 						unitSn: "",
 						itemName: "",
@@ -565,6 +684,104 @@ function FaiPage() {
 										</Table>
 									</div>
 								)}
+								{trialSummary && (
+									<div className="space-y-4">
+										<div>
+											<h4 className="font-medium mb-2">试产单位</h4>
+											{trialUnits.length > 0 ? (
+												<div className="flex flex-wrap gap-2">
+													{trialUnits.map((unit) => (
+														<Badge key={unit.sn} variant="outline">
+															{unit.sn}
+														</Badge>
+													))}
+												</div>
+											) : (
+												<p className="text-sm text-muted-foreground">暂无试产记录</p>
+											)}
+										</div>
+										<div>
+											<h4 className="font-medium mb-2">TrackOut 采集结果</h4>
+											{trackValueRows.length > 0 ? (
+												<Table>
+													<TableHeader>
+														<TableRow>
+															<TableHead>SN</TableHead>
+															<TableHead>步骤</TableHead>
+															<TableHead>工位</TableHead>
+															<TableHead>采集项</TableHead>
+															<TableHead>值</TableHead>
+															<TableHead>判定</TableHead>
+															<TableHead>时间</TableHead>
+														</TableRow>
+													</TableHeader>
+													<TableBody>
+														{trackValueRows.map((row, index) => (
+															<TableRow key={`${row.sn}-${row.name}-${index}`}>
+																<TableCell>{row.sn}</TableCell>
+																<TableCell>Step {row.stepNo}</TableCell>
+																<TableCell>{row.stationCode ?? "-"}</TableCell>
+																<TableCell>{row.name}</TableCell>
+																<TableCell>{formatDataValue(row.value)}</TableCell>
+																<TableCell>
+																	{row.judge ? (
+																		<Badge
+																			variant={row.judge === "PASS" ? "secondary" : "destructive"}
+																		>
+																			{row.judge}
+																		</Badge>
+																	) : (
+																		"-"
+																	)}
+																</TableCell>
+																<TableCell>{formatDateTime(row.collectedAt)}</TableCell>
+															</TableRow>
+														))}
+													</TableBody>
+												</Table>
+											) : (
+												<p className="text-sm text-muted-foreground">暂无 TrackOut 采集数据</p>
+											)}
+										</div>
+										<div>
+											<h4 className="font-medium mb-2">SPI/AOI 检验记录</h4>
+											{inspectionRows.length > 0 ? (
+												<Table>
+													<TableHeader>
+														<TableRow>
+															<TableHead>SN</TableHead>
+															<TableHead>步骤</TableHead>
+															<TableHead>工位</TableHead>
+															<TableHead>类型</TableHead>
+															<TableHead>结果</TableHead>
+															<TableHead>时间</TableHead>
+														</TableRow>
+													</TableHeader>
+													<TableBody>
+														{inspectionRows.map((row, index) => (
+															<TableRow key={`${row.sn}-${row.inspectionType}-${index}`}>
+																<TableCell>{row.sn}</TableCell>
+																<TableCell>Step {row.stepNo}</TableCell>
+																<TableCell>{row.stationCode ?? "-"}</TableCell>
+																<TableCell>{row.inspectionType}</TableCell>
+																<TableCell>
+																	<Badge
+																		variant={row.result === "PASS" ? "secondary" : "destructive"}
+																	>
+																		{row.result}
+																	</Badge>
+																</TableCell>
+																<TableCell>{formatDateTime(row.eventTime)}</TableCell>
+															</TableRow>
+														))}
+													</TableBody>
+												</Table>
+											) : (
+												<p className="text-sm text-muted-foreground">暂无 SPI/AOI 记录</p>
+											)}
+										</div>
+									</div>
+								)}
 							</div>
 						)}
 					</CardContent>
@@ -580,10 +797,37 @@ function FaiPage() {
 					</DialogHeader>
 					<div className="space-y-4">
 						<div>
+							<Label>检验项模板（采集项）</Label>
+							<Combobox
+								options={availableSpecs.map((spec) => ({
+									value: spec.id,
+									label: `${spec.name} · ${spec.operationCode}`,
+								}))}
+								value={selectedSpecId ?? ""}
+								onValueChange={(value) => {
+									setSelectedSpecId(value || null);
+									if (!value) {
+										setItemForm((current) => ({ ...current, itemName: "", itemSpec: "" }));
+									}
+								}}
+								placeholder={specLoading ? "加载中..." : "选择采集项模板"}
+								searchPlaceholder="搜索检验项"
+								emptyText={specLoading ? "加载中..." : "暂无可用采集项"}
+								searchValue={specSearch}
+								onSearchValueChange={setSpecSearch}
+							/>
+							{firstStep && (
+								<p className="text-xs text-muted-foreground mt-1">
+									默认展示首工序 {firstStep.operationCode} 的采集项
+								</p>
+							)}
+						</div>
+						<div>
 							<Label>检验项名称 *</Label>
 							<Input
 								value={itemForm.itemName}
 								onChange={(e) => setItemForm({ ...itemForm, itemName: e.target.value })}
+								disabled={Boolean(selectedSpec)}
 								placeholder="如：尺寸检验"
 							/>
 						</div>
@@ -592,16 +836,39 @@ function FaiPage() {
 							<Input
 								value={itemForm.itemSpec}
 								onChange={(e) => setItemForm({ ...itemForm, itemSpec: e.target.value })}
+								disabled={Boolean(selectedSpec)}
 								placeholder="如：10±0.5mm"
 							/>
 						</div>
 						<div>
 							<Label>实测值</Label>
-							<Input
-								value={itemForm.actualValue}
-								onChange={(e) => setItemForm({ ...itemForm, actualValue: e.target.value })}
-								placeholder="如：10.2mm"
-							/>
+							{selectedSpec?.dataType === "BOOLEAN" ? (
+								<Select
+									value={itemForm.actualValue}
+									onValueChange={(v) => setItemForm({ ...itemForm, actualValue: v })}
+								>
+									<SelectTrigger>
+										<SelectValue placeholder="选择值" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="true">true</SelectItem>
+										<SelectItem value="false">false</SelectItem>
+									</SelectContent>
+								</Select>
+							) : selectedSpec?.dataType === "JSON" ? (
+								<Textarea
+									value={itemForm.actualValue}
+									onChange={(e) => setItemForm({ ...itemForm, actualValue: e.target.value })}
+									placeholder='如：{"key":"value"}'
+								/>
+							) : (
+								<Input
+									type={selectedSpec?.dataType === "NUMBER" ? "number" : "text"}
+									value={itemForm.actualValue}
+									onChange={(e) => setItemForm({ ...itemForm, actualValue: e.target.value })}
+									placeholder="如：10.2mm"
+								/>
+							)}
 						</div>
 						<div>
 							<Label>结果</Label>

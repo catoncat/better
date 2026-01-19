@@ -18,7 +18,167 @@ type InspectionRecord = Prisma.InspectionGetPayload<{
 	include: { items: true };
 }>;
 
+type FaiTrialSummary = {
+	units: Array<{
+		sn: string;
+		trackOuts: Array<{
+			stepNo: number;
+			stationCode: string | null;
+			outAt: Date | null;
+			result: string | null;
+			dataValues: Array<{
+				name: string;
+				value: Prisma.JsonValue | string | number | boolean | null;
+				judge: string | null;
+				collectedAt: Date;
+			}>;
+		}>;
+		inspections: Array<{
+			inspectionType: string;
+			result: string;
+			stationCode: string;
+			stepNo: number;
+			eventTime: Date;
+		}>;
+	}>;
+};
+
+type FaiDetailRecord = InspectionRecord & { trialSummary: FaiTrialSummary };
+
 const buildInspectionActiveKey = (runId: string, type: InspectionType) => `${runId}:${type}`;
+
+const resolveDataValue = (value: {
+	valueNumber?: number | null;
+	valueText?: string | null;
+	valueBoolean?: boolean | null;
+	valueJson?: Prisma.JsonValue | null;
+}) => {
+	if (value.valueNumber !== null && value.valueNumber !== undefined) return value.valueNumber;
+	if (value.valueText !== null && value.valueText !== undefined) return value.valueText;
+	if (value.valueBoolean !== null && value.valueBoolean !== undefined) return value.valueBoolean;
+	if (value.valueJson !== null && value.valueJson !== undefined) return value.valueJson;
+	return null;
+};
+
+const buildFaiTrialSummary = async (
+	db: PrismaClient,
+	fai: { runId: string; startedAt: Date | null; sampleQty: number | null },
+	runNo: string | null,
+): Promise<FaiTrialSummary> => {
+	if (!fai.startedAt || !runNo) {
+		return { units: [] };
+	}
+
+	const requiredQty = typeof fai.sampleQty === "number" && fai.sampleQty > 0 ? fai.sampleQty : 1;
+	const tracks = await db.track.findMany({
+		where: {
+			unit: { runId: fai.runId },
+			outAt: { not: null },
+			createdAt: { gte: fai.startedAt },
+		},
+		include: {
+			unit: { select: { id: true, sn: true } },
+			station: { select: { code: true } },
+		},
+		orderBy: { outAt: "asc" },
+	});
+
+	const unitIds: string[] = [];
+	const unitSnById = new Map<string, string>();
+	for (const track of tracks) {
+		if (unitIds.length >= requiredQty) break;
+		if (!unitSnById.has(track.unitId)) {
+			unitIds.push(track.unitId);
+			if (track.unit?.sn) {
+				unitSnById.set(track.unitId, track.unit.sn);
+			}
+		}
+	}
+
+	if (unitIds.length === 0) {
+		return { units: [] };
+	}
+
+	const trialTracks = tracks.filter((track) => unitIds.includes(track.unitId));
+	const trackIds = trialTracks.map((track) => track.id);
+	const dataValues = trackIds.length
+		? await db.dataValue.findMany({
+				where: { trackId: { in: trackIds } },
+				include: { spec: { select: { name: true } } },
+			})
+		: [];
+
+	const dataValuesByTrack = new Map<
+		string,
+		Array<{
+			name: string;
+			value: Prisma.JsonValue | string | number | boolean | null;
+			judge: string | null;
+			collectedAt: Date;
+		}>
+	>();
+	for (const value of dataValues) {
+		if (!value.trackId) continue;
+		const list = dataValuesByTrack.get(value.trackId) ?? [];
+		list.push({
+			name: value.spec.name,
+			value: resolveDataValue(value),
+			judge: value.judge ?? null,
+			collectedAt: value.collectedAt,
+		});
+		dataValuesByTrack.set(value.trackId, list);
+	}
+
+	const unitSns = unitIds.map((unitId) => unitSnById.get(unitId)).filter(Boolean) as string[];
+	const inspectionResults = unitSns.length
+		? await db.inspectionResultRecord.findMany({
+				where: {
+					runNo,
+					unitSn: { in: unitSns },
+				},
+				orderBy: { eventTime: "desc" },
+			})
+		: [];
+
+	const inspectionsByUnit = new Map<string, FaiTrialSummary["units"][number]["inspections"]>();
+	for (const record of inspectionResults) {
+		const list = inspectionsByUnit.get(record.unitSn) ?? [];
+		list.push({
+			inspectionType: record.inspectionType,
+			result: record.result,
+			stationCode: record.stationCode,
+			stepNo: record.stepNo,
+			eventTime: record.eventTime,
+		});
+		inspectionsByUnit.set(record.unitSn, list);
+	}
+
+	const tracksByUnit = new Map<string, typeof trialTracks>();
+	for (const track of trialTracks) {
+		const list = tracksByUnit.get(track.unitId) ?? [];
+		list.push(track);
+		tracksByUnit.set(track.unitId, list);
+	}
+
+	return {
+		units: unitIds.map((unitId) => {
+			const sn = unitSnById.get(unitId) ?? "-";
+			const trackOuts = (tracksByUnit.get(unitId) ?? []).map((track) => ({
+				stepNo: track.stepNo,
+				stationCode: track.station?.code ?? null,
+				outAt: track.outAt,
+				result: track.result ?? null,
+				dataValues: dataValuesByTrack.get(track.id) ?? [],
+			}));
+
+			return {
+				sn,
+				trackOuts,
+				inspections: inspectionsByUnit.get(sn) ?? [],
+			};
+		}),
+	};
+};
 
 const ensureFaiTrialCompleted = async (
 	db: PrismaClient,
@@ -428,7 +588,7 @@ export async function completeFai(
 export async function getFai(
 	db: PrismaClient,
 	faiId: string,
-): Promise<ServiceResult<InspectionRecord>> {
+): Promise<ServiceResult<FaiDetailRecord>> {
 	const fai = await db.inspection.findUnique({
 		where: { id: faiId },
 		include: { items: true },
@@ -443,7 +603,12 @@ export async function getFai(
 		};
 	}
 
-	return { success: true as const, data: fai };
+	const run = await db.run.findUnique({
+		where: { id: fai.runId },
+		select: { runNo: true },
+	});
+	const trialSummary = await buildFaiTrialSummary(db, fai, run?.runNo ?? null);
+	return { success: true as const, data: { ...fai, trialSummary } };
 }
 
 /**

@@ -345,8 +345,8 @@ P1（应该）：
 | 5.2.11 | 不知道 Unit 下一步工序/工位 | 用户需要手动查路由推断工位，应在 Unit 详情或执行页面显示"下一步：Step 2 SPI → 工位 ST-SPI-01" | `apps/web/src/routes/_authenticated/mes/execution.tsx`, 批次详情 | P1 | [x] |
 | 5.2.12 | 批次详情缺少路由步骤信息 | 应显示完整路由（Step 1 PRINTING → Step 2 SPI → ...）及各 Unit 的当前进度 | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` | P1 | [x] |
 | 5.2.13 | FAI 试产规则无前端提示 | 用户不知道"FAI 只在第一工序"，应在 FAI 页面或执行页面明确说明 | FAI 页面 + 执行页面 | P2 | [x] |
-| 5.2.14 | FAI「记录」字段固定，无动态配置 | FAI 检验项应可关联 `DataCollectionSpec` 或 FAI 专用检验清单模板（如首件检验 checklist），而非每次手动填写 | `apps/web/src/routes/_authenticated/mes/fai.tsx`, `apps/server/src/modules/mes/fai/service.ts` | P2 | [ ] |
-| 5.2.15 | FAI 未关联 TrackOut 检验结果 | FAI 完成判定时应能查看该批次试产 Unit 的 TrackOut 数据采集结果和 SPI/AOI 检验记录，作为判定依据 | FAI 详情页, `apps/server/src/modules/mes/fai/service.ts` | P2 | [ ] |
+| 5.2.14 | FAI「记录」字段固定，无动态配置 | FAI 检验项应可关联 `DataCollectionSpec` 或 FAI 专用检验清单模板（如首件检验 checklist），而非每次手动填写 | `apps/web/src/routes/_authenticated/mes/fai.tsx`, `apps/server/src/modules/mes/fai/service.ts` | P2 | [x] |
+| 5.2.15 | FAI 未关联 TrackOut 检验结果 | FAI 完成判定时应能查看该批次试产 Unit 的 TrackOut 数据采集结果和 SPI/AOI 检验记录，作为判定依据 | FAI 详情页, `apps/server/src/modules/mes/fai/service.ts` | P2 | [x] |
 | 5.2.16 | **BUG**: FAI 完成后 TrackIn 错误提示不准确 | 当 Run=PREP + FAI=PASS 时，TrackIn 返回 `FAI_TRIAL_NOT_READY`（提示 start FAI first），但实际应返回 `RUN_NOT_AUTHORIZED`（提示请先授权批次） | `apps/server/src/modules/mes/execution/service.ts:241-247` | **P1** | [x] |
 | 5.2.17 | **BUG**: FAI 完成后"试产执行"按钮仍显示 | 当 FAI=PASS 时，批次详情页仍显示"试产执行"按钮；应根据 FAI 状态决定：FAI=INSPECTING 显示"试产执行"，FAI=PASS/无 FAI 时隐藏或显示"等待授权" | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx:331-345` | **P1** | [x] |
 | 5.2.18 | 试产流程入口不清晰，需手动跳转执行页 | 点击"试产执行"应引导用户完成试产流程：检查/生成 Unit → 跳转执行页（预填参数）→ 完成后返回 FAI 判定；当前只是简单跳转 | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx`, 执行页 | P1 | [x] |
