@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ApiError } from "@/lib/api-error";
+import { ApiError, getApiErrorMessage } from "@/lib/api-error";
 import { client, unwrap } from "@/lib/eden";
 
 // Infer types from the API using Eden Treaty
@@ -124,8 +124,8 @@ export function useCreateRun() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
 		},
-		onError: (error: Error) => {
-			toast.error(error.message);
+		onError: (error: unknown) => {
+			toast.error(getApiErrorMessage(error, "创建批次失败"));
 		},
 	});
 }
@@ -135,21 +135,16 @@ export function useAuthorizeRun() {
 
 	return useMutation({
 		mutationFn: async ({ runNo, ...body }: RunAuthorizeInput & { runNo: string }) => {
-			const { data, error } = await client.api.runs({ runNo }).authorize.post(body);
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "授权操作失败");
-			}
-
-			return data;
+			const response = await client.api.runs({ runNo }).authorize.post(body);
+			return unwrap(response);
 		},
 		onSuccess: (_data, { runNo }) => {
 			toast.success("授权状态已更新");
 			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "run-detail", runNo] });
 		},
-		onError: (error: Error) => {
-			toast.error(error.message);
+		onError: (error: unknown) => {
+			toast.error(getApiErrorMessage(error, "授权失败"));
 		},
 	});
 }
@@ -167,11 +162,11 @@ export function useCloseRun() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "run-detail", runNo] });
 		},
-		onError: (error: Error, { runNo }) => {
+		onError: (error: unknown, { runNo }) => {
 			if (error instanceof ApiError && error.code === "OQC_REQUIRED") {
 				queryClient.invalidateQueries({ queryKey: ["mes", "oqc", "run", runNo] });
 			}
-			toast.error(error.message);
+			toast.error(getApiErrorMessage(error, "收尾失败"));
 		},
 	});
 }
@@ -200,8 +195,8 @@ export function useGenerateUnits() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "run-detail", runNo] });
 		},
-		onError: (error: Error) => {
-			toast.error(error.message);
+		onError: (error: unknown) => {
+			toast.error(getApiErrorMessage(error, "生成单件失败"));
 		},
 	});
 }

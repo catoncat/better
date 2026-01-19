@@ -174,6 +174,9 @@ task:
 ## Progress (2026-01-19 slice7)
 - Added shared `getApiErrorMessage` helper and wired readiness/loading mutations to surface ApiError details; marked readiness/loading audit rows as complete in `domain_docs/mes/plan/tasks.md`.
 
+## Progress (2026-01-19 slice8)
+- Switched run/FAI/execution mutations to use `getApiErrorMessage` and `unwrap` for consistent error codes in toasts.
+
 ## Errors (2026-01-19 next)
 - Failed to overwrite conversation note with `cat > file` due to `noclobber` shell setting; next attempt will use `tee` to write the plan.
 

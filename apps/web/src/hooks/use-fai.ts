@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ApiError } from "@/lib/api-error";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { client, unwrap } from "@/lib/eden";
 
 // Infer types from API responses
@@ -130,15 +130,9 @@ export function useCreateFai() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "run-detail", variables.runNo] });
 		},
 		onError: (error: unknown) => {
-			if (error instanceof ApiError) {
-				toast.error("创建 FAI 任务失败", {
-					description: error.message
-						? `${error.message}${error.code ? `（${error.code}）` : ""}`
-						: error.code,
-				});
-				return;
-			}
-			toast.error("创建 FAI 任务失败", { description: "请重试或联系管理员" });
+			toast.error("创建 FAI 任务失败", {
+				description: getApiErrorMessage(error, "请重试或联系管理员"),
+			});
 		},
 	});
 }
@@ -157,6 +151,11 @@ export function useStartFai() {
 		onSuccess: () => {
 			toast.success("FAI 检验已开始");
 			queryClient.invalidateQueries({ queryKey: ["mes", "fai"] });
+		},
+		onError: (error: unknown) => {
+			toast.error("开始 FAI 失败", {
+				description: getApiErrorMessage(error, "请重试或联系管理员"),
+			});
 		},
 	});
 }
@@ -192,11 +191,9 @@ export function useRecordFaiItem() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "fai", "list"] });
 		},
 		onError: (error: unknown) => {
-			if (error instanceof ApiError) {
-				toast.error("记录检验项失败", { description: error.message });
-				return;
-			}
-			toast.error("记录检验项失败", { description: "请重试或联系管理员" });
+			toast.error("记录检验项失败", {
+				description: getApiErrorMessage(error, "请重试或联系管理员"),
+			});
 		},
 	});
 }
@@ -235,11 +232,9 @@ export function useCompleteFai() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
 		},
 		onError: (error: unknown) => {
-			if (error instanceof ApiError) {
-				toast.error("完成 FAI 失败", { description: error.message });
-				return;
-			}
-			toast.error("完成 FAI 失败", { description: "请重试或联系管理员" });
+			toast.error("完成 FAI 失败", {
+				description: getApiErrorMessage(error, "请重试或联系管理员"),
+			});
 		},
 	});
 }

@@ -416,11 +416,11 @@ FAI 试产说明：
 | 模块 | API 路径 | 审查状态 |
 |------|----------|----------|
 | 工单管理 | `/api/mes/work-orders/*` | [ ] |
-| 批次管理 | `/api/mes/runs/*` | [ ] |
+| 批次管理 | `/api/mes/runs/*` | [x] |
 | 就绪检查 | `/api/mes/readiness/*` | [x] |
 | 上料防错 | `/api/mes/loading/*` | [x] |
-| FAI 首件检验 | `/api/mes/fai/*` | [ ] |
-| 执行 (TrackIn/Out) | `/api/mes/execution/*` | [ ] |
+| FAI 首件检验 | `/api/mes/fai/*` | [x] |
+| 执行 (TrackIn/Out) | `/api/mes/execution/*` | [x] |
 | OQC 出货检验 | `/api/mes/oqc/*` | [ ] |
 | MRB 不良处置 | `/api/mes/mrb/*` | [ ] |
 | 追溯查询 | `/api/mes/trace/*` | [ ] |
