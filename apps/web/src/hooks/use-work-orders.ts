@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { client, unwrap } from "@/lib/eden";
 
 // Infer types from the API using Eden Treaty
@@ -83,17 +84,17 @@ export function useReceiveWorkOrder() {
 
 	return useMutation({
 		mutationFn: async (body: WorkOrderReceiveInput) => {
-			const { data, error } = await client.api.integration["work-orders"].post(body);
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "接收工单失败");
-			}
-
-			return data;
+			const response = await client.api.integration["work-orders"].post(body);
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			toast.success("工单已接收");
 			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
+		},
+		onError: (error: unknown) => {
+			toast.error("接收工单失败", {
+				description: getApiErrorMessage(error, "请重试或联系管理员"),
+			});
 		},
 	});
 }
@@ -110,8 +111,8 @@ export function useReleaseWorkOrder() {
 			toast.success("工单已发布");
 			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
 		},
-		onError: (error: Error) => {
-			toast.error(error.message);
+		onError: (error: unknown) => {
+			toast.error(getApiErrorMessage(error, "发布工单失败"));
 		},
 	});
 }
@@ -121,19 +122,19 @@ export function useUpdatePickStatus() {
 
 	return useMutation({
 		mutationFn: async ({ woNo, pickStatus }: { woNo: string; pickStatus: string }) => {
-			const { data, error } = await client.api["work-orders"]({ woNo })["pick-status"].patch({
+			const response = await client.api["work-orders"]({ woNo })["pick-status"].patch({
 				pickStatus,
 			});
-
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "更新领料状态失败");
-			}
-
-			return data;
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			toast.success("领料状态已更新");
 			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
+		},
+		onError: (error: unknown) => {
+			toast.error("更新领料状态失败", {
+				description: getApiErrorMessage(error, "请重试或联系管理员"),
+			});
 		},
 	});
 }
@@ -150,8 +151,8 @@ export function useCloseWorkOrder() {
 			toast.success("工单已收尾");
 			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
 		},
-		onError: (error: Error) => {
-			toast.error(error.message);
+		onError: (error: unknown) => {
+			toast.error(getApiErrorMessage(error, "工单收尾失败"));
 		},
 	});
 }

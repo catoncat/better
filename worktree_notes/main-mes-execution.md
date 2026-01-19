@@ -181,6 +181,9 @@ task:
 ## Progress (2026-01-19 slice9)
 - Added ApiError-based toasts for OQC/MRB/defect workflows and surfaced trace query errors with code-aware messaging; marked OQC/MRB/trace audit rows as complete.
 
+## Progress (2026-01-19 slice10)
+- Applied ApiError-based toasts for work order actions and marked 5.3 audit as completed in `domain_docs/mes/plan/tasks.md`.
+
 ## Errors (2026-01-19 next)
 - Failed to overwrite conversation note with `cat > file` due to `noclobber` shell setting; next attempt will use `tee` to write the plan.
 
