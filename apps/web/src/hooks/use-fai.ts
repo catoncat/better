@@ -122,18 +122,23 @@ export function useCreateFai() {
 	return useMutation({
 		mutationFn: async ({ runNo, sampleQty }: { runNo: string; sampleQty: number }) => {
 			const response = await client.api.fai.run({ runNo }).post({ sampleQty });
-			if (response.error) {
-				throw new Error("Failed to create FAI");
-			}
-			return response.data;
+			return unwrap(response);
 		},
 		onSuccess: (_data, variables) => {
 			toast.success("FAI 任务已创建");
 			queryClient.invalidateQueries({ queryKey: ["mes", "fai"] });
 			queryClient.invalidateQueries({ queryKey: ["mes", "run-detail", variables.runNo] });
 		},
-		onError: () => {
-			toast.error("创建 FAI 任务失败");
+		onError: (error: unknown) => {
+			if (error instanceof ApiError) {
+				toast.error("创建 FAI 任务失败", {
+					description: error.message
+						? `${error.message}${error.code ? `（${error.code}）` : ""}`
+						: error.code,
+				});
+				return;
+			}
+			toast.error("创建 FAI 任务失败", { description: "请重试或联系管理员" });
 		},
 	});
 }
@@ -147,17 +152,11 @@ export function useStartFai() {
 	return useMutation({
 		mutationFn: async (faiId: string) => {
 			const response = await client.api.fai({ faiId }).start.post({});
-			if (response.error) {
-				throw new Error("Failed to start FAI");
-			}
-			return response.data;
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			toast.success("FAI 检验已开始");
 			queryClient.invalidateQueries({ queryKey: ["mes", "fai"] });
-		},
-		onError: () => {
-			toast.error("开始 FAI 检验失败");
 		},
 	});
 }

@@ -10,11 +10,13 @@ import {
 	Plus,
 	XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Can } from "@/components/ability/can";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Combobox } from "@/components/ui/combobox";
 import {
 	Dialog,
 	DialogContent,
@@ -49,6 +51,8 @@ import {
 	useRecordFaiItem,
 	useStartFai,
 } from "@/hooks/use-fai";
+import { useGenerateUnits, useRunList } from "@/hooks/use-runs";
+import { ApiError } from "@/lib/api-error";
 import { FAI_STATUS_MAP } from "@/lib/constants";
 import { formatDateTime } from "@/lib/utils";
 
@@ -83,13 +87,45 @@ function FaiPage() {
 	const [selectedFaiId, setSelectedFaiId] = useState<string | null>(null);
 	const [recordDialogOpen, setRecordDialogOpen] = useState(false);
 	const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+	const [runSearch, setRunSearch] = useState("");
+	const [runInput, setRunInput] = useState(query.runNo ?? "");
 
 	const { data, isLoading, refetch } = useFaiList(query);
 	const { data: faiDetail, isLoading: detailLoading } = useFaiDetail(selectedFaiId ?? undefined);
+	const { data: runList, isLoading: isRunListLoading } = useRunList({
+		page: 1,
+		pageSize: 20,
+		search: runSearch,
+	});
 
 	const startFai = useStartFai();
+	const generateUnits = useGenerateUnits();
 	const recordItem = useRecordFaiItem();
 	const completeFai = useCompleteFai();
+
+	useEffect(() => {
+		setRunInput(query.runNo ?? "");
+	}, [query.runNo]);
+
+	const runOptions = useMemo(() => {
+		const options =
+			runList?.items.map((item) => ({
+				value: item.runNo,
+				label: [
+					item.runNo,
+					item.workOrder?.woNo ? `WO:${item.workOrder.woNo}` : null,
+					item.line?.code ? `Line:${item.line.code}` : null,
+				]
+					.filter(Boolean)
+					.join(" · "),
+			})) ?? [];
+
+		if (runInput && !options.some((option) => option.value === runInput)) {
+			options.unshift({ value: runInput, label: runInput });
+		}
+
+		return options;
+	}, [runList, runInput]);
 
 	const updateSearch = (patch: Partial<FaiQuery>) => {
 		const nextPage = patch.page ?? query.page ?? 1;
@@ -155,12 +191,42 @@ function FaiPage() {
 		return <Badge variant={variant}>{label}</Badge>;
 	};
 
-	const handleStartFai = (faiId: string) => {
-		startFai.mutate(faiId, {
-			onSuccess: () => {
-				refetch();
-			},
-		});
+	const handleStartFai = async (fai: FaiItemWithRun) => {
+		try {
+			await startFai.mutateAsync(fai.id);
+			refetch();
+		} catch (error: unknown) {
+			if (error instanceof ApiError && error.code === "FAI_UNITS_REQUIRED") {
+				const runNo = fai.run?.runNo ?? "";
+				if (!runNo) {
+					toast.error("开始 FAI 检验失败", { description: "无法获取批次号" });
+					return;
+				}
+				const quantity = fai.sampleQty && fai.sampleQty > 0 ? fai.sampleQty : 1;
+				if (!confirm(`当前批次暂无单件，是否生成 ${quantity} 个单件？`)) {
+					return;
+				}
+				try {
+					await generateUnits.mutateAsync({ runNo, quantity });
+					await startFai.mutateAsync(fai.id);
+					refetch();
+				} catch {
+					return;
+				}
+				return;
+			}
+
+			if (error instanceof ApiError) {
+				toast.error("开始 FAI 检验失败", {
+					description: error.message
+						? `${error.message}${error.code ? `（${error.code}）` : ""}`
+						: error.code,
+				});
+				return;
+			}
+
+			toast.error("开始 FAI 检验失败", { description: "请重试或联系管理员" });
+		}
 	};
 
 	const handleRecordItem = () => {
@@ -235,15 +301,18 @@ function FaiPage() {
 					<div className="flex gap-4 flex-wrap">
 						<div className="w-48">
 							<Label>Run 编号</Label>
-							<Input
-								placeholder="输入 Run 编号"
-								value={query.runNo ?? ""}
-								onChange={(e) =>
-									updateSearch({
-										runNo: e.target.value || undefined,
-										page: 1,
-									})
-								}
+							<Combobox
+								options={runOptions}
+								value={runInput}
+								onValueChange={(value) => {
+									setRunInput(value);
+									updateSearch({ runNo: value || undefined, page: 1 });
+								}}
+								placeholder="选择批次..."
+								searchPlaceholder="搜索批次或工单号"
+								emptyText={isRunListLoading ? "加载中..." : "未找到批次"}
+								searchValue={runSearch}
+								onSearchValueChange={setRunSearch}
 							/>
 						</div>
 						<div className="w-40">
@@ -326,8 +395,8 @@ function FaiPage() {
 														<Button
 															size="sm"
 															variant="outline"
-															onClick={() => handleStartFai(fai.id)}
-															disabled={startFai.isPending}
+															onClick={() => handleStartFai(fai)}
+															disabled={startFai.isPending || generateUnits.isPending}
 														>
 															<Play className="h-4 w-4 mr-1" />
 															开始
