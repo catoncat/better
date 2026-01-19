@@ -23,6 +23,9 @@ task:
 - [x] Slice 2: run detail entry to loading after readiness passes (5.1.1).
 - [x] Slice 3: loading error surface for validation failures (5.1.7).
 - [x] Slice 4: update plan status + MES emoji check.
+- [x] Slice 5: FAI completion guard requires trial TrackIn/TrackOut (5.2.2).
+- [x] Slice 6: loading run selector uses searchable list of PREP runs (5.1.3).
+- [ ] Slice 7: update plan status + verification.
 
 <!-- AUTO:BEGIN status -->
 
@@ -39,6 +42,7 @@ task:
 
 ## Decisions
 - Scope: 5.1.8 + 5.1.1 + 5.1.7.
+- Scope extension: 5.2.2 + 5.1.3 for this round.
 
 ## Findings
 - `domain_docs/mes/plan/tasks.md` section 5.1 lists loading-related issues; only P0 is 5.1.8.
@@ -54,6 +58,9 @@ task:
 - Emoji check found existing non-ASCII symbols in `domain_docs/mes/plan/tasks.md` and `domain_docs/mes/plan/phase4_tasks.md`; will replace to satisfy MES doc rule.
 - `rg -nP "\\p{Extended_Pictographic}" domain_docs/mes` now returns no matches.
 - `bun scripts/smart-verify.ts` passes after formatting fix.
+- `fai/service.ts` lacks any guard to require trial TrackIn/TrackOut before recording items or completing FAI.
+- `useRunList` can filter runs by status and search, suitable for a PREP-only run selector on the loading page.
+- FAI completion now needs a server-side trial-unit count check to block skipping trial TrackIn/TrackOut.
 
 ## Open Questions
 -

@@ -320,7 +320,7 @@ P1（应该）：
 |---|----------|----------|----------|--------|------|
 | 5.1.1 | 批次详情页就绪检查通过后，无"前往上料"入口 | 就绪检查 PASSED 后显示"前往上料"按钮，点击跳转 `/mes/loading?runNo=XXX` | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` | P1 | [x] |
 | 5.1.2 | 上料页面"解锁站位"按钮无条件显示 | 只有当站位 `isLocked=true` 时才显示解锁按钮；需要后端 API 返回 `isLocked` 字段 | `apps/web/src/routes/_authenticated/mes/loading/-components/slot-list.tsx`, `apps/server/src/modules/mes/loading/service.ts` | P2 | [ ] |
-| 5.1.3 | 上料页面批次号输入框应改为带搜索的下拉选择 | 批次号选择应是可搜索的 Select 组件，列出可用批次（状态=PREP），而非手动输入 | `apps/web/src/routes/_authenticated/mes/loading/index.tsx` | P1 | [ ] |
+| 5.1.3 | 上料页面批次号输入框应改为带搜索的下拉选择 | 批次号选择应是可搜索的 Select 组件，列出可用批次（状态=PREP），而非手动输入 | `apps/web/src/routes/_authenticated/mes/loading/index.tsx` | P1 | [x] |
 | 5.1.4 | 物料条码格式说明不清晰 | 在物料条码输入框添加 placeholder 或提示，说明支持的格式：`物料编码\|批次号` | `apps/web/src/routes/_authenticated/mes/loading/-components/scan-panel.tsx` | P2 | [ ] |
 | 5.1.5 | 重复扫描同一物料无法区分首次成功和幂等返回 | UI 应区分显示"上料成功"vs"已上料（重复扫描）"；API 可返回 `isIdempotent` 标记 | `apps/server/src/modules/mes/loading/service.ts`, `apps/web/src/routes/_authenticated/mes/loading/-components/scan-panel.tsx` | P2 | [ ] |
 | 5.1.6 | 幂等返回时仍创建审计日志 | 幂等返回不应重复创建审计记录，或标记为 `idempotent: true` | `apps/server/src/modules/mes/loading/routes.ts` | P2 | [ ] |
@@ -332,7 +332,7 @@ P1（应该）：
 | # | 问题描述 | 期望行为 | 涉及文件 | 优先级 | 状态 |
 |---|----------|----------|----------|--------|------|
 | 5.2.1 | FAI 列表页 Run 编号筛选是手动输入 | 应改为带搜索的下拉选择，列出有 FAI 任务的批次 | `apps/web/src/routes/_authenticated/mes/fai/index.tsx` | P1 | [ ] |
-| 5.2.2 | **BUG**: FAI 可跳过试产直接完成判定 | 根据流程规范，FAI 必须先进行"首件生产（试产）"即 TrackIn/TrackOut，才能记录检验项和完成判定；当前可直接跳过 | `apps/server/src/modules/mes/fai/service.ts`, `apps/web/src/routes/_authenticated/mes/fai.tsx` | **P0** | [ ] |
+| 5.2.2 | **BUG**: FAI 可跳过试产直接完成判定 | 根据流程规范，FAI 必须先进行"首件生产（试产）"即 TrackIn/TrackOut，才能记录检验项和完成判定；当前可直接跳过 | `apps/server/src/modules/mes/fai/service.ts`, `apps/web/src/routes/_authenticated/mes/fai.tsx` | **P0** | [x] |
 | 5.2.3 | FAI 开始时无提示生成 Unit | FAI 开始（start）时应检查 Run 是否已有 Unit，若无则提示或自动生成 sampleQty 个 Unit | `apps/server/src/modules/mes/fai/service.ts` (startFai), `apps/web/src/routes/_authenticated/mes/fai.tsx` | P1 | [ ] |
 | 5.2.4 | FAI sampleQty 与 Unit 生成脱节 | 创建 FAI 时应检查 Run 是否已有足够 Unit（≥sampleQty）；设计决策：FAI 复用生产 Unit 池（首批试产 Unit 即正式生产 Unit），非独立池 | `apps/server/src/modules/mes/fai/service.ts` (createFai) | P1 | [ ] |
 
