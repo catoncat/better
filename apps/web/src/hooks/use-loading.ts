@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api-error";
 import { client, unwrap } from "@/lib/eden";
 
 export type LoadingExpectation = {
@@ -127,18 +128,33 @@ export function useVerifyLoading() {
 			});
 		},
 		onError: (error: unknown) => {
-			if (error && typeof error === "object" && "code" in error) {
-				const code = (error as { code?: unknown }).code;
-				const message = (error as { message?: unknown }).message;
-				if (code === "SLOT_LOCKED") {
+			if (error instanceof ApiError) {
+				if (error.code === "SLOT_LOCKED") {
 					toast.error("站位已锁定", {
-						description: typeof message === "string" ? message : undefined,
+						description: error.message || "站位已锁定，请先解锁",
 					});
 					return;
 				}
+
+				toast.error("上料验证失败", {
+					description: error.message
+						? `${error.message}${error.code ? `（${error.code}）` : ""}`
+						: error.code,
+				});
+				return;
 			}
 
-			toast.error("上料验证失败");
+			if (error && typeof error === "object" && "message" in error) {
+				const message = (error as { message?: unknown }).message;
+				toast.error("上料验证失败", {
+					description: typeof message === "string" ? message : undefined,
+				});
+				return;
+			}
+
+			toast.error("上料验证失败", {
+				description: "请重试或联系管理员",
+			});
 		},
 	});
 }
