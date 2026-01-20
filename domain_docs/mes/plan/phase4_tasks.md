@@ -81,6 +81,11 @@ P0（必须）：
 ### 2.6 Track F — SMT Traceability & Compliance Hardening（Post Go-Live）
 
 > 基于 `compair/codex_smt_flow_deep_analysis.md` 的工作包拆分与验收要求，聚焦 SMT 追溯合规与表单电子化。
+>
+> **架构决策**：见 `conversation/2026-01-20_094100_MES产品化架构决策.md`
+> - 现阶段按需硬编码（有复杂关联/查询需求时）
+> - 纯表单采集优先考虑 DataCollectionSpec
+> - 保留 `meta` 字段以备产品化时扩展
 
 - [ ] 4.6.1 前置确认：表单字段对齐 + 时间窗口起止事件 + 数据来源确认
   - DoD：`smt_forms/*.md` 字段版本确认；`QR-Pro-012` 字段补齐；“印锡→焊接 <4h”“锡膏暴露 <24h”起止事件与违规策略明确
@@ -133,6 +138,7 @@ P0（必须）：
 - `domain_docs/mes/spec/routing/03_route_execution_config.md`
 - `domain_docs/mes/spec/traceability/01_traceability_contract.md`
 - `conversation/2026-01-14_115848_mes-next_triage.md`
+- `conversation/2026-01-20_094100_MES产品化架构决策.md` ← 产品化架构决策
 - `user_docs/demo/acceptance_plan.md`
 - `user_docs/demo/acceptance_issues.md`
 - `domain_docs/mes/spec/process/compair/codex_smt_flow_deep_analysis.md`
