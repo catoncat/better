@@ -51,6 +51,7 @@ task:
 - Expanded slot mapping UI to capture/display unit consumption and common-material flag.
 - Updated SMT align doc and marked WP-9 complete in phase4 plan.
 - `bun scripts/smart-verify.ts` now passes (lint + typecheck + prisma generate).
+- Enforced integer-only `packageQty` in API schema and UI validation/input.
 
 ## Errors
 - `bun scripts/smart-verify.ts` failed due to Biome formatting issues in loading UI components (indentation in `mapping-dialog.tsx`, line wrap in `scan-panel.tsx`, type wrap in `loading-history.tsx`); applied manual formatting fixes before re-running.

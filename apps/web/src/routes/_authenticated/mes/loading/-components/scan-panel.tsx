@@ -28,11 +28,11 @@ const scanSchema = z
 		}
 		if (values.isReplaceMode && values.packageQty.trim()) {
 			const parsed = Number(values.packageQty);
-			if (!Number.isFinite(parsed) || parsed <= 0) {
+			if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed <= 0) {
 				ctx.addIssue({
 					code: z.ZodIssueCode.custom,
 					path: ["packageQty"],
-					message: "包装数量需为正数",
+					message: "包装数量需为正整数",
 				});
 			}
 		}
@@ -164,6 +164,7 @@ export function ScanPanel({ runNo }: ScanPanelProps) {
 												<Input
 													type="number"
 													min={1}
+													step={1}
 													placeholder="例如: 500"
 													value={field.state.value}
 													onBlur={field.handleBlur}

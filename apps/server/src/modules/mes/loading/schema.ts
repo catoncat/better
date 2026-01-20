@@ -40,7 +40,7 @@ export const verifyLoadingBodySchema = t.Object({
 	slotCode: t.String(),
 	materialLotBarcode: t.String({ minLength: 1 }),
 	operatorId: t.Optional(t.String()),
-	packageQty: t.Optional(t.Number({ minimum: 0 })),
+	packageQty: t.Optional(t.Integer({ minimum: 0 })),
 	reviewedBy: t.Optional(t.String()),
 });
 
@@ -50,7 +50,7 @@ export const replaceLoadingBodySchema = t.Object({
 	newMaterialLotBarcode: t.String({ minLength: 1 }),
 	operatorId: t.Optional(t.String()),
 	reason: t.String({ minLength: 1 }),
-	packageQty: t.Optional(t.Number({ minimum: 0 })),
+	packageQty: t.Optional(t.Integer({ minimum: 0 })),
 	reviewedBy: t.Optional(t.String()),
 });
 
@@ -77,7 +77,7 @@ const loadingRecordSchema = t.Object({
 	verifyResult: loadingVerifyResultSchema,
 	failReason: t.Union([t.String(), t.Null()]),
 	isIdempotent: t.Optional(t.Boolean()),
-	packageQty: t.Union([t.Number(), t.Null()]),
+	packageQty: t.Union([t.Integer({ minimum: 0 }), t.Null()]),
 	reviewedBy: t.Union([t.String(), t.Null()]),
 	reviewedAt: t.Union([t.String(), t.Null()]),
 	loadedAt: t.String(),
