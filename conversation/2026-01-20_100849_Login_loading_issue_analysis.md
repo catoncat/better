@@ -22,6 +22,13 @@
 - `better-auth` client uses `createFetch` with `credentials: "include"` when supported (`apps/web/node_modules/better-auth/dist/client/config.mjs`), so cookies should be sent on auth requests.
 - Client session atom queries `/get-session` and uses a refresh manager (`apps/web/node_modules/better-auth/dist/client/session-atom.mjs`).
 - Auth client proxy calls `options.onSuccess` then toggles session signal via `setTimeout(10)` for `/sign-in/email` and related paths (`apps/web/node_modules/better-auth/dist/client/proxy.mjs`), implying a small async delay before session refresh.
+- Two `QueryClient` instances exist: `apps/web/src/main.tsx` uses `queryClient` from `apps/web/src/lib/query-client.ts` for router context, while `apps/web/src/routes/__root.tsx` creates its own `QueryClient` for React Query provider. This splits cache between route loaders and components.
+- Router `defaultPendingComponent` is a global spinner (`apps/web/src/components/loader.tsx`), so a stuck `beforeLoad` or session fetch can present as “loading forever”.
+- `_authenticated` index routes immediately redirect to `/mes/work-orders` (`apps/web/src/routes/_authenticated/index.tsx`, `apps/web/src/routes/_authenticated/mes/index.tsx`); no extra guard logic there.
+- No explicit `/` route file found; routes include `/login` and `_authenticated/*` only (route tree likely maps root elsewhere).
+- In `better-auth` dist client, `/sign-in/email` is only referenced in atom listeners (`config.mjs`); login uses dynamic proxy, no custom handler found.
+- `apps/web/src/routeTree.gen.ts` maps `/` to `_authenticated/index`, so first visit to `/` always runs `_authenticated` `beforeLoad` and caches a “no session” result in the router-context query client.
+- The login flow updates a *different* QueryClient than the router uses, leaving the router cache stuck at “no session”; `_authenticated` then short-circuits on the cached value and redirects back to `/login`, matching the observed `?redirect=...` URL.
 
 ## Progress
 - Located login form and handlers.
@@ -30,9 +37,12 @@
 - `apps/web/node_modules` includes `better-auth`; can inspect client implementation for credential/cookie behavior.
 - Initial search for `createAuthClient` in `apps/web/node_modules/better-auth` returned no matches; package appears minimal (README/license/package.json).
 - `createAuthClient` implementation lives in `apps/web/node_modules/better-auth/dist/client/react/index.mjs` and delegates to `getClientConfig` (need to inspect `$fetch` defaults).
+- Router setup located in `apps/web/src/main.tsx`; need to confirm router context uses same `queryClient` instance as login form.
 
 ## Errors
-- None.
+- Tried to open `apps/web/node_modules/@better-fetch/fetch/dist/index.mjs` but file does not exist; need to locate actual entrypoint before inspecting.
+- `apps/web/node_modules/@better-fetch` and `apps/web/node_modules/better-auth/node_modules` are missing (dependencies likely bundled/hoisted differently).
+- Could not locate `@better-fetch/fetch` package via file search under `node_modules`/`apps/web/node_modules`.
 
 ## Open Questions
 - Does `authClient.signIn.email` resolve without triggering callbacks in some cases (e.g., missing cookies / blocked session)?

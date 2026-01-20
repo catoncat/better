@@ -346,6 +346,8 @@ enum AuditEntityType {
   SYSTEM
   READINESS_CHECK // M2: Line Readiness Check audit
   BAKE_RECORD // SMT bake record
+  SOLDER_PASTE_USAGE // SMT solder paste usage
+  COLD_STORAGE_TEMP // SMT cold storage temperature
 }
 
 model WorkOrder {
@@ -428,6 +430,7 @@ model Line {
   feederSlots      FeederSlot[]
   lineStencils     LineStencil[]
   lineSolderPastes LineSolderPaste[]
+  solderPasteUsageRecords SolderPasteUsageRecord[]
 }
 
 // ==========================================
@@ -643,6 +646,45 @@ model SolderPasteStatusRecord {
 
   @@index([lotId])
   @@index([eventTime])
+}
+
+model SolderPasteUsageRecord {
+  id          String   @id @default(cuid())
+  lotId       String
+  lineId      String?
+  receivedAt  DateTime?
+  expiresAt   DateTime?
+  receivedQty Int?
+  thawedAt    DateTime?
+  issuedAt    DateTime?
+  returnedAt  DateTime?
+  isReturned  Boolean?
+  usedBy      String?
+  remark      String?
+  meta        Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  line Line? @relation(fields: [lineId], references: [id])
+
+  @@index([lotId])
+  @@index([lineId])
+  @@index([receivedAt])
+  @@index([issuedAt])
+}
+
+model ColdStorageTemperatureRecord {
+  id          String   @id @default(cuid())
+  measuredAt  DateTime
+  temperature Float
+  measuredBy  String
+  reviewedBy  String?
+  remark      String?
+  meta        Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([measuredAt])
 }
 
 model StationGroup {
