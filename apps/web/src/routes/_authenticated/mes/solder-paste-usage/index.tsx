@@ -5,12 +5,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
+import { useQueryPresets } from "@/hooks/use-query-presets";
 import {
 	type SolderPasteUsageRecord,
 	useCreateSolderPasteUsageRecord,
 	useSolderPasteUsageRecordList,
 } from "@/hooks/use-solder-paste-usage";
-import { useQueryPresets } from "@/hooks/use-query-presets";
 import {
 	SolderPasteUsageDialog,
 	type SolderPasteUsageFormValues,
@@ -159,10 +159,7 @@ function SolderPasteUsagePage() {
 		storageKey: "solder-paste-usage-records",
 	});
 
-	const allPresets = useMemo(
-		() => [...SOLDER_PASTE_SYSTEM_PRESETS, ...userPresets],
-		[userPresets],
-	);
+	const allPresets = useMemo(() => [...SOLDER_PASTE_SYSTEM_PRESETS, ...userPresets], [userPresets]);
 
 	const currentActivePresetId = useMemo(() => {
 		return matchPreset(filters, allPresets);
@@ -240,9 +237,7 @@ function SolderPasteUsagePage() {
 					<div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
 						<div>
 							<h1 className="text-2xl font-bold tracking-tight">锡膏使用记录</h1>
-							<p className="text-muted-foreground">
-								记录锡膏收料、解冻、领用与回收的关键时间。
-							</p>
+							<p className="text-muted-foreground">记录锡膏收料、解冻、领用与回收的关键时间。</p>
 						</div>
 						<div className="flex items-center gap-2">
 							<Button variant="secondary" size="sm" onClick={() => void refetch()}>
@@ -302,9 +297,7 @@ function SolderPasteUsagePage() {
 				}}
 				dataListViewProps={{
 					viewPreferencesKey,
-					renderCard: (record: SolderPasteUsageRecord) => (
-						<SolderPasteUsageCard record={record} />
-					),
+					renderCard: (record: SolderPasteUsageRecord) => <SolderPasteUsageCard record={record} />,
 				}}
 			/>
 

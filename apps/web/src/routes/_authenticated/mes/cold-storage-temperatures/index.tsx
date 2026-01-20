@@ -136,10 +136,7 @@ function ColdStorageTemperaturePage() {
 		storageKey: "cold-storage-temperature-records",
 	});
 
-	const allPresets = useMemo(
-		() => [...COLD_STORAGE_SYSTEM_PRESETS, ...userPresets],
-		[userPresets],
-	);
+	const allPresets = useMemo(() => [...COLD_STORAGE_SYSTEM_PRESETS, ...userPresets], [userPresets]);
 
 	const currentActivePresetId = useMemo(() => {
 		return matchPreset(filters, allPresets);

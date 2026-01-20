@@ -6,7 +6,8 @@ import { client, unwrap } from "@/lib/eden";
 export type SolderPasteUsageRecordListResponse = Awaited<
 	ReturnType<(typeof client.api)["solder-paste-usage-records"]["get"]>
 >["data"];
-export type SolderPasteUsageRecordListData = NonNullable<SolderPasteUsageRecordListResponse>["data"];
+export type SolderPasteUsageRecordListData =
+	NonNullable<SolderPasteUsageRecordListResponse>["data"];
 export type SolderPasteUsageRecord = SolderPasteUsageRecordListData["items"][number];
 
 export type SolderPasteUsageRecordQuery = {
@@ -20,8 +21,9 @@ export type SolderPasteUsageRecordQuery = {
 	pageSize?: number;
 };
 
-type SolderPasteUsageRecordCreateInput =
-	Parameters<(typeof client.api)["solder-paste-usage-records"]["post"]>[0];
+type SolderPasteUsageRecordCreateInput = Parameters<
+	(typeof client.api)["solder-paste-usage-records"]["post"]
+>[0];
 
 export function useSolderPasteUsageRecordList(query: SolderPasteUsageRecordQuery) {
 	return useQuery<SolderPasteUsageRecordListData>({

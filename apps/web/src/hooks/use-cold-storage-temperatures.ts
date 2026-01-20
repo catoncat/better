@@ -17,8 +17,9 @@ export type ColdStorageTemperatureRecordQuery = {
 	pageSize?: number;
 };
 
-type ColdStorageTemperatureRecordCreateInput =
-	Parameters<(typeof client.api)["cold-storage-temperature-records"]["post"]>[0];
+type ColdStorageTemperatureRecordCreateInput = Parameters<
+	(typeof client.api)["cold-storage-temperature-records"]["post"]
+>[0];
 
 export function useColdStorageTemperatureRecordList(query: ColdStorageTemperatureRecordQuery) {
 	return useQuery<ColdStorageTemperatureRecordListData>({
@@ -27,7 +28,8 @@ export function useColdStorageTemperatureRecordList(query: ColdStorageTemperatur
 			const response = await client.api["cold-storage-temperature-records"].get({ query });
 			return unwrap(response);
 		},
-		placeholderData: (previousData: ColdStorageTemperatureRecordListData | undefined) => previousData,
+		placeholderData: (previousData: ColdStorageTemperatureRecordListData | undefined) =>
+			previousData,
 		staleTime: 10_000,
 	});
 }

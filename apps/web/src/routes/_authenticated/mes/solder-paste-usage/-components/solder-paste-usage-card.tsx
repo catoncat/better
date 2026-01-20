@@ -23,9 +23,7 @@ export function SolderPasteUsageCard({ record }: SolderPasteUsageCardProps) {
 				<div className="mt-4 space-y-1 text-sm">
 					{detailFields.map((field) => (
 						<div key={field.key} className="flex justify-between">
-							<span className="text-muted-foreground">
-								{field.cardLabel ?? field.label}:
-							</span>
+							<span className="text-muted-foreground">{field.cardLabel ?? field.label}:</span>
 							<span>{field.cardValue?.(record) ?? "-"}</span>
 						</div>
 					))}

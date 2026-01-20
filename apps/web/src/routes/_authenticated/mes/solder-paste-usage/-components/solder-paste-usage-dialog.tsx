@@ -14,11 +14,18 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import type { client } from "@/lib/eden";
 
-type SolderPasteUsageCreateInput =
-	Parameters<(typeof client.api)["solder-paste-usage-records"]["post"]>[0];
+type SolderPasteUsageCreateInput = Parameters<
+	(typeof client.api)["solder-paste-usage-records"]["post"]
+>[0];
 
 const formSchema = z.object({
 	lotId: z.string().min(1, "请输入锡膏批次"),
@@ -100,9 +107,7 @@ export function SolderPasteUsageDialog({
 			<DialogContent className="sm:max-w-[760px]">
 				<DialogHeader>
 					<DialogTitle>新增锡膏使用记录</DialogTitle>
-					<DialogDescription>
-						记录锡膏收料、解冻、领用与回收等关键时间。
-					</DialogDescription>
+					<DialogDescription>记录锡膏收料、解冻、领用与回收等关键时间。</DialogDescription>
 				</DialogHeader>
 				<form
 					onSubmit={(event) => {
@@ -139,9 +144,7 @@ export function SolderPasteUsageDialog({
 							{(field) => (
 								<DateTimePicker
 									value={field.state.value ? new Date(field.state.value) : undefined}
-									onChange={(date) =>
-										field.handleChange(date ? date.toISOString() : "")
-									}
+									onChange={(date) => field.handleChange(date ? date.toISOString() : "")}
 								/>
 							)}
 						</Field>
@@ -149,9 +152,7 @@ export function SolderPasteUsageDialog({
 							{(field) => (
 								<DateTimePicker
 									value={field.state.value ? new Date(field.state.value) : undefined}
-									onChange={(date) =>
-										field.handleChange(date ? date.toISOString() : "")
-									}
+									onChange={(date) => field.handleChange(date ? date.toISOString() : "")}
 								/>
 							)}
 						</Field>
@@ -176,9 +177,7 @@ export function SolderPasteUsageDialog({
 							{(field) => (
 								<DateTimePicker
 									value={field.state.value ? new Date(field.state.value) : undefined}
-									onChange={(date) =>
-										field.handleChange(date ? date.toISOString() : "")
-									}
+									onChange={(date) => field.handleChange(date ? date.toISOString() : "")}
 								/>
 							)}
 						</Field>
@@ -186,9 +185,7 @@ export function SolderPasteUsageDialog({
 							{(field) => (
 								<DateTimePicker
 									value={field.state.value ? new Date(field.state.value) : undefined}
-									onChange={(date) =>
-										field.handleChange(date ? date.toISOString() : "")
-									}
+									onChange={(date) => field.handleChange(date ? date.toISOString() : "")}
 								/>
 							)}
 						</Field>
@@ -196,9 +193,7 @@ export function SolderPasteUsageDialog({
 							{(field) => (
 								<DateTimePicker
 									value={field.state.value ? new Date(field.state.value) : undefined}
-									onChange={(date) =>
-										field.handleChange(date ? date.toISOString() : "")
-									}
+									onChange={(date) => field.handleChange(date ? date.toISOString() : "")}
 								/>
 							)}
 						</Field>
@@ -209,11 +204,7 @@ export function SolderPasteUsageDialog({
 							{(field) => (
 								<Select
 									value={
-										field.state.value === undefined
-											? "unset"
-											: field.state.value
-												? "true"
-												: "false"
+										field.state.value === undefined ? "unset" : field.state.value ? "true" : "false"
 									}
 									onValueChange={(value) => {
 										if (value === "unset") {

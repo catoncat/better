@@ -15,12 +15,13 @@ import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
 import type { client } from "@/lib/eden";
 
-type ColdStorageTemperatureCreateInput =
-	Parameters<(typeof client.api)["cold-storage-temperature-records"]["post"]>[0];
+type ColdStorageTemperatureCreateInput = Parameters<
+	(typeof client.api)["cold-storage-temperature-records"]["post"]
+>[0];
 
 const formSchema = z.object({
 	measuredAt: z.string().min(1, "请选择测量时间"),
-	temperature: z.number({ invalid_type_error: "请输入温度" }),
+	temperature: z.number(),
 	measuredBy: z.string().min(1, "请输入测量人员"),
 	reviewedBy: z.string().optional(),
 	remark: z.string().optional(),
