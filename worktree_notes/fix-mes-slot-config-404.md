@@ -49,3 +49,15 @@
 
 # Errors (continued)
 - `bun scripts/smart-verify.ts` failed due to existing lint/format errors in `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` and `apps/server/src/modules/mes/fai/service.ts` (unrelated to this change). Next step: confirm whether to fix those or skip verification for this branch.
+
+# Findings (continued)
+- `git status` shows modified files: `apps/web/src/components/select/line-select.tsx`, `apps/web/src/routes/_authenticated/mes/loading/slot-config.tsx`, plus pre-existing change in `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx`.
+
+# Findings (continued)
+- `git diff --stat` unexpectedly shows only `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` and the note file; need to check staged changes for `line-select.tsx` and `slot-config.tsx`.
+
+# Findings (continued)
+- Confirmed `line-select.tsx` includes new `valueKey` prop and `slot-config.tsx` uses `useMemo` to resolve line id + `valueKey="id"`.
+
+# Findings (continued)
+- `git status` now shows only `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` and the note as modified; `line-select.tsx` and `slot-config.tsx` no longer show as modified despite containing the new logic. Need to compare against `HEAD` to confirm if changes already exist upstream.

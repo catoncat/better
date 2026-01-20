@@ -5,6 +5,7 @@ import {
 	ArrowLeft,
 	CheckCircle2,
 	ClipboardCheck,
+	ExternalLink,
 	Loader2,
 	Package,
 	Play,
