@@ -276,7 +276,8 @@ function RunDetailPage() {
 
 	const openGenerateUnitsDialog = (quantity: number) => {
 		if (!data) return;
-		setGenerateUnitsQty(Math.min(quantity, data.run.planQty));
+		const remaining = data.run.planQty - (data.unitStats.total ?? 0);
+		setGenerateUnitsQty(Math.min(quantity, remaining));
 		setGenerateUnitsDialogOpen(true);
 	};
 
@@ -706,7 +707,7 @@ function RunDetailPage() {
 					</CardHeader>
 					<CardContent>
 						<p className="text-2xl font-bold">{data.unitStats.total}</p>
-						{data.unitStats.total === 0 &&
+						{data.unitStats.total < data.run.planQty &&
 						(data.run.status === "PREP" || data.run.status === "AUTHORIZED") ? (
 							<Button
 								variant="outline"
@@ -715,7 +716,7 @@ function RunDetailPage() {
 								onClick={() => setGenerateUnitsDialogOpen(true)}
 							>
 								<Plus className="mr-1 h-3 w-3" />
-								生成单件
+								{data.unitStats.total === 0 ? "生成单件" : "追加单件"}
 							</Button>
 						) : (
 							<p className="text-xs text-muted-foreground">完成率: {progressPercent}%</p>
@@ -1317,7 +1318,7 @@ function RunDetailPage() {
 			<Dialog open={generateUnitsDialogOpen} onOpenChange={handleGenerateUnitsDialogChange}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>生成单件</DialogTitle>
+						<DialogTitle>{data.unitStats.total === 0 ? "生成单件" : "追加单件"}</DialogTitle>
 						<DialogDescription>为批次 {runNo} 生成单件序列号</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-4 py-4">
@@ -1327,16 +1328,20 @@ function RunDetailPage() {
 								id="generateUnitsQty"
 								type="number"
 								min={1}
-								max={data.run.planQty}
+								max={data.run.planQty - data.unitStats.total}
 								value={generateUnitsQty}
 								onChange={(e) => setGenerateUnitsQty(Number.parseInt(e.target.value, 10) || 1)}
 								placeholder="输入生成数量"
 							/>
 							<p className="text-xs text-muted-foreground">
-								将生成 {generateUnitsQty} 个单件，SN 格式: SN-{runNo}-0001 ~ SN-{runNo}-
-								{String(generateUnitsQty).padStart(4, "0")}
+								将生成 {generateUnitsQty} 个单件，SN 格式: SN-{runNo}-
+								{String(data.unitStats.total + 1).padStart(4, "0")} ~ SN-{runNo}-
+								{String(data.unitStats.total + generateUnitsQty).padStart(4, "0")}
 							</p>
-							<p className="text-xs text-muted-foreground">最大数量: {data.run.planQty}</p>
+							<p className="text-xs text-muted-foreground">
+								已有 {data.unitStats.total} 个，计划 {data.run.planQty} 个，还可生成{" "}
+								{data.run.planQty - data.unitStats.total} 个
+							</p>
 						</div>
 					</div>
 					<DialogFooter>
@@ -1347,7 +1352,7 @@ function RunDetailPage() {
 							onClick={handleGenerateUnitsConfirm}
 							disabled={
 								generateUnitsQty < 1 ||
-								generateUnitsQty > data.run.planQty ||
+								generateUnitsQty > data.run.planQty - data.unitStats.total ||
 								generateUnits.isPending
 							}
 						>
