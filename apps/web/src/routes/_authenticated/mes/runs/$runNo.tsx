@@ -16,7 +16,6 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Can } from "@/components/ability/can";
-import { useAbility } from "@/hooks/use-ability";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +38,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useAbility } from "@/hooks/use-ability";
 import { useCreateFai, useFaiByRun, useFaiGate, useStartFai } from "@/hooks/use-fai";
 import { useMrbDecision, useOqcByRun } from "@/hooks/use-oqc";
 import {
@@ -1058,9 +1058,7 @@ function RunDetailPage() {
 						) : (
 							<div className="py-4 text-center text-muted-foreground">
 								<p>此批次需要首件检验</p>
-								{canCreateFai && (
-									<p className="text-sm mt-1">点击上方按钮创建 FAI 任务</p>
-								)}
+								{canCreateFai && <p className="text-sm mt-1">点击上方按钮创建 FAI 任务</p>}
 							</div>
 						)}
 					</CardContent>

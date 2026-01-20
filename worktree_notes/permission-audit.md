@@ -67,3 +67,5 @@ task:
 ## Errors
 - Attempted to write conversation note with `cat >`, failed due to `zsh: file exists`; next approach: write via `cat >|` or `apply_patch` to overwrite.
 - `git add` failed because `$runNo` expanded in path; next approach: quote or escape the path when adding.
+- `bun scripts/smart-verify.ts` failed: Biome wants import sorting + formatting in `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx`; next approach: run `bun run format` or apply suggested import order + formatting, then re-run verify.
+- `bun scripts/smart-verify.ts` failed again after format; remaining issue is import ordering in `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx`; next approach: manually reorder imports to match Biome suggestion, then re-run verify.
