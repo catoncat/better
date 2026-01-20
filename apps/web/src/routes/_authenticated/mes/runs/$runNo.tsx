@@ -10,6 +10,7 @@ import {
 	Play,
 	Plus,
 	RefreshCw,
+	Settings,
 	Shield,
 	XCircle,
 } from "lucide-react";
@@ -925,19 +926,32 @@ function RunDetailPage() {
 															{item.failReason ??
 																(item.waiveReason ? `豁免: ${item.waiveReason}` : "-")}
 														</TableCell>
-														<TableCell>
-															{item.status === "FAILED" && canShowReadinessActions && (
+													<TableCell>
+														{item.status === "FAILED" && canShowReadinessActions && (
+															<div className="flex items-center gap-1">
 																<Button variant="ghost" size="sm" onClick={() => handleWaive(item)}>
 																	<Shield className="mr-1 h-3 w-3" />
 																	豁免
 																</Button>
-															)}
-															{item.status === "WAIVED" && item.waivedAt && (
-																<span className="text-xs text-muted-foreground">
-																	{formatDateTime(item.waivedAt)}
-																</span>
-															)}
-														</TableCell>
+																{item.itemType === "LOADING" && (
+																	<Button variant="ghost" size="sm" asChild>
+																		<Link
+																			to="/mes/loading/slot-config"
+																			search={{ lineId: data.line?.id }}
+																		>
+																			<Settings className="mr-1 h-3 w-3" />
+																			配置站位表
+																		</Link>
+																	</Button>
+																)}
+															</div>
+														)}
+														{item.status === "WAIVED" && item.waivedAt && (
+															<span className="text-xs text-muted-foreground">
+																{formatDateTime(item.waivedAt)}
+															</span>
+														)}
+													</TableCell>
 													</TableRow>
 												))}
 											</TableBody>

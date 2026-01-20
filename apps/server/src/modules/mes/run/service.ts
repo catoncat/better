@@ -292,7 +292,7 @@ export const getRunDetail = async (db: PrismaClient, runNo: string) => {
 			productCode: run.workOrder.productCode,
 			plannedQty: run.workOrder.plannedQty,
 		},
-		line: run.line ? { code: run.line.code, name: run.line.name } : null,
+		line: run.line ? { id: run.line.id, code: run.line.code, name: run.line.name } : null,
 		routeVersion: run.routeVersion
 			? {
 					versionNo: run.routeVersion.versionNo,

@@ -116,7 +116,7 @@ export const runDetailResponseSchema = t.Object({
 		productCode: t.String(),
 		plannedQty: t.Number(),
 	}),
-	line: t.Union([t.Object({ code: t.String(), name: t.String() }), t.Null()]),
+	line: t.Union([t.Object({ id: t.String(), code: t.String(), name: t.String() }), t.Null()]),
 	routeVersion: t.Union([
 		t.Object({
 			versionNo: t.Number(),
