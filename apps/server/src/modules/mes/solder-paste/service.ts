@@ -123,7 +123,12 @@ const parseDate = (value: string): Date | null => {
 export async function listSolderPasteUsageRecords(
 	db: PrismaClient,
 	query: SolderPasteUsageRecordListQuery,
-): Promise<{ items: SolderPasteUsageRecordDetail[]; total: number; page: number; pageSize: number }> {
+): Promise<{
+	items: SolderPasteUsageRecordDetail[];
+	total: number;
+	page: number;
+	pageSize: number;
+}> {
 	const page = query.page ?? 1;
 	const pageSize = Math.min(query.pageSize ?? 30, 100);
 	const where: Prisma.SolderPasteUsageRecordWhereInput = {};
@@ -289,7 +294,12 @@ export async function createSolderPasteUsageRecord(
 export async function listColdStorageTemperatureRecords(
 	db: PrismaClient,
 	query: ColdStorageTemperatureListQuery,
-): Promise<{ items: ColdStorageTemperatureRecordDetail[]; total: number; page: number; pageSize: number }> {
+): Promise<{
+	items: ColdStorageTemperatureRecordDetail[];
+	total: number;
+	page: number;
+	pageSize: number;
+}> {
 	const page = query.page ?? 1;
 	const pageSize = Math.min(query.pageSize ?? 30, 100);
 	const where: Prisma.ColdStorageTemperatureRecordWhereInput = {};
