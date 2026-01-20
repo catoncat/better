@@ -37,6 +37,32 @@ task:
 ## Decisions
 - Work in dedicated worktree; treat MES routes/modules as primary scope.
 - UI gating is permission-first (not role-based) and must consider flow continuity; per-module choice of hide vs “no access” vs “needs config”.
+ - User selected option "1" from the last set of choices; proceed with the first recommended track.
+
+## Progress
+- Reviewed conversation plan note; continuing with the selected track.
+- Audited readiness config/exceptions, loading pages, execution, FAI, OQC, OQC rules, defects, and trace; recorded gaps in `user_docs/demo/permission_audit_plan.md`.
+- Started auditing `/mes/rework-tasks`; page uses `useReworkTaskList` and `useCompleteRework` with no permission gating yet.
+- Confirmed `useReworkTaskList` and `useCompleteRework` call `/rework-tasks` endpoints without permission-aware `enabled` guards.
+- Server `rework-tasks` endpoints require `quality:disposition`.
+- Logged `/mes/rework-tasks` audit entry in `user_docs/demo/permission_audit_plan.md`.
+- Began config/ops audit; `/mes/routes` is layout-only (Outlet).
+- Reviewed `/mes/routes` list + detail; detail page depends on route detail/configs, stations, station groups, data spec selector, and compile/config actions.
+- Reviewed `/mes/route-versions` and `/mes/data-collection-specs`; both pages fetch lists without permission-based query gating, with action buttons gated by `Can`.
+- Reviewed `/mes/integration/status`; uses `useIntegrationStatus` and only gates the refresh button.
+- Reviewed `/mes/integration/manual-entry` and `/mes/materials`; manual-entry uses line list + integration mutations with limited gating, materials list has no permission gating.
+- Reviewed `/mes/boms` and `/mes/work-centers`; both are list pages with no permission-aware query gating.
+- Routing API: list/detail/execution-config/versions require `route:read`, process type + exec config mutations require `route:configure`, compile requires `route:compile`.
+- Master data APIs (`/materials`, `/boms`, `/work-centers`) require `route:read`.
+- Integration APIs: `/integration/status`, `/integration/stencil-status`, `/integration/solder-paste-status` require `system:integration`; line binding endpoints under `/integration/lines/:lineId/*` require `loading:config`.
+- Operations list requires `operation:read` + `data_spec:config`; data-collection-spec list/get require `data_spec:read` + `data_spec:config`.
+- Station groups hook calls `/stations/groups` without gating; server requires one of route/wo/run permissions.
+- Route versions hook uses `/routes/:routingCode/versions` and compile mutation.
+- DataSpecSelector fetches active data specs; `/stations/groups` requires route/wo/run permissions and is used in route detail dialogs.
+- Route list UI renders detail links/buttons unconditionally (RouteCard/routeColumns).
+- Route list/detail/execution-config hooks have no permission-aware `enabled` gating.
+- Data-collection spec table/card actions are gated by `data_spec:config`.
+- Logged config/ops page audit entries (routes, route detail, route versions, data-specs, integration, materials, boms, work-centers).
 
 ## Findings
 - Worktree created; `bun.lock` modified by `bun install`.
@@ -84,6 +110,8 @@ task:
 - Capability map table populated in `user_docs/demo/permission_audit_plan.md` with verified flow step → permission → API pairs.
 - Run detail page modules identified: flow progress, run summary/stats, readiness card, FAI card, OQC card, route progress, unit list, dialogs. Noted gaps: “生成单件” button lacks permission gating; “前往上料” link lacks loading permission gating; FAI/OQC cards are hidden entirely when missing view permission (may conflict with flow continuity policy). See `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx`.
 - Added `/mes/runs/:runNo` audit entry to `user_docs/demo/permission_audit_plan.md` with module-level decisions and gaps.
+- Work orders page audit: route filter uses `/routes` (route:read) without gating; receive work order UI uses `wo:receive` but API requires `system:integration`. See `apps/web/src/routes/_authenticated/mes/work-orders.tsx` and `apps/web/src/hooks/use-work-orders.ts`.
+- Runs list audit: line filter uses `/lines` requiring `run:read` + `run:create` and is ungated; batch authorize button disabled but selection column remains visible. See `apps/web/src/routes/_authenticated/mes/runs/index.tsx`, `apps/web/src/components/select/line-select.tsx`, and `apps/server/src/modules/mes/line/routes.ts`.
 
 ## Open Questions
 -

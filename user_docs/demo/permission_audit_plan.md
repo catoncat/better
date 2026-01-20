@@ -76,6 +76,7 @@ DIP 重点：
 | 上料配置 | 站位/映射/解锁 | loading:view | loading:config | /lines/:lineId/feeder-slots (POST/PUT/DELETE), /feeder-slots/:slotId/unlock, /slot-mappings (POST/PUT/DELETE) | 配置与运维模块 |
 | FAI 状态/列表 | FAI 列表/状态卡 | quality:fai | - | /fai, /fai/:faiId, /fai/run/:runNo, /fai/run/:runNo/gate | 核心上下文 |
 | FAI 执行 | 创建/开始/记录/完成 | quality:fai | quality:fai | /fai/run/:runNo (POST), /fai/:faiId/start, /fai/:faiId/items, /fai/:faiId/complete | 关键步骤 |
+| 工位/队列视图 | 工位选择/队列列表 | exec:read（或 exec:track_in / exec:track_out） | - | /stations, /stations/:stationCode/queue | 执行上下文 |
 | 执行进站/出站 | 执行操作面板 | exec:track_in / exec:track_out | exec:track_in / exec:track_out | /stations/resolve-unit/:sn, /stations/:stationCode/track-in, /stations/:stationCode/track-out | 关键步骤 |
 | 数据采集规格 | 采集项列表/配置 | data_spec:read + data_spec:config | data_spec:config | /data-collection-specs, /data-collection-specs/:specId | 配置与运维模块 |
 | 不良与处置 | 不良列表/处置 | quality:disposition | quality:disposition | /defects, /defects/:defectId, /defects/:defectId/disposition, /defects/:defectId/release | 敏感信息 |
@@ -194,6 +195,7 @@ DIP 重点：
 - `/mes/oqc`
 - `/mes/oqc/rules`
 - `/mes/defects`
+- `/mes/rework-tasks`
 - `/mes/trace`
 
 配置与工艺：
@@ -298,4 +300,603 @@ DIP 重点：
 - 创建 FAI：`quality:fai` ✅  
 - MRB 决策：`quality:disposition` ✅  
 - 批次收尾：`run:close` ✅  
-- 生成单件：`run:authorize` ⚠️（入口未 gating）  
+- 生成单件：`run:authorize` ⚠️（入口未 gating）
+
+### 页面：/mes/work-orders（工单管理）
+
+**页面级查询**：
+- 工单列表：`wo:read` → `/work-orders`
+- 路由筛选：`route:read` → `/routes`（用于路由筛选选项）
+
+**动作 API**：
+- 接收外部工单：`system:integration` → `/integration/work-orders`
+- 发布工单：`wo:release` → `/work-orders/:woNo/release`
+- 创建批次：`run:create` → `/work-orders/:woNo/runs`
+- 更新拣货状态：`wo:update` → `/work-orders/:woNo/pick-status`
+- 工单收尾：`wo:close` → `/work-orders/:woNo/close`
+
+**模块审计**：
+
+1) 工单列表/卡片  
+- View 权限：`wo:read`  
+- 展示策略：核心上下文，缺 view → 无权限占位  
+- 状态：✅  
+
+2) 过滤条件（路由工艺筛选）  
+- View 权限：`route:read`  
+- 展示策略：可选模块，缺 view → 隐藏该筛选  
+- 状态：⚠️ 当前未基于权限隐藏，且始终请求 `/routes`  
+
+3) 接收工单按钮 + 对话框  
+- Action 权限：**API 要求 `system:integration`，UI gating 使用 `wo:receive`**  
+- 展示策略：配置/运维动作，缺权限 → 隐藏  
+- 状态：⚠️ 权限点不匹配（需要统一为 `system:integration` 或后端改为 `wo:receive`）  
+
+4) 发布/创建批次/更新拣货/收尾动作  
+- Action 权限：`wo:release` / `run:create` / `wo:update` / `wo:close`  
+- 展示策略：缺 action → 隐藏  
+- 状态：✅ 已在卡片/表格中 gating  
+
+### 页面：/mes/runs（批次列表）
+
+**页面级查询**：
+- 批次列表：`run:read` → `/runs`
+- 线体筛选：`run:read` + `run:create` → `/lines`（LineSelect 使用）
+
+**动作 API**：
+- 授权/撤销：`run:authorize` / `run:revoke` → `/runs/:runNo/authorize`
+
+**模块审计**：
+
+1) 批次列表/卡片  
+- View 权限：`run:read`  
+- 展示策略：核心上下文  
+- 状态：✅  
+
+2) 创建批次入口（跳转工单页）  
+- Action 权限：`run:create`  
+- 展示策略：缺 action → 隐藏  
+- 状态：✅ `<Can>` gating  
+
+3) 线体筛选（LineSelect）  
+- View 权限：`run:read` + `run:create`  
+- 展示策略：可选模块，缺权限 → 隐藏  
+- 状态：⚠️ 当前未 gating，`/lines` 可能 403  
+
+4) 批量授权  
+- Action 权限：`run:authorize`  
+- 展示策略：缺权限 → 隐藏按钮 + 选择列  
+- 状态：⚠️ 当前按钮禁用但选择列仍显示  
+
+5) 行内授权/撤销  
+- Action 权限：`run:authorize` / `run:revoke`  
+- 展示策略：缺权限 → 隐藏  
+- 状态：✅ 已 gating  
+
+### 页面：/mes/readiness-config（准备检查配置）
+
+**页面级查询**：
+- 产线列表：`run:read` + `run:create` → `/lines`
+- Readiness 配置：`readiness:view` → `/lines/:lineId/readiness-config`
+
+**动作 API**：
+- 更新准备检查配置：`readiness:config` → `/lines/:lineId/readiness-config`（PUT）
+- 更新产线工艺类型：`readiness:config` → `/lines/:lineId`（PATCH）
+
+**模块审计**：
+
+1) 产线选择器  
+- View 权限：`run:read` + `run:create`  
+- 展示策略：可选模块，缺权限 → 隐藏筛选（避免 `/lines` 403）  
+- 状态：⚠️ 当前无 gating，始终请求 `/lines`  
+
+2) 工艺类型选择 + 保存  
+- View 权限：`readiness:view`（页面上下文）  
+- Action 权限：`readiness:config`  
+- 展示策略：缺 view → 页面级无权限占位；缺 action → 隐藏保存按钮  
+- 状态：⚠️ 仅保存按钮 `<Can>`，查询与表单本体未做 view gating  
+
+3) 检查项列表（Checkbox 网格）  
+- View 权限：`readiness:view`  
+- Action 权限：`readiness:config`  
+- 展示策略：缺 view → 无权限占位；缺 action → 只读（禁用勾选 + 隐藏保存）  
+- 状态：⚠️ 目前缺 view gating，且勾选在无权限时仍可交互  
+
+### 页面：/mes/readiness-exceptions（准备异常看板）
+
+**页面级查询**：
+- 异常列表：`readiness:view` → `/readiness/exceptions`
+- 产线列表（筛选）：`run:read` + `run:create` → `/lines`
+
+**模块审计**：
+
+1) 筛选条件  
+- 产线筛选：`run:read` + `run:create`  
+- 其他筛选（状态/日期）：无权限要求  
+- 展示策略：缺产线权限 → 隐藏产线筛选  
+- 状态：⚠️ 当前未 gating，始终请求 `/lines`  
+
+2) 异常列表表格  
+- View 权限：`readiness:view`  
+- 展示策略：缺 view → 页面级“无权限查看”占位（监控类页面）  
+- Query gating：`useReadinessExceptions` 需依赖 `readiness:view`  
+- 状态：⚠️ 当前未 gating  
+
+3) 批次号跳转  
+- Action 权限：`run:read`（进入批次详情）  
+- 展示策略：缺 `run:read` 时降级为纯文本  
+- 状态：⚠️ 当前始终渲染 Link  
+
+### 页面：/mes/loading（上料防错）
+
+**页面级查询**：
+- 批次列表：`run:read` → `/runs`（PREP 列表）
+- 批次详情：`run:read` → `/runs/:runNo`
+- 上料期望/记录：`loading:view` → `/runs/:runNo/loading/expectations`, `/runs/:runNo/loading`
+
+**动作 API**：
+- 加载站位表：`loading:verify` → `/runs/:runNo/loading/load-table`
+- 扫码验证/替换：`loading:verify` → `/loading/verify`, `/loading/replace`（见 ScanPanel）
+- 站位解锁：`loading:config` → `/feeder-slots/:slotId/unlock`（见 SlotList）
+
+**模块审计**：
+
+1) 批次选择器  
+- View 权限：`run:read`  
+- 展示策略：缺权限 → 页面级无权限占位  
+- 状态：⚠️ 当前无 gating，始终请求 `/runs` + `/runs/:runNo`  
+
+2) 初始化站位表卡片  
+- View 权限：`loading:view`（上下文）  
+- Action 权限：`loading:verify`  
+- 展示策略：缺 view → 无权限占位；缺 action → 禁用按钮  
+- 状态：⚠️ 当前未 gating  
+
+3) 扫码验证面板 + 站位列表  
+- View 权限：`loading:view`  
+ - Action 权限：`loading:verify`  
+ - 展示策略：缺 view → 无权限占位（保持流程连续性）；缺 action → 禁用提交按钮  
+ - 状态：⚠️ 当前未 gating  
+
+4) 上料历史记录  
+- View 权限：`loading:view`  
+- 展示策略：缺 view → 隐藏  
+- 状态：⚠️ 当前未 gating（`useLoadingRecords`）  
+
+5) 站位解锁按钮  
+- Action 权限：`loading:config`  
+- 展示策略：缺权限 → 隐藏解锁入口  
+- 状态：⚠️ 当前未 gating  
+
+### 页面：/mes/loading/slot-config（站位表配置）
+
+**页面级查询**：
+- 产线列表：`run:read` + `run:create` → `/lines`
+- 站位列表：`loading:view` → `/lines/:lineId/feeder-slots`
+- 物料映射列表：`loading:view` → `/slot-mappings`
+
+**动作 API**：
+- 站位增删改：`loading:config` → `/lines/:lineId/feeder-slots`（POST/PUT/DELETE）
+- 物料映射增删改：`loading:config` → `/slot-mappings`（POST/PUT/DELETE）
+- 站位解锁：`loading:config` → `/feeder-slots/:slotId/unlock`（如页面支持）
+
+**模块审计**：
+
+1) 产线选择器  
+- View 权限：`run:read` + `run:create`  
+- 展示策略：可选模块，缺权限 → 隐藏（避免 `/lines` 403）  
+- 状态：⚠️ 当前未 gating  
+
+2) 站位/映射列表  
+- View 权限：`loading:view`  
+- 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
+- 状态：⚠️ 当前未 gating  
+
+3) 新建/编辑/删除按钮与菜单  
+- Action 权限：`loading:config`  
+- 展示策略：缺 action → 隐藏  
+- 状态：✅ 已 `<Can>` gating  
+
+4) 弹窗（SlotDialog/MappingDialog）  
+- Action 权限：`loading:config`  
+- 展示策略：缺 action → 不可打开  
+- 状态：⚠️ 入口已 gating，但弹窗本体未做权限校验（需确认是否由入口控制即可）  
+
+5) 路由筛选（MappingDialog 内）  
+- View 权限：`route:read`（`useRouteSearch`）  
+- 展示策略：缺权限 → 隐藏路由选择或仅保留“所有路由”  
+- 状态：⚠️ 当前无 gating，可能触发 `/routes` 403  
+
+### 页面：/mes/execution（工位执行）
+
+**页面级查询**：
+- 工位列表：`exec:read` 或 `exec:track_in` / `exec:track_out` → `/stations`
+- 工位队列：`exec:read` 或 `exec:track_in` / `exec:track_out` → `/stations/:stationCode/queue`
+- 可执行批次列表：`run:read` → `/runs`（AUTHORIZED/PREP/IN_PROGRESS）
+- 批次详情/待进站 Unit：`run:read` → `/runs/:runNo`, `/runs/:runNo/units`
+- SN 解析：`exec:track_in`（推测） → `/stations/resolve-unit/:sn`
+- 出站采集项：`exec:track_out` → `/stations/:stationCode/data-specs/:sn`
+
+**动作 API**：
+- 进站：`exec:track_in` → `/stations/:stationCode/track-in`
+- 出站：`exec:track_out` → `/stations/:stationCode/track-out`
+
+**模块审计**：
+
+1) 工位选择器  
+- View 权限：`exec:read` 或 `exec:track_in` / `exec:track_out`  
+- 展示策略：缺权限 → 页面级无权限占位  
+- 状态：⚠️ 当前无 gating  
+
+2) 待执行批次列表（快捷选择）  
+- View 权限：`run:read`  
+- 展示策略：缺权限 → 隐藏  
+- 状态：⚠️ 当前未 gating  
+
+3) 当前队列  
+- View 权限：`exec:read` 或 `exec:track_in` / `exec:track_out`  
+- Action 权限：`exec:track_out`（出站/报不良）  
+- 展示策略：缺 view → 无权限占位；缺 action → 禁用按钮  
+- 状态：⚠️ 当前仅按钮禁用，队列查询未 gating  
+
+4) 待进站列表  
+- View 权限：`run:read`（队列数据）  
+- Action 权限：`exec:track_in`（进站）  
+- 展示策略：缺 view → 无权限占位；缺 action → 禁用按钮  
+- 状态：⚠️ 当前仅按钮禁用，查询未 gating  
+
+5) 进站/出站表单  
+- View 权限：`run:read`（下拉列表）  
+- Action 权限：`exec:track_in` / `exec:track_out`  
+- 展示策略：缺 action → 禁用提交  
+- 状态：⚠️ 仅按钮禁用；`resolve-unit` 查询未按权限 gating  
+
+6) TrackOut 对话框（含数据采集）  
+- View 权限：`exec:track_out`  
+- Action 权限：`exec:track_out`  
+- 展示策略：缺权限 → 不可打开  
+- 状态：⚠️ 入口依赖按钮禁用，但对话框内 query 未显式 gating  
+
+### 页面：/mes/fai（首件检验）
+
+**页面级查询**：
+- FAI 列表/详情：`quality:fai` → `/fai`, `/fai/:faiId`
+- 批次列表/详情：`run:read` → `/runs`, `/runs/:runNo`
+- 采集项模板：`data_spec:read` + `data_spec:config` → `/data-collection-specs`
+
+**动作 API**：
+- 开始/记录/完成 FAI：`quality:fai` → `/fai/:faiId/start`, `/fai/:faiId/items`, `/fai/:faiId/complete`
+- 生成单件：`run:authorize` → `/runs/:runNo/generate-units`
+
+**模块审计**：
+
+1) FAI 列表 + 详情  
+- View 权限：`quality:fai`  
+- 展示策略：缺 view → 页面级无权限占位  
+- 状态：⚠️ 当前未 gating，直接发起 `/fai` 请求  
+
+2) 批次筛选（Run Combobox）  
+- View 权限：`run:read`  
+- 展示策略：缺权限 → 隐藏筛选  
+- 状态：⚠️ 当前未 gating  
+
+3) 开始/记录/完成按钮  
+- Action 权限：`quality:fai`  
+- 展示策略：缺权限 → 隐藏  
+- 状态：✅ `<Can>` gating  
+
+4) 采集项模板（记录弹窗）  
+- View 权限：`data_spec:read` + `data_spec:config`  
+- 展示策略：缺权限 → 隐藏模板选择或提示无权限  
+- 状态：⚠️ 当前未 gating，可能触发 `/data-collection-specs` 403  
+
+5) 生成单件（FAI 开始时触发）  
+- Action 权限：`run:authorize`  
+- 展示策略：缺权限 → 不提供生成路径或提示无权限  
+- 状态：⚠️ 当前仅 `quality:fai` gating，未校验 `run:authorize`  
+
+6) 批次号跳转  
+- Action 权限：`run:read`  
+- 展示策略：缺权限 → 降级为纯文本  
+- 状态：⚠️ 当前始终渲染 Link  
+
+### 页面：/mes/oqc（出货检验）
+
+**页面级查询**：
+- OQC 列表/详情：`quality:oqc` → `/oqc`, `/oqc/:oqcId`
+
+**动作 API**：
+- 开始/记录/完成 OQC：`quality:oqc` → `/oqc/:oqcId/start`, `/oqc/:oqcId/items`, `/oqc/:oqcId/complete`
+
+**模块审计**：
+
+1) OQC 列表  
+- View 权限：`quality:oqc`  
+- 展示策略：缺 view → 页面级无权限占位  
+- 状态：⚠️ 当前未 gating  
+
+2) 操作按钮（开始/记录/完成/查看）  
+- Action 权限：`quality:oqc`  
+- 展示策略：缺权限 → 隐藏或只读  
+- 状态：⚠️ 开始/记录/完成已 gating；“查看记录”在 `OqcCard`/`oqcColumns` 中未做权限限制  
+
+3) 记录/完成弹窗  
+- Action 权限：`quality:oqc`  
+- 展示策略：缺权限 → 不可打开  
+- 状态：⚠️ 入口可能未统一 gating；弹窗本身无权限校验（仅依赖 `readOnly`/状态）  
+
+### 页面：/mes/oqc/rules（OQC 抽检规则）
+
+**页面级查询**：
+- 规则列表：`quality:oqc` → `/oqc/sampling-rules`
+
+**动作 API**：
+- 新建/编辑/停用规则：`quality:oqc` → `/oqc/sampling-rules`（POST/PATCH/DELETE）
+
+**模块审计**：
+
+1) 规则列表  
+- View 权限：`quality:oqc`  
+- 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
+- 状态：⚠️ 当前未 gating  
+
+2) 新建/编辑/停用  
+- Action 权限：`quality:oqc`  
+- 展示策略：缺权限 → 隐藏入口  
+- 状态：✅ `<Can>` gating  
+
+3) RuleDialog 内部依赖  
+- View 权限：`run:read` + `run:create`（产线列表），`route:read`（路由列表）  
+- 展示策略：缺权限 → 隐藏对应筛选或降级为“ALL”  
+- 状态：⚠️ 当前未 gating，可能触发 `/lines` / `/routes` 403  
+
+### 页面：/mes/defects（缺陷管理）
+
+**页面级查询**：
+- 缺陷列表/详情：`quality:disposition` → `/defects`, `/defects/:defectId`
+- 追溯步骤（返工）：`trace:read` → `/trace/units/:sn`
+
+**动作 API**：
+- 处置/释放：`quality:disposition` → `/defects/:defectId/disposition`, `/defects/:defectId/release`
+
+**模块审计**：
+
+1) 缺陷列表 + 详情  
+- View 权限：`quality:disposition`  
+- 展示策略：敏感模块，缺 view → 直接隐藏/页面级无权限占位  
+- 状态：⚠️ 当前未 gating  
+
+2) 处置/释放操作  
+- Action 权限：`quality:disposition`  
+- 展示策略：缺权限 → 隐藏按钮与对话框入口  
+- 状态：⚠️ 当前未 gating  
+
+3) 返工工步查询（追溯）  
+- View 权限：`trace:read`  
+- 展示策略：缺权限 → 退化为手动输入工步  
+- 状态：✅ 已通过 `canTraceRead` gating  
+
+### 页面：/mes/rework-tasks（返工任务）
+
+**页面级查询**：
+- 返工任务列表：`quality:disposition` → `/rework-tasks`
+
+**动作 API**：
+- 完成返工：`quality:disposition` → `/rework-tasks/:taskId/complete`
+
+**模块审计**：
+
+1) 返工任务列表  
+- View 权限：`quality:disposition`  
+- 展示策略：敏感模块，缺 view → 页面级无权限占位  
+- 状态：⚠️ 当前未 gating（`useReworkTaskList`）  
+
+2) 完成返工按钮/对话框  
+- Action 权限：`quality:disposition`  
+- 展示策略：缺权限 → 隐藏按钮与对话框入口  
+- 状态：⚠️ 当前未 gating  
+
+### 页面：/mes/trace（追溯查询）
+
+**页面级查询**：
+- 追溯详情：`trace:read` → `/trace/units/:sn`（`mode=run|latest`）
+
+**模块审计**：
+
+1) 查询表单  
+- View 权限：`trace:read`  
+- 展示策略：缺权限 → 页面级无权限占位  
+- 状态：⚠️ 当前未 gating  
+
+2) 追溯结果（产品/路由/执行/采集/缺陷/物料）  
+- View 权限：`trace:read`  
+- 展示策略：核心上下文，缺 view → 无权限占位  
+- 状态：⚠️ 当前 `useUnitTrace` 未做权限 gating  
+
+### 页面：/mes/routes（路由管理）
+
+**页面级查询**：
+- 路由列表：`route:read` → `/routes`
+
+**模块审计**：
+
+1) 路由列表/卡片  
+- View 权限：`route:read`  
+- 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
+- 状态：⚠️ 当前未 gating（`useRouteList`）  
+
+2) 详情入口（卡片/表格）  
+- View 权限：`route:read`  
+- 展示策略：缺权限 → 隐藏入口  
+- 状态：⚠️ `RouteCard` / `routeColumns` 未 gating  
+
+### 页面：/mes/routes/:routingCode（路由详情）
+
+**页面级查询**：
+- 路由详情：`route:read` → `/routes/:routingCode`
+- 执行配置：`route:read` → `/routes/:routingCode/execution-config`
+- 站点组：`route:read` / `route:configure` / `wo:release` / `run:create` → `/stations/groups`
+- 工位列表：`exec:read` / `exec:track_in` / `exec:track_out` → `/stations`
+- 采集项：`data_spec:read` + `data_spec:config` → `/data-collection-specs`
+
+**动作 API**：
+- 更新工艺类型：`route:configure` → `/routes/:routingCode`（PATCH）
+- 新增/编辑执行配置：`route:configure` → `/routes/:routingCode/execution-config`（POST/PATCH）
+- 编译路由：`route:compile` → `/routes/:routingCode/compile`
+- 批量配置站点组：`route:configure` → `/routes/:routingCode/execution-config`（POST）
+
+**模块审计**：
+
+1) 路由信息/步骤列表  
+- View 权限：`route:read`  
+- 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
+- 状态：⚠️ 当前未 gating  
+
+2) 执行语义配置列表  
+- View 权限：`route:read`  
+- 展示策略：缺 view → 页面级无权限占位  
+- 状态：⚠️ 当前未 gating（`useExecutionConfigs`）  
+
+3) 编译按钮  
+- Action 权限：`route:compile`  
+- 展示策略：缺权限 → 隐藏  
+- 状态：✅ `<Can>` gating  
+
+4) 工艺类型保存 + 新增配置  
+- Action 权限：`route:configure`  
+- 展示策略：缺权限 → 隐藏  
+- 状态：✅ `<Can>` gating  
+
+5) 执行配置弹窗提交  
+- Action 权限：`route:configure`  
+- 展示策略：缺权限 → 禁用保存  
+- 状态：⚠️ 仅禁用提交；入口需确认是否完全受控  
+
+6) 站点组/工位选择器  
+- View 权限：`route:read` / `route:configure` / `wo:release` / `run:create`（站点组）  
+- View 权限：`exec:read` / `exec:track_in` / `exec:track_out`（工位）  
+- 展示策略：缺权限 → 隐藏对应选择器  
+- 状态：⚠️ 当前未 gating（`useStationGroups` / `useStations`）  
+
+7) 采集项选择器（DataSpecSelector）  
+- View 权限：`data_spec:read` + `data_spec:config`  
+- 展示策略：缺权限 → 隐藏/提示无权限  
+- 状态：⚠️ 当前未 gating  
+
+### 页面：/mes/route-versions（路由版本）
+
+**页面级查询**：
+- 路由搜索：`route:read` → `/routes`
+- 版本列表：`route:read` → `/routes/:routingCode/versions`
+
+**动作 API**：
+- 编译路由：`route:compile` → `/routes/:routingCode/compile`
+
+**模块审计**：
+
+1) 路由选择器 + 版本列表  
+- View 权限：`route:read`  
+- 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
+- 状态：⚠️ 当前未 gating（`RouteSelect` / `useRouteVersions`）  
+
+2) 编译按钮  
+- Action 权限：`route:compile`  
+- 展示策略：缺权限 → 隐藏  
+- 状态：✅ `<Can>` gating  
+
+### 页面：/mes/data-collection-specs（采集项管理）
+
+**页面级查询**：
+- 采集项列表：`data_spec:read` + `data_spec:config` → `/data-collection-specs`
+- 工序列表：`operation:read` + `data_spec:config` → `/operations`
+
+**动作 API**：
+- 新建/编辑/启停：`data_spec:config` → `/data-collection-specs`（POST/PATCH）
+
+**模块审计**：
+
+1) 列表 + 筛选  
+- View 权限：`data_spec:read` + `data_spec:config`  
+- 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
+- 状态：⚠️ 当前未 gating  
+
+2) 工序筛选  
+- View 权限：`operation:read` + `data_spec:config`  
+- 展示策略：缺权限 → 隐藏筛选  
+- 状态：⚠️ 当前未 gating（`useOperationList`）  
+
+3) 新建/编辑/启停  
+- Action 权限：`data_spec:config`  
+- 展示策略：缺权限 → 隐藏  
+- 状态：✅ 表格/卡片动作已 gating  
+
+### 页面：/mes/integration/status（集成状态）
+
+**页面级查询**：
+- 集成状态：`system:integration` → `/integration/status`
+
+**模块审计**：
+
+1) 状态列表  
+- View 权限：`system:integration`  
+- 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
+- 状态：⚠️ 当前未 gating（仅刷新按钮受控）  
+
+### 页面：/mes/integration/manual-entry（耗材状态录入）
+
+**页面级查询**：
+- 产线列表：`run:read` + `run:create` → `/lines`
+
+**动作 API**：
+- 钢网状态录入：`system:integration` → `/integration/stencil-status`
+- 锡膏状态录入：`system:integration` → `/integration/solder-paste-status`
+- 产线绑定（钢网/锡膏）：`loading:config` → `/integration/lines/:lineId/*`
+
+**模块审计**：
+
+1) 钢网/锡膏状态录入表单  
+- Action 权限：`system:integration`  
+- 展示策略：缺权限 → 隐藏提交按钮  
+- 状态：✅ `<Can>` gating（但表单本体仍可见）  
+
+2) 产线绑定（选择产线 + 绑定按钮）  
+- View 权限：`run:read` + `run:create`  
+- Action 权限：`loading:config`  
+- 展示策略：缺 view → 隐藏产线选择；缺 action → 隐藏绑定按钮  
+- 状态：⚠️ 产线列表未 gating，按钮仅 `<Can>` gating  
+
+### 页面：/mes/materials（物料主数据）
+
+**页面级查询**：
+- 物料列表：`route:read` → `/materials`
+
+**模块审计**：
+
+1) 列表 + 筛选  
+- View 权限：`route:read`  
+- 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
+- 状态：⚠️ 当前未 gating  
+
+### 页面：/mes/boms（BOM）
+
+**页面级查询**：
+- BOM 列表：`route:read` → `/boms`
+
+**模块审计**：
+
+1) 列表 + 明细弹窗  
+- View 权限：`route:read`  
+- 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
+- 状态：⚠️ 当前未 gating  
+
+### 页面：/mes/work-centers（工作中心）
+
+**页面级查询**：
+- 工作中心列表：`route:read` → `/work-centers`
+
+**模块审计**：
+
+1) 列表 + 筛选  
+- View 权限：`route:read`  
+- 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
+- 状态：⚠️ 当前未 gating  

@@ -41,6 +41,7 @@
 - Added module-level decision flow (flow continuity, optional module hide, config CTA rules) and output requirements.
 - Filled capability map table with core flow steps and verified API/permission pairs.
 - Added first page audit entry for `/mes/runs/:runNo` with module-level gating decisions and gaps.
+- Added audit entries for `/mes/work-orders` and `/mes/runs` with module-level gating decisions and gaps.
 
 ## Errors
 - None.
