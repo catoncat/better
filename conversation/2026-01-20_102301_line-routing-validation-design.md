@@ -99,3 +99,7 @@
 
 ## Findings
 - 2026-01-20: commit 3cd052f unintentionally includes apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx (unrelated) alongside conversation note; need user direction to undo or keep.
+
+## Findings
+- 2026-01-20: Navigation has no Line Management entry; readiness config lives at /mes/readiness-config under Permission.READINESS_CONFIG.
+- 2026-01-20: Line model only has code/name/processType/meta; current API exposes list + processType patch, no CRUD for line master data.
