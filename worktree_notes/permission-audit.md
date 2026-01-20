@@ -60,6 +60,9 @@ task:
 - MRB decision/rework endpoints require `quality:disposition`. See `apps/server/src/modules/mes/oqc/mrb-routes.ts`.
 - Audit report drafted at `user_docs/demo/permission_audit_report.md`.
 - `bun install` updated `bun.lock` to include `@better-app/shared` workspace entries.
+- Flow docs reviewed: E2E and SMT specify readiness → loading → FAI → authorize → execution → OQC/MRB; permission design should align per step and not per role. See `domain_docs/mes/spec/process/01_end_to_end_flows.md` and `domain_docs/mes/spec/process/03_smt_flows.md`.
+- DIP flow adds prep/FAI gate, multi-stage IPQC-like checks, OQC/MRB; needs permission mapping per block rather than per role. See `domain_docs/mes/spec/process/04_dip_flows.md`.
+- Added plan note at `conversation/2026-01-20_142730_permission_audit_plan.md`.
 
 ## Open Questions
 -
