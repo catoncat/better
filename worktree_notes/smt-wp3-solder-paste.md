@@ -108,5 +108,11 @@ task:
 - Use dedicated worktree `smt-wp3-solder-paste` to isolate from dirty main.
 - Implement SMT-specific tables first; generalized abstraction deferred.
 
+## Errors
+- `bun scripts/smart-verify.ts` failed at `biome check` with formatting/import order issues in new solder paste and cold storage files. Next: run `bun run format`, fix import order manually, then rerun smart-verify.
+- Ran `bun run format` and fixed import order in solder paste usage list; ready to rerun smart-verify.
+- `bun scripts/smart-verify.ts` failed at `web check-types` due to `invalid_type_error` on `z.number` in cold storage dialog. Next: remove unsupported option and rerun smart-verify.
+- `bun scripts/smart-verify.ts` passed after zod fix and formatting cleanup.
+
 ## Open Questions
 -
