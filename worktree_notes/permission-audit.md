@@ -82,6 +82,8 @@ task:
 - FAI actions require `quality:fai`: create `/fai/run/:runNo`, start `/fai/:faiId/start`, record items `/fai/:faiId/items`, complete `/fai/:faiId/complete` (see `apps/server/src/modules/mes/fai/routes.ts`).
 - Readiness config endpoints `/lines/:lineId/readiness-config` (GET) require `readiness:view`, PUT requires `readiness:config` (see `apps/server/src/modules/mes/line/routes.ts`).
 - Capability map table populated in `user_docs/demo/permission_audit_plan.md` with verified flow step → permission → API pairs.
+- Run detail page modules identified: flow progress, run summary/stats, readiness card, FAI card, OQC card, route progress, unit list, dialogs. Noted gaps: “生成单件” button lacks permission gating; “前往上料” link lacks loading permission gating; FAI/OQC cards are hidden entirely when missing view permission (may conflict with flow continuity policy). See `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx`.
+- Added `/mes/runs/:runNo` audit entry to `user_docs/demo/permission_audit_plan.md` with module-level decisions and gaps.
 
 ## Open Questions
 -

@@ -231,3 +231,71 @@ DIP 重点：
 - 模块级能力地图（追加到本文件）
 - 页面级审计表（逐页追加）
 - 修复任务列表（按切片）
+
+---
+
+## 9. 页面审计记录（逐页追加）
+
+### 页面：/mes/runs/:runNo（批次详情）
+
+**页面级查询**：
+- run 详情/units：`run:read` → `/runs/:runNo`, `/runs/:runNo/units`
+- readiness 最新：`readiness:view` → `/runs/:runNo/readiness/latest`
+- FAI gate/记录：`quality:fai` → `/fai/run/:runNo`, `/fai/run/:runNo/gate`
+- OQC 记录：`quality:oqc` → `/oqc/run/:runNo`
+
+**模块审计**：
+
+1) 批次头部 + 操作区  
+- View 权限：`run:read`  
+- Action 权限：`run:authorize` / `run:revoke` / `run:close` / `exec:track_in`  
+- 展示策略：Action 缺失 → 隐藏按钮（当前为 `<Can>`）  
+- 状态：✅ 已 gating  
+
+2) 流程进度卡（就绪/FAI/授权/执行/收尾）  
+- View 权限：`readiness:view`, `quality:fai`, `run:read`  
+- 展示策略：缺 view → 显示“无权限”标签（已在 readiness/fai stage 处理）  
+- 状态：✅ 基本符合（需确认文案一致性）  
+
+3) 批次统计卡（含“生成单件”）  
+- View 权限：`run:read`  
+- Action 权限：`run:authorize`  
+- 展示策略：缺 action → 隐藏或禁用按钮  
+- 状态：⚠️ “生成单件”按钮未做权限 gating  
+
+4) 准备状态卡（就绪检查）  
+- View 权限：`readiness:view`  
+- Action 权限：`readiness:check` / `readiness:override`  
+- 展示策略：缺 view → 显示“无权限查看”；缺 action → 禁用/隐藏按钮  
+- 状态：✅ 已 gating  
+- 补充：`前往上料`链接应受 `loading:view` 或 `loading:verify` 约束（待确认）  
+
+5) FAI 卡片  
+- View 权限：`quality:fai`  
+- Action 权限：`quality:fai`  
+- 展示策略：缺 view → 建议保留“无权限查看”占位（保持流程连续性）  
+- 状态：⚠️ 当前缺 view 时整卡隐藏  
+
+6) OQC 卡片  
+- View 权限：`quality:oqc`  
+- Action 权限：`quality:oqc` / `quality:disposition`（MRB）  
+- 展示策略：缺 view → 建议占位；缺 action → 隐藏按钮  
+- 状态：⚠️ 当前缺 view 时整卡隐藏；MRB 按钮已有 gating  
+
+7) 路由版本卡片  
+- View 权限：`run:read`（数据来自 run 详情）  
+- 额外权限：`route:read`（进入路由详情页）  
+- 展示策略：无 `route:read` 时链接降级为纯文本  
+- 状态：⚠️ 需确认  
+
+8) 路由进度 / Unit 列表  
+- View 权限：`run:read`  
+- 展示策略：正常展示  
+- 状态：✅  
+
+**Dialog 审计**：  
+- 豁免检查项：`readiness:override` ✅  
+- 创建 FAI：`quality:fai` ✅  
+- MRB 决策：`quality:disposition` ✅  
+- 批次收尾：`run:close` ✅  
+- 生成单件：`run:authorize` ⚠️（入口未 gating）  
