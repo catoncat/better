@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useApiError } from "@/hooks/use-api-error";
+import { ApiError } from "@/lib/api-error";
 import { client, unwrap } from "@/lib/eden";
 
 type ReadinessCheckResponse = Awaited<
@@ -71,25 +72,24 @@ export function useUpdateReadinessConfig() {
 	});
 }
 
-export function useReadinessLatest(runNo: string, type?: "PRECHECK" | "FORMAL") {
+export function useReadinessLatest(
+	runNo: string,
+	type?: "PRECHECK" | "FORMAL",
+	options?: { enabled?: boolean },
+) {
 	return useQuery<ReadinessCheck | null>({
 		queryKey: ["mes", "readiness", runNo, "latest", type],
-		enabled: Boolean(runNo),
+		enabled: Boolean(runNo) && (options?.enabled ?? true),
 		queryFn: async () => {
 			const response = await client.api.runs({ runNo }).readiness.latest.get({ query: { type } });
-
-			if (response.error) {
-				const errorVal = response.error.value as { error?: { code?: string } } | undefined;
-				if (errorVal?.error?.code === "NO_CHECK_FOUND") {
+			try {
+				return unwrap(response);
+			} catch (error) {
+				if (error instanceof ApiError && error.code === "NO_CHECK_FOUND") {
 					return null;
 				}
-				throw new Error("Failed to fetch readiness check");
+				throw error;
 			}
-
-			if (!response.data) return null;
-
-			const data = response.data as { ok: boolean; data?: ReadinessCheck };
-			return data.ok ? (data.data ?? null) : null;
 		},
 		staleTime: 10_000,
 	});

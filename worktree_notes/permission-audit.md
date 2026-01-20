@@ -66,3 +66,4 @@ task:
 
 ## Errors
 - Attempted to write conversation note with `cat >`, failed due to `zsh: file exists`; next approach: write via `cat >|` or `apply_patch` to overwrite.
+- `git add` failed because `$runNo` expanded in path; next approach: quote or escape the path when adding.

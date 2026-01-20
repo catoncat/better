@@ -80,6 +80,11 @@ function RunDetailPage() {
 	const { runNo } = Route.useParams();
 	const navigate = useNavigate();
 	const { hasPermission } = useAbility();
+	const canViewReadiness = hasPermission(Permission.READINESS_VIEW);
+	const canCheckReadiness = hasPermission(Permission.READINESS_CHECK);
+	const canOverrideReadiness = hasPermission(Permission.READINESS_OVERRIDE);
+	const canViewFai = hasPermission(Permission.QUALITY_FAI);
+	const canViewOqc = hasPermission(Permission.QUALITY_OQC);
 	const { data, isLoading, refetch, isFetching } = useRunDetail(runNo);
 	const authorizeRun = useAuthorizeRun();
 	const closeRun = useCloseRun();
@@ -95,16 +100,24 @@ function RunDetailPage() {
 		data: readinessData,
 		isLoading: readinessLoading,
 		refetch: refetchReadiness,
-	} = useReadinessLatest(runNo);
+	} = useReadinessLatest(runNo, undefined, { enabled: canViewReadiness });
 
 	// FAI hooks
-	const { data: faiGate, isLoading: faiGateLoading } = useFaiGate(runNo);
-	const { data: existingFai, isLoading: faiLoading, refetch: refetchFai } = useFaiByRun(runNo);
+	const { data: faiGate, isLoading: faiGateLoading } = useFaiGate(runNo, {
+		enabled: canViewFai,
+	});
+	const {
+		data: existingFai,
+		isLoading: faiLoading,
+		refetch: refetchFai,
+	} = useFaiByRun(runNo, { enabled: canViewFai });
 	const createFai = useCreateFai();
 	const startFai = useStartFai();
 
 	// OQC & MRB hooks
-	const { data: oqcDetail, isLoading: oqcLoading } = useOqcByRun(runNo);
+	const { data: oqcDetail, isLoading: oqcLoading } = useOqcByRun(runNo, {
+		enabled: canViewOqc,
+	});
 	const mrbDecision = useMrbDecision();
 
 	const performPrecheck = usePerformPrecheck();
@@ -458,24 +471,30 @@ function RunDetailPage() {
 		data.unitStats.total > 0 ? Math.round((data.unitStats.done / data.unitStats.total) * 100) : 0;
 
 	const isInPrepStatus = data.run.status === "PREP";
-	const canCheckReadiness = hasPermission(Permission.READINESS_CHECK);
 	const canShowReadinessActions = isInPrepStatus && canCheckReadiness;
-	const readinessStatus = readinessData?.status ?? "PENDING";
-	const readinessStageLabel = readinessLoading
-		? "加载中"
-		: readinessStatus === "PASSED"
-			? "已完成"
-			: readinessStatus === "FAILED"
-				? "未通过"
-				: "待开始";
+	const canWaiveReadiness = canOverrideReadiness;
+	const canCreateFai = canViewFai && canShowReadinessActions;
+	const readinessStatus = canViewReadiness ? (readinessData?.status ?? "PENDING") : "UNKNOWN";
+	const readinessStageLabel = !canViewReadiness
+		? "无权限"
+		: readinessLoading
+			? "加载中"
+			: readinessStatus === "PASSED"
+				? "已完成"
+				: readinessStatus === "FAILED"
+					? "未通过"
+					: "待开始";
 	const readinessStageVariant =
 		readinessStatus === "PASSED"
 			? "secondary"
 			: readinessStatus === "FAILED"
 				? "destructive"
 				: "outline";
-	const requiresFai = faiGate?.requiresFai ?? false;
+	const requiresFai = canViewFai ? (faiGate?.requiresFai ?? false) : false;
 	const faiStage = (() => {
+		if (!canViewFai) {
+			return { label: "无权限", variant: "outline" as const };
+		}
 		if (faiGateLoading || faiLoading) {
 			return { label: "加载中", variant: "outline" as const };
 		}
@@ -502,9 +521,12 @@ function RunDetailPage() {
 	const executionStage = ["IN_PROGRESS", "COMPLETED", "CLOSED_REWORK"].includes(data.run.status);
 	const closeoutStage = ["COMPLETED", "CLOSED_REWORK"].includes(data.run.status);
 	const nextAction = (() => {
+		if (!canViewReadiness) return null;
 		if (readinessStatus === "FAILED") return "处理就绪检查失败项";
-		if (readinessStatus !== "PASSED") return "完成就绪检查";
-		if (requiresFai || existingFai) {
+		if (readinessStatus !== "PASSED") {
+			return canCheckReadiness ? "完成就绪检查" : "等待准备检查";
+		}
+		if (canViewFai && (requiresFai || existingFai)) {
 			if (!existingFai) return "创建并开始 FAI";
 			if (existingFai.status === "INSPECTING") return "完成试产并记录检验";
 			if (existingFai.status === "FAIL") return "复核 FAI 失败原因";
@@ -516,7 +538,7 @@ function RunDetailPage() {
 		return null;
 	})();
 	const trialCta =
-		data.run.status === "PREP"
+		canViewFai && data.run.status === "PREP"
 			? (() => {
 					if (faiGateLoading || faiLoading) {
 						return { label: "试产执行", disabled: true };
@@ -543,6 +565,7 @@ function RunDetailPage() {
 					return { label: "等待授权", disabled: true };
 				})()
 			: null;
+	const canShowFaiSection = canViewFai && (faiGate?.requiresFai || existingFai);
 
 	return (
 		<div className="space-y-6">
@@ -821,18 +844,22 @@ function RunDetailPage() {
 					<CardHeader>
 						<div className="flex items-center justify-between">
 							<CardTitle className="flex items-center gap-2">
-								{readinessLoading ? (
-									<Loader2 className="h-5 w-5 animate-spin" />
-								) : !readinessData ? (
-									<AlertTriangle className="h-5 w-5 text-yellow-600" />
-								) : readinessData.status === "PASSED" ? (
-									<CheckCircle2 className="h-5 w-5 text-green-600" />
+								{canViewReadiness ? (
+									readinessLoading ? (
+										<Loader2 className="h-5 w-5 animate-spin" />
+									) : !readinessData ? (
+										<AlertTriangle className="h-5 w-5 text-yellow-600" />
+									) : readinessData.status === "PASSED" ? (
+										<CheckCircle2 className="h-5 w-5 text-green-600" />
+									) : (
+										<XCircle className="h-5 w-5 text-red-600" />
+									)
 								) : (
-									<XCircle className="h-5 w-5 text-red-600" />
+									<Shield className="h-5 w-5 text-muted-foreground" />
 								)}
 								准备状态
 							</CardTitle>
-							{canShowReadinessActions && (
+							{canViewReadiness && canShowReadinessActions && (
 								<div className="flex gap-2">
 									<Button
 										variant="outline"
@@ -867,7 +894,9 @@ function RunDetailPage() {
 						</div>
 					</CardHeader>
 					<CardContent>
-						{readinessLoading ? (
+						{!canViewReadiness ? (
+							<div className="py-4 text-center text-muted-foreground">无权限查看准备状态</div>
+						) : readinessLoading ? (
 							<p className="text-muted-foreground">加载中...</p>
 						) : !readinessData ? (
 							<div className="py-4 text-center text-muted-foreground">
@@ -925,7 +954,7 @@ function RunDetailPage() {
 																(item.waiveReason ? `豁免: ${item.waiveReason}` : "-")}
 														</TableCell>
 														<TableCell>
-															{item.status === "FAILED" && canShowReadinessActions && (
+															{item.status === "FAILED" && canWaiveReadiness && (
 																<Button variant="ghost" size="sm" onClick={() => handleWaive(item)}>
 																	<Shield className="mr-1 h-3 w-3" />
 																	豁免
@@ -950,7 +979,7 @@ function RunDetailPage() {
 			</div>
 
 			{/* FAI Card - only show if FAI is required or exists */}
-			{(faiGate?.requiresFai || existingFai) && (
+			{canShowFaiSection && (
 				<Card>
 					<CardHeader>
 						<div className="flex items-center justify-between">
@@ -968,7 +997,7 @@ function RunDetailPage() {
 								)}
 								首件检验 (FAI)
 							</CardTitle>
-							{canShowReadinessActions && !existingFai && (
+							{canCreateFai && !existingFai && (
 								<Button
 									variant="default"
 									size="sm"
@@ -1029,7 +1058,7 @@ function RunDetailPage() {
 						) : (
 							<div className="py-4 text-center text-muted-foreground">
 								<p>此批次需要首件检验</p>
-								{canShowReadinessActions && (
+								{canCreateFai && (
 									<p className="text-sm mt-1">点击上方按钮创建 FAI 任务</p>
 								)}
 							</div>

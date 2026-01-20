@@ -58,10 +58,10 @@ export function useOqcDetail(oqcId: string | undefined) {
 /**
  * Get OQC by run number
  */
-export function useOqcByRun(runNo: string | undefined) {
+export function useOqcByRun(runNo: string | undefined, options?: { enabled?: boolean }) {
 	return useQuery<OqcDetail | null>({
 		queryKey: ["mes", "oqc", "run", runNo],
-		enabled: Boolean(runNo),
+		enabled: Boolean(runNo) && (options?.enabled ?? true),
 		queryFn: async () => {
 			if (!runNo) return null;
 			const response = await client.api.oqc.run({ runNo }).get();
