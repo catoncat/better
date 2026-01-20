@@ -1,6 +1,6 @@
 # MES 文档索引
 
-> **更新时间**: 2026-01-14
+> **更新时间**: 2026-01-20
 
 ## 里程碑定义
 
@@ -46,6 +46,10 @@
 - `spec/impl_align/01_e2e_align.md` - 端到端闭环节点实现映射
 - `spec/impl_align/03_smt_align.md` - SMT 节点实现映射
 - `spec/impl_align/04_dip_align.md` - DIP 节点实现映射
+
+## 架构设计
+
+- `spec/architecture/01_product_abstraction.md` - **产品化通用技术方案**（通用模型设计、迁移策略）
 
 ## 任务追踪
 

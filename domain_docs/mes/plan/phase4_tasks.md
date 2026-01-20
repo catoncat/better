@@ -139,6 +139,7 @@ P0（必须）：
 - `domain_docs/mes/spec/traceability/01_traceability_contract.md`
 - `conversation/2026-01-14_115848_mes-next_triage.md`
 - `conversation/2026-01-20_094100_MES产品化架构决策.md` ← 产品化架构决策
+- `domain_docs/mes/spec/architecture/01_product_abstraction.md` ← 产品化通用技术方案
 - `user_docs/demo/acceptance_plan.md`
 - `user_docs/demo/acceptance_issues.md`
 - `domain_docs/mes/spec/process/compair/codex_smt_flow_deep_analysis.md`
