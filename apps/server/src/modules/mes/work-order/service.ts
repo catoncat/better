@@ -112,6 +112,7 @@ export const listWorkOrders = async (
 						id: true,
 						code: true,
 						name: true,
+						processType: true,
 					},
 				},
 			},
@@ -205,6 +206,23 @@ export const releaseWorkOrder = async (
 		};
 	}
 
+	const routing = await db.routing.findUnique({
+		where: { id: wo.routingId },
+		select: {
+			id: true,
+			code: true,
+			processType: true,
+		},
+	});
+	if (!routing) {
+		return {
+			success: false,
+			code: "ROUTE_NOT_FOUND",
+			message: "路由不存在",
+			status: 404,
+		};
+	}
+
 	// 检查路由是否有 READY 版本
 	const readyVersion = await db.executableRouteVersion.findFirst({
 		where: { routingId: wo.routingId, status: "READY" },
@@ -225,6 +243,15 @@ export const releaseWorkOrder = async (
 			code: "LINE_NOT_FOUND",
 			message: "Line not found",
 			status: 404,
+		};
+	}
+
+	if (line.processType !== routing.processType) {
+		return {
+			success: false,
+			code: "LINE_ROUTING_PROCESS_MISMATCH",
+			message: `产线工艺与路由工艺不匹配：产线 ${line.code} (${line.processType}) / 路由 ${routing.code} (${routing.processType})。请在【准备检查配置】中调整产线工艺，或在【路由详情】中调整路由工艺，或选择匹配产线。`,
+			status: 400,
 		};
 	}
 

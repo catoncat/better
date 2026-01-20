@@ -614,6 +614,7 @@ export const listRoutes = async (db: PrismaClient, query: RouteListQuery) => {
 				sourceSystem: true,
 				productCode: true,
 				version: true,
+				processType: true,
 				isActive: true,
 				effectiveFrom: true,
 				effectiveTo: true,
@@ -635,6 +636,7 @@ export const listRoutes = async (db: PrismaClient, query: RouteListQuery) => {
 			sourceSystem: item.sourceSystem,
 			productCode: item.productCode ?? null,
 			version: item.version ?? null,
+			processType: item.processType,
 			isActive: item.isActive,
 			effectiveFrom: item.effectiveFrom?.toISOString() ?? null,
 			effectiveTo: item.effectiveTo?.toISOString() ?? null,
@@ -705,14 +707,15 @@ export const getRouteDetail = async (
 				name: routing.name,
 				sourceSystem: routing.sourceSystem,
 				sourceKey: routing.sourceKey ?? null,
-				productCode: routing.productCode ?? null,
-				version: routing.version ?? null,
-				isActive: routing.isActive,
-				effectiveFrom: routing.effectiveFrom?.toISOString() ?? null,
-				effectiveTo: routing.effectiveTo?.toISOString() ?? null,
-				createdAt: routing.createdAt.toISOString(),
-				updatedAt: routing.updatedAt.toISOString(),
-			},
+			productCode: routing.productCode ?? null,
+			version: routing.version ?? null,
+			processType: routing.processType,
+			isActive: routing.isActive,
+			effectiveFrom: routing.effectiveFrom?.toISOString() ?? null,
+			effectiveTo: routing.effectiveTo?.toISOString() ?? null,
+			createdAt: routing.createdAt.toISOString(),
+			updatedAt: routing.updatedAt.toISOString(),
+		},
 			steps: routing.steps.map((step) => ({
 				stepNo: step.stepNo,
 				sourceStepKey: step.sourceStepKey ?? null,
@@ -724,6 +727,57 @@ export const getRouteDetail = async (
 				requiresFAI: step.requiresFAI,
 				isLast: step.isLast,
 			})),
+		},
+	};
+};
+
+export const updateRouteProcessType = async (
+	db: PrismaClient,
+	routingCode: string,
+	processType: Prisma.ProcessType,
+): Promise<
+	ServiceResult<{
+		id: string;
+		code: string;
+		name: string;
+		sourceSystem: string;
+		sourceKey: string | null;
+		productCode: string | null;
+		version: string | null;
+		processType: Prisma.ProcessType;
+		isActive: boolean;
+		effectiveFrom: string | null;
+		effectiveTo: string | null;
+		createdAt: string;
+		updatedAt: string;
+	}>
+> => {
+	const routing = await db.routing.findUnique({ where: { code: routingCode } });
+	if (!routing) {
+		return { success: false, code: "ROUTE_NOT_FOUND", message: "Routing not found", status: 404 };
+	}
+
+	const updated = await db.routing.update({
+		where: { id: routing.id },
+		data: { processType },
+	});
+
+	return {
+		success: true,
+		data: {
+			id: updated.id,
+			code: updated.code,
+			name: updated.name,
+			sourceSystem: updated.sourceSystem,
+			sourceKey: updated.sourceKey ?? null,
+			productCode: updated.productCode ?? null,
+			version: updated.version ?? null,
+			processType: updated.processType,
+			isActive: updated.isActive,
+			effectiveFrom: updated.effectiveFrom?.toISOString() ?? null,
+			effectiveTo: updated.effectiveTo?.toISOString() ?? null,
+			createdAt: updated.createdAt.toISOString(),
+			updatedAt: updated.updatedAt.toISOString(),
 		},
 	};
 };

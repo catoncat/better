@@ -262,6 +262,7 @@ const seedMesMasterData = async (prisma: Db["default"], db: Db) => {
 		data: {
 			code: "LINE-A",
 			name: "SMT Production Line A",
+			processType: db.ProcessType.SMT,
 			meta: {
 				readinessChecks: {
 					enabled: ["ROUTE", "LOADING", "EQUIPMENT", "MATERIAL", "STENCIL", "SOLDER_PASTE"],
@@ -274,6 +275,7 @@ const seedMesMasterData = async (prisma: Db["default"], db: Db) => {
 		data: {
 			code: "LINE-DIP-A",
 			name: "DIP Production Line A",
+			processType: db.ProcessType.DIP,
 			meta: { readinessChecks: { enabled: ["ROUTE", "EQUIPMENT", "MATERIAL"] } },
 		},
 	});
@@ -355,6 +357,7 @@ const seedMesMasterData = async (prisma: Db["default"], db: Db) => {
 			name: "Standard PCBA Process V1",
 			version: "1.0",
 			sourceSystem: "MES",
+			processType: db.ProcessType.SMT,
 		},
 	});
 
@@ -386,6 +389,7 @@ const seedMesMasterData = async (prisma: Db["default"], db: Db) => {
 			name: "DIP PCBA Process V1",
 			version: "1.0",
 			sourceSystem: "MES",
+			processType: db.ProcessType.DIP,
 		},
 	});
 

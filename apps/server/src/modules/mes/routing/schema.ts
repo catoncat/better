@@ -1,4 +1,4 @@
-import { StationType } from "@better-app/db";
+import { ProcessType, StationType } from "@better-app/db";
 import * as Prismabox from "@better-app/db/prismabox";
 import { t } from "elysia";
 
@@ -11,6 +11,10 @@ export const routeListQuerySchema = t.Object({
 	pageSize: t.Optional(t.Numeric({ default: 30 })),
 	search: t.Optional(t.String()),
 	sourceSystem: t.Optional(t.String()),
+});
+
+export const routeProcessTypeUpdateSchema = t.Object({
+	processType: t.Enum(ProcessType),
 });
 
 const scopeTypeSchema = t.Union([t.Literal("ROUTE"), t.Literal("STEP")]);
@@ -63,6 +67,7 @@ const routeSummarySchema = t.Object({
 	sourceSystem: t.String(),
 	productCode: t.Union([t.String(), t.Null()]),
 	version: t.Union([t.String(), t.Null()]),
+	processType: t.Enum(ProcessType),
 	isActive: t.Boolean(),
 	effectiveFrom: t.Union([t.String({ format: "date-time" }), t.Null()]),
 	effectiveTo: t.Union([t.String({ format: "date-time" }), t.Null()]),
@@ -85,6 +90,7 @@ const routeDetailSchema = t.Object({
 	sourceKey: t.Union([t.String(), t.Null()]),
 	productCode: t.Union([t.String(), t.Null()]),
 	version: t.Union([t.String(), t.Null()]),
+	processType: t.Enum(ProcessType),
 	isActive: t.Boolean(),
 	effectiveFrom: t.Union([t.String({ format: "date-time" }), t.Null()]),
 	effectiveTo: t.Union([t.String({ format: "date-time" }), t.Null()]),
@@ -107,6 +113,11 @@ const routeStepDetailSchema = t.Object({
 export const routeDetailResponseSchema = t.Object({
 	route: routeDetailSchema,
 	steps: t.Array(routeStepDetailSchema),
+});
+
+export const routeProcessTypeResponseSchema = t.Object({
+	ok: t.Boolean(),
+	data: routeDetailSchema,
 });
 
 export const routeVersionListResponseSchema = t.Object({

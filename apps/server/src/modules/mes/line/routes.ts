@@ -1,4 +1,4 @@
-import { type Prisma, ReadinessItemType } from "@better-app/db";
+import { AuditEntityType, type Prisma, ReadinessItemType } from "@better-app/db";
 import { Elysia } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
@@ -7,9 +7,13 @@ import {
 	errorResponseSchema,
 	lineIdParamSchema,
 	lineListResponseSchema,
+	lineResponseSchema,
+	lineUpdateSchema,
 	readinessConfigResponseSchema,
 	readinessConfigUpdateBodySchema,
 } from "./schema";
+import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
+import { updateLineProcessType } from "./service";
 
 /** All readiness item types - default enabled set */
 const ALL_READINESS_TYPES = Object.values(ReadinessItemType);
@@ -52,6 +56,7 @@ export const lineModule = new Elysia({
 					id: true,
 					code: true,
 					name: true,
+					processType: true,
 				},
 				orderBy: [{ code: "asc" }],
 			});
@@ -61,6 +66,60 @@ export const lineModule = new Elysia({
 			isAuth: true,
 			requirePermission: [Permission.RUN_CREATE, Permission.RUN_READ],
 			response: lineListResponseSchema,
+			detail: { tags: ["MES - Lines"] },
+		},
+	)
+	.patch(
+		"/:lineId",
+		async ({ db, params, body, set, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const before = await db.line.findUnique({ where: { id: params.lineId } });
+
+			const result = await updateLineProcessType(db, params.lineId, body.processType);
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.SYSTEM_CONFIG,
+					entityId: params.lineId,
+					entityDisplay: before?.code ?? params.lineId,
+					action: "LINE_PROCESS_TYPE_UPDATE",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					before,
+					request: requestMeta,
+					payload: body,
+				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.SYSTEM_CONFIG,
+				entityId: result.data.id,
+				entityDisplay: result.data.code,
+				action: "LINE_PROCESS_TYPE_UPDATE",
+				actor,
+				status: "SUCCESS",
+				before,
+				after: result.data,
+				request: requestMeta,
+				payload: body,
+			});
+
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.READINESS_CONFIG,
+			params: lineIdParamSchema,
+			body: lineUpdateSchema,
+			response: {
+				200: lineResponseSchema,
+				400: errorResponseSchema,
+				404: errorResponseSchema,
+			},
 			detail: { tags: ["MES - Lines"] },
 		},
 	)

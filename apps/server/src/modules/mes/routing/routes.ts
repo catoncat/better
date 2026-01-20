@@ -15,6 +15,8 @@ import {
 	routeErrorResponseSchema,
 	routeListQuerySchema,
 	routeListResponseSchema,
+	routeProcessTypeResponseSchema,
+	routeProcessTypeUpdateSchema,
 	routeVersionListResponseSchema,
 	routeVersionResponseSchema,
 	routingCodeParamsSchema,
@@ -27,6 +29,7 @@ import {
 	listExecutionConfigs,
 	listRoutes,
 	listRouteVersions,
+	updateRouteProcessType,
 	updateExecutionConfig,
 } from "./service";
 
@@ -59,6 +62,60 @@ export const routingModule = new Elysia({
 			params: routingCodeParamsSchema,
 			response: {
 				200: routeDetailResponseSchema,
+				400: routeErrorResponseSchema,
+				404: routeErrorResponseSchema,
+			},
+			detail: { tags: ["MES - Routing"] },
+		},
+	)
+	.patch(
+		"/:routingCode",
+		async ({ db, params, body, set, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const before = await db.routing.findUnique({ where: { code: params.routingCode } });
+
+			const result = await updateRouteProcessType(db, params.routingCode, body.processType);
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.SYSTEM_CONFIG,
+					entityId: params.routingCode,
+					entityDisplay: params.routingCode,
+					action: "ROUTE_PROCESS_TYPE_UPDATE",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					before,
+					request: requestMeta,
+					payload: body,
+				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.SYSTEM_CONFIG,
+				entityId: result.data.id,
+				entityDisplay: result.data.code,
+				action: "ROUTE_PROCESS_TYPE_UPDATE",
+				actor,
+				status: "SUCCESS",
+				before,
+				after: result.data,
+				request: requestMeta,
+				payload: body,
+			});
+
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.ROUTE_CONFIGURE,
+			params: routingCodeParamsSchema,
+			body: routeProcessTypeUpdateSchema,
+			response: {
+				200: routeProcessTypeResponseSchema,
 				400: routeErrorResponseSchema,
 				404: routeErrorResponseSchema,
 			},

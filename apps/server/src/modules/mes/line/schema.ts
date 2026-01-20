@@ -1,20 +1,31 @@
+import { ProcessType } from "@better-app/db";
 import { t } from "elysia";
+
+const lineSummarySchema = t.Object({
+	id: t.String(),
+	code: t.String(),
+	name: t.String(),
+	processType: t.Enum(ProcessType),
+});
 
 export const lineListResponseSchema = t.Object({
 	ok: t.Boolean(),
 	data: t.Object({
-		items: t.Array(
-			t.Object({
-				id: t.String(),
-				code: t.String(),
-				name: t.String(),
-			}),
-		),
+		items: t.Array(lineSummarySchema),
 	}),
+});
+
+export const lineResponseSchema = t.Object({
+	ok: t.Boolean(),
+	data: lineSummarySchema,
 });
 
 export const lineIdParamSchema = t.Object({
 	lineId: t.String(),
+});
+
+export const lineUpdateSchema = t.Object({
+	processType: t.Enum(ProcessType),
 });
 
 // ReadinessItemType enum values as string array schema
