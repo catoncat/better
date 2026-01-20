@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { dataCollectionSpecModule } from "./data-collection-spec/routes";
+import { bakeRecordRoutes } from "./bake/routes";
 import { defectRoutes, reworkRoutes } from "./defect/routes";
 import { executionModule } from "./execution/routes";
 import { faiRoutes } from "./fai/routes";
@@ -46,6 +47,7 @@ export const mesModule = new Elysia()
 	.use(executionModule)
 	.use(stationModule)
 	.use(traceModule)
+	.use(bakeRecordRoutes)
 	.use(faiRoutes)
 	.use(defectRoutes)
 	.use(reworkRoutes)
