@@ -21,6 +21,7 @@ import { samplingRuleRoutes } from "./oqc/sampling-rule-routes";
 import { readinessExceptionsModule, readinessModule } from "./readiness/routes";
 import { routingModule } from "./routing/routes";
 import { runModule } from "./run/routes";
+import { coldStorageTemperatureRoutes, solderPasteUsageRoutes } from "./solder-paste/routes";
 import { stationModule } from "./station/routes";
 import { traceModule } from "./trace/routes";
 import { workOrderModule } from "./work-order/routes";
@@ -48,6 +49,8 @@ export const mesModule = new Elysia()
 	.use(stationModule)
 	.use(traceModule)
 	.use(bakeRecordRoutes)
+	.use(solderPasteUsageRoutes)
+	.use(coldStorageTemperatureRoutes)
 	.use(faiRoutes)
 	.use(defectRoutes)
 	.use(reworkRoutes)

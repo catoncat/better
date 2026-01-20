@@ -33,12 +33,14 @@ import { Route as AuthenticatedMesFaiRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedMesExecutionRouteImport } from './routes/_authenticated/mes/execution'
 import { Route as AuthenticatedMesDefectsRouteImport } from './routes/_authenticated/mes/defects'
 import { Route as AuthenticatedMesWorkCentersIndexRouteImport } from './routes/_authenticated/mes/work-centers/index'
+import { Route as AuthenticatedMesSolderPasteUsageIndexRouteImport } from './routes/_authenticated/mes/solder-paste-usage/index'
 import { Route as AuthenticatedMesRunsIndexRouteImport } from './routes/_authenticated/mes/runs/index'
 import { Route as AuthenticatedMesRoutesIndexRouteImport } from './routes/_authenticated/mes/routes/index'
 import { Route as AuthenticatedMesOqcIndexRouteImport } from './routes/_authenticated/mes/oqc/index'
 import { Route as AuthenticatedMesMaterialsIndexRouteImport } from './routes/_authenticated/mes/materials/index'
 import { Route as AuthenticatedMesLoadingIndexRouteImport } from './routes/_authenticated/mes/loading/index'
 import { Route as AuthenticatedMesDataCollectionSpecsIndexRouteImport } from './routes/_authenticated/mes/data-collection-specs/index'
+import { Route as AuthenticatedMesColdStorageTemperaturesIndexRouteImport } from './routes/_authenticated/mes/cold-storage-temperatures/index'
 import { Route as AuthenticatedMesBomsIndexRouteImport } from './routes/_authenticated/mes/boms/index'
 import { Route as AuthenticatedMesBakeRecordsIndexRouteImport } from './routes/_authenticated/mes/bake-records/index'
 import { Route as AuthenticatedMesRunsRunNoRouteImport } from './routes/_authenticated/mes/runs/$runNo'
@@ -182,6 +184,12 @@ const AuthenticatedMesWorkCentersIndexRoute =
     path: '/mes/work-centers/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedMesSolderPasteUsageIndexRoute =
+  AuthenticatedMesSolderPasteUsageIndexRouteImport.update({
+    id: '/mes/solder-paste-usage/',
+    path: '/mes/solder-paste-usage/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMesRunsIndexRoute =
   AuthenticatedMesRunsIndexRouteImport.update({
     id: '/mes/runs/',
@@ -216,6 +224,12 @@ const AuthenticatedMesDataCollectionSpecsIndexRoute =
   AuthenticatedMesDataCollectionSpecsIndexRouteImport.update({
     id: '/mes/data-collection-specs/',
     path: '/mes/data-collection-specs/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMesColdStorageTemperaturesIndexRoute =
+  AuthenticatedMesColdStorageTemperaturesIndexRouteImport.update({
+    id: '/mes/cold-storage-temperatures/',
+    path: '/mes/cold-storage-temperatures/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedMesBomsIndexRoute =
@@ -298,12 +312,14 @@ export interface FileRoutesByFullPath {
   '/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
   '/mes/bake-records': typeof AuthenticatedMesBakeRecordsIndexRoute
   '/mes/boms': typeof AuthenticatedMesBomsIndexRoute
+  '/mes/cold-storage-temperatures': typeof AuthenticatedMesColdStorageTemperaturesIndexRoute
   '/mes/data-collection-specs': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
   '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
   '/mes/materials': typeof AuthenticatedMesMaterialsIndexRoute
   '/mes/oqc': typeof AuthenticatedMesOqcIndexRoute
   '/mes/routes/': typeof AuthenticatedMesRoutesIndexRoute
   '/mes/runs': typeof AuthenticatedMesRunsIndexRoute
+  '/mes/solder-paste-usage': typeof AuthenticatedMesSolderPasteUsageIndexRoute
   '/mes/work-centers': typeof AuthenticatedMesWorkCentersIndexRoute
 }
 export interface FileRoutesByTo {
@@ -336,12 +352,14 @@ export interface FileRoutesByTo {
   '/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
   '/mes/bake-records': typeof AuthenticatedMesBakeRecordsIndexRoute
   '/mes/boms': typeof AuthenticatedMesBomsIndexRoute
+  '/mes/cold-storage-temperatures': typeof AuthenticatedMesColdStorageTemperaturesIndexRoute
   '/mes/data-collection-specs': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
   '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
   '/mes/materials': typeof AuthenticatedMesMaterialsIndexRoute
   '/mes/oqc': typeof AuthenticatedMesOqcIndexRoute
   '/mes/routes': typeof AuthenticatedMesRoutesIndexRoute
   '/mes/runs': typeof AuthenticatedMesRunsIndexRoute
+  '/mes/solder-paste-usage': typeof AuthenticatedMesSolderPasteUsageIndexRoute
   '/mes/work-centers': typeof AuthenticatedMesWorkCentersIndexRoute
 }
 export interface FileRoutesById {
@@ -377,12 +395,14 @@ export interface FileRoutesById {
   '/_authenticated/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
   '/_authenticated/mes/bake-records/': typeof AuthenticatedMesBakeRecordsIndexRoute
   '/_authenticated/mes/boms/': typeof AuthenticatedMesBomsIndexRoute
+  '/_authenticated/mes/cold-storage-temperatures/': typeof AuthenticatedMesColdStorageTemperaturesIndexRoute
   '/_authenticated/mes/data-collection-specs/': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
   '/_authenticated/mes/loading/': typeof AuthenticatedMesLoadingIndexRoute
   '/_authenticated/mes/materials/': typeof AuthenticatedMesMaterialsIndexRoute
   '/_authenticated/mes/oqc/': typeof AuthenticatedMesOqcIndexRoute
   '/_authenticated/mes/routes/': typeof AuthenticatedMesRoutesIndexRoute
   '/_authenticated/mes/runs/': typeof AuthenticatedMesRunsIndexRoute
+  '/_authenticated/mes/solder-paste-usage/': typeof AuthenticatedMesSolderPasteUsageIndexRoute
   '/_authenticated/mes/work-centers/': typeof AuthenticatedMesWorkCentersIndexRoute
 }
 export interface FileRouteTypes {
@@ -418,12 +438,14 @@ export interface FileRouteTypes {
     | '/mes/runs/$runNo'
     | '/mes/bake-records'
     | '/mes/boms'
+    | '/mes/cold-storage-temperatures'
     | '/mes/data-collection-specs'
     | '/mes/loading'
     | '/mes/materials'
     | '/mes/oqc'
     | '/mes/routes/'
     | '/mes/runs'
+    | '/mes/solder-paste-usage'
     | '/mes/work-centers'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -456,12 +478,14 @@ export interface FileRouteTypes {
     | '/mes/runs/$runNo'
     | '/mes/bake-records'
     | '/mes/boms'
+    | '/mes/cold-storage-temperatures'
     | '/mes/data-collection-specs'
     | '/mes/loading'
     | '/mes/materials'
     | '/mes/oqc'
     | '/mes/routes'
     | '/mes/runs'
+    | '/mes/solder-paste-usage'
     | '/mes/work-centers'
   id:
     | '__root__'
@@ -496,12 +520,14 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/runs/$runNo'
     | '/_authenticated/mes/bake-records/'
     | '/_authenticated/mes/boms/'
+    | '/_authenticated/mes/cold-storage-temperatures/'
     | '/_authenticated/mes/data-collection-specs/'
     | '/_authenticated/mes/loading/'
     | '/_authenticated/mes/materials/'
     | '/_authenticated/mes/oqc/'
     | '/_authenticated/mes/routes/'
     | '/_authenticated/mes/runs/'
+    | '/_authenticated/mes/solder-paste-usage/'
     | '/_authenticated/mes/work-centers/'
   fileRoutesById: FileRoutesById
 }
@@ -680,6 +706,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesWorkCentersIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/mes/solder-paste-usage/': {
+      id: '/_authenticated/mes/solder-paste-usage/'
+      path: '/mes/solder-paste-usage'
+      fullPath: '/mes/solder-paste-usage'
+      preLoaderRoute: typeof AuthenticatedMesSolderPasteUsageIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/mes/runs/': {
       id: '/_authenticated/mes/runs/'
       path: '/mes/runs'
@@ -720,6 +753,13 @@ declare module '@tanstack/react-router' {
       path: '/mes/data-collection-specs'
       fullPath: '/mes/data-collection-specs'
       preLoaderRoute: typeof AuthenticatedMesDataCollectionSpecsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/mes/cold-storage-temperatures/': {
+      id: '/_authenticated/mes/cold-storage-temperatures/'
+      path: '/mes/cold-storage-temperatures'
+      fullPath: '/mes/cold-storage-temperatures'
+      preLoaderRoute: typeof AuthenticatedMesColdStorageTemperaturesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/boms/': {
@@ -827,11 +867,13 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesRunsRunNoRoute: typeof AuthenticatedMesRunsRunNoRoute
   AuthenticatedMesBakeRecordsIndexRoute: typeof AuthenticatedMesBakeRecordsIndexRoute
   AuthenticatedMesBomsIndexRoute: typeof AuthenticatedMesBomsIndexRoute
+  AuthenticatedMesColdStorageTemperaturesIndexRoute: typeof AuthenticatedMesColdStorageTemperaturesIndexRoute
   AuthenticatedMesDataCollectionSpecsIndexRoute: typeof AuthenticatedMesDataCollectionSpecsIndexRoute
   AuthenticatedMesLoadingIndexRoute: typeof AuthenticatedMesLoadingIndexRoute
   AuthenticatedMesMaterialsIndexRoute: typeof AuthenticatedMesMaterialsIndexRoute
   AuthenticatedMesOqcIndexRoute: typeof AuthenticatedMesOqcIndexRoute
   AuthenticatedMesRunsIndexRoute: typeof AuthenticatedMesRunsIndexRoute
+  AuthenticatedMesSolderPasteUsageIndexRoute: typeof AuthenticatedMesSolderPasteUsageIndexRoute
   AuthenticatedMesWorkCentersIndexRoute: typeof AuthenticatedMesWorkCentersIndexRoute
 }
 
@@ -870,12 +912,16 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMesRunsRunNoRoute: AuthenticatedMesRunsRunNoRoute,
   AuthenticatedMesBakeRecordsIndexRoute: AuthenticatedMesBakeRecordsIndexRoute,
   AuthenticatedMesBomsIndexRoute: AuthenticatedMesBomsIndexRoute,
+  AuthenticatedMesColdStorageTemperaturesIndexRoute:
+    AuthenticatedMesColdStorageTemperaturesIndexRoute,
   AuthenticatedMesDataCollectionSpecsIndexRoute:
     AuthenticatedMesDataCollectionSpecsIndexRoute,
   AuthenticatedMesLoadingIndexRoute: AuthenticatedMesLoadingIndexRoute,
   AuthenticatedMesMaterialsIndexRoute: AuthenticatedMesMaterialsIndexRoute,
   AuthenticatedMesOqcIndexRoute: AuthenticatedMesOqcIndexRoute,
   AuthenticatedMesRunsIndexRoute: AuthenticatedMesRunsIndexRoute,
+  AuthenticatedMesSolderPasteUsageIndexRoute:
+    AuthenticatedMesSolderPasteUsageIndexRoute,
   AuthenticatedMesWorkCentersIndexRoute: AuthenticatedMesWorkCentersIndexRoute,
 }
 
