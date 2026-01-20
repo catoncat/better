@@ -71,6 +71,11 @@ export const navMain: NavItem[] = [
 				permissionMode: "any",
 			},
 			{
+				title: "烘烤记录",
+				url: "/mes/bake-records",
+				permissions: [Permission.READINESS_VIEW],
+			},
+			{
 				title: "上料槽位配置",
 				url: "/mes/loading/slot-config",
 				permissions: [Permission.LOADING_CONFIG],
