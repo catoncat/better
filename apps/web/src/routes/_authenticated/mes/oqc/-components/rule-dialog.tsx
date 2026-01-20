@@ -187,7 +187,12 @@ export function RuleDialog({ open, onOpenChange, rule }: RuleDialogProps) {
 										<SelectItem value="ALL">所有路由</SelectItem>
 										{routeOptions?.items.map((route) => (
 											<SelectItem key={route.id} value={route.id}>
-												{route.name} ({route.code})
+												<span
+													className="block max-w-[240px] truncate"
+													title={`${route.name} (${route.code})`}
+												>
+													{route.name} ({route.code})
+												</span>
 											</SelectItem>
 										))}
 									</SelectContent>

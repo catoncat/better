@@ -5,7 +5,6 @@ import {
 	ArrowLeft,
 	CheckCircle2,
 	ClipboardCheck,
-	ExternalLink,
 	Loader2,
 	Package,
 	Play,
@@ -18,7 +17,6 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Can } from "@/components/ability/can";
-import { useAbility } from "@/hooks/use-ability";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +39,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useAbility } from "@/hooks/use-ability";
 import { useCreateFai, useFaiByRun, useFaiGate, useStartFai } from "@/hooks/use-fai";
 import { useMrbDecision, useOqcByRun } from "@/hooks/use-oqc";
 import {
@@ -927,32 +926,36 @@ function RunDetailPage() {
 															{item.failReason ??
 																(item.waiveReason ? `豁免: ${item.waiveReason}` : "-")}
 														</TableCell>
-													<TableCell>
-														{item.status === "FAILED" && canShowReadinessActions && (
-															<div className="flex items-center gap-1">
-																<Button variant="ghost" size="sm" onClick={() => handleWaive(item)}>
-																	<Shield className="mr-1 h-3 w-3" />
-																	豁免
-																</Button>
-																{item.itemType === "LOADING" && (
-																	<Button variant="ghost" size="sm" asChild>
-																		<Link
-																			to="/mes/loading/slot-config"
-																			search={{ lineId: data.line?.id }}
-																		>
-																			<Settings className="mr-1 h-3 w-3" />
-																			配置站位表
-																		</Link>
+														<TableCell>
+															{item.status === "FAILED" && canShowReadinessActions && (
+																<div className="flex items-center gap-1">
+																	<Button
+																		variant="ghost"
+																		size="sm"
+																		onClick={() => handleWaive(item)}
+																	>
+																		<Shield className="mr-1 h-3 w-3" />
+																		豁免
 																	</Button>
-																)}
-															</div>
-														)}
-														{item.status === "WAIVED" && item.waivedAt && (
-															<span className="text-xs text-muted-foreground">
-																{formatDateTime(item.waivedAt)}
-															</span>
-														)}
-													</TableCell>
+																	{item.itemType === "LOADING" && (
+																		<Button variant="ghost" size="sm" asChild>
+																			<Link
+																				to="/mes/loading/slot-config"
+																				search={{ lineId: data.line?.id }}
+																			>
+																				<Settings className="mr-1 h-3 w-3" />
+																				配置站位表
+																			</Link>
+																		</Button>
+																	)}
+																</div>
+															)}
+															{item.status === "WAIVED" && item.waivedAt && (
+																<span className="text-xs text-muted-foreground">
+																	{formatDateTime(item.waivedAt)}
+																</span>
+															)}
+														</TableCell>
 													</TableRow>
 												))}
 											</TableBody>
