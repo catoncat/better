@@ -51,10 +51,12 @@ type BakeRecordCreateInput = {
 	meta?: Prisma.JsonValue;
 };
 
-const mapBakeRecord = (record: BakeRecord & {
-	run: { runNo: string } | null;
-	materialLot: { materialCode: string; lotNo: string } | null;
-}): BakeRecordDetail => ({
+const mapBakeRecord = (
+	record: BakeRecord & {
+		run: { runNo: string } | null;
+		materialLot: { materialCode: string; lotNo: string } | null;
+	},
+): BakeRecordDetail => ({
 	id: record.id,
 	runId: record.runId ?? null,
 	runNo: record.run?.runNo ?? null,

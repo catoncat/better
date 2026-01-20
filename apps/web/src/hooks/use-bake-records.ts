@@ -3,7 +3,9 @@ import { toast } from "sonner";
 import { useApiError } from "@/hooks/use-api-error";
 import { client, unwrap } from "@/lib/eden";
 
-export type BakeRecordListResponse = Awaited<ReturnType<typeof client.api["bake-records"].get>>["data"];
+export type BakeRecordListResponse = Awaited<
+	ReturnType<(typeof client.api)["bake-records"]["get"]>
+>["data"];
 export type BakeRecordListData = NonNullable<BakeRecordListResponse>["data"];
 export type BakeRecord = BakeRecordListData["items"][number];
 
@@ -19,7 +21,7 @@ export type BakeRecordQuery = {
 	pageSize?: number;
 };
 
-type BakeRecordCreateInput = Parameters<typeof client.api["bake-records"].post>[0];
+type BakeRecordCreateInput = Parameters<(typeof client.api)["bake-records"]["post"]>[0];
 
 export function useBakeRecordList(query: BakeRecordQuery) {
 	return useQuery<BakeRecordListData>({

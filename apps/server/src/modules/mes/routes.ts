@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
-import { dataCollectionSpecModule } from "./data-collection-spec/routes";
 import { bakeRecordRoutes } from "./bake/routes";
+import { dataCollectionSpecModule } from "./data-collection-spec/routes";
 import { defectRoutes, reworkRoutes } from "./defect/routes";
 import { executionModule } from "./execution/routes";
 import { faiRoutes } from "./fai/routes";

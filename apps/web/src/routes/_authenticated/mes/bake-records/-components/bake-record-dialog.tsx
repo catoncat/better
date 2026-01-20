@@ -2,6 +2,7 @@ import { useForm } from "@tanstack/react-form";
 import { useEffect } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import {
 	Dialog,
 	DialogContent,
@@ -10,30 +11,27 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
 import type { client } from "@/lib/eden";
 
-type BakeRecordCreateInput = Parameters<typeof client.api["bake-records"].post>[0];
+type BakeRecordCreateInput = Parameters<(typeof client.api)["bake-records"]["post"]>[0];
 
-const formSchema = z
-	.object({
-		runNo: z.string().optional(),
-		materialCode: z.string().optional(),
-		lotNo: z.string().optional(),
-		itemCode: z.string().min(1, "请输入产品/物料 P/N"),
-		bakeProcess: z.string().min(1, "请输入烘烤工序"),
-		bakeQty: z.string().min(1, "请输入烘烤数量"),
-		bakeTemperature: z.number().optional(),
-		durationHours: z.string().optional(),
-		inAt: z.string().min(1, "请选择放入时间"),
-		inBy: z.string().min(1, "请输入放入负责人"),
-		outAt: z.string().min(1, "请选择取出时间"),
-		outBy: z.string().min(1, "请输入取出负责人"),
-		confirmedBy: z.string().optional(),
-	})
-	satisfies z.ZodType<BakeRecordCreateInput>;
+const formSchema = z.object({
+	runNo: z.string().optional(),
+	materialCode: z.string().optional(),
+	lotNo: z.string().optional(),
+	itemCode: z.string().min(1, "请输入产品/物料 P/N"),
+	bakeProcess: z.string().min(1, "请输入烘烤工序"),
+	bakeQty: z.string().min(1, "请输入烘烤数量"),
+	bakeTemperature: z.number().optional(),
+	durationHours: z.string().optional(),
+	inAt: z.string().min(1, "请选择放入时间"),
+	inBy: z.string().min(1, "请输入放入负责人"),
+	outAt: z.string().min(1, "请选择取出时间"),
+	outBy: z.string().min(1, "请输入取出负责人"),
+	confirmedBy: z.string().optional(),
+}) satisfies z.ZodType<BakeRecordCreateInput>;
 
 export type BakeRecordFormValues = z.infer<typeof formSchema>;
 
@@ -210,9 +208,7 @@ export function BakeRecordDialog({
 							{(field) => (
 								<DateTimePicker
 									value={field.state.value ? new Date(field.state.value) : undefined}
-									onChange={(date) =>
-										field.handleChange(date ? date.toISOString() : "")
-									}
+									onChange={(date) => field.handleChange(date ? date.toISOString() : "")}
 								/>
 							)}
 						</Field>
@@ -230,9 +226,7 @@ export function BakeRecordDialog({
 							{(field) => (
 								<DateTimePicker
 									value={field.state.value ? new Date(field.state.value) : undefined}
-									onChange={(date) =>
-										field.handleChange(date ? date.toISOString() : "")
-									}
+									onChange={(date) => field.handleChange(date ? date.toISOString() : "")}
 								/>
 							)}
 						</Field>

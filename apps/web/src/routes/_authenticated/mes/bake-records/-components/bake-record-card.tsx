@@ -19,9 +19,7 @@ export function BakeRecordCard({ record }: BakeRecordCardProps) {
 				{badgeField?.cardValue?.(record)}
 			</CardHeader>
 			<CardContent>
-				<div className="text-lg font-bold">
-					{secondaryField?.cardValue?.(record) ?? "-"}
-				</div>
+				<div className="text-lg font-bold">{secondaryField?.cardValue?.(record) ?? "-"}</div>
 				<div className="mt-4 space-y-1 text-sm">
 					{detailFields.map((field) => (
 						<div key={field.key} className="flex justify-between">
