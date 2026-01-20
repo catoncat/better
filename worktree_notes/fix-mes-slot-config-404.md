@@ -61,3 +61,6 @@
 
 # Findings (continued)
 - `git status` now shows only `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` and the note as modified; `line-select.tsx` and `slot-config.tsx` no longer show as modified despite containing the new logic. Need to compare against `HEAD` to confirm if changes already exist upstream.
+
+# Findings (continued)
+- `git diff HEAD -- apps/web/src/components/select/line-select.tsx` and `slot-config.tsx` show no differences; current content matches `HEAD`.
