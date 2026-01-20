@@ -76,6 +76,16 @@ export const navMain: NavItem[] = [
 				permissions: [Permission.READINESS_VIEW],
 			},
 			{
+				title: "锡膏使用记录",
+				url: "/mes/solder-paste-usage",
+				permissions: [Permission.READINESS_VIEW],
+			},
+			{
+				title: "冷藏温度记录",
+				url: "/mes/cold-storage-temperatures",
+				permissions: [Permission.READINESS_VIEW],
+			},
+			{
 				title: "上料槽位配置",
 				url: "/mes/loading/slot-config",
 				permissions: [Permission.LOADING_CONFIG],
