@@ -68,6 +68,7 @@
 - Added line processType UI to readiness config page (with save action) and updated line select labels.
 - Updated `user_docs/demo/acceptance_issues.md` Issue #5 to mark the fix (processType + release validation) as resolved.
 - Enhanced readiness config line selector to display process type for clarity.
+- Fixed type errors (ProcessType typing + route detail signature) and `bun run check-types` now passes.
 
 ## Errors
 - Attempted to read `domain_docs/mes/plan/phase3_tasks.md` via `sed -n '1,200p'`; file not found. Next: locate plan files with `rg --files -g "domain_docs/mes/plan/*.md"`.
@@ -75,6 +76,7 @@
 - Attempted `sed -n '1,220p' apps/web/src/routes/_authenticated/mes/routes/$routingCode.tsx`; shell expanded `$routingCode` and file not found. Next: quote the path or escape `$`.
 - Attempted `rg -n "ProcessType" packages apps`; no matches. Next: introduce a new enum in Prisma or reuse an existing enum name if present in schema.
 - `apply_patch` failed updating `apps/server/src/modules/mes/routing/routes.ts` due to context mismatch. Next: re-open the file around the route detail handler and reapply with correct context.
+- `bun run check-types` failed after db:generate. Issues: `getRouteDetail` return type missing `processType`, `Prisma.ProcessType` not exported (use top-level `ProcessType`), and web state typed as `string` for processType. Next: fix routing service signature, swap to `ProcessType` import, tighten UI state types, rerun check-types.
 
 ## Open Questions
 - Use `processType` multi-capability (array/join table) vs single `processType` + "MIXED"?
