@@ -203,6 +203,11 @@ enum StationType {
   TEST
 }
 
+enum ProcessType {
+  SMT
+  DIP
+}
+
 enum UnitStatus {
   QUEUED
   IN_STATION
@@ -419,6 +424,7 @@ model Line {
   id        String   @id @default(cuid())
   code      String   @unique
   name      String
+  processType ProcessType @default(SMT)
   meta      Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -774,6 +780,7 @@ model Routing {
   sourceSystem String  @default("MES")
   sourceKey   String?
   productCode String?
+  processType ProcessType @default(SMT)
   effectiveFrom DateTime?
   effectiveTo DateTime?
   version     String?
