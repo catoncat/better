@@ -1,3 +1,5 @@
+import type { ProcessType } from "@better-app/db";
+
 export const USER_ROLE_MAP: Record<string, string> = {
 	admin: "系统管理员",
 	planner: "生产计划员",
@@ -68,10 +70,10 @@ export const READINESS_ITEM_TYPE_MAP: Record<string, string> = {
 	LOADING: "上料",
 };
 
-export const PROCESS_TYPE_MAP = {
+export const PROCESS_TYPE_MAP: Record<ProcessType, string> = {
 	SMT: "SMT",
 	DIP: "DIP",
-} as const;
+};
 
 export const OQC_SAMPLING_TYPE_MAP: Record<string, string> = {
 	PERCENTAGE: "按比例 (%)",

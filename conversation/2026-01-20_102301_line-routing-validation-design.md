@@ -57,6 +57,7 @@
 - `git status --porcelain=v2 -- packages/db/prisma/schema/schema.prisma` returns no record; need to re-check overall status to confirm if file is still dirty.
 - Latest `git status` shows dirty files in `apps/web/src/components/login-form.tsx`, `apps/web/src/routes/__root.tsx`, and `user_docs/demo/acceptance_issues.md`; `schema.prisma` no longer appears dirty.
 - Migration `20260120025331_add_process_type` adds `processType` to Line/Routing with default `SMT`; existing data will default to SMT unless updated in UI.
+- `apps/web/src/lib/constants.ts` has no imports; `PROCESS_TYPE_MAP` is currently a generic map without compile-time coverage enforcement.
 
 ## Progress
 - Added `ProcessType` enum and `processType` fields to `Line` and `Routing` in `packages/db/prisma/schema/schema.prisma`.
@@ -79,6 +80,7 @@
 - `apply_patch` failed updating `apps/server/src/modules/mes/routing/routes.ts` due to context mismatch. Next: re-open the file around the route detail handler and reapply with correct context.
 - `bun run check-types` failed after db:generate. Issues: `getRouteDetail` return type missing `processType`, `Prisma.ProcessType` not exported (use top-level `ProcessType`), and web state typed as `string` for processType. Next: fix routing service signature, swap to `ProcessType` import, tighten UI state types, rerun check-types.
 - `bun run lint` failed: import ordering, `type`-only import for `ProcessType`, formatting in dialogs, and `useEffect` dependencies in readiness config. Next: fix import order, add `type` keywords, update effect deps, apply formatting.
+- `bun scripts/smart-verify.ts` failed because Biome lint flagged `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` import ordering (unrelated dirty file). Next: ignore or fix that file per user direction before rerunning verify.
 
 ## Open Questions
 - Use `processType` multi-capability (array/join table) vs single `processType` + "MIXED"?
