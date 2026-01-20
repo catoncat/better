@@ -95,13 +95,13 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 					},
 					onError: (ctx) => {
 						toast.error(ctx.error.message || "登录失败");
-						setIsLoading(false);
 					},
 				},
 			);
 		} catch (error) {
 			console.error(error);
 			toast.error("An unexpected error occurred");
+		} finally {
 			setIsLoading(false);
 		}
 	};

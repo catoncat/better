@@ -6,11 +6,13 @@
 
 ## Decisions
 - Focus on client-side login flow and session hydration/redirect logic first.
+- Fix by using a single shared QueryClient for router context + React Query provider; always clear login loading state after sign-in attempt.
 
 ## Plan
 - Inspect login form submit handler and auth client/session helpers.
 - Trace route guards or authenticated layouts that might block navigation until session cache updates.
 - Check server auth/session endpoints for timing/headers/cookie config.
+- Apply fix: share QueryClient + clear login loading in finally.
 
 ## Findings
 - `apps/web/src/components/login-form.tsx` sets `isLoading` true and only clears it on `onError` or catch; success path navigates but never resets `isLoading`.
@@ -38,6 +40,9 @@
 - Initial search for `createAuthClient` in `apps/web/node_modules/better-auth` returned no matches; package appears minimal (README/license/package.json).
 - `createAuthClient` implementation lives in `apps/web/node_modules/better-auth/dist/client/react/index.mjs` and delegates to `getClientConfig` (need to inspect `$fetch` defaults).
 - Router setup located in `apps/web/src/main.tsx`; need to confirm router context uses same `queryClient` instance as login form.
+- Updated `apps/web/src/routes/__root.tsx` to use shared `queryClient` from `apps/web/src/lib/query-client.ts`.
+- Updated `apps/web/src/components/login-form.tsx` to always clear loading state in `finally`.
+- Ran `bun scripts/smart-verify.ts` successfully (biome check + check-types + db generate).
 
 ## Errors
 - Tried to open `apps/web/node_modules/@better-fetch/fetch/dist/index.mjs` but file does not exist; need to locate actual entrypoint before inspecting.
