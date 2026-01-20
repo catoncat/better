@@ -36,6 +36,7 @@ task:
 
 ## Decisions
 - Work in dedicated worktree; treat MES routes/modules as primary scope.
+- UI gating is permission-first (not role-based) and must consider flow continuity; per-module choice of hide vs “no access” vs “needs config”.
 
 ## Findings
 - Worktree created; `bun.lock` modified by `bun install`.
