@@ -77,6 +77,7 @@
 - Attempted `rg -n "ProcessType" packages apps`; no matches. Next: introduce a new enum in Prisma or reuse an existing enum name if present in schema.
 - `apply_patch` failed updating `apps/server/src/modules/mes/routing/routes.ts` due to context mismatch. Next: re-open the file around the route detail handler and reapply with correct context.
 - `bun run check-types` failed after db:generate. Issues: `getRouteDetail` return type missing `processType`, `Prisma.ProcessType` not exported (use top-level `ProcessType`), and web state typed as `string` for processType. Next: fix routing service signature, swap to `ProcessType` import, tighten UI state types, rerun check-types.
+- `bun run lint` failed: import ordering, `type`-only import for `ProcessType`, formatting in dialogs, and `useEffect` dependencies in readiness config. Next: fix import order, add `type` keywords, update effect deps, apply formatting.
 
 ## Open Questions
 - Use `processType` multi-capability (array/join table) vs single `processType` + "MIXED"?
