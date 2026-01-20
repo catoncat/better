@@ -39,6 +39,8 @@
 - Work-order UI (`apps/web/src/routes/_authenticated/mes/work-orders.tsx`) uses `useReleaseWorkOrder` and `useCreateRun` hooks; release dialog itself doesn’t show error guidance, so we need to check hook error handling for user-facing messages.
 - Work-order mutations show errors via `useApiError` → `getApiErrorMessage`, which currently ignores `details` and only maps `code`/message.
 - Readiness config hooks show the standard mutation pattern (toast + invalidate) we can mirror for line process-type updates.
+- Route list uses `routeFieldMeta` for both table and cards; adding processType there will propagate to list and cards.
+- Route detail page already has a “路由信息” card; add processType selector there, using `useAbility` to gate editing.
 - `unwrap` throws `ApiError` with `details` when backend includes them; to surface guidance, we can either embed guidance in `message` (CJK) or extend UI to render `details`.
 - `packages/shared/src/error-codes.ts` only maps known codes; adding new codes would override custom messages in `getApiErrorMessage` (since it prefers registry message).
 - ERP route sync (`apply-routes.ts`) upserts `Routing` without any process-type field; ERP types (`integration/erp/types.ts`) do not include process-type data.
@@ -54,16 +56,25 @@
 - `git status` marks `packages/db/prisma/schema/schema.prisma` as modified, but `git diff` shows no content change; need to inspect staged vs file-mode changes before editing.
 - `git status --porcelain=v2 -- packages/db/prisma/schema/schema.prisma` returns no record; need to re-check overall status to confirm if file is still dirty.
 - Latest `git status` shows dirty files in `apps/web/src/components/login-form.tsx`, `apps/web/src/routes/__root.tsx`, and `user_docs/demo/acceptance_issues.md`; `schema.prisma` no longer appears dirty.
+- Migration `20260120025331_add_process_type` adds `processType` to Line/Routing with default `SMT`; existing data will default to SMT unless updated in UI.
 
 ## Progress
 - Added `ProcessType` enum and `processType` fields to `Line` and `Routing` in `packages/db/prisma/schema/schema.prisma`.
 - Ran `bun run db:migrate -- --name add_process_type`, created migration `20260120025331_add_process_type`.
+- Updated seed data to set `processType` for LINE-A/LINE-DIP-A and SMT/DIP routes.
+- Added line process-type update service/endpoint and included `processType` in line list schema/response.
+- Added routing process-type update endpoint and schema updates for list/detail.
+- Work order release now validates line vs routing processType and work order list includes routing.processType.
+- Added line processType UI to readiness config page (with save action) and updated line select labels.
+- Updated `user_docs/demo/acceptance_issues.md` Issue #5 to mark the fix (processType + release validation) as resolved.
+- Enhanced readiness config line selector to display process type for clarity.
 
 ## Errors
 - Attempted to read `domain_docs/mes/plan/phase3_tasks.md` via `sed -n '1,200p'`; file not found. Next: locate plan files with `rg --files -g "domain_docs/mes/plan/*.md"`.
 - Attempted `rg --files -g "apps/web/src/routes/_authenticated/mes/**/*line*"`; no matches (exit 1). Next: list MES routes with a broader glob and locate line/routing pages manually.
 - Attempted `sed -n '1,220p' apps/web/src/routes/_authenticated/mes/routes/$routingCode.tsx`; shell expanded `$routingCode` and file not found. Next: quote the path or escape `$`.
 - Attempted `rg -n "ProcessType" packages apps`; no matches. Next: introduce a new enum in Prisma or reuse an existing enum name if present in schema.
+- `apply_patch` failed updating `apps/server/src/modules/mes/routing/routes.ts` due to context mismatch. Next: re-open the file around the route detail handler and reapply with correct context.
 
 ## Open Questions
 - Use `processType` multi-capability (array/join table) vs single `processType` + "MIXED"?

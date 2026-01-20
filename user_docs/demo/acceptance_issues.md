@@ -15,6 +15,7 @@
 | 2 | 1.3 | Major | 「接收外部工单」弹窗疑似无法滚动到底部，导致「接收工单」按钮无法点击/提交 | Open |
 | 3 | 4.3 | Minor | 指南修正：TrackIn 不自动创建 Unit（需预生成） | Fixed |
 | 4 | 7.1 | Major | Run 收尾确认后无响应 / 未创建 OQC 任务 | Open |
+| 5 | 1.2 | Major | 工单发布缺少产线-工艺类型校验（DIP 工单可发布到 SMT 产线） | Open |
 
 ---
 
@@ -79,4 +80,30 @@
 
 ### 补充观察（2026-01-14）
 - 将该 Run 的所有 Unit 补齐到终态后（完成率 100%），Run 最终进入 `COMPLETED/已完成`，且 `/mes/oqc` 仍无任务。
-- 查看后端实现：`apps/server/src/modules/mes/oqc/trigger-service.ts` 在无抽检规则时会直接将 Run 置为 `COMPLETED`（reason=`No sampling rule applicable`），因此“无 OQC 任务”可能符合当前配置；但此前收尾弹窗无响应仍需解释（可能是后端返回 `OQC_REQUIRED`/`RUN_UNITS_NOT_TERMINAL`/其它错误但 UI 未展示）。
+- 查看后端实现：`apps/server/src/modules/mes/oqc/trigger-service.ts` 在无抽检规则时会直接将 Run 置为 `COMPLETED`（reason=`No sampling rule applicable`），因此"无 OQC 任务"可能符合当前配置；但此前收尾弹窗无响应仍需解释（可能是后端返回 `OQC_REQUIRED`/`RUN_UNITS_NOT_TERMINAL`/其它错误但 UI 未展示）。
+
+## 问题 #5: 工单发布缺少产线-工艺类型校验
+- **阶段**: 1.2（工单发布）
+- **页面**: `/mes/work-orders`
+- **严重程度**: Major（可能导致后续流程混乱）
+- **描述**:
+  - 现象：DIP 工艺的工单（如 `WO-DEMO-DIP-001`，关联路由 `PCBA-DIP-V1`）可以发布到 SMT 产线（`LINE-A`），系统无校验阻止。
+  - 原因：`Line` 和 `Routing` 模型都没有 `processType` 字段，`releaseWorkOrder` 函数未校验产线与路由的工艺类型匹配。
+  - 影响：
+    1. 就绪检查会要求 SMT 特有项（LOADING/STENCIL/SOLDER_PASTE），DIP 工艺无法满足
+    2. 上料防错的站位物料映射无法匹配
+    3. 执行时工位组不匹配
+- **建议修复**:
+  1. 给 `Line` 和 `Routing` 添加 `processType` 字段（SMT/DIP/MIXED）
+  2. 在 `releaseWorkOrder` 函数中添加校验逻辑
+  3. 位置：`apps/server/src/modules/mes/work-order/service.ts:174-260`
+- **修复**:
+  1. `Line`/`Routing` 已新增 `processType` 字段，且可通过 UI 调整（准备检查配置 / 路由详情）。
+  2. `releaseWorkOrder` 增加产线与路由工艺匹配校验，并给出配置指引。
+- **复现步骤**:
+  1. 登录 `planner@example.com`
+  2. 打开 `/mes/work-orders`
+  3. 选择 `WO-DEMO-DIP-001`（或其他 DIP 工单）
+  4. 点击「发布」，选择 SMT 产线 `LINE-A`
+  5. 观察：发布成功，无错误提示
+- **状态**: Resolved (2026-01-20)
