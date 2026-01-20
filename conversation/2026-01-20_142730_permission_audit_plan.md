@@ -37,7 +37,7 @@
 - UI gating cannot be role-based; must be per-block and aligned to flow continuity.
 
 ## Progress
-- None yet for the new plan; previous fixes are already in the worktree.
+- Drafted `user_docs/demo/permission_audit_plan.md` with capability map template, decision matrix, and audit steps.
 
 ## Errors
 - None.
@@ -50,3 +50,4 @@
 - `domain_docs/mes/spec/process/01_end_to_end_flows.md`
 - `domain_docs/mes/spec/process/03_smt_flows.md`
 - `domain_docs/mes/spec/process/04_dip_flows.md`
+- `user_docs/demo/permission_audit_plan.md`

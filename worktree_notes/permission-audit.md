@@ -64,6 +64,11 @@ task:
 - Flow docs reviewed: E2E and SMT specify readiness → loading → FAI → authorize → execution → OQC/MRB; permission design should align per step and not per role. See `domain_docs/mes/spec/process/01_end_to_end_flows.md` and `domain_docs/mes/spec/process/03_smt_flows.md`.
 - DIP flow adds prep/FAI gate, multi-stage IPQC-like checks, OQC/MRB; needs permission mapping per block rather than per role. See `domain_docs/mes/spec/process/04_dip_flows.md`.
 - Added plan note at `conversation/2026-01-20_142730_permission_audit_plan.md`.
+- Checked `user_docs/demo/` contents; no existing permission audit plan doc yet.
+- Flow re-read: E2E + SMT emphasize readiness→loading→FAI→authorize→execution→OQC/MRB and explicit readiness item types; capability map should enumerate these steps with view/action permissions. See `domain_docs/mes/spec/process/01_end_to_end_flows.md` and `domain_docs/mes/spec/process/03_smt_flows.md`.
+- DIP flow adds prep + IPQC-style checks and rework loop; plan should treat these as modules even if not fully implemented. See `domain_docs/mes/spec/process/04_dip_flows.md`.
+- Existing audit report is role-centered; plan doc should shift to permission-first, module-level gating and avoid role matrices for UX decisions. See `user_docs/demo/permission_audit_report.md`.
+- Drafted permission-first audit plan at `user_docs/demo/permission_audit_plan.md`.
 
 ## Open Questions
 -
