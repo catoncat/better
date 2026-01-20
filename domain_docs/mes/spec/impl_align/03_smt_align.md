@@ -22,6 +22,7 @@
 | 锡膏合规检查 | `POST /api/integration/solder-paste-status`, `POST /api/runs/:runNo/readiness/check` | `apps/server/src/modules/mes/integration/solder-paste-service.ts`, `apps/server/src/modules/mes/readiness/service.ts` | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` |
 | 物料备料 | `POST /api/runs/:runNo/readiness/check` | `apps/server/src/modules/mes/readiness/service.ts` | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` |
 | 设备就绪 | `POST /api/runs/:runNo/readiness/check` | `apps/server/src/modules/mes/readiness/service.ts` | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` |
+| 烘烤记录 | `GET /api/bake-records`, `POST /api/bake-records` | `apps/server/src/modules/mes/bake/service.ts` | `apps/web/src/routes/_authenticated/mes/bake-records/index.tsx` |
 | 异常记录/处理 | `GET /api/readiness/exceptions`, `POST /api/runs/:runNo/readiness/items/:itemId/waive` | `apps/server/src/modules/mes/readiness/service.ts` | `apps/web/src/routes/_authenticated/mes/readiness-exceptions.tsx` |
 | 上料防错 | `GET /api/runs/:runNo/loading/expectations`, `POST /api/runs/:runNo/loading/load-table`, `POST /api/loading/verify` | `apps/server/src/modules/mes/loading/service.ts` | `apps/web/src/routes/_authenticated/mes/loading/index.tsx` |
 | 加载站位表 | `POST /api/runs/:runNo/loading/load-table` | `apps/server/src/modules/mes/loading/service.ts` | `apps/web/src/routes/_authenticated/mes/loading/index.tsx` |
