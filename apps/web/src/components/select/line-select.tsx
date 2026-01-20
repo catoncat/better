@@ -6,6 +6,7 @@ import { PROCESS_TYPE_MAP } from "@/lib/constants";
 interface LineSelectProps {
 	value?: string;
 	onValueChange: (value: string) => void;
+	valueKey?: "code" | "id";
 	disabled?: boolean;
 	placeholder?: string;
 	className?: string;
@@ -14,6 +15,7 @@ interface LineSelectProps {
 export function LineSelect({
 	value,
 	onValueChange,
+	valueKey = "code",
 	disabled,
 	placeholder = "选择线体",
 	className,
@@ -30,11 +32,11 @@ export function LineSelect({
 				? `${item.name} (${item.code}) · ${processLabel}`
 				: `${item.name} (${item.code})`;
 			return {
-				value: item.code,
+				value: valueKey === "id" ? item.id : item.code,
 				label,
 			};
 		});
-	}, [data?.items]);
+	}, [data?.items, valueKey]);
 
 	return (
 		<Combobox

@@ -26,3 +26,26 @@
 # Findings (continued)
 - `slot-config.tsx` uses `useLines()` and sets `selectedLineId = search.lineId || lines?.items[0]?.id` then passes that to `useFeederSlots` and `LineSelect`.
 - `useFeederSlots` calls `client.api.lines({ lineId })["feeder-slots"].get()`.
+
+# Findings (continued)
+- `LineSelect` builds combobox options with `value: item.code` (not id).
+- `slot-config.tsx` treats `lineId` as the selected value and defaults to `lines?.items[0]?.id`, which conflicts with LineSelect using `code`.
+
+# Findings (continued)
+- `slot-mappings` API list accepts `query.lineId` and is wired through server loading routes.
+- Backend `getFeederSlots` resolves `lineId` via `db.line.findUnique({ where: { id: lineId } })`, so line ID (not code) is required.
+
+# Findings (continued)
+- `listSlotMaterialMappings` filters via `slot.lineId = query.lineId`, confirming lineId is the DB id, not code.
+
+# Progress
+- Added `valueKey` support to `LineSelect` (default `code`).
+- `slot-config.tsx` now normalizes `search.lineId` to a real line id and uses `valueKey="id"`.
+
+## 2025-01-13
+- Findings: slot-config labels appear in navigation (\"上料槽位配置\") and page header (\"站位表配置\") plus other UI strings under loading routes; need unify wording.
+
+- Findings: repo-wide search shows only navigation uses \"上料槽位配置\"; other UI uses \"站位表\". Recommend align nav to \"站位表配置\".
+
+# Errors (continued)
+- `bun scripts/smart-verify.ts` failed due to existing lint/format errors in `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` and `apps/server/src/modules/mes/fai/service.ts` (unrelated to this change). Next step: confirm whether to fix those or skip verification for this branch.

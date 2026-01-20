@@ -1,7 +1,7 @@
 import { Permission } from "@better-app/db/permissions";
 import { createFileRoute } from "@tanstack/react-router";
 import { Loader2, MoreHorizontal, Plus, Search, Settings2, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { Can } from "@/components/ability/can";
 import { LineSelect } from "@/components/select/line-select";
@@ -48,7 +48,14 @@ function SlotConfigPage() {
 	const { data: lines } = useLines();
 
 	// Default to first line if none selected
-	const selectedLineId = search.lineId || lines?.items[0]?.id;
+	const selectedLineId = useMemo(() => {
+		if (!lines?.items?.length) return undefined;
+		if (!search.lineId) return lines.items[0]?.id;
+		const byId = lines.items.find((line) => line.id === search.lineId);
+		if (byId) return byId.id;
+		const byCode = lines.items.find((line) => line.code === search.lineId);
+		return byCode?.id;
+	}, [lines?.items, search.lineId]);
 
 	const {
 		data: slotsData,
@@ -146,6 +153,7 @@ function SlotConfigPage() {
 							<LineSelect
 								value={selectedLineId}
 								onValueChange={handleLineChange}
+								valueKey="id"
 								placeholder="选择产线"
 							/>
 						</div>
