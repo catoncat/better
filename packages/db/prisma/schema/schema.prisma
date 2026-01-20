@@ -345,6 +345,7 @@ enum AuditEntityType {
   NOTIFICATION
   SYSTEM
   READINESS_CHECK // M2: Line Readiness Check audit
+  BAKE_RECORD // SMT bake record
 }
 
 model WorkOrder {
@@ -407,6 +408,7 @@ model Run {
   units            Unit[]
   slotExpectations RunSlotExpectation[]
   loadingRecords   LoadingRecord[]
+  bakeRecords      BakeRecord[]
 
   @@index([parentRunId])
 }
@@ -537,6 +539,34 @@ model LoadingRecord {
   @@index([slotId])
   @@index([materialLotId])
   @@index([loadedAt])
+}
+
+model BakeRecord {
+  id               String   @id @default(cuid())
+  runId            String?
+  materialLotId    String?
+  itemCode         String
+  bakeProcess      String
+  bakeQty          String
+  bakeTemperature  Float?
+  durationHours    String?
+  inAt             DateTime
+  inBy             String
+  outAt            DateTime
+  outBy            String
+  confirmedBy      String?
+  meta             Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  run         Run?         @relation(fields: [runId], references: [id])
+  materialLot MaterialLot? @relation(fields: [materialLotId], references: [id])
+
+  @@index([runId])
+  @@index([materialLotId])
+  @@index([itemCode])
+  @@index([inAt])
+  @@index([outAt])
 }
 
 model LineStencil {
@@ -1222,6 +1252,7 @@ model MaterialLot {
 
   materialUses   MaterialUse[]
   loadingRecords LoadingRecord[]
+  bakeRecords    BakeRecord[]
 
   @@unique([materialCode, lotNo])
   @@index([materialCode])
