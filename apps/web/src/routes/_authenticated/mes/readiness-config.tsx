@@ -60,7 +60,7 @@ function ReadinessConfigPage() {
 			setProcessType(selectedLine.processType ?? "");
 			setProcessTypeDirty(false);
 		}
-	}, [selectedLineId, selectedLine?.processType]);
+	}, [selectedLine]);
 
 	const handleLineChange = (lineId: string) => {
 		setSelectedLineId(lineId);
@@ -137,17 +137,17 @@ function ReadinessConfigPage() {
 							<SelectTrigger className="w-64">
 								<SelectValue placeholder={linesLoading ? "加载中..." : "选择产线"} />
 							</SelectTrigger>
-								<SelectContent>
-									{lines.map((line) => (
-										<SelectItem key={line.id} value={line.id}>
-											{line.code} - {line.name}
-											{line.processType
-												? ` · ${PROCESS_TYPE_MAP[line.processType] ?? line.processType}`
-												: ""}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+							<SelectContent>
+								{lines.map((line) => (
+									<SelectItem key={line.id} value={line.id}>
+										{line.code} - {line.name}
+										{line.processType
+											? ` · ${PROCESS_TYPE_MAP[line.processType] ?? line.processType}`
+											: ""}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 					</div>
 
 					<div className="space-y-2">
