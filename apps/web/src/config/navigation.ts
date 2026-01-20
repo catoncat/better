@@ -86,7 +86,7 @@ export const navMain: NavItem[] = [
 				permissions: [Permission.READINESS_VIEW],
 			},
 			{
-				title: "上料槽位配置",
+				title: "站位表配置",
 				url: "/mes/loading/slot-config",
 				permissions: [Permission.LOADING_CONFIG],
 			},
