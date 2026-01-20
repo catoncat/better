@@ -14,7 +14,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { useLines } from "@/hooks/use-lines";
+import { useLines, useUpdateLineProcessType } from "@/hooks/use-lines";
 import {
 	ALL_READINESS_ITEM_TYPES,
 	READINESS_ITEM_TYPE_LABELS,
@@ -22,6 +22,7 @@ import {
 	useReadinessConfig,
 	useUpdateReadinessConfig,
 } from "@/hooks/use-readiness";
+import { PROCESS_TYPE_MAP } from "@/lib/constants";
 
 export const Route = createFileRoute("/_authenticated/mes/readiness-config")({
 	component: ReadinessConfigPage,
@@ -32,11 +33,14 @@ function ReadinessConfigPage() {
 	const [selectedLineId, setSelectedLineId] = useState<string>("");
 	const [enabledTypes, setEnabledTypes] = useState<Set<ReadinessItemType>>(new Set());
 	const [hasChanges, setHasChanges] = useState(false);
+	const [processType, setProcessType] = useState<string>("");
+	const [processTypeDirty, setProcessTypeDirty] = useState(false);
 
 	const { data: configData, isLoading: configLoading } = useReadinessConfig(
 		selectedLineId || undefined,
 	);
 	const updateConfig = useUpdateReadinessConfig();
+	const updateProcessType = useUpdateLineProcessType();
 
 	// Sync config data to local state
 	useEffect(() => {
@@ -46,9 +50,24 @@ function ReadinessConfigPage() {
 		}
 	}, [configData]);
 
+	const lines = linesData?.items ?? [];
+	const selectedLine = lines.find((line) => line.id === selectedLineId);
+
+	useEffect(() => {
+		if (selectedLine) {
+			setProcessType(selectedLine.processType ?? "");
+			setProcessTypeDirty(false);
+		}
+	}, [selectedLineId, selectedLine?.processType]);
+
 	const handleLineChange = (lineId: string) => {
 		setSelectedLineId(lineId);
 		setHasChanges(false);
+	};
+
+	const handleProcessTypeChange = (value: string) => {
+		setProcessType(value);
+		setProcessTypeDirty(true);
 	};
 
 	const handleToggle = (type: ReadinessItemType) => {
@@ -83,7 +102,11 @@ function ReadinessConfigPage() {
 		setHasChanges(false);
 	};
 
-	const lines = linesData?.items ?? [];
+	const handleSaveProcessType = async () => {
+		if (!selectedLineId || !processType) return;
+		await updateProcessType.mutateAsync({ lineId: selectedLineId, processType });
+		setProcessTypeDirty(false);
+	};
 
 	return (
 		<div className="space-y-6">
@@ -112,14 +135,53 @@ function ReadinessConfigPage() {
 							<SelectTrigger className="w-64">
 								<SelectValue placeholder={linesLoading ? "加载中..." : "选择产线"} />
 							</SelectTrigger>
-							<SelectContent>
-								{lines.map((line) => (
-									<SelectItem key={line.id} value={line.id}>
-										{line.code} - {line.name}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
+								<SelectContent>
+									{lines.map((line) => (
+										<SelectItem key={line.id} value={line.id}>
+											{line.code} - {line.name}
+											{line.processType
+												? ` · ${PROCESS_TYPE_MAP[line.processType] ?? line.processType}`
+												: ""}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+					</div>
+
+					<div className="space-y-2">
+						<Label>工艺类型</Label>
+						<div className="flex flex-wrap items-center gap-2">
+							<Select value={processType} onValueChange={handleProcessTypeChange}>
+								<SelectTrigger className="w-64">
+									<SelectValue placeholder="选择工艺类型" />
+								</SelectTrigger>
+								<SelectContent>
+									{Object.entries(PROCESS_TYPE_MAP).map(([value, label]) => (
+										<SelectItem key={value} value={value}>
+											{label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<Can permissions={Permission.READINESS_CONFIG}>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={handleSaveProcessType}
+									disabled={
+										!selectedLineId ||
+										!processType ||
+										!processTypeDirty ||
+										updateProcessType.isPending
+									}
+								>
+									{updateProcessType.isPending ? "保存中..." : "保存工艺"}
+								</Button>
+							</Can>
+						</div>
+						<p className="text-xs text-muted-foreground">
+							工艺类型用于发布工单时校验产线与路由是否匹配。
+						</p>
 					</div>
 
 					{/* Config panel */}

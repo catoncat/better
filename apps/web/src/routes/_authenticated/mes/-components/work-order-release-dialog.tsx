@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/form-field-wrapper";
 import type { WorkOrder } from "@/hooks/use-work-orders";
+import { PROCESS_TYPE_MAP } from "@/lib/constants";
 
 const releaseSchema = z.object({
 	lineCode: z.string().min(1, "请选择线体"),
@@ -34,6 +35,11 @@ export function WorkOrderReleaseDialog({
 	isSubmitting,
 	workOrder,
 }: WorkOrderReleaseDialogProps) {
+	const routingProcessType = workOrder?.routing?.processType;
+	const routingProcessLabel = routingProcessType
+		? PROCESS_TYPE_MAP[routingProcessType] ?? routingProcessType
+		: "未设置";
+
 	const form = useForm({
 		defaultValues: {
 			lineCode: "",
@@ -72,6 +78,9 @@ export function WorkOrderReleaseDialog({
 							/>
 						)}
 					</Field>
+					<div className="text-xs text-muted-foreground">
+						路由工艺：{routingProcessLabel}
+					</div>
 					<DialogFooter>
 						<Button type="submit" disabled={isSubmitting}>
 							{isSubmitting ? "正在发布..." : "发布工单"}

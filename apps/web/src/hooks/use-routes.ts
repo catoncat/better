@@ -1,4 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useApiError } from "@/hooks/use-api-error";
 import { client, unwrap } from "@/lib/eden";
 
 const routesApi = client.api.routes;
@@ -10,6 +12,7 @@ export type RouteList = RouteListData;
 const routeDetailApi = (code: string) => client.api.routes({ routingCode: code });
 type RouteDetailResponse = Awaited<ReturnType<ReturnType<typeof routeDetailApi>["get"]>>["data"];
 export type RouteDetail = NonNullable<RouteDetailResponse>;
+type RouteUpdateInput = Parameters<ReturnType<typeof routeDetailApi>["patch"]>[0];
 
 interface UseRouteListParams {
 	page?: number;
@@ -68,5 +71,23 @@ export function useRouteDetail(routingCode: string) {
 			return unwrap(response);
 		},
 		staleTime: 15_000,
+	});
+}
+
+export function useUpdateRouteProcessType(routingCode: string) {
+	const queryClient = useQueryClient();
+	const showError = useApiError();
+
+	return useMutation({
+		mutationFn: async ({ processType }: { processType: RouteUpdateInput["processType"] }) => {
+			const response = await client.api.routes({ routingCode }).patch({ processType });
+			return unwrap(response);
+		},
+		onSuccess: () => {
+			toast.success("路由工艺已更新");
+			queryClient.invalidateQueries({ queryKey: ["mes", "route-detail", routingCode] });
+			queryClient.invalidateQueries({ queryKey: ["mes", "routes"] });
+		},
+		onError: (error: unknown) => showError("更新路由工艺失败", error),
 	});
 }

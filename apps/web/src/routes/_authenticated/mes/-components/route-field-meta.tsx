@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import type { DataListFieldMeta } from "@/components/data-list/field-meta";
 import { Badge } from "@/components/ui/badge";
 import type { RouteSummary } from "@/hooks/use-routes";
+import { PROCESS_TYPE_MAP } from "@/lib/constants";
 import { formatDateTime } from "@/lib/utils";
 
 const getSourceBadge = (sourceSystem: string) => {
@@ -49,6 +50,14 @@ export const routeFieldMeta: DataListFieldMeta<RouteSummary>[] = [
 		cardDetail: true,
 		cardValue: (route) => route.productCode || "-",
 		tableCell: (route) => route.productCode || "-",
+	},
+	{
+		key: "processType",
+		label: "工艺类型",
+		sortable: true,
+		cardDetail: true,
+		cardValue: (route) => PROCESS_TYPE_MAP[route.processType] ?? route.processType,
+		tableCell: (route) => PROCESS_TYPE_MAP[route.processType] ?? route.processType,
 	},
 	{
 		key: "sourceSystem",

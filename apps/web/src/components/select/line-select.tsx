@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import { useLines } from "@/hooks/use-lines";
+import { PROCESS_TYPE_MAP } from "@/lib/constants";
 
 interface LineSelectProps {
 	value?: string;
@@ -21,10 +22,18 @@ export function LineSelect({
 
 	const options: ComboboxOption[] = React.useMemo(() => {
 		if (!data?.items) return [];
-		return data.items.map((item) => ({
-			value: item.code,
-			label: `${item.name} (${item.code})`,
-		}));
+		return data.items.map((item) => {
+			const processLabel = item.processType
+				? (PROCESS_TYPE_MAP[item.processType] ?? item.processType)
+				: "";
+			const label = processLabel
+				? `${item.name} (${item.code}) · ${processLabel}`
+				: `${item.name} (${item.code})`;
+			return {
+				value: item.code,
+				label,
+			};
+		});
 	}, [data?.items]);
 
 	return (

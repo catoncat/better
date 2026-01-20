@@ -47,10 +47,11 @@ import {
 	useUpdateExecutionConfig,
 } from "@/hooks/use-execution-configs";
 import { useCompileRouteVersion } from "@/hooks/use-route-versions";
-import { useRouteDetail } from "@/hooks/use-routes";
+import { useRouteDetail, useUpdateRouteProcessType } from "@/hooks/use-routes";
 import { useStations } from "@/hooks/use-station-execution";
 import { useStationGroups } from "@/hooks/use-station-groups";
 import { client, unwrap } from "@/lib/eden";
+import { PROCESS_TYPE_MAP } from "@/lib/constants";
 import { DataSpecSelector } from "../-components/data-spec-selector";
 
 export const Route = createFileRoute("/_authenticated/mes/routes/$routingCode")({
@@ -123,6 +124,7 @@ function RouteDetailPage() {
 	const { routingCode } = useParams({ from: "/_authenticated/mes/routes/$routingCode" });
 	const queryClient = useQueryClient();
 	const { data: routeDetail, isLoading, refetch } = useRouteDetail(routingCode);
+	const updateProcessType = useUpdateRouteProcessType(routingCode);
 	const { data: configs, isLoading: configsLoading } = useExecutionConfigs(routingCode);
 	const { data: stationList } = useStations();
 	const { data: stationGroups } = useStationGroups();
@@ -131,6 +133,8 @@ function RouteDetailPage() {
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editingConfig, setEditingConfig] = useState<ExecutionConfig | null>(null);
 	const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+	const [processType, setProcessType] = useState("");
+	const [processTypeDirty, setProcessTypeDirty] = useState(false);
 
 	const steps = routeDetail?.steps ?? [];
 	const executionConfigs = configs ?? [];
@@ -178,6 +182,24 @@ function RouteDetailPage() {
 
 	const sourceSystem = routeDetail?.route.sourceSystem;
 	const isErpRoute = sourceSystem === "ERP";
+
+	useEffect(() => {
+		if (routeDetail?.route.processType) {
+			setProcessType(routeDetail.route.processType);
+			setProcessTypeDirty(false);
+		}
+	}, [routeDetail?.route.processType]);
+
+	const handleProcessTypeChange = (value: string) => {
+		setProcessType(value);
+		setProcessTypeDirty(true);
+	};
+
+	const handleSaveProcessType = async () => {
+		if (!processType) return;
+		await updateProcessType.mutateAsync({ processType });
+		setProcessTypeDirty(false);
+	};
 
 	const executionSemanticsStatus = useMemo(() => {
 		const updatedAtMs = (config: ExecutionConfig) => {
@@ -400,6 +422,33 @@ function RouteDetailPage() {
 						<Badge variant={isErpRoute ? "outline" : "secondary"}>
 							{routeDetail.route.sourceSystem}
 						</Badge>
+					</div>
+					<div className="md:col-span-2">
+						<p className="text-sm text-muted-foreground">工艺类型</p>
+						<div className="mt-2 flex flex-wrap items-center gap-2">
+							<Select value={processType} onValueChange={handleProcessTypeChange}>
+								<SelectTrigger className="w-64">
+									<SelectValue placeholder="选择工艺类型" />
+								</SelectTrigger>
+								<SelectContent>
+									{Object.entries(PROCESS_TYPE_MAP).map(([value, label]) => (
+										<SelectItem key={value} value={value}>
+											{label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<Can permissions={Permission.ROUTE_CONFIGURE}>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={handleSaveProcessType}
+									disabled={!processType || !processTypeDirty || updateProcessType.isPending}
+								>
+									{updateProcessType.isPending ? "保存中..." : "保存工艺"}
+								</Button>
+							</Can>
+						</div>
 					</div>
 					<div>
 						<p className="text-sm text-muted-foreground">有效期</p>
