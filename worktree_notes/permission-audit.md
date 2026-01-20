@@ -70,6 +70,18 @@ task:
 - Existing audit report is role-centered; plan doc should shift to permission-first, module-level gating and avoid role matrices for UX decisions. See `user_docs/demo/permission_audit_report.md`.
 - Drafted permission-first audit plan at `user_docs/demo/permission_audit_plan.md`.
 - Expanded plan with module decision flow (flow continuity, optional module hide, config CTA rules) and output requirements.
+- Loading routes include multiple endpoints gated by `loading:verify`, `loading:view`, and `loading:config` (see `apps/server/src/modules/mes/loading/routes.ts`).
+- Trace API `/trace/units/:sn` requires `trace:read` (see `apps/server/src/modules/mes/trace/routes.ts`).
+- Loading APIs: `POST /loading/verify`, `POST /loading/replace`, `POST /runs/:runNo/loading/load-table` require `loading:verify`; `GET /runs/:runNo/loading`, `/runs/:runNo/loading/expectations`, `/lines/:lineId/feeder-slots` require `loading:view` (see `apps/server/src/modules/mes/loading/routes.ts`).
+- Loading config APIs: `/lines/:lineId/feeder-slots` (POST/PUT/DELETE), `/feeder-slots/:slotId/unlock`, `/slot-mappings` (POST/PUT/DELETE) require `loading:config`; slot-mappings list uses `loading:view` (see `apps/server/src/modules/mes/loading/routes.ts`).
+- Routing APIs: `/routes` + `/routes/:routingCode` + `/routes/:routingCode/versions` + `/routes/:routingCode/versions/:versionNo` + `/routes/:routingCode/execution-config` require `route:read`; `/routes/:routingCode` (PATCH) + `/routes/:routingCode/execution-config` (POST/PATCH) require `route:configure`; `/routes/:routingCode/compile` requires `route:compile` (see `apps/server/src/modules/mes/routing/routes.ts`).
+- Data collection specs: list/get require `data_spec:read` + `data_spec:config`; create/update require `data_spec:config` (see `apps/server/src/modules/mes/data-collection-spec/routes.ts`).
+- Defect + rework endpoints (`/defects`, `/defects/:id`, dispositions, release; `/rework-tasks` list/complete) all require `quality:disposition` (see `apps/server/src/modules/mes/defect/routes.ts`).
+- Integration endpoints under `/integration/*` require `system:integration`; additional line-binding endpoints in this module require `loading:config` (see `apps/server/src/modules/mes/integration/routes.ts`).
+- Work order receive endpoint `POST /integration/work-orders` requires `system:integration` (see `apps/server/src/modules/mes/integration/routes.ts`).
+- FAI actions require `quality:fai`: create `/fai/run/:runNo`, start `/fai/:faiId/start`, record items `/fai/:faiId/items`, complete `/fai/:faiId/complete` (see `apps/server/src/modules/mes/fai/routes.ts`).
+- Readiness config endpoints `/lines/:lineId/readiness-config` (GET) require `readiness:view`, PUT requires `readiness:config` (see `apps/server/src/modules/mes/line/routes.ts`).
+- Capability map table populated in `user_docs/demo/permission_audit_plan.md` with verified flow step → permission → API pairs.
 
 ## Open Questions
 -

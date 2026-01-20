@@ -53,6 +53,42 @@ DIP 重点：
 | --- | --- | --- | --- | --- | --- |
 | 就绪检查 | 准备状态卡片 | readiness:view | readiness:check / readiness:override | /runs/:runNo/readiness/* | 关键步骤，需保留解释 |
 
+### 2.3 能力映射（核心流程）
+
+| Flow Step | UI 模块 | 视图权限 | 操作权限 | 相关 API | 备注 |
+| --- | --- | --- | --- | --- | --- |
+| ERP/主数据同步 | 集成状态/同步面板 | system:integration | system:integration | /integration/status, /integration/erp/*/sync, /integration/tpm/*/sync | 配置与运维模块 |
+| 工单接收（ERP） | 接收外部工单 | - | system:integration | /integration/work-orders | 外部接入动作 |
+| 工单列表 | 工单列表/详情卡 | wo:read | - | /work-orders | 核心上下文 |
+| 工单发布/派工 | 发布工单弹窗 | wo:read | wo:release | /work-orders/:woNo/release | 可执行操作 |
+| 工单收尾 | 工单收尾操作 | wo:read | wo:close | /work-orders/:woNo/close | 可执行操作 |
+| 批次创建 | 创建批次弹窗 | wo:read | run:create | /work-orders/:woNo/runs | 可执行操作 |
+| 批次列表/详情 | 批次列表/详情卡 | run:read | - | /runs, /runs/:runNo, /runs/:runNo/units | 核心上下文 |
+| 批次授权/撤销 | 授权/撤销按钮 | run:read | run:authorize / run:revoke | /runs/:runNo/authorize | 可执行操作 |
+| 批次收尾 | 收尾确认 | run:read | run:close | /runs/:runNo/close | 可执行操作 |
+| 生成单件 | 生成单件操作 | run:read | run:authorize | /runs/:runNo/generate-units, /runs/:runNo/units (DELETE) | 可执行操作 |
+| 就绪检查状态 | 准备状态卡片 | readiness:view | - | /runs/:runNo/readiness/latest, /runs/:runNo/readiness/history, /readiness/exceptions | 核心上下文 |
+| 就绪检查执行 | 预检/正式检查 | readiness:view | readiness:check | /runs/:runNo/readiness/precheck, /runs/:runNo/readiness/check | 关键步骤 |
+| 就绪豁免 | 豁免检查项 | readiness:view | readiness:override | /runs/:runNo/readiness/items/:itemId/waive | 高风险操作 |
+| 就绪检查配置 | Readiness 配置 | readiness:view | readiness:config | /lines/:lineId/readiness-config (GET/PUT) | 配置与运维模块 |
+| 上料记录/期望 | 上料记录/期望表 | loading:view | - | /runs/:runNo/loading, /runs/:runNo/loading/expectations | 核心上下文 |
+| 上料验证/替换 | 扫码验证/替换 | loading:view | loading:verify | /loading/verify, /loading/replace, /runs/:runNo/loading/load-table | 可执行操作 |
+| 上料配置 | 站位/映射/解锁 | loading:view | loading:config | /lines/:lineId/feeder-slots (POST/PUT/DELETE), /feeder-slots/:slotId/unlock, /slot-mappings (POST/PUT/DELETE) | 配置与运维模块 |
+| FAI 状态/列表 | FAI 列表/状态卡 | quality:fai | - | /fai, /fai/:faiId, /fai/run/:runNo, /fai/run/:runNo/gate | 核心上下文 |
+| FAI 执行 | 创建/开始/记录/完成 | quality:fai | quality:fai | /fai/run/:runNo (POST), /fai/:faiId/start, /fai/:faiId/items, /fai/:faiId/complete | 关键步骤 |
+| 执行进站/出站 | 执行操作面板 | exec:track_in / exec:track_out | exec:track_in / exec:track_out | /stations/resolve-unit/:sn, /stations/:stationCode/track-in, /stations/:stationCode/track-out | 关键步骤 |
+| 数据采集规格 | 采集项列表/配置 | data_spec:read + data_spec:config | data_spec:config | /data-collection-specs, /data-collection-specs/:specId | 配置与运维模块 |
+| 不良与处置 | 不良列表/处置 | quality:disposition | quality:disposition | /defects, /defects/:defectId, /defects/:defectId/disposition, /defects/:defectId/release | 敏感信息 |
+| 返修任务 | 返修任务列表/完成 | quality:disposition | quality:disposition | /rework-tasks, /rework-tasks/:taskId/complete | 敏感信息 |
+| OQC 状态/列表 | OQC 列表/状态卡 | quality:oqc | - | /oqc, /oqc/:oqcId, /oqc/run/:runNo, /oqc/run/:runNo/gate | 核心上下文 |
+| OQC 执行 | 开始/记录/完成 | quality:oqc | quality:oqc | /oqc/:oqcId/start, /oqc/:oqcId/items, /oqc/:oqcId/complete, /oqc/run/:runNo (POST) | 关键步骤 |
+| MRB 决策 | MRB 处置 | quality:disposition | quality:disposition | /runs/:runNo/mrb-decision | 敏感信息 |
+| 追溯查询 | 追溯查询 | trace:read | - | /trace/units/:sn | 核心上下文 |
+| 路由查看 | 路由列表/详情/版本 | route:read | - | /routes, /routes/:routingCode, /routes/:routingCode/versions, /routes/:routingCode/versions/:versionNo | 配置与运维模块 |
+| 路由执行语义 | 执行语义配置 | route:read | route:configure | /routes/:routingCode/execution-config (GET/POST/PATCH), /routes/:routingCode (PATCH) | 配置与运维模块 |
+| 路由编译 | 编译可执行版本 | route:read | route:compile | /routes/:routingCode/compile | 配置与运维模块 |
+| DIP IPQC 节点 | 段首件/测试检查 | - | - | 未实现 | 需纳入模块规划 |
+
 ---
 
 ## 3. 模块展示策略（Decision Matrix）

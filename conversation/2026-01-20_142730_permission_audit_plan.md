@@ -39,6 +39,7 @@
 ## Progress
 - Drafted `user_docs/demo/permission_audit_plan.md` with capability map template, decision matrix, and audit steps.
 - Added module-level decision flow (flow continuity, optional module hide, config CTA rules) and output requirements.
+- Filled capability map table with core flow steps and verified API/permission pairs.
 
 ## Errors
 - None.
