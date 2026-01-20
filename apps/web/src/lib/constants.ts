@@ -68,10 +68,10 @@ export const READINESS_ITEM_TYPE_MAP: Record<string, string> = {
 	LOADING: "上料",
 };
 
-export const PROCESS_TYPE_MAP: Record<string, string> = {
+export const PROCESS_TYPE_MAP = {
 	SMT: "SMT",
 	DIP: "DIP",
-};
+} as const;
 
 export const OQC_SAMPLING_TYPE_MAP: Record<string, string> = {
 	PERCENTAGE: "按比例 (%)",

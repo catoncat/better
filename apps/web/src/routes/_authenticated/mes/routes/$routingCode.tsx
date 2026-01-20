@@ -121,6 +121,8 @@ type StationOption = {
 };
 
 function RouteDetailPage() {
+	type ProcessType = keyof typeof PROCESS_TYPE_MAP;
+
 	const { routingCode } = useParams({ from: "/_authenticated/mes/routes/$routingCode" });
 	const queryClient = useQueryClient();
 	const { data: routeDetail, isLoading, refetch } = useRouteDetail(routingCode);
@@ -133,7 +135,7 @@ function RouteDetailPage() {
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editingConfig, setEditingConfig] = useState<ExecutionConfig | null>(null);
 	const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
-	const [processType, setProcessType] = useState("");
+	const [processType, setProcessType] = useState<ProcessType | "">("");
 	const [processTypeDirty, setProcessTypeDirty] = useState(false);
 
 	const steps = routeDetail?.steps ?? [];
@@ -191,7 +193,7 @@ function RouteDetailPage() {
 	}, [routeDetail?.route.processType]);
 
 	const handleProcessTypeChange = (value: string) => {
-		setProcessType(value);
+		setProcessType(value as ProcessType);
 		setProcessTypeDirty(true);
 	};
 

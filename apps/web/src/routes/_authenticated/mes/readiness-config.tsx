@@ -29,11 +29,13 @@ export const Route = createFileRoute("/_authenticated/mes/readiness-config")({
 });
 
 function ReadinessConfigPage() {
+	type ProcessType = keyof typeof PROCESS_TYPE_MAP;
+
 	const { data: linesData, isLoading: linesLoading } = useLines();
 	const [selectedLineId, setSelectedLineId] = useState<string>("");
 	const [enabledTypes, setEnabledTypes] = useState<Set<ReadinessItemType>>(new Set());
 	const [hasChanges, setHasChanges] = useState(false);
-	const [processType, setProcessType] = useState<string>("");
+	const [processType, setProcessType] = useState<ProcessType | "">("");
 	const [processTypeDirty, setProcessTypeDirty] = useState(false);
 
 	const { data: configData, isLoading: configLoading } = useReadinessConfig(
@@ -66,7 +68,7 @@ function ReadinessConfigPage() {
 	};
 
 	const handleProcessTypeChange = (value: string) => {
-		setProcessType(value);
+		setProcessType(value as ProcessType);
 		setProcessTypeDirty(true);
 	};
 
