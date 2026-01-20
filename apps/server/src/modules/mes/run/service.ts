@@ -796,23 +796,17 @@ export const generateUnits = async (
 		};
 	}
 
-	// Check existing unit count
+	// Check existing unit count - allow appending if total doesn't exceed planQty
 	const existingCount = await db.unit.count({ where: { runId: run.id } });
-	if (existingCount > 0) {
-		return {
-			success: false as const,
-			code: "UNITS_ALREADY_EXIST",
-			message: `Run already has ${existingCount} units. Delete existing units first or use a different run.`,
-			status: 400,
-		};
-	}
+	const totalAfterGenerate = existingCount + data.quantity;
 
-	// Check quantity does not exceed planQty
-	if (data.quantity > run.planQty) {
+	// Check quantity does not exceed planQty (including existing units)
+	if (totalAfterGenerate > run.planQty) {
+		const remaining = run.planQty - existingCount;
 		return {
 			success: false as const,
 			code: "QUANTITY_EXCEEDS_PLAN",
-			message: `Requested quantity (${data.quantity}) exceeds run plan quantity (${run.planQty})`,
+			message: `无法生成 ${data.quantity} 个单件：已有 ${existingCount} 个，计划数量 ${run.planQty}，最多还可生成 ${remaining} 个`,
 			status: 400,
 		};
 	}
@@ -823,20 +817,23 @@ export const generateUnits = async (
 	// Get first step number from routing
 	const firstStepNo = run.routeVersion?.routing?.steps?.[0]?.stepNo ?? 1;
 
-	// Create units in batch
+	// Create units in batch - start numbering from existingCount + 1 for continuity
 	const unitsData = Array.from({ length: data.quantity }, (_, i) => ({
 		runId: run.id,
 		woId: run.workOrder.id,
-		sn: `${snPrefix}${String(i + 1).padStart(4, "0")}`,
+		sn: `${snPrefix}${String(existingCount + i + 1).padStart(4, "0")}`,
 		status: UnitStatus.QUEUED,
 		currentStepNo: firstStepNo,
 	}));
 
 	await db.unit.createMany({ data: unitsData });
 
-	// Fetch created units for response
+	// Fetch only newly created units for response
 	const createdUnits = await db.unit.findMany({
-		where: { runId: run.id },
+		where: {
+			runId: run.id,
+			sn: { in: unitsData.map((u) => u.sn) },
+		},
 		select: { sn: true, status: true },
 		orderBy: { sn: "asc" },
 	});

@@ -93,3 +93,9 @@
 
 ## Errors
 - 2026-01-20: bun scripts/smart-verify.ts failed; Biome organizeImports error in apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx (unrelated). Next: skip or fix if allowed.
+
+## Findings
+- 2026-01-20: git log shows HEAD at 629f658 (Update acceptance_issues.md) with 3cd052f (docs: update process type validation notes) directly below; need to confirm commit contents to ensure no unrelated files were included.
+
+## Findings
+- 2026-01-20: commit 3cd052f unintentionally includes apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx (unrelated) alongside conversation note; need user direction to undo or keep.

@@ -17,6 +17,8 @@
 | 4 | 7.1 | Major | Run 收尾确认后无响应 / 未创建 OQC 任务 | Open |
 | 5 | 1.2 | Major | 工单发布缺少产线-工艺类型校验（DIP 工单可发布到 SMT 产线） | Resolved |
 | 6 | 5.3 | Major | 前端按钮显示未基于权限控制 + 403 错误提示不准确 | Partial |
+| 7 | 5.1 | Minor | LOADING 检查失败时应显示"前往配置站位表"快捷按钮 | Open |
+| 8 | 5.2 | Major | FAI 创建未校验就绪检查状态（预检未通过也能创建 FAI） | Fixed |
 
 ---
 
@@ -128,3 +130,24 @@
   3. 观察：显示"执行预检"/"正式检查"按钮（不应显示）
   4. 点击按钮，观察：前端显示"预检失败 检查网络"
 - **状态**: Open
+
+## 问题 #8: FAI 创建未校验就绪检查状态
+- **阶段**: 5.2（FAI 首件检验）
+- **页面**: `/mes/runs/:runNo`（批次详情页）
+- **严重程度**: Major（违反 SMT 流程设计，应按就绪检查 → 上料 → FAI 顺序）
+- **描述**:
+  - 问题：就绪检查未通过（FAILED 或无记录）时，仍可点击「创建 FAI」
+  - 流程设计参考：`domain_docs/mes/spec/process/03_smt_flows.md` 第 41 行
+    - `B4 --> C["创建 FAI (FAI=PENDING)"]`
+    - 即：就绪检查通过 → 上料确认(B4) → 创建 FAI(C)
+  - 原因：`createFai` 函数只检查 Run 状态为 PREP，未校验 readiness check 状态
+- **修复**:
+  1. 在 `apps/server/src/modules/mes/fai/service.ts` 的 `createFai` 函数中添加校验
+  2. 调用 `getLatestCheck(db, runNo, "FORMAL")` 获取最新正式检查
+  3. 检查状态必须为 `PASSED`，否则返回 `READINESS_CHECK_NOT_PASSED` 错误
+- **复现步骤**:
+  1. 登录 `leader@example.com`
+  2. 打开一个就绪检查未通过的批次详情页
+  3. 尝试点击「创建 FAI」
+  4. 修复后应返回："就绪检查未通过，无法创建 FAI"
+- **状态**: Fixed (2026-01-20)

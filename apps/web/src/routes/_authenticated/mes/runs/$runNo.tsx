@@ -727,7 +727,7 @@ function RunDetailPage() {
 						<CardDescription>进行中</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<p className="text-2xl font-bold text-blue-600">
+						<p className="text-2xl font-bold text-primary">
 							{data.unitStats.queued + data.unitStats.inStation}
 						</p>
 						<p className="text-xs text-muted-foreground">

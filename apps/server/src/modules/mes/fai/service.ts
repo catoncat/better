@@ -4,8 +4,10 @@ import {
 	InspectionType,
 	Prisma,
 	type PrismaClient,
+	ReadinessCheckStatus,
 	RunStatus,
 } from "@better-app/db";
+import { getLatestCheck } from "../readiness/service";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
 import type { completeFaiSchema, createFaiSchema, recordFaiItemSchema } from "./schema";
@@ -244,6 +246,21 @@ export async function createFai(
 			success: false as const,
 			code: "INVALID_RUN_STATUS",
 			message: `Run status ${run.status} does not allow FAI creation`,
+			status: 400,
+		};
+	}
+
+	// Check if readiness check has passed (required before FAI creation)
+	const readinessResult = await getLatestCheck(db, runNo, "FORMAL");
+	if (!readinessResult.success) {
+		return readinessResult;
+	}
+	const latestCheck = readinessResult.data;
+	if (!latestCheck || latestCheck.status !== ReadinessCheckStatus.PASSED) {
+		return {
+			success: false as const,
+			code: "READINESS_CHECK_NOT_PASSED",
+			message: "就绪检查未通过，无法创建 FAI",
 			status: 400,
 		};
 	}
