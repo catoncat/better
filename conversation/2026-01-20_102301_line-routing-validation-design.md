@@ -87,3 +87,9 @@
 
 ## References
 -
+
+## Progress
+- 2026-01-20: git status shows unrelated changes in apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx, user_docs/demo/acceptance_issues.md, and untracked user_docs/demo/permission_audit_prompt.md; proceed without touching.
+
+## Errors
+- 2026-01-20: bun scripts/smart-verify.ts failed; Biome organizeImports error in apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx (unrelated). Next: skip or fix if allowed.

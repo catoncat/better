@@ -16,6 +16,7 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Can } from "@/components/ability/can";
+import { useAbility } from "@/hooks/use-ability";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,6 +79,7 @@ export const Route = createFileRoute("/_authenticated/mes/runs/$runNo")({
 function RunDetailPage() {
 	const { runNo } = Route.useParams();
 	const navigate = useNavigate();
+	const { hasPermission } = useAbility();
 	const { data, isLoading, refetch, isFetching } = useRunDetail(runNo);
 	const authorizeRun = useAuthorizeRun();
 	const closeRun = useCloseRun();
@@ -455,7 +457,9 @@ function RunDetailPage() {
 	const progressPercent =
 		data.unitStats.total > 0 ? Math.round((data.unitStats.done / data.unitStats.total) * 100) : 0;
 
-	const canShowReadinessActions = data.run.status === "PREP";
+	const isInPrepStatus = data.run.status === "PREP";
+	const canCheckReadiness = hasPermission(Permission.READINESS_CHECK);
+	const canShowReadinessActions = isInPrepStatus && canCheckReadiness;
 	const readinessStatus = readinessData?.status ?? "PENDING";
 	const readinessStageLabel = readinessLoading
 		? "加载中"
