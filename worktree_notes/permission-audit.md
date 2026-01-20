@@ -69,6 +69,7 @@ task:
 - DIP flow adds prep + IPQC-style checks and rework loop; plan should treat these as modules even if not fully implemented. See `domain_docs/mes/spec/process/04_dip_flows.md`.
 - Existing audit report is role-centered; plan doc should shift to permission-first, module-level gating and avoid role matrices for UX decisions. See `user_docs/demo/permission_audit_report.md`.
 - Drafted permission-first audit plan at `user_docs/demo/permission_audit_plan.md`.
+- Expanded plan with module decision flow (flow continuity, optional module hide, config CTA rules) and output requirements.
 
 ## Open Questions
 -
