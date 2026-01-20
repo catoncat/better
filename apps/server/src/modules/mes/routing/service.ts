@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient, StationType } from "@better-app/db";
+import { Prisma, type PrismaClient, ProcessType, StationType } from "@better-app/db";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
 import type {
@@ -662,6 +662,7 @@ export const getRouteDetail = async (
 			sourceKey: string | null;
 			productCode: string | null;
 			version: string | null;
+			processType: ProcessType;
 			isActive: boolean;
 			effectiveFrom: string | null;
 			effectiveTo: string | null;
@@ -707,15 +708,15 @@ export const getRouteDetail = async (
 				name: routing.name,
 				sourceSystem: routing.sourceSystem,
 				sourceKey: routing.sourceKey ?? null,
-			productCode: routing.productCode ?? null,
-			version: routing.version ?? null,
-			processType: routing.processType,
-			isActive: routing.isActive,
-			effectiveFrom: routing.effectiveFrom?.toISOString() ?? null,
-			effectiveTo: routing.effectiveTo?.toISOString() ?? null,
-			createdAt: routing.createdAt.toISOString(),
-			updatedAt: routing.updatedAt.toISOString(),
-		},
+				productCode: routing.productCode ?? null,
+				version: routing.version ?? null,
+				processType: routing.processType,
+				isActive: routing.isActive,
+				effectiveFrom: routing.effectiveFrom?.toISOString() ?? null,
+				effectiveTo: routing.effectiveTo?.toISOString() ?? null,
+				createdAt: routing.createdAt.toISOString(),
+				updatedAt: routing.updatedAt.toISOString(),
+			},
 			steps: routing.steps.map((step) => ({
 				stepNo: step.stepNo,
 				sourceStepKey: step.sourceStepKey ?? null,
@@ -734,7 +735,7 @@ export const getRouteDetail = async (
 export const updateRouteProcessType = async (
 	db: PrismaClient,
 	routingCode: string,
-	processType: Prisma.ProcessType,
+	processType: ProcessType,
 ): Promise<
 	ServiceResult<{
 		id: string;
@@ -744,7 +745,7 @@ export const updateRouteProcessType = async (
 		sourceKey: string | null;
 		productCode: string | null;
 		version: string | null;
-		processType: Prisma.ProcessType;
+		processType: ProcessType;
 		isActive: boolean;
 		effectiveFrom: string | null;
 		effectiveTo: string | null;
