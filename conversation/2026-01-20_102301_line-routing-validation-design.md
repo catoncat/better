@@ -69,6 +69,7 @@
 - Updated `user_docs/demo/acceptance_issues.md` Issue #5 to mark the fix (processType + release validation) as resolved.
 - Enhanced readiness config line selector to display process type for clarity.
 - Fixed type errors (ProcessType typing + route detail signature) and `bun run check-types` now passes.
+- Resolved lint issues; `bun run lint` passes.
 
 ## Errors
 - Attempted to read `domain_docs/mes/plan/phase3_tasks.md` via `sed -n '1,200p'`; file not found. Next: locate plan files with `rg --files -g "domain_docs/mes/plan/*.md"`.
