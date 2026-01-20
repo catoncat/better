@@ -226,3 +226,7 @@ task:
 ## Progress (2026-01-20 wp3 db)
 - Added SolderPasteUsageRecord and ColdStorageTemperatureRecord models + AuditEntityType entries; added Line relation.
 - Created migration `20260120022915_add_solder_paste_usage`.
+
+## 2026-01-20T10:34:00Z
+- Preflight: working tree dirty on main with unrelated changes (apps/server/scripts/seed.ts, mes/line/routing files, schema.prisma, user_docs/demo/acceptance_issues.md, plus untracked line/service and migration). Need user direction on whether to proceed on main touching only our files or set up worktree/stash.
+- Read dev skill to confirm workflow guardrails (git status preflight + worktree decision).
