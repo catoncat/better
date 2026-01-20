@@ -3,6 +3,7 @@ import { Elysia } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
+import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
 import {
 	errorResponseSchema,
 	lineIdParamSchema,
@@ -12,7 +13,6 @@ import {
 	readinessConfigResponseSchema,
 	readinessConfigUpdateBodySchema,
 } from "./schema";
-import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
 import { updateLineProcessType } from "./service";
 
 /** All readiness item types - default enabled set */

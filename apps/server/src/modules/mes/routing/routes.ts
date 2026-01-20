@@ -29,8 +29,8 @@ import {
 	listExecutionConfigs,
 	listRoutes,
 	listRouteVersions,
-	updateRouteProcessType,
 	updateExecutionConfig,
+	updateRouteProcessType,
 } from "./service";
 
 export const routingModule = new Elysia({

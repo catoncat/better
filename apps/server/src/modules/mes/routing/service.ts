@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient, ProcessType, StationType } from "@better-app/db";
+import { Prisma, type PrismaClient, type ProcessType, StationType } from "@better-app/db";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
 import type {
