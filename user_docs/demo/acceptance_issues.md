@@ -16,7 +16,7 @@
 | 3 | 4.3 | Minor | 指南修正：TrackIn 不自动创建 Unit（需预生成） | Fixed |
 | 4 | 7.1 | Major | Run 收尾确认后无响应 / 未创建 OQC 任务 | Open |
 | 5 | 1.2 | Major | 工单发布缺少产线-工艺类型校验（DIP 工单可发布到 SMT 产线） | Resolved |
-| 6 | 5.3 | Major | 前端按钮显示未基于权限控制 + 403 错误提示不准确 | Open |
+| 6 | 5.3 | Major | 前端按钮显示未基于权限控制 + 403 错误提示不准确 | Partial |
 
 ---
 
