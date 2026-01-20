@@ -44,6 +44,19 @@ task:
 
 ## Errors
 - worktree-new created the worktree but no note was generated; created this note manually.
+- `bun run db:migrate -- --name smt_basic_records` failed: `prisma: command not found`. Next: run `bun install` in worktree, then retry migrate.
+- `bun install` failed with EEXIST clonefileat errors for `zod`, `@babel/parser`, `chokidar`. Next: try `bun install --force`.
+- `bun install --force` succeeded; proceed to retry migration.
 
 ## Open Questions
 -
+
+## Findings (2026-01-20)
+- Read dev + small-step-commits skills: keep worktree flow, commit per slice (schema/api/ui/align), update MES plan/align, run `bun scripts/smart-verify.ts` before merge.
+
+## Findings (2026-01-20 cont.)
+- `bun run db:migrate -- --name smt_basic_records` completed successfully; migration `20260120190709_smt_basic_records` applied.
+- Prisma schema contains new SMT basic record models (Stencil/Squeegee/Inspection/Oven/QC/Exception).
+
+## Findings (2026-01-20 cont. 2)
+- Migration SQL creates 7 new SMT record tables + indexes; diff shows schema + bun.lock + worktree note changes.
