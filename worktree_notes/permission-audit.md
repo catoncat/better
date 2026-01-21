@@ -20,9 +20,9 @@ task:
 - [x] Slice 2: page permission map + role/page access matrix
 - [x] Slice 3: issues list + proposed fixes
 - [x] Slice 4: implement fixes (roles/UI/403 handling) + update docs
-- [ ] Slice 5: add permission guard UI + hook `enabled` support for config/ops pages
-- [ ] Slice 6: implement config/ops page gating (routes, route detail, route versions, data-specs, integration)
-- [ ] Slice 7: implement master data gating (materials, boms, work-centers)
+- [x] Slice 5: add permission guard UI + hook `enabled` support for config/ops pages
+- [x] Slice 6: implement config/ops page gating (routes, route detail, route versions, data-specs, integration)
+- [x] Slice 7: implement master data gating (materials, boms, work-centers)
 
 <!-- AUTO:BEGIN status -->
 
