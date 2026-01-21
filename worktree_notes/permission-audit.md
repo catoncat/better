@@ -32,16 +32,18 @@ task:
 <!-- AUTO:BEGIN status -->
 
 ## Status (auto)
-- UpdatedAt: 2026-01-21T05:23:23.143Z
+- UpdatedAt: 2026-01-21T05:52:07.522Z
 - BaseRef: origin/main
-- CommitsAheadOfBase: 41
-- Dirty: true
+- CommitsAheadOfBase: 45
+- Dirty: false
 - ChangedFiles:
   - apps/server/src/modules/mes/integration/routes.ts
   - apps/web/src/components/ability/no-access-card.tsx
   - apps/web/src/components/select/line-select.tsx
   - apps/web/src/components/select/route-select.tsx
+  - apps/web/src/hooks/use-bake-records.ts
   - apps/web/src/hooks/use-boms.ts
+  - apps/web/src/hooks/use-cold-storage-temperatures.ts
   - apps/web/src/hooks/use-data-collection-specs.ts
   - apps/web/src/hooks/use-defects.ts
   - apps/web/src/hooks/use-execution-configs.ts
@@ -59,6 +61,7 @@ task:
   - apps/web/src/hooks/use-routes.ts
   - apps/web/src/hooks/use-runs.ts
   - apps/web/src/hooks/use-slot-mappings.ts
+  - apps/web/src/hooks/use-solder-paste-usage.ts
   - apps/web/src/hooks/use-station-execution.ts
   - apps/web/src/hooks/use-station-groups.ts
   - apps/web/src/hooks/use-trace.ts
@@ -71,7 +74,9 @@ task:
   - apps/web/src/routes/_authenticated/mes/-components/oqc-columns.tsx
   - apps/web/src/routes/_authenticated/mes/-components/run-columns.tsx
   - apps/web/src/routes/_authenticated/mes/-components/track-out-dialog.tsx
+  - apps/web/src/routes/_authenticated/mes/bake-records/index.tsx
   - apps/web/src/routes/_authenticated/mes/boms/index.tsx
+  - apps/web/src/routes/_authenticated/mes/cold-storage-temperatures/index.tsx
   - apps/web/src/routes/_authenticated/mes/data-collection-specs/index.tsx
   - apps/web/src/routes/_authenticated/mes/defects.tsx
   - apps/web/src/routes/_authenticated/mes/execution.tsx
@@ -82,12 +87,7 @@ task:
   - apps/web/src/routes/_authenticated/mes/loading/-components/mapping-dialog.tsx
   - apps/web/src/routes/_authenticated/mes/loading/-components/slot-list.tsx
   - apps/web/src/routes/_authenticated/mes/loading/index.tsx
-  - apps/web/src/routes/_authenticated/mes/loading/slot-config.tsx
-  - apps/web/src/routes/_authenticated/mes/materials/index.tsx
-  - apps/web/src/routes/_authenticated/mes/oqc/-components/rule-dialog.tsx
-  - apps/web/src/routes/_authenticated/mes/oqc/index.tsx
-  - apps/web/src/routes/_authenticated/mes/oqc/rules.tsx
-  - ... (+22 more)
+  - ... (+28 more)
 - Next:
   - Commit worktree note: git add worktree_notes/permission-audit.md && git commit -m "docs(worktree): add task context"
 <!-- AUTO:END status -->
