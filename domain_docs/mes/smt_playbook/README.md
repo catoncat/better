@@ -31,6 +31,7 @@
 - `04_demo_data/`
   - `01_demo_dataset_blueprint.md` 演示数据蓝图
   - `02_demo_run_recipe.md` 演示批次生成步骤
+  - `03_demo_dataset_script.md` 演示数据脚本
 - `05_validation/`
   - `01_loading_validation.md` 上料验证清单
   - `02_run_and_execution_validation.md` 批次与执行验证清单

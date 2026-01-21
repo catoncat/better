@@ -5,7 +5,7 @@
 - 产品：`5223029018`（BOT）
 - 路由：`SMT-BOT-标准路由`
 - 工单：`WO-20250526-001`
-- 批次：`RUN-WO-20250526-001-01`
+- 批次：由系统自动生成（格式 `RUN-${woNo}-${timestamp}`），示例 `RUN-WO-20250526-001-...`
 
 ### 站位（FeederSlot）示例
 | 站位码 | 名称 | 顺序 |
@@ -59,7 +59,7 @@
 - 数据生成：WorkOrder
 
 ### 2.2 创建 Run
-- 批次号：`RUN-WO-20250526-001-01`
+- 批次号：由系统自动生成（格式 `RUN-${woNo}-${timestamp}`）
 - 产线：SMT-A
 - 绑定路由版本（READY）
 - 状态：PREP
@@ -69,8 +69,8 @@
 
 ## 3. 生成 Unit（SN）
 - 调用：`POST /api/runs/:runNo/generate-units`
-- 数量：50
-- 生成 SN：`SN-RUN-WO-20250526-001-01-0001` …
+- 数量：按 Run 计划数量生成
+- 生成 SN：`SN-${runNo}-0001` …
 - 数据生成：Unit（status=QUEUED）
 
 ---
