@@ -126,6 +126,9 @@ task:
 - Confirmed `useWorkOrderList` lacks `enabled` support and `/integration/work-orders` route currently requires `system:integration` in server integration routes.
 - Inspected run list hook and work-order columns: `useRunList` lacks `enabled` option; run table actions already permission-gated but selection column needs conditional inclusion for batch authorize.
 - Began Slice 1 edits: added `enabled` options for work-order/run list hooks, added line-select `enabled` prop, refactored run columns for conditional selection, and updated work-orders/runs pages for permission-aware filters and NoAccess placeholders; server receive-work-order permission switched to `wo:receive`.
+- Started Slice 9: reviewed run detail page for missing view gating on run detail/units and flow cards; identified loading link and generate-units button needing permission checks.
+- Reviewed run detail sections: readiness actions should require view + check; generate-units button lacks `run:authorize` gating; FAI/OQC cards are hidden entirely when lacking view; loading link needs `loading:view` gating; run detail/units hooks need `enabled` support.
+- Updated audit plan for run detail: marked generate-units gating, loading link gating, and FAI/OQC placeholders as complete.
 
 ## Findings
 - Worktree created; `bun.lock` modified by `bun install`.

@@ -263,26 +263,26 @@ DIP 重点：
 - View 权限：`run:read`  
 - Action 权限：`run:authorize`  
 - 展示策略：缺 action → 隐藏或禁用按钮  
-- 状态：⚠️ “生成单件”按钮未做权限 gating  
+- 状态：✅ 已按 `run:authorize` gating  
 
 4) 准备状态卡（就绪检查）  
 - View 权限：`readiness:view`  
 - Action 权限：`readiness:check` / `readiness:override`  
 - 展示策略：缺 view → 显示“无权限查看”；缺 action → 禁用/隐藏按钮  
 - 状态：✅ 已 gating  
-- 补充：`前往上料`链接应受 `loading:view` 或 `loading:verify` 约束（待确认）  
+- 补充：`前往上料` 已按 `loading:view` gating  
 
 5) FAI 卡片  
 - View 权限：`quality:fai`  
 - Action 权限：`quality:fai`  
 - 展示策略：缺 view → 建议保留“无权限查看”占位（保持流程连续性）  
-- 状态：⚠️ 当前缺 view 时整卡隐藏  
+- 状态：✅ 已保留无权限占位  
 
 6) OQC 卡片  
 - View 权限：`quality:oqc`  
 - Action 权限：`quality:oqc` / `quality:disposition`（MRB）  
 - 展示策略：缺 view → 建议占位；缺 action → 隐藏按钮  
-- 状态：⚠️ 当前缺 view 时整卡隐藏；MRB 按钮已有 gating  
+- 状态：✅ 已保留无权限占位；MRB 按钮已有 gating  
 
 7) 路由版本卡片  
 - View 权限：`run:read`（数据来自 run 详情）  
@@ -300,7 +300,7 @@ DIP 重点：
 - 创建 FAI：`quality:fai` ✅  
 - MRB 决策：`quality:disposition` ✅  
 - 批次收尾：`run:close` ✅  
-- 生成单件：`run:authorize` ⚠️（入口未 gating）
+- 生成单件：`run:authorize` ✅
 
 ### 页面：/mes/work-orders（工单管理）
 
