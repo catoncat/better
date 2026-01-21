@@ -15,9 +15,7 @@ export function EquipmentInspectionCard({ record }: EquipmentInspectionCardProps
 	return (
 		<Card>
 			<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-				<div className="text-sm font-medium">
-					{primaryField?.cardValue?.(record) ?? "-"}
-				</div>
+				<div className="text-sm font-medium">{primaryField?.cardValue?.(record) ?? "-"}</div>
 				{badgeField?.cardValue?.(record)}
 			</CardHeader>
 			<CardContent>
@@ -25,9 +23,7 @@ export function EquipmentInspectionCard({ record }: EquipmentInspectionCardProps
 				<div className="mt-4 space-y-1 text-sm">
 					{detailFields.map((field) => (
 						<div key={field.key} className="flex justify-between">
-							<span className="text-muted-foreground">
-								{field.cardLabel ?? field.label}:
-							</span>
+							<span className="text-muted-foreground">{field.cardLabel ?? field.label}:</span>
 							<span>{field.cardValue?.(record) ?? "-"}</span>
 						</div>
 					))}

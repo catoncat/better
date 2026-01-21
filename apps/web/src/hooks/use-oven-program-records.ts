@@ -20,9 +20,7 @@ export type OvenProgramRecordQuery = {
 	pageSize?: number;
 };
 
-type OvenProgramCreateInput = Parameters<
-	(typeof client.api)["oven-program-records"]["post"]
->[0];
+type OvenProgramCreateInput = Parameters<(typeof client.api)["oven-program-records"]["post"]>[0];
 
 export function useOvenProgramRecordList(query: OvenProgramRecordQuery) {
 	return useQuery<OvenProgramRecordListData>({

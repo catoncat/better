@@ -123,9 +123,7 @@ export function StencilCleaningDialog({
 							{(field) => (
 								<DateTimePicker
 									value={field.state.value ? new Date(field.state.value) : undefined}
-									onChange={(date) =>
-										field.handleChange(date ? date.toISOString() : "")
-									}
+									onChange={(date) => field.handleChange(date ? date.toISOString() : "")}
 								/>
 							)}
 						</Field>

@@ -5,12 +5,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
+import { useQueryPresets } from "@/hooks/use-query-presets";
 import {
 	type StencilUsageRecord,
 	useCreateStencilUsageRecord,
 	useStencilUsageRecordList,
 } from "@/hooks/use-stencil-usage";
-import { useQueryPresets } from "@/hooks/use-query-presets";
 import {
 	StencilUsageDialog,
 	type StencilUsageFormValues,
@@ -154,7 +154,10 @@ function StencilUsagePage() {
 		storageKey: "stencil-usage-records",
 	});
 
-	const allPresets = useMemo(() => [...STENCIL_USAGE_SYSTEM_PRESETS, ...userPresets], [userPresets]);
+	const allPresets = useMemo(
+		() => [...STENCIL_USAGE_SYSTEM_PRESETS, ...userPresets],
+		[userPresets],
+	);
 
 	const currentActivePresetId = useMemo(() => {
 		return matchPreset(filters, allPresets);

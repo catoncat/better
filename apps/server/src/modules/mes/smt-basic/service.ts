@@ -628,7 +628,12 @@ export async function createStencilUsageRecord(
 ): Promise<ServiceResult<StencilUsageRecordDetail>> {
 	const stencilId = input.stencilId.trim();
 	if (!stencilId) {
-		return { success: false, code: "STENCIL_ID_REQUIRED", message: "stencilId is required", status: 400 };
+		return {
+			success: false,
+			code: "STENCIL_ID_REQUIRED",
+			message: "stencilId is required",
+			status: 400,
+		};
 	}
 
 	const recordDate = parseDate(input.recordDate);
@@ -704,7 +709,12 @@ export async function createStencilUsageRecord(
 export async function listStencilCleaningRecords(
 	db: PrismaClient,
 	query: StencilCleaningListQuery,
-): Promise<{ items: StencilCleaningRecordDetail[]; total: number; page: number; pageSize: number }> {
+): Promise<{
+	items: StencilCleaningRecordDetail[];
+	total: number;
+	page: number;
+	pageSize: number;
+}> {
 	const page = query.page ?? 1;
 	const pageSize = Math.min(query.pageSize ?? 30, 100);
 	const where: Prisma.StencilCleaningRecordWhereInput = {};
@@ -757,12 +767,22 @@ export async function createStencilCleaningRecord(
 ): Promise<ServiceResult<StencilCleaningRecordDetail>> {
 	const stencilId = input.stencilId.trim();
 	if (!stencilId) {
-		return { success: false, code: "STENCIL_ID_REQUIRED", message: "stencilId is required", status: 400 };
+		return {
+			success: false,
+			code: "STENCIL_ID_REQUIRED",
+			message: "stencilId is required",
+			status: 400,
+		};
 	}
 
 	const cleanedBy = input.cleanedBy.trim();
 	if (!cleanedBy) {
-		return { success: false, code: "CLEANED_BY_REQUIRED", message: "cleanedBy is required", status: 400 };
+		return {
+			success: false,
+			code: "CLEANED_BY_REQUIRED",
+			message: "cleanedBy is required",
+			status: 400,
+		};
 	}
 
 	const cleanedAt = parseDate(input.cleanedAt);
@@ -850,7 +870,12 @@ export async function createSqueegeeUsageRecord(
 ): Promise<ServiceResult<SqueegeeUsageRecordDetail>> {
 	const squeegeeId = input.squeegeeId.trim();
 	if (!squeegeeId) {
-		return { success: false, code: "SQUEEGEE_ID_REQUIRED", message: "squeegeeId is required", status: 400 };
+		return {
+			success: false,
+			code: "SQUEEGEE_ID_REQUIRED",
+			message: "squeegeeId is required",
+			status: 400,
+		};
 	}
 
 	const recordDate = parseDate(input.recordDate);
@@ -925,7 +950,12 @@ export async function createSqueegeeUsageRecord(
 export async function listEquipmentInspectionRecords(
 	db: PrismaClient,
 	query: EquipmentInspectionListQuery,
-): Promise<{ items: EquipmentInspectionRecordDetail[]; total: number; page: number; pageSize: number }> {
+): Promise<{
+	items: EquipmentInspectionRecordDetail[];
+	total: number;
+	page: number;
+	pageSize: number;
+}> {
 	const page = query.page ?? 1;
 	const pageSize = Math.min(query.pageSize ?? 30, 100);
 	const where: Prisma.EquipmentInspectionRecordWhereInput = {};
@@ -981,12 +1011,22 @@ export async function createEquipmentInspectionRecord(
 ): Promise<ServiceResult<EquipmentInspectionRecordDetail>> {
 	const machineName = input.machineName.trim();
 	if (!machineName) {
-		return { success: false, code: "MACHINE_NAME_REQUIRED", message: "machineName is required", status: 400 };
+		return {
+			success: false,
+			code: "MACHINE_NAME_REQUIRED",
+			message: "machineName is required",
+			status: 400,
+		};
 	}
 
 	const inspector = input.inspector.trim();
 	if (!inspector) {
-		return { success: false, code: "INSPECTOR_REQUIRED", message: "inspector is required", status: 400 };
+		return {
+			success: false,
+			code: "INSPECTOR_REQUIRED",
+			message: "inspector is required",
+			status: 400,
+		};
 	}
 
 	const inspectedAt = parseDate(input.inspectedAt);
@@ -1083,12 +1123,22 @@ export async function createOvenProgramRecord(
 ): Promise<ServiceResult<OvenProgramRecordDetail>> {
 	const productName = input.productName.trim();
 	if (!productName) {
-		return { success: false, code: "PRODUCT_NAME_REQUIRED", message: "productName is required", status: 400 };
+		return {
+			success: false,
+			code: "PRODUCT_NAME_REQUIRED",
+			message: "productName is required",
+			status: 400,
+		};
 	}
 
 	const programName = input.programName.trim();
 	if (!programName) {
-		return { success: false, code: "PROGRAM_NAME_REQUIRED", message: "programName is required", status: 400 };
+		return {
+			success: false,
+			code: "PROGRAM_NAME_REQUIRED",
+			message: "programName is required",
+			status: 400,
+		};
 	}
 
 	const usedBy = input.usedBy.trim();
@@ -1193,7 +1243,12 @@ export async function createDailyQcRecord(
 ): Promise<ServiceResult<DailyQcRecordDetail>> {
 	const inspectedBy = input.inspectedBy.trim();
 	if (!inspectedBy) {
-		return { success: false, code: "INSPECTED_BY_REQUIRED", message: "inspectedBy is required", status: 400 };
+		return {
+			success: false,
+			code: "INSPECTED_BY_REQUIRED",
+			message: "inspectedBy is required",
+			status: 400,
+		};
 	}
 
 	const inspectedAt = parseDate(input.inspectedAt);
@@ -1303,7 +1358,12 @@ export async function createDailyQcRecord(
 export async function listProductionExceptionRecords(
 	db: PrismaClient,
 	query: ProductionExceptionListQuery,
-): Promise<{ items: ProductionExceptionRecordDetail[]; total: number; page: number; pageSize: number }> {
+): Promise<{
+	items: ProductionExceptionRecordDetail[];
+	total: number;
+	page: number;
+	pageSize: number;
+}> {
 	const page = query.page ?? 1;
 	const pageSize = Math.min(query.pageSize ?? 30, 100);
 	const where: Prisma.ProductionExceptionRecordWhereInput = {};
@@ -1356,12 +1416,22 @@ export async function createProductionExceptionRecord(
 ): Promise<ServiceResult<ProductionExceptionRecordDetail>> {
 	const description = input.description.trim();
 	if (!description) {
-		return { success: false, code: "DESCRIPTION_REQUIRED", message: "description is required", status: 400 };
+		return {
+			success: false,
+			code: "DESCRIPTION_REQUIRED",
+			message: "description is required",
+			status: 400,
+		};
 	}
 
 	const issuedBy = input.issuedBy.trim();
 	if (!issuedBy) {
-		return { success: false, code: "ISSUED_BY_REQUIRED", message: "issuedBy is required", status: 400 };
+		return {
+			success: false,
+			code: "ISSUED_BY_REQUIRED",
+			message: "issuedBy is required",
+			status: 400,
+		};
 	}
 
 	const issuedAt = parseDate(input.issuedAt);
@@ -1394,7 +1464,11 @@ export async function createProductionExceptionRecord(
 		};
 	}
 
-	const qtyError = validateNonNegative(input.qty, "INVALID_QTY", "qty must be greater than or equal to 0");
+	const qtyError = validateNonNegative(
+		input.qty,
+		"INVALID_QTY",
+		"qty must be greater than or equal to 0",
+	);
 	if (qtyError) return qtyError;
 
 	const downtimeError = validateNonNegative(

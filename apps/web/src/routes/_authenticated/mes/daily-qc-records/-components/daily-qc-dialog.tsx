@@ -198,9 +198,7 @@ export function DailyQcDialog({ open, onOpenChange, onSubmit, isSubmitting }: Da
 									value={field.state.value ?? ""}
 									onBlur={field.handleBlur}
 									onChange={(e) =>
-										field.handleChange(
-											e.target.value ? Number(e.target.value) : undefined,
-										)
+										field.handleChange(e.target.value ? Number(e.target.value) : undefined)
 									}
 								/>
 							)}
@@ -249,9 +247,7 @@ export function DailyQcDialog({ open, onOpenChange, onSubmit, isSubmitting }: Da
 									value={field.state.value ?? ""}
 									onBlur={field.handleBlur}
 									onChange={(e) =>
-										field.handleChange(
-											e.target.value ? Number(e.target.value) : undefined,
-										)
+										field.handleChange(e.target.value ? Number(e.target.value) : undefined)
 									}
 								/>
 							)}
@@ -264,9 +260,7 @@ export function DailyQcDialog({ open, onOpenChange, onSubmit, isSubmitting }: Da
 									value={field.state.value ?? ""}
 									onBlur={field.handleBlur}
 									onChange={(e) =>
-										field.handleChange(
-											e.target.value ? Number(e.target.value) : undefined,
-										)
+										field.handleChange(e.target.value ? Number(e.target.value) : undefined)
 									}
 								/>
 							)}
@@ -279,9 +273,7 @@ export function DailyQcDialog({ open, onOpenChange, onSubmit, isSubmitting }: Da
 									value={field.state.value ?? ""}
 									onBlur={field.handleBlur}
 									onChange={(e) =>
-										field.handleChange(
-											e.target.value ? Number(e.target.value) : undefined,
-										)
+										field.handleChange(e.target.value ? Number(e.target.value) : undefined)
 									}
 								/>
 							)}
@@ -297,9 +289,7 @@ export function DailyQcDialog({ open, onOpenChange, onSubmit, isSubmitting }: Da
 									value={field.state.value ?? ""}
 									onBlur={field.handleBlur}
 									onChange={(e) =>
-										field.handleChange(
-											e.target.value ? Number(e.target.value) : undefined,
-										)
+										field.handleChange(e.target.value ? Number(e.target.value) : undefined)
 									}
 								/>
 							)}
@@ -312,9 +302,7 @@ export function DailyQcDialog({ open, onOpenChange, onSubmit, isSubmitting }: Da
 									value={field.state.value ?? ""}
 									onBlur={field.handleBlur}
 									onChange={(e) =>
-										field.handleChange(
-											e.target.value ? Number(e.target.value) : undefined,
-										)
+										field.handleChange(e.target.value ? Number(e.target.value) : undefined)
 									}
 								/>
 							)}
@@ -327,9 +315,7 @@ export function DailyQcDialog({ open, onOpenChange, onSubmit, isSubmitting }: Da
 									value={field.state.value ?? ""}
 									onBlur={field.handleBlur}
 									onChange={(e) =>
-										field.handleChange(
-											e.target.value ? Number(e.target.value) : undefined,
-										)
+										field.handleChange(e.target.value ? Number(e.target.value) : undefined)
 									}
 								/>
 							)}
@@ -351,9 +337,7 @@ export function DailyQcDialog({ open, onOpenChange, onSubmit, isSubmitting }: Da
 							{(field) => (
 								<DateTimePicker
 									value={field.state.value ? new Date(field.state.value) : undefined}
-									onChange={(date) =>
-										field.handleChange(date ? date.toISOString() : "")
-									}
+									onChange={(date) => field.handleChange(date ? date.toISOString() : "")}
 								/>
 							)}
 						</Field>
@@ -374,9 +358,7 @@ export function DailyQcDialog({ open, onOpenChange, onSubmit, isSubmitting }: Da
 							{(field) => (
 								<DateTimePicker
 									value={field.state.value ? new Date(field.state.value) : undefined}
-									onChange={(date) =>
-										field.handleChange(date ? date.toISOString() : "")
-									}
+									onChange={(date) => field.handleChange(date ? date.toISOString() : "")}
 								/>
 							)}
 						</Field>

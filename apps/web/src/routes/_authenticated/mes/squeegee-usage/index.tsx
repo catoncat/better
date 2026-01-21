@@ -5,12 +5,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
+import { useQueryPresets } from "@/hooks/use-query-presets";
 import {
 	type SqueegeeUsageRecord,
 	useCreateSqueegeeUsageRecord,
 	useSqueegeeUsageRecordList,
 } from "@/hooks/use-squeegee-usage";
-import { useQueryPresets } from "@/hooks/use-query-presets";
 import {
 	SqueegeeUsageDialog,
 	type SqueegeeUsageFormValues,
@@ -154,7 +154,10 @@ function SqueegeeUsagePage() {
 		storageKey: "squeegee-usage-records",
 	});
 
-	const allPresets = useMemo(() => [...SQUEEGEE_USAGE_SYSTEM_PRESETS, ...userPresets], [userPresets]);
+	const allPresets = useMemo(
+		() => [...SQUEEGEE_USAGE_SYSTEM_PRESETS, ...userPresets],
+		[userPresets],
+	);
 
 	const currentActivePresetId = useMemo(() => {
 		return matchPreset(filters, allPresets);

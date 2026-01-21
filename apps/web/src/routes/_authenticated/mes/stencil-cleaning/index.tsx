@@ -5,12 +5,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
+import { useQueryPresets } from "@/hooks/use-query-presets";
 import {
 	type StencilCleaningRecord,
 	useCreateStencilCleaningRecord,
 	useStencilCleaningRecordList,
 } from "@/hooks/use-stencil-cleaning";
-import { useQueryPresets } from "@/hooks/use-query-presets";
 import {
 	StencilCleaningDialog,
 	type StencilCleaningFormValues,
@@ -279,9 +279,7 @@ function StencilCleaningPage() {
 				}}
 				dataListViewProps={{
 					viewPreferencesKey,
-					renderCard: (record: StencilCleaningRecord) => (
-						<StencilCleaningCard record={record} />
-					),
+					renderCard: (record: StencilCleaningRecord) => <StencilCleaningCard record={record} />,
 				}}
 			/>
 

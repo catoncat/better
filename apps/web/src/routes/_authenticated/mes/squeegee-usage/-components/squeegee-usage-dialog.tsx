@@ -163,9 +163,7 @@ export function SqueegeeUsageDialog({
 							{(field) => (
 								<DateTimePicker
 									value={field.state.value ? new Date(field.state.value) : undefined}
-									onChange={(date) =>
-										field.handleChange(date ? date.toISOString() : "")
-									}
+									onChange={(date) => field.handleChange(date ? date.toISOString() : "")}
 								/>
 							)}
 						</Field>
@@ -200,9 +198,7 @@ export function SqueegeeUsageDialog({
 									value={field.state.value ?? ""}
 									onBlur={field.handleBlur}
 									onChange={(e) =>
-										field.handleChange(
-											e.target.value ? Number(e.target.value) : undefined,
-										)
+										field.handleChange(e.target.value ? Number(e.target.value) : undefined)
 									}
 								/>
 							)}
@@ -215,9 +211,7 @@ export function SqueegeeUsageDialog({
 									value={field.state.value ?? ""}
 									onBlur={field.handleBlur}
 									onChange={(e) =>
-										field.handleChange(
-											e.target.value ? Number(e.target.value) : undefined,
-										)
+										field.handleChange(e.target.value ? Number(e.target.value) : undefined)
 									}
 								/>
 							)}
@@ -230,9 +224,7 @@ export function SqueegeeUsageDialog({
 									value={field.state.value ?? ""}
 									onBlur={field.handleBlur}
 									onChange={(e) =>
-										field.handleChange(
-											e.target.value ? Number(e.target.value) : undefined,
-										)
+										field.handleChange(e.target.value ? Number(e.target.value) : undefined)
 									}
 								/>
 							)}
@@ -244,9 +236,7 @@ export function SqueegeeUsageDialog({
 							{(field) => (
 								<DateTimePicker
 									value={field.state.value ? new Date(field.state.value) : undefined}
-									onChange={(date) =>
-										field.handleChange(date ? date.toISOString() : "")
-									}
+									onChange={(date) => field.handleChange(date ? date.toISOString() : "")}
 								/>
 							)}
 						</Field>
@@ -277,11 +267,7 @@ export function SqueegeeUsageDialog({
 							{(field) => (
 								<Select
 									value={
-										field.state.value === undefined
-											? "unset"
-											: field.state.value
-												? "true"
-												: "false"
+										field.state.value === undefined ? "unset" : field.state.value ? "true" : "false"
 									}
 									onValueChange={(value) => {
 										if (value === "unset") {
@@ -308,11 +294,7 @@ export function SqueegeeUsageDialog({
 							{(field) => (
 								<Select
 									value={
-										field.state.value === undefined
-											? "unset"
-											: field.state.value
-												? "true"
-												: "false"
+										field.state.value === undefined ? "unset" : field.state.value ? "true" : "false"
 									}
 									onValueChange={(value) => {
 										if (value === "unset") {
@@ -339,11 +321,7 @@ export function SqueegeeUsageDialog({
 							{(field) => (
 								<Select
 									value={
-										field.state.value === undefined
-											? "unset"
-											: field.state.value
-												? "true"
-												: "false"
+										field.state.value === undefined ? "unset" : field.state.value ? "true" : "false"
 									}
 									onValueChange={(value) => {
 										if (value === "unset") {

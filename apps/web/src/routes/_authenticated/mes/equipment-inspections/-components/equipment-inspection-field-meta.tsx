@@ -15,8 +15,10 @@ const formatLine = (record: EquipmentInspectionRecord) => {
 
 const renderResultBadge = (result: string | null) => {
 	if (!result) return <Badge variant="outline">未填写</Badge>;
-	if (result === "PASS") return <Badge variant="secondary">{INSPECTION_RESULT_MAP[result] ?? result}</Badge>;
-	if (result === "FAIL") return <Badge variant="destructive">{INSPECTION_RESULT_MAP[result] ?? result}</Badge>;
+	if (result === "PASS")
+		return <Badge variant="secondary">{INSPECTION_RESULT_MAP[result] ?? result}</Badge>;
+	if (result === "FAIL")
+		return <Badge variant="destructive">{INSPECTION_RESULT_MAP[result] ?? result}</Badge>;
 	return <Badge variant="outline">{result}</Badge>;
 };
 

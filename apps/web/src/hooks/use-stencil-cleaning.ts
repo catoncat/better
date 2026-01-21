@@ -6,8 +6,7 @@ import { client, unwrap } from "@/lib/eden";
 export type StencilCleaningRecordListResponse = Awaited<
 	ReturnType<(typeof client.api)["stencil-cleaning-records"]["get"]>
 >["data"];
-export type StencilCleaningRecordListData =
-	NonNullable<StencilCleaningRecordListResponse>["data"];
+export type StencilCleaningRecordListData = NonNullable<StencilCleaningRecordListResponse>["data"];
 export type StencilCleaningRecord = StencilCleaningRecordListData["items"][number];
 
 export type StencilCleaningRecordQuery = {

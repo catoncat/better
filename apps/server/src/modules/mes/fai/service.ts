@@ -7,9 +7,9 @@ import {
 	ReadinessCheckStatus,
 	RunStatus,
 } from "@better-app/db";
-import { getLatestCheck } from "../readiness/service";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
+import { getLatestCheck } from "../readiness/service";
 import type { completeFaiSchema, createFaiSchema, recordFaiItemSchema } from "./schema";
 
 type CreateFaiInput = Static<typeof createFaiSchema>;

@@ -19,9 +19,7 @@ export type StencilUsageRecordQuery = {
 	pageSize?: number;
 };
 
-type StencilUsageCreateInput = Parameters<
-	(typeof client.api)["stencil-usage-records"]["post"]
->[0];
+type StencilUsageCreateInput = Parameters<(typeof client.api)["stencil-usage-records"]["post"]>[0];
 
 export function useStencilUsageRecordList(query: StencilUsageRecordQuery) {
 	return useQuery<StencilUsageRecordListData>({

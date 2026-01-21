@@ -19,7 +19,11 @@ const formatLine = (record: StencilUsageRecord) => {
 
 const renderCheckBadge = (value: boolean | null) => {
 	if (value === null) return <Badge variant="outline">未填写</Badge>;
-	return value ? <Badge variant="secondary">通过</Badge> : <Badge variant="destructive">异常</Badge>;
+	return value ? (
+		<Badge variant="secondary">通过</Badge>
+	) : (
+		<Badge variant="destructive">异常</Badge>
+	);
 };
 
 export const stencilUsageFieldMeta: DataListFieldMeta<StencilUsageRecord>[] = [

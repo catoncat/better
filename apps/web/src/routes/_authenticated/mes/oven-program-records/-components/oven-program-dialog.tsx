@@ -17,9 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { client } from "@/lib/eden";
 
-type OvenProgramCreateInput = Parameters<
-	(typeof client.api)["oven-program-records"]["post"]
->[0];
+type OvenProgramCreateInput = Parameters<(typeof client.api)["oven-program-records"]["post"]>[0];
 
 const formSchema = z.object({
 	lineCode: z.string().optional(),
@@ -130,9 +128,7 @@ export function OvenProgramDialog({
 							{(field) => (
 								<DateTimePicker
 									value={field.state.value ? new Date(field.state.value) : undefined}
-									onChange={(date) =>
-										field.handleChange(date ? date.toISOString() : "")
-									}
+									onChange={(date) => field.handleChange(date ? date.toISOString() : "")}
 								/>
 							)}
 						</Field>

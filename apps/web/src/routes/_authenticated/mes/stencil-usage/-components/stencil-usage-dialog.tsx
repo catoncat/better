@@ -24,9 +24,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { client } from "@/lib/eden";
 
-type StencilUsageCreateInput = Parameters<
-	(typeof client.api)["stencil-usage-records"]["post"]
->[0];
+type StencilUsageCreateInput = Parameters<(typeof client.api)["stencil-usage-records"]["post"]>[0];
 
 const formSchema = z.object({
 	stencilId: z.string().min(1, "请输入钢网编号"),
@@ -166,9 +164,7 @@ export function StencilUsageDialog({
 							{(field) => (
 								<DateTimePicker
 									value={field.state.value ? new Date(field.state.value) : undefined}
-									onChange={(date) =>
-										field.handleChange(date ? date.toISOString() : "")
-									}
+									onChange={(date) => field.handleChange(date ? date.toISOString() : "")}
 								/>
 							)}
 						</Field>
@@ -180,9 +176,7 @@ export function StencilUsageDialog({
 									value={field.state.value ?? ""}
 									onBlur={field.handleBlur}
 									onChange={(e) =>
-										field.handleChange(
-											e.target.value ? Number(e.target.value) : undefined,
-										)
+										field.handleChange(e.target.value ? Number(e.target.value) : undefined)
 									}
 								/>
 							)}
@@ -208,9 +202,7 @@ export function StencilUsageDialog({
 									value={field.state.value ?? ""}
 									onBlur={field.handleBlur}
 									onChange={(e) =>
-										field.handleChange(
-											e.target.value ? Number(e.target.value) : undefined,
-										)
+										field.handleChange(e.target.value ? Number(e.target.value) : undefined)
 									}
 								/>
 							)}
@@ -223,9 +215,7 @@ export function StencilUsageDialog({
 									value={field.state.value ?? ""}
 									onBlur={field.handleBlur}
 									onChange={(e) =>
-										field.handleChange(
-											e.target.value ? Number(e.target.value) : undefined,
-										)
+										field.handleChange(e.target.value ? Number(e.target.value) : undefined)
 									}
 								/>
 							)}
@@ -238,9 +228,7 @@ export function StencilUsageDialog({
 									value={field.state.value ?? ""}
 									onBlur={field.handleBlur}
 									onChange={(e) =>
-										field.handleChange(
-											e.target.value ? Number(e.target.value) : undefined,
-										)
+										field.handleChange(e.target.value ? Number(e.target.value) : undefined)
 									}
 								/>
 							)}
@@ -252,9 +240,7 @@ export function StencilUsageDialog({
 							{(field) => (
 								<DateTimePicker
 									value={field.state.value ? new Date(field.state.value) : undefined}
-									onChange={(date) =>
-										field.handleChange(date ? date.toISOString() : "")
-									}
+									onChange={(date) => field.handleChange(date ? date.toISOString() : "")}
 								/>
 							)}
 						</Field>
@@ -285,11 +271,7 @@ export function StencilUsageDialog({
 							{(field) => (
 								<Select
 									value={
-										field.state.value === undefined
-											? "unset"
-											: field.state.value
-												? "true"
-												: "false"
+										field.state.value === undefined ? "unset" : field.state.value ? "true" : "false"
 									}
 									onValueChange={(value) => {
 										if (value === "unset") {
@@ -316,11 +298,7 @@ export function StencilUsageDialog({
 							{(field) => (
 								<Select
 									value={
-										field.state.value === undefined
-											? "unset"
-											: field.state.value
-												? "true"
-												: "false"
+										field.state.value === undefined ? "unset" : field.state.value ? "true" : "false"
 									}
 									onValueChange={(value) => {
 										if (value === "unset") {
@@ -347,11 +325,7 @@ export function StencilUsageDialog({
 							{(field) => (
 								<Select
 									value={
-										field.state.value === undefined
-											? "unset"
-											: field.state.value
-												? "true"
-												: "false"
+										field.state.value === undefined ? "unset" : field.state.value ? "true" : "false"
 									}
 									onValueChange={(value) => {
 										if (value === "unset") {
