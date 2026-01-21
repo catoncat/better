@@ -83,6 +83,7 @@ task:
 - Re-ran `bun run lint -- --write` after typing filter fields in runs/work-orders.
 - `bun scripts/smart-verify.ts` now passes (lint + check-types).
 - Merging into `main`: resolved conflicts in FAI filters, loading slot-config line selection, OQC rule dialog route list, and run detail readiness/actions.
+- `bun scripts/smart-verify.ts` re-run on `main` after merge (lint + check-types) passed.
 - Completed Slice 11: execution gating shipped and audit plan updated.
 - Updated execution section statuses in `user_docs/demo/permission_audit_plan.md`.
 - Completed Slice 10: readiness + loading gating shipped and audit plan updated.
