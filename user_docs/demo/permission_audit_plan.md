@@ -388,19 +388,19 @@ DIP 重点：
 1) 产线选择器  
 - View 权限：`run:read` + `run:create`  
 - 展示策略：可选模块，缺权限 → 隐藏筛选（避免 `/lines` 403）  
-- 状态：⚠️ 当前无 gating，始终请求 `/lines`  
+- 状态：✅ 按权限 gating，缺权限不请求 `/lines`  
 
 2) 工艺类型选择 + 保存  
 - View 权限：`readiness:view`（页面上下文）  
 - Action 权限：`readiness:config`  
 - 展示策略：缺 view → 页面级无权限占位；缺 action → 隐藏保存按钮  
-- 状态：⚠️ 仅保存按钮 `<Can>`，查询与表单本体未做 view gating  
+- 状态：✅ 页面 view gating + action 按钮 `<Can>`  
 
 3) 检查项列表（Checkbox 网格）  
 - View 权限：`readiness:view`  
 - Action 权限：`readiness:config`  
 - 展示策略：缺 view → 无权限占位；缺 action → 只读（禁用勾选 + 隐藏保存）  
-- 状态：⚠️ 目前缺 view gating，且勾选在无权限时仍可交互  
+- 状态：✅ view gating + 无 action 时禁用交互  
 
 ### 页面：/mes/readiness-exceptions（准备异常看板）
 
@@ -414,18 +414,18 @@ DIP 重点：
 - 产线筛选：`run:read` + `run:create`  
 - 其他筛选（状态/日期）：无权限要求  
 - 展示策略：缺产线权限 → 隐藏产线筛选  
-- 状态：⚠️ 当前未 gating，始终请求 `/lines`  
+- 状态：✅ 按权限 gating，缺权限不请求 `/lines`  
 
 2) 异常列表表格  
 - View 权限：`readiness:view`  
 - 展示策略：缺 view → 页面级“无权限查看”占位（监控类页面）  
 - Query gating：`useReadinessExceptions` 需依赖 `readiness:view`  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ `useReadinessExceptions` 按 `readiness:view` gating  
 
 3) 批次号跳转  
 - Action 权限：`run:read`（进入批次详情）  
 - 展示策略：缺 `run:read` 时降级为纯文本  
-- 状态：⚠️ 当前始终渲染 Link  
+- 状态：✅ 缺 `run:read` 时降级为文本  
 
 ### 页面：/mes/loading（上料防错）
 
@@ -444,29 +444,29 @@ DIP 重点：
 1) 批次选择器  
 - View 权限：`run:read`  
 - 展示策略：缺权限 → 页面级无权限占位  
-- 状态：⚠️ 当前无 gating，始终请求 `/runs` + `/runs/:runNo`  
+- 状态：✅ 按 `run:read` gating（列表/详情）  
 
 2) 初始化站位表卡片  
 - View 权限：`loading:view`（上下文）  
 - Action 权限：`loading:verify`  
 - 展示策略：缺 view → 无权限占位；缺 action → 禁用按钮  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ 缺权限显示无权限占位/禁用  
 
 3) 扫码验证面板 + 站位列表  
 - View 权限：`loading:view`  
  - Action 权限：`loading:verify`  
  - 展示策略：缺 view → 无权限占位（保持流程连续性）；缺 action → 禁用提交按钮  
- - 状态：⚠️ 当前未 gating  
+ - 状态：✅ 按 `loading:view` / `loading:verify` gating  
 
 4) 上料历史记录  
 - View 权限：`loading:view`  
 - 展示策略：缺 view → 隐藏  
-- 状态：⚠️ 当前未 gating（`useLoadingRecords`）  
+- 状态：✅ `useLoadingRecords` 按 `loading:view` gating  
 
 5) 站位解锁按钮  
 - Action 权限：`loading:config`  
 - 展示策略：缺权限 → 隐藏解锁入口  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ 按 `loading:config` 隐藏入口  
 
 ### 页面：/mes/loading/slot-config（站位表配置）
 
@@ -485,12 +485,12 @@ DIP 重点：
 1) 产线选择器  
 - View 权限：`run:read` + `run:create`  
 - 展示策略：可选模块，缺权限 → 隐藏（避免 `/lines` 403）  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ 按权限 gating  
 
 2) 站位/映射列表  
 - View 权限：`loading:view`  
 - 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ 页面 view gating + 查询 enabled  
 
 3) 新建/编辑/删除按钮与菜单  
 - Action 权限：`loading:config`  
@@ -500,12 +500,12 @@ DIP 重点：
 4) 弹窗（SlotDialog/MappingDialog）  
 - Action 权限：`loading:config`  
 - 展示策略：缺 action → 不可打开  
-- 状态：⚠️ 入口已 gating，但弹窗本体未做权限校验（需确认是否由入口控制即可）  
+- 状态：✅ 入口权限控制即可（弹窗由入口触发）  
 
 5) 路由筛选（MappingDialog 内）  
 - View 权限：`route:read`（`useRouteSearch`）  
 - 展示策略：缺权限 → 隐藏路由选择或仅保留“所有路由”  
-- 状态：⚠️ 当前无 gating，可能触发 `/routes` 403  
+- 状态：✅ `useRouteSearch` 按 `route:read` gating + 禁用选择  
 
 ### 页面：/mes/execution（工位执行）
 
