@@ -573,12 +573,12 @@ DIP 重点：
 1) FAI 列表 + 详情  
 - View 权限：`quality:fai`  
 - 展示策略：缺 view → 页面级无权限占位  
-- 状态：⚠️ 当前未 gating，直接发起 `/fai` 请求  
+- 状态：✅ 页面级 gating + list/detail enabled  
 
 2) 批次筛选（Run Combobox）  
 - View 权限：`run:read`  
 - 展示策略：缺权限 → 隐藏筛选  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ 缺权限隐藏 + run list gated  
 
 3) 开始/记录/完成按钮  
 - Action 权限：`quality:fai`  
@@ -588,17 +588,17 @@ DIP 重点：
 4) 采集项模板（记录弹窗）  
 - View 权限：`data_spec:read` + `data_spec:config`  
 - 展示策略：缺权限 → 隐藏模板选择或提示无权限  
-- 状态：⚠️ 当前未 gating，可能触发 `/data-collection-specs` 403  
+- 状态：✅ 模板选择按权限 gating + query enabled  
 
 5) 生成单件（FAI 开始时触发）  
 - Action 权限：`run:authorize`  
 - 展示策略：缺权限 → 不提供生成路径或提示无权限  
-- 状态：⚠️ 当前仅 `quality:fai` gating，未校验 `run:authorize`  
+- 状态：✅ 生成单件按 `run:authorize` gating  
 
 6) 批次号跳转  
 - Action 权限：`run:read`  
 - 展示策略：缺权限 → 降级为纯文本  
-- 状态：⚠️ 当前始终渲染 Link  
+- 状态：✅ 缺权限降级为文本  
 
 ### 页面：/mes/oqc（出货检验）
 
@@ -613,17 +613,17 @@ DIP 重点：
 1) OQC 列表  
 - View 权限：`quality:oqc`  
 - 展示策略：缺 view → 页面级无权限占位  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ 页面级 gating + list enabled  
 
 2) 操作按钮（开始/记录/完成/查看）  
 - Action 权限：`quality:oqc`  
 - 展示策略：缺权限 → 隐藏或只读  
-- 状态：⚠️ 开始/记录/完成已 gating；“查看记录”在 `OqcCard`/`oqcColumns` 中未做权限限制  
+- 状态：✅ 表格/卡片动作按权限 gating  
 
 3) 记录/完成弹窗  
 - Action 权限：`quality:oqc`  
 - 展示策略：缺权限 → 不可打开  
-- 状态：⚠️ 入口可能未统一 gating；弹窗本身无权限校验（仅依赖 `readOnly`/状态）  
+- 状态：✅ 入口 action gating + detail 查询 gated  
 
 ### 页面：/mes/oqc/rules（OQC 抽检规则）
 
@@ -638,7 +638,7 @@ DIP 重点：
 1) 规则列表  
 - View 权限：`quality:oqc`  
 - 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ 页面级 gating + list enabled  
 
 2) 新建/编辑/停用  
 - Action 权限：`quality:oqc`  
@@ -648,7 +648,7 @@ DIP 重点：
 3) RuleDialog 内部依赖  
 - View 权限：`run:read` + `run:create`（产线列表），`route:read`（路由列表）  
 - 展示策略：缺权限 → 隐藏对应筛选或降级为“ALL”  
-- 状态：⚠️ 当前未 gating，可能触发 `/lines` / `/routes` 403  
+- 状态：✅ 产线/路由选择按权限 gating  
 
 ### 页面：/mes/defects（缺陷管理）
 
@@ -664,12 +664,12 @@ DIP 重点：
 1) 缺陷列表 + 详情  
 - View 权限：`quality:disposition`  
 - 展示策略：敏感模块，缺 view → 直接隐藏/页面级无权限占位  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ 页面级 gating + list/detail enabled  
 
 2) 处置/释放操作  
 - Action 权限：`quality:disposition`  
 - 展示策略：缺权限 → 隐藏按钮与对话框入口  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ 入口按权限 gating  
 
 3) 返工工步查询（追溯）  
 - View 权限：`trace:read`  
@@ -689,12 +689,12 @@ DIP 重点：
 1) 返工任务列表  
 - View 权限：`quality:disposition`  
 - 展示策略：敏感模块，缺 view → 页面级无权限占位  
-- 状态：⚠️ 当前未 gating（`useReworkTaskList`）  
+- 状态：✅ 页面级 gating + list enabled  
 
 2) 完成返工按钮/对话框  
 - Action 权限：`quality:disposition`  
 - 展示策略：缺权限 → 隐藏按钮与对话框入口  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ 入口按权限 gating  
 
 ### 页面：/mes/trace（追溯查询）
 
@@ -706,12 +706,12 @@ DIP 重点：
 1) 查询表单  
 - View 权限：`trace:read`  
 - 展示策略：缺权限 → 页面级无权限占位  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ 页面级 gating  
 
 2) 追溯结果（产品/路由/执行/采集/缺陷/物料）  
 - View 权限：`trace:read`  
 - 展示策略：核心上下文，缺 view → 无权限占位  
-- 状态：⚠️ 当前 `useUnitTrace` 未做权限 gating  
+- 状态：✅ `useUnitTrace` 按权限 gating  
 
 ### 页面：/mes/routes（路由管理）
 
