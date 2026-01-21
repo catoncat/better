@@ -19,10 +19,10 @@ task:
 
 ## Slices
 - [x] Slice 1: read forms/specs + confirm fields
-- [ ] Slice 2: DB schema + migration
-- [ ] Slice 3: Server APIs + audit
-- [ ] Slice 4: Web list pages + dialogs + nav
-- [ ] Slice 5: Docs (align + plan)
+- [x] Slice 2: DB schema + migration
+- [x] Slice 3: Server APIs + audit
+- [x] Slice 4: Web list pages + dialogs + nav
+- [x] Slice 5: Docs (align + plan)
 
 ## Findings
 - Prisma: edit `packages/db/prisma/schema/schema.prisma`, create migration via `bun run db:migrate -- --name <change>`.
@@ -136,3 +136,34 @@ task:
 
 ## Findings (2026-01-21)
 - Filter toolbar supports `type: "select"` with `options` (example in materials list), and custom render inputs for additional filters.
+
+## Findings (2026-01-21 cont.)
+- Badge variants include `destructive` (used in trace/slot-config); result badges typically map PASS->secondary, FAIL->destructive.
+
+## Errors (2026-01-21)
+- Write `equipment-inspection-field-meta.tsx` failed from main cwd (no such file); retrying with worktree cwd.
+
+## Findings (2026-01-21 cont. 2)
+- FilterToolbar select fields use empty string for no filter; clearing is via reset. No built-in "all" handling.
+
+## Findings (2026-01-21 cont. 3)
+- Main branch `apps/server/src/modules/mes/routes.ts` no longer references `smt-basic` (rg shows no match); keep main untouched and continue work in worktree.
+
+## Findings (2026-01-21 cont. 4)
+- Navigation config lives in `apps/web/src/config/navigation.ts`; add SMT basic pages under "准备与防错" and "质量管理".
+- Web app imports `routeTree` from `apps/web/src/routeTree.gen.ts` (see `apps/web/src/main.tsx`); new routes likely require regenerating route tree.
+
+## Findings (2026-01-21 cont. 5)
+- Web package has no explicit route-gen script; root `build` runs `bun run --filter web build` (vite build) which should refresh `routeTree.gen.ts` via router plugin.
+
+## Findings (2026-01-21 cont. 6)
+- Stencil usage list route uses DataListLayout server mode, `viewPreferencesKey` "stencil-usage-records", and create action gated by `Permission.READINESS_CHECK`.
+
+## Findings (2026-01-21 cont. 7)
+- Ran `bun run --filter web build` to regenerate `apps/web/src/routeTree.gen.ts` after adding SMT basic routes.
+
+## Findings (2026-01-21 cont. 8)
+- Phase4 plan tasks 4.6.5/4.6.8/4.6.9/4.6.11 are still unchecked in `domain_docs/mes/plan/phase4_tasks.md`; update to `[x]` after finishing base records.
+
+## Findings (2026-01-21 cont. 9)
+- Updated SMT align with stencil/squeegee/inspection/oven + daily QC/exception record endpoints in `domain_docs/mes/spec/impl_align/03_smt_align.md`.
