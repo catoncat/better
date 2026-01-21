@@ -770,7 +770,7 @@ export const integrationModule = new Elysia({
 		},
 		{
 			isAuth: true,
-			requirePermission: Permission.SYSTEM_INTEGRATION,
+			requirePermission: Permission.WO_RECEIVE,
 			body: integrationReceiveWorkOrderSchema,
 			response: integrationWorkOrderResponseSchema,
 			detail: { tags: ["MES - Integration"] },
