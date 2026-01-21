@@ -206,3 +206,10 @@ task:
 
 ## Findings (2026-01-21 cont. 19)
 - `bun scripts/smart-verify.ts` now passes (biome check + db:generate + server/web check-types).
+
+## Findings (2026-01-21 cont. 20)
+- Phase4 Track F tasks for WP-4/7/8/10 are marked done, but DoD includes follow-up integration (thresholds/feedback/stats); plan needs explicit follow-up tasks to reflect remaining work.
+- SMT align already includes the new SMT basic record endpoints (stencil/squeegee/inspection/oven/daily QC/exception).
+
+## Findings (2026-01-21 cont. 21)
+- Updated `domain_docs/mes/plan/phase4_tasks.md` to add follow-up tasks for WP-4/7/10 and a pending task for remaining SMT forms; adjusted DoD text to reflect base record completion vs integration work.
