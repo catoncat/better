@@ -175,3 +175,90 @@
 - Committed demo data docs: "docs: add SMT demo data blueprint and recipe".
 - Added validation docs: `domain_docs/mes/smt_playbook/05_validation/01_loading_validation.md`, `05_validation/02_run_and_execution_validation.md`, `05_validation/03_traceability_validation.md`.
 - Committed validation docs: "docs: add SMT validation checklists".
+## 2026-01-21 Findings (scripts)
+- `apps/server/scripts/create-demo-run.ts` creates a DIP demo Run directly in DB (sets AUTHORIZED) and creates Units; uses manual env load from apps/server/.env.
+- Existing scripts include `seed-mes.ts`, `test-mes-flow.ts` which may be relevant for demo data generation.
+## 2026-01-21 Findings (test-mes-flow)
+- `apps/server/scripts/test-mes-flow.ts` exercises end-to-end MES flows via HTTP API, including loading verify steps, readiness waive, FAI create/start/complete, execution tracks, OQC closeout scenarios, and trace verification.
+- Script already handles OQC sampling rule creation and closeout paths (happy, fail + MRB), useful as reference for demo dataset and validation payloads.
+## 2026-01-21 Findings (mes-flow-test)
+- `apps/server/scripts/test-mes-flow.ts` provides API client + CLI for end-to-end flows, including auth and scenario controls.
+- There is a `apps/server/scripts/mes-flow-test/` folder with `client.ts` and `index.ts` (likely reusable for scripted flows).
+## 2026-01-21 Findings (seed-mes)
+- `apps/server/scripts/seed-mes.ts` seeds Line A (SMT) and DIP line, readiness checks, station groups, stations, and defines SLOT-01 with mapping to MAT-001.
+- Seed data can be reused as base for SMT demo dataset (line/stations exist).
+## 2026-01-21 Findings (readiness data requirements)
+- STENCIL readiness requires LineStencil current binding + latest StencilStatusRecord with status READY.
+- SOLDER_PASTE readiness requires LineSolderPaste current binding + latest SolderPasteStatusRecord with status COMPLIANT.
+- LOADING readiness requires RunSlotExpectation for all slots; missing expectations triggers SLOT_TABLE_MISSING.
+## 2026-01-21 Findings (stencil/solder models)
+- LineStencil/LineSolderPaste models track current binding (lineId + stencilId/lotId + boundAt + isCurrent).
+- StencilStatusRecord requires eventId (unique), eventTime, stencilId, status, source, optional operatorId/tension.
+- SolderPasteStatusRecord requires eventId (unique), eventTime, lotId, status, source, optional expiry/thaw/stir timestamps.
+## 2026-01-21 Findings (route compile)
+- No route versions in `seed-mes.ts`. Route compile is done via API in `test-mes-flow.ts` and `mes-flow-test/index.ts` using `/routes/:routeCode/compile`.
+- `apps/server/scripts/seed.ts` uses routingService.compileRouteExecution; `seed-demo.ts` expects existing executableRouteVersion.
+## 2026-01-21 Findings (work order via API)
+- `test-mes-flow.ts` creates work orders via `POST /integration/work-orders` (woNo, productCode, plannedQty, routingCode, pickStatus), then releases via `/work-orders/:woNo/release`, then creates run via `/work-orders/:woNo/runs`.
+## 2026-01-21 Findings (run close)
+- Run closeout endpoint is `POST /api/runs/:runNo/close` (requires RUN_CLOSE). It triggers OQC_REQUIRED error if OQC needed.
+## 2026-01-21 Findings (material/equipment readiness data)
+- Material readiness requires BOM items for WorkOrder.productCode; each BomItem.childCode must exist in Material.
+- Equipment readiness checks require TPM equipment records for each station (tpmEquipment.equipmentCode = station.code) with status "normal" and no blocking tpmMaintenanceTask.
+- BomItem model uses parentCode/childCode unique with qty/unit.
+## 2026-01-21 Findings (stencil/solder entities)
+- No Stencil/SolderPaste master models in schema; line bindings use raw `stencilId` and `lotId` strings with status records referencing those IDs.
+## 2026-01-21 Findings (run creation location)
+- Run creation logic lives in `apps/server/src/modules/mes/work-order/service.ts` (createRun), not in run service.
+## 2026-01-21 Findings (run create schema)
+- Run creation API requires `lineCode` and `planQty`; runNo is generated server-side as `RUN-${woNo}-${Date.now()}`.
+## 2026-01-21 Findings (permissions)
+- Permission values use `exec:track_in` and `exec:track_out` (underscore), not hyphen.
+- Integration endpoint requires `system:integration` permission; run close uses `run:close`, route compile uses `route:compile`.
+## 2026-01-21 Findings (closeRun behavior)
+- `closeRun` only works when Run status IN_PROGRESS and all units terminal; if OQC triggered, returns error code `OQC_REQUIRED` (409) with task created.
+
+## Findings (2026-01-21)
+- Loaded dev and small-step-commits skills: must keep slices/commits, call out dirty tree, update worktree notes after reads, and keep MES doc contract intact.
+
+## Findings (2026-01-21 continued)
+- test-mes-flow.ts provides API-driven end-to-end flow with CLI options and can be a base for SMT demo dataset script.
+- mes-flow-test/index.ts shows Prisma + API hybrid setup but is less reusable (uses direct DB upserts). Prefer API-first for demo script.
+
+## Findings (2026-01-21 demo data)
+- Demo dataset docs target realistic SMT codes: line SMT-A, route SMT-BOT-标准路由, product 5223029018, slots 2F-46/2F-34/1R-14/1F-46, materials 5212090001/0001B/0007/8001/8004 with lot barcodes.
+- Demo recipe expects loading PASS/WARNING/FAIL+lock, unlock, replace flow, FAI pass, run authorize/track, OQC trigger, trace.
+
+## Findings (2026-01-21 seed)
+- seed-mes.ts upserts SMT/DIP lines, stations, groups, and enables full readiness checks on LINE-A (ROUTE/LOADING/EQUIPMENT/MATERIAL/STENCIL/SOLDER_PASTE).
+- Loading slot-config endpoints are not referenced in server modules (no slot-config string), so demo dataset script can safely use Prisma upserts for config data.
+
+## Findings (2026-01-21 equipment schema)
+- Prisma TpmEquipment keyed by equipmentCode with status string; no direct stationId field.
+- TpmMaintenanceTask keyed by equipmentCode+status; readiness likely ties station meta to equipmentCode.
+
+## Findings (2026-01-21 readiness)
+- Readiness checks are gated by line.meta.readinessChecks.enabled; performCheck calls checkEquipment/material/route/stencil/solder_paste/loading in parallel and marks run FAILED if any item failed.
+
+## Findings (2026-01-21 readiness equipment)
+- checkEquipment uses station.code as equipmentCode lookup in tpmEquipment; equipment.status must be "normal" and no blocking tpmMaintenanceTask (type REPAIR/CRITICAL/breakdown, status PENDING/IN_PROGRESS).
+- To satisfy readiness for SMT-A, need tpmEquipment rows for each station.code.
+
+## Findings (2026-01-21 operations)
+- Operation model requires code, name, defaultType (StationType). Use upsert for PRINTING/SPI/MOUNTING/REFLOW/AOI.
+- Routing model includes productCode + processType (default SMT), and needs routing steps referencing operation + stationGroup.
+
+## Findings (2026-01-21 slots)
+- FeederSlot requires lineId, slotCode, position; unique on (lineId, slotCode).
+- SlotMaterialMapping ties slotId + materialCode (unique), optional productCode/routingId, flags for alternate/common.
+
+## Findings (2026-01-21 materials)
+- Material requires code + name; MaterialLot unique on (materialCode, lotNo).
+- BomItem requires parentCode + childCode + qty; readiness check uses BomItem for parent product.
+
+## Findings (2026-01-21 stencil/paste)
+- LineStencil and LineSolderPaste bind lineId to stencilId/lotId (no foreign key to Stencil); readiness check uses LineStencil+StencilStatusRecord (status READY) and LineSolderPaste+SolderPasteStatusRecord (status COMPLIANT).
+- StencilStatusRecord requires eventId, eventTime, stencilId, status, source (IntegrationSource). SolderPasteStatusRecord requires eventId, eventTime, lotId, status, source.
+
+## Findings (2026-01-21 OQC rule)
+- OqcSamplingRule supports productCode/lineId/routingId targeting; samplingType (PERCENTAGE/FIXED) and sampleValue required.

@@ -32,14 +32,11 @@ Select the next MES development target from the plan, then ask the user to choos
 ## Workflow
 
 0. Run `git status` (if not clean, call it out before proceeding).
-0. Optional deterministic baseline (control plane):
-   - Run: `bun scripts/workflow-run.ts agent_workflows/mes-next.json`
-   - This writes step-level artifacts to `.spec-workflow/` (gitignored) and writes a triage note under `conversation/`.
 1. Worktree preflight (for parallel work):
    - Run `bun scripts/worktree-scan.ts` and capture the output.
    - Treat any non-current worktree that is `dirty` or `ahead` as "in-flight".
    - Use the touched areas/files as conflict signals when proposing parallel tracks.
-1. Read the minimum docs:
+2. Read the minimum docs:
    - `domain_docs/mes/CONTEXT.md`
    - `domain_docs/mes/plan/tasks.md`
    - `domain_docs/mes/plan/01_milestones.md`

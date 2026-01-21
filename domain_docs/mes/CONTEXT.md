@@ -30,9 +30,7 @@
 
 - 当前最紧急：按 `user_docs/demo/acceptance_plan.md`（SMT）与 `user_docs/demo/acceptance_plan_dip.md`（DIP）跑全流程验收（尤其前端集成），问题记录在 `user_docs/demo/acceptance_issues.md`。
 - 验收通过后：再从 `plan/phase4_tasks.md` 选择 `[ ]` / `[~]` 的条目推进开发。
-- 可用确定性 triage 输出基线（含 worktree scan + 候选项 + 冲突提示）：
-  - `bun scripts/workflow-run.ts agent_workflows/mes-triage.json`
-  - 产物：`.spec-workflow/`（本地、gitignored）+ `conversation/`（可追溯记录）
+- 使用 `/mes-next` skill 进行任务分拣（会输出 worktree scan + 候选项 + 冲突提示）。
 
 ## 流程定义
 

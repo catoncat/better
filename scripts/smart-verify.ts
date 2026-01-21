@@ -125,7 +125,6 @@ const isDocOnlyFile = (filePath: string): boolean => {
 		"user_docs/",
 		".claude/",
 		".codex/",
-		"agent_workflows/",
 	];
 
 	if (docPrefixes.some((p) => filePath.startsWith(p))) return true;
