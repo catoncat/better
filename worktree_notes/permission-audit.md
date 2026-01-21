@@ -23,6 +23,11 @@ task:
 - [x] Slice 5: add permission guard UI + hook `enabled` support for config/ops pages
 - [x] Slice 6: implement config/ops page gating (routes, route detail, route versions, data-specs, integration)
 - [x] Slice 7: implement master data gating (materials, boms, work-centers)
+- [ ] Slice 8: work orders + runs list gating
+- [ ] Slice 9: run detail flow gating
+- [ ] Slice 10: readiness + loading pages gating
+- [ ] Slice 11: execution page gating
+- [ ] Slice 12: quality + trace pages gating
 
 <!-- AUTO:BEGIN status -->
 
@@ -69,6 +74,7 @@ task:
 - Work in dedicated worktree; treat MES routes/modules as primary scope.
 - UI gating is permission-first (not role-based) and must consider flow continuity; per-module choice of hide vs “no access” vs “needs config”.
  - User selected option "1" from the last set of choices; proceed with the first recommended track.
+- Main-flow decisions: align work-order receive permission to `wo:receive`; show NoAccess placeholders for flow-critical cards on run detail.
 
 ## Progress
 - Reviewed conversation plan note; continuing with the selected track.
@@ -115,6 +121,11 @@ task:
 - Reviewed task-split + small-step-commits skill guidance; need a 2-6 slice plan with user confirmation before main-flow edits.
 - Re-checked dev + note skill requirements; plan/decision responses must be recorded in a conversation note.
 - Read main-flow audit entries: remaining ⚠️ items include work-orders route filter + receive permission mismatch, runs line filter + batch authorize column, readiness config/exceptions gating, loading & slot-config gating, execution query gating, FAI/OQC list + dialog gating, defects/rework gating, and trace gating.
+- Reviewed `/mes/work-orders` and `/mes/runs` pages: route filter uses `useRouteList` without enabled; receive button gated by `WO_RECEIVE` while API requires `system:integration`; runs line filter uses `LineSelect` without permission gating and batch-authorize selection remains visible when lacking permission.
+- Checked `LineSelect` and `runColumns`: line select always queries `/lines`; selection column is always rendered regardless of `run:authorize` permission.
+- Confirmed `useWorkOrderList` lacks `enabled` support and `/integration/work-orders` route currently requires `system:integration` in server integration routes.
+- Inspected run list hook and work-order columns: `useRunList` lacks `enabled` option; run table actions already permission-gated but selection column needs conditional inclusion for batch authorize.
+- Began Slice 1 edits: added `enabled` options for work-order/run list hooks, added line-select `enabled` prop, refactored run columns for conditional selection, and updated work-orders/runs pages for permission-aware filters and NoAccess placeholders; server receive-work-order permission switched to `wo:receive`.
 
 ## Findings
 - Worktree created; `bun.lock` modified by `bun install`.

@@ -6,6 +6,8 @@
 # Decisions
 - Keep permission-first gating (not role-based); prioritize flow continuity per `user_docs/demo/permission_audit_plan.md`.
 - Require user confirmation on the slice plan before editing.
+- Align work-order receive permission to `wo:receive`.
+- For run detail flow cards (readiness/FAI/OQC/loading), show NoAccess placeholders when missing view permission.
 
 # Plan
 - Slice 1: Work orders + runs list gating
@@ -41,8 +43,7 @@
 - None in this slice planning step.
 
 # Open Questions
-- Should work-order receive UI align to `system:integration` (recommended) or change server permission to `wo:receive`?
-- For run detail flow cards (readiness/FAI/OQC/loading), confirm preference: show NoAccess placeholders vs hide.
+- None.
 
 # References
 - `user_docs/demo/permission_audit_plan.md`

@@ -309,7 +309,7 @@ DIP 重点：
 - 路由筛选：`route:read` → `/routes`（用于路由筛选选项）
 
 **动作 API**：
-- 接收外部工单：`system:integration` → `/integration/work-orders`
+- 接收外部工单：`wo:receive` → `/integration/work-orders`
 - 发布工单：`wo:release` → `/work-orders/:woNo/release`
 - 创建批次：`run:create` → `/work-orders/:woNo/runs`
 - 更新拣货状态：`wo:update` → `/work-orders/:woNo/pick-status`
@@ -325,12 +325,12 @@ DIP 重点：
 2) 过滤条件（路由工艺筛选）  
 - View 权限：`route:read`  
 - 展示策略：可选模块，缺 view → 隐藏该筛选  
-- 状态：⚠️ 当前未基于权限隐藏，且始终请求 `/routes`  
+- 状态：✅ 按 `route:read` gating 并隐藏筛选  
 
 3) 接收工单按钮 + 对话框  
-- Action 权限：**API 要求 `system:integration`，UI gating 使用 `wo:receive`**  
+- Action 权限：`wo:receive`  
 - 展示策略：配置/运维动作，缺权限 → 隐藏  
-- 状态：⚠️ 权限点不匹配（需要统一为 `system:integration` 或后端改为 `wo:receive`）  
+- 状态：✅ 前后端权限对齐  
 
 4) 发布/创建批次/更新拣货/收尾动作  
 - Action 权限：`wo:release` / `run:create` / `wo:update` / `wo:close`  
@@ -351,7 +351,7 @@ DIP 重点：
 1) 批次列表/卡片  
 - View 权限：`run:read`  
 - 展示策略：核心上下文  
-- 状态：✅  
+- 状态：✅ 页面级无权限占位 + query enabled  
 
 2) 创建批次入口（跳转工单页）  
 - Action 权限：`run:create`  
@@ -361,12 +361,12 @@ DIP 重点：
 3) 线体筛选（LineSelect）  
 - View 权限：`run:read` + `run:create`  
 - 展示策略：可选模块，缺权限 → 隐藏  
-- 状态：⚠️ 当前未 gating，`/lines` 可能 403  
+- 状态：✅ 按权限 gating + 禁用查询  
 
 4) 批量授权  
 - Action 权限：`run:authorize`  
 - 展示策略：缺权限 → 隐藏按钮 + 选择列  
-- 状态：⚠️ 当前按钮禁用但选择列仍显示  
+- 状态：✅ 隐藏批量按钮与选择列  
 
 5) 行内授权/撤销  
 - Action 权限：`run:authorize` / `run:revoke`  
