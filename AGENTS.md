@@ -10,7 +10,7 @@
   - Doc-only change set → skip `lint`/`check-types`
   - Any code/config change → run `bun run lint` + `bun run check-types`
   - Override: `bun scripts/smart-verify.ts --force`
-- Start each task/turn with `git status` (if not clean, call it out before proceeding).
+- Start each task/turn with `git status` (if not clean and will be conflict with your next move, call it out before proceeding).
 - **Update Docs with Code**: If implementation diverges from specs (in `agent_docs` or `domain_docs`), update the documentation *before* or *during* the PR. Docs must reflect reality.
 - This is a greenfield system; do not assume legacy/transition behavior.
 - If unsure whether something is legacy-related, check existing implementation or database data first; ask only if still unclear.
@@ -20,7 +20,7 @@
 - Read `agent_docs/00_onboarding/setup.md` and follow the steps.
 
 ## Workflow & Planning
-- **Follow the Plan**: When implementing a feature/domain, verify if a specific plan exists (e.g., `domain_docs/mes/plan/phase3_tasks.md`).
+- **Follow the Plan**: When implementing a feature/domain, verify if a specific plan exists (e.g., `domain_docs/mes/plan/`).
 - **Mark Progress**: As you complete tasks in a plan file, update the file to mark them as done (e.g., `[x] Task 1.1`).
 - **Update the Plan**: If new tasks are discovered or priorities change, update the plan file to reflect the new reality.
 - **Files As Memory**: For any multi-step task (or >5 tool calls), persist plan/findings/progress/errors to disk (`worktree_notes/` for branch-scoped work; `conversation/` for decisions/findings) instead of relying on chat context. For MES, canonical status lives in `domain_docs/mes/plan/`.

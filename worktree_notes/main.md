@@ -74,3 +74,27 @@
 - DB check: no MaterialLot rows with lotNo = MAT-001.
 - Run RUN-WO-DEMO-SMT-001-1768879491318 exists, status PREP, lineId cmklybjjs0006cr1nuwc4p3f2.
 - FeederSlot SLOT-01 exists for line; expectation for run+slot expects material code MAT-001, status PENDING.
+- Docs: loading barcode format is "物料编码|批次号" (example MAT-001|LOT-2024-001). Slot config uses FeederSlot + SlotMaterialMapping (slotId + productMaterialCode -> materialCode).
+- API overview includes Loading config endpoints: feeder slots and slot mappings; loading verify/replace is separate from loading config.
+- Traceability contract requires loading summary in trace output with slot/material/lot/time.
+- Prisma: FeederSlot has lineId+slotCode unique; SlotMaterialMapping maps slotId + materialCode with optional productCode/routingId, plus priority/alternate/common flags. RunSlotExpectation stores expectedMaterialCode per run+slot.
+
+## Findings (2026-01-21 Role Management)
+- Role management UI is in `apps/web/src/routes/_authenticated/system/role-management.tsx` and uses `RoleDialog` for create/edit.
+- `RoleDialog` disables code/permissions edits when `role` is provided; cloning should use `initialValues` with `role` unset to keep fields editable.
+
+## Progress (2026-01-21 Role Management)
+- Ran `bun apps/server/scripts/seed-roles.ts` with DATABASE_URL to upsert preset roles in DB.
+- loadSlotTable creates RunSlotExpectation rows for run+slot with expectedMaterialCode + alternates based on SlotMaterialMapping (filtered by productCode/routingId), status=PENDING. It deletes existing expectations for the run first.
+- loadSlotTable fails if loading already started (LoadingRecord exists) or if any slots lack mappings.
+## 2026-01-21 Findings (SMT example data)
+- Lines in DB: LINE-A (SMT Production Line A), LINE-DIP-A (DIP Production Line A).
+- FeederSlot entries: one slot SLOT-01 on LINE-A (slotName Feeder Slot 01, position 1).
+
+## SMT Docs Plan (2026-01-21)
+- Slice 1: Create new folder `domain_docs/mes/smt_playbook/` with README, scope/terms, and data sources/ownership overview.
+- Slice 2: Configuration docs (lines/slots, material lots, slot mappings, routes/products).
+- Slice 3: Flow docs (load table, scan/verify, replace, FAI, execution, OQC/closeout) with data generation + management per step.
+- Slice 4: Demo data recipes + validation checklists (detailed steps).
+- Created new SMT docs folder `domain_docs/mes/smt_playbook/` with README, scope/terms, data sources/ownership, and initial configuration docs (lines/slots, materials/lots, slot mappings).
+- Committed docs slice: "docs: add SMT playbook scaffold and initial config docs".
