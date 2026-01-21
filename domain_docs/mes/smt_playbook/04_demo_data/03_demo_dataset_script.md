@@ -8,6 +8,11 @@
 - `apps/server/scripts/smt-demo-dataset.ts`
 
 ## 3. 运行方式
+### 3.1 前置条件
+- 已执行基础种子数据（包含用户与角色）：`bun apps/server/scripts/seed.ts`
+- API 服务已启动（默认端口 3000，可用 `--api-url` 指定）
+
+### 3.2 运行脚本
 ```bash
 bun apps/server/scripts/smt-demo-dataset.ts
 ```
@@ -21,6 +26,7 @@ bun apps/server/scripts/smt-demo-dataset.ts
 - `--api-url <url>` API 地址（默认 `http://127.0.0.1:3000/api`）
 - `--email <email>` 登录邮箱（默认 `SEED_ADMIN_EMAIL`）
 - `--password <pwd>` 登录密码（默认 `SEED_ADMIN_PASSWORD`）
+- `--test-password <pwd>` 测试账号密码（默认 `SEED_TEST_PASSWORD`）
 - `--operator-id <id>` 上料/执行操作人（默认 `OP-01`）
 
 ## 4. 输出说明

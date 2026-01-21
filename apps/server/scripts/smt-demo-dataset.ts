@@ -8,17 +8,14 @@ if (process.env.DATABASE_URL?.includes("../../")) {
 	process.env.DATABASE_URL = "file:./data/db.db";
 }
 
-import prisma, {
-	IntegrationSource,
-	SolderPasteStatus,
-	StationType,
-	StencilStatus,
-} from "@better-app/db";
+type Db = typeof import("@better-app/db");
+type RoutingServiceModule = typeof import("../src/modules/mes/routing/service");
 
 type Options = {
 	apiUrl: string;
 	adminEmail: string;
 	adminPassword: string;
+	testPassword: string;
 	operatorId: string;
 	woNo: string;
 	planQty: number;
@@ -31,6 +28,14 @@ type SeedResult = {
 	lineId: string;
 	stationCodes: string[];
 	slotIdByCode: Map<string, string>;
+};
+
+type DbContext = {
+	prisma: Db["default"];
+	IntegrationSource: Db["IntegrationSource"];
+	SolderPasteStatus: Db["SolderPasteStatus"];
+	StationType: Db["StationType"];
+	StencilStatus: Db["StencilStatus"];
 };
 
 const DEMO = {
@@ -155,6 +160,7 @@ const parseOptions = (): Options => {
 		apiUrl: getArgValue("--api-url") ?? process.env.MES_API_URL ?? "http://127.0.0.1:3000/api",
 		adminEmail: getArgValue("--email") ?? process.env.SEED_ADMIN_EMAIL ?? "admin@example.com",
 		adminPassword: getArgValue("--password") ?? process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe123!",
+		testPassword: getArgValue("--test-password") ?? process.env.SEED_TEST_PASSWORD ?? "Test123!",
 		operatorId: getArgValue("--operator-id") ?? DEMO.operatorId,
 		woNo: getArgValue("--wo-no") ?? DEMO.defaultWoNo,
 		planQty,
@@ -237,7 +243,27 @@ const expectError = (res: Response, data: any, label: string, codes: string[]) =
 const isJsonObject = (value: unknown): value is Record<string, unknown> =>
 	Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
-const ensureLineReadinessEnabled = async (lineId: string, enabled: string[]) => {
+const ensureRouteCompiled = async (
+	prisma: Db["default"],
+	routingService: RoutingServiceModule,
+) => {
+	const result = await routingService.compileRouteExecution(prisma, DEMO.routeCode);
+	if (!result.success) {
+		throw new Error(`Route compile failed: ${result.code} ${result.message}`);
+	}
+	if (result.data.status !== "READY") {
+		const errors = Array.isArray(result.data.errorsJson)
+			? JSON.stringify(result.data.errorsJson)
+			: "Unknown compile errors";
+		throw new Error(`Route ${DEMO.routeCode} is not READY: ${errors}`);
+	}
+};
+
+const ensureLineReadinessEnabled = async (
+	prisma: Db["default"],
+	lineId: string,
+	enabled: string[],
+) => {
 	const existing = await prisma.line.findUnique({ where: { id: lineId }, select: { meta: true } });
 	const baseMeta = isJsonObject(existing?.meta) ? existing?.meta : {};
 	const readinessChecks = isJsonObject(baseMeta.readinessChecks) ? baseMeta.readinessChecks : {};
@@ -256,14 +282,15 @@ const ensureLineReadinessEnabled = async (lineId: string, enabled: string[]) => 
 	}
 };
 
-const seedConfig = async (): Promise<SeedResult> => {
+const seedConfig = async (ctx: DbContext): Promise<SeedResult> => {
+	const { prisma, IntegrationSource, SolderPasteStatus, StationType, StencilStatus } = ctx;
 	const line = await prisma.line.upsert({
 		where: { code: DEMO.lineCode },
 		update: { name: DEMO.lineName },
 		create: { code: DEMO.lineCode, name: DEMO.lineName },
 	});
 
-	await ensureLineReadinessEnabled(line.id, [
+	await ensureLineReadinessEnabled(prisma, line.id, [
 		"ROUTE",
 		"LOADING",
 		"EQUIPMENT",
@@ -483,13 +510,17 @@ const seedConfig = async (): Promise<SeedResult> => {
 };
 
 const runDemoFlow = async (options: Options, seed: SeedResult) => {
-	const client = new ApiClient(options.apiUrl);
-	await client.login(options.adminEmail, options.adminPassword);
+	const planner = new ApiClient(options.apiUrl);
+	const engineer = new ApiClient(options.apiUrl);
+	const leader = new ApiClient(options.apiUrl);
+	const quality = new ApiClient(options.apiUrl);
 
-	const compile = await client.post(`/routes/${DEMO.routeCode}/compile`);
-	expectOk(compile.res, compile.data, "Route compile");
+	await planner.login("planner@example.com", options.testPassword);
+	await engineer.login("engineer@example.com", options.testPassword);
+	await leader.login("leader@example.com", options.testPassword);
+	await quality.login("quality@example.com", options.testPassword);
 
-	const woRes = await client.post("/integration/work-orders", {
+	const woRes = await planner.post("/integration/work-orders", {
 		woNo: options.woNo,
 		productCode: DEMO.productCode,
 		plannedQty: options.planQty,
@@ -498,26 +529,26 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 	});
 	expectOk(woRes.res, woRes.data, "Work order receive");
 
-	const releaseRes = await client.post(`/work-orders/${options.woNo}/release`, {
+	const releaseRes = await planner.post(`/work-orders/${options.woNo}/release`, {
 		lineCode: DEMO.lineCode,
 	});
 	expectOk(releaseRes.res, releaseRes.data, "Work order release");
 
-	const runRes = await client.post(`/work-orders/${options.woNo}/runs`, {
+	const runRes = await planner.post(`/work-orders/${options.woNo}/runs`, {
 		lineCode: DEMO.lineCode,
 		planQty: options.planQty,
 	});
 	const run = expectOk(runRes.res, runRes.data, "Run create");
 	const runNo = run.runNo as string;
 
-	const unitsRes = await client.post(`/runs/${runNo}/generate-units`, {
+	const unitsRes = await leader.post(`/runs/${runNo}/generate-units`, {
 		quantity: options.unitQty,
 		snPrefix: `SN-${runNo}-`,
 	});
 	const unitData = expectOk(unitsRes.res, unitsRes.data, "Generate units");
 	const unitSns = Array.isArray(unitData.units) ? unitData.units.map((u: any) => u.sn) : [];
 
-	const samplingRuleRes = await client.post("/oqc/sampling-rules", {
+	const samplingRuleRes = await quality.post("/oqc/sampling-rules", {
 		productCode: DEMO.productCode,
 		samplingType: "PERCENTAGE",
 		sampleValue: 10,
@@ -526,10 +557,10 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 	});
 	expectOk(samplingRuleRes.res, samplingRuleRes.data, "OQC sampling rule create");
 
-	const loadTable = await client.post(`/runs/${runNo}/loading/load-table`);
+	const loadTable = await leader.post(`/runs/${runNo}/loading/load-table`);
 	expectOk(loadTable.res, loadTable.data, "Load slot table");
 
-	const passRes = await client.post("/loading/verify", {
+	const passRes = await leader.post("/loading/verify", {
 		runNo,
 		slotCode: "2F-34",
 		materialLotBarcode: "5212090007|LOT-20250526-003",
@@ -540,7 +571,7 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 		throw new Error(`Loading PASS returned ${passRecord.verifyResult}`);
 	}
 
-	const warnRes = await client.post("/loading/verify", {
+	const warnRes = await leader.post("/loading/verify", {
 		runNo,
 		slotCode: "2F-46",
 		materialLotBarcode: "5212090001B|LOT-20250526-002",
@@ -553,7 +584,7 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 	}
 
 	for (let attempt = 1; attempt <= 3; attempt++) {
-		const failRes = await client.post("/loading/verify", {
+		const failRes = await leader.post("/loading/verify", {
 			runNo,
 			slotCode: "1R-14",
 			materialLotBarcode: "9999999999|LOT-FAIL-001",
@@ -576,12 +607,12 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 	if (!lockSlotId) {
 		throw new Error("Missing slotId for 1R-14");
 	}
-	const unlockRes = await client.post(`/feeder-slots/${lockSlotId}/unlock`, {
+	const unlockRes = await engineer.post(`/feeder-slots/${lockSlotId}/unlock`, {
 		reason: "Demo unlock after wrong scan",
 	});
 	expectOk(unlockRes.res, unlockRes.data, "Unlock slot 1R-14");
 
-	const retryRes = await client.post("/loading/verify", {
+	const retryRes = await leader.post("/loading/verify", {
 		runNo,
 		slotCode: "1R-14",
 		materialLotBarcode: "5212098001|LOT-20250526-004",
@@ -592,7 +623,7 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 		throw new Error(`Loading PASS after unlock returned ${retryRecord.verifyResult}`);
 	}
 
-	const lastSlotRes = await client.post("/loading/verify", {
+	const lastSlotRes = await leader.post("/loading/verify", {
 		runNo,
 		slotCode: "1F-46",
 		materialLotBarcode: "5212098004|LOT-20250526-005",
@@ -603,7 +634,7 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 		throw new Error(`Loading PASS 1F-46 returned ${lastRecord.verifyResult}`);
 	}
 
-	const replaceRes = await client.post("/loading/replace", {
+	const replaceRes = await leader.post("/loading/replace", {
 		runNo,
 		slotCode: "2F-46",
 		newMaterialLotBarcode: "5212090001|LOT-20250526-001",
@@ -613,17 +644,17 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 	});
 	expectOk(replaceRes.res, replaceRes.data, "Loading replace");
 
-	const readinessRes = await client.post(`/runs/${runNo}/readiness/check`);
+	const readinessRes = await leader.post(`/runs/${runNo}/readiness/check`);
 	const readiness = expectOk(readinessRes.res, readinessRes.data, "Readiness check");
 	if (readiness.status !== "PASSED") {
 		throw new Error(`Readiness check failed with status ${readiness.status}`);
 	}
 
-	const faiRes = await client.post(`/fai/run/${runNo}`, { sampleQty: options.sampleQty });
+	const faiRes = await quality.post(`/fai/run/${runNo}`, { sampleQty: options.sampleQty });
 	const fai = expectOk(faiRes.res, faiRes.data, "FAI create");
 	const faiId = fai.id as string;
 
-	const faiStart = await client.post(`/fai/${faiId}/start`);
+	const faiStart = await quality.post(`/fai/${faiId}/start`);
 	expectOk(faiStart.res, faiStart.data, "FAI start");
 
 	const sampleUnits = unitSns.slice(0, options.sampleQty);
@@ -633,14 +664,14 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 	}
 
 	for (const sn of sampleUnits) {
-		const trackIn = await client.post(`/stations/${firstStation}/track-in`, {
+		const trackIn = await leader.post(`/stations/${firstStation}/track-in`, {
 			sn,
 			woNo: options.woNo,
 			runNo,
 		});
 		expectOk(trackIn.res, trackIn.data, `FAI track-in ${sn}`);
 
-		const trackOut = await client.post(`/stations/${firstStation}/track-out`, {
+		const trackOut = await leader.post(`/stations/${firstStation}/track-out`, {
 			sn,
 			runNo,
 			result: "PASS",
@@ -649,22 +680,22 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 		expectOk(trackOut.res, trackOut.data, `FAI track-out ${sn}`);
 	}
 
-	const faiItemA = await client.post(`/fai/${faiId}/items`, {
+	const faiItemA = await quality.post(`/fai/${faiId}/items`, {
 		itemName: "Solder Paste Thickness",
 		result: "PASS",
 	});
 	expectOk(faiItemA.res, faiItemA.data, "FAI record item A");
 
-	const faiItemB = await client.post(`/fai/${faiId}/items`, {
+	const faiItemB = await quality.post(`/fai/${faiId}/items`, {
 		itemName: "Placement Quality",
 		result: "PASS",
 	});
 	expectOk(faiItemB.res, faiItemB.data, "FAI record item B");
 
-	const faiComplete = await client.post(`/fai/${faiId}/complete`, { decision: "PASS" });
+	const faiComplete = await quality.post(`/fai/${faiId}/complete`, { decision: "PASS" });
 	expectOk(faiComplete.res, faiComplete.data, "FAI complete");
 
-	const authorize = await client.post(`/runs/${runNo}/authorize`, { action: "AUTHORIZE" });
+	const authorize = await leader.post(`/runs/${runNo}/authorize`, { action: "AUTHORIZE" });
 	expectOk(authorize.res, authorize.data, "Run authorize");
 
 	const sampleSet = new Set(sampleUnits);
@@ -673,14 +704,14 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 			if (sampleSet.has(sn) && station === firstStation) {
 				continue;
 			}
-			const trackIn = await client.post(`/stations/${station}/track-in`, {
+			const trackIn = await leader.post(`/stations/${station}/track-in`, {
 				sn,
 				woNo: options.woNo,
 				runNo,
 			});
 			expectOk(trackIn.res, trackIn.data, `Track-in ${sn} ${station}`);
 
-			const trackOut = await client.post(`/stations/${station}/track-out`, {
+			const trackOut = await leader.post(`/stations/${station}/track-out`, {
 				sn,
 				runNo,
 				result: "PASS",
@@ -690,7 +721,7 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 		}
 	}
 
-	const closeAttempt = await client.post(`/runs/${runNo}/close`);
+	const closeAttempt = await leader.post(`/runs/${runNo}/close`);
 	if (closeAttempt.res.ok && closeAttempt.data?.ok) {
 		return { runNo, unitSns, faiId, oqcId: null as string | null };
 	}
@@ -700,24 +731,24 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 		throw new Error(`Run closeout failed: ${closeAttempt.data?.error?.message ?? closeAttempt.res.statusText}`);
 	}
 
-	const oqcRes = await client.get(`/oqc/run/${runNo}`);
+	const oqcRes = await quality.get(`/oqc/run/${runNo}`);
 	const oqc = expectOk(oqcRes.res, oqcRes.data, "Get OQC by run");
 	const oqcId = oqc.id as string;
 
-	const oqcStart = await client.post(`/oqc/${oqcId}/start`);
+	const oqcStart = await quality.post(`/oqc/${oqcId}/start`);
 	expectOk(oqcStart.res, oqcStart.data, "OQC start");
 
-	const oqcItem = await client.post(`/oqc/${oqcId}/items`, {
+	const oqcItem = await quality.post(`/oqc/${oqcId}/items`, {
 		unitSn: unitSns[0],
 		itemName: "OQC Visual",
 		result: "PASS",
 	});
 	expectOk(oqcItem.res, oqcItem.data, "OQC record item");
 
-	const oqcComplete = await client.post(`/oqc/${oqcId}/complete`, { decision: "PASS" });
+	const oqcComplete = await quality.post(`/oqc/${oqcId}/complete`, { decision: "PASS" });
 	expectOk(oqcComplete.res, oqcComplete.data, "OQC complete");
 
-	const closeFinal = await client.post(`/runs/${runNo}/close`);
+	const closeFinal = await leader.post(`/runs/${runNo}/close`);
 	expectOk(closeFinal.res, closeFinal.data, "Run closeout (final)");
 
 	return { runNo, unitSns, faiId, oqcId };
@@ -727,27 +758,40 @@ const main = async () => {
 	const options = parseOptions();
 	console.log(`[smt-demo] Seeding SMT demo data (${DEMO.lineCode}, ${DEMO.routeCode})...`);
 
-	const seed = await seedConfig();
-	console.log("[smt-demo] Base config ready.");
+	const db = (await import("@better-app/db")) as Db;
+	const routingService = (await import("../src/modules/mes/routing/service")) as RoutingServiceModule;
+	const ctx: DbContext = {
+		prisma: db.default,
+		IntegrationSource: db.IntegrationSource,
+		SolderPasteStatus: db.SolderPasteStatus,
+		StationType: db.StationType,
+		StencilStatus: db.StencilStatus,
+	};
 
-	if (options.seedOnly) {
-		console.log("[smt-demo] --seed-only set, skipping run flow.");
-		return;
+	try {
+		const seed = await seedConfig(ctx);
+		await ensureRouteCompiled(ctx.prisma, routingService);
+		console.log("[smt-demo] Base config ready.");
+
+		if (options.seedOnly) {
+			console.log("[smt-demo] --seed-only set, skipping run flow.");
+			return;
+		}
+
+		const summary = await runDemoFlow(options, seed);
+		console.log("[smt-demo] Demo run completed.");
+		console.log(`[smt-demo] Run: ${summary.runNo}`);
+		console.log(
+			`[smt-demo] Units: ${summary.unitSns.slice(0, 3).join(", ")}${summary.unitSns.length > 3 ? "..." : ""}`,
+		);
+		console.log(`[smt-demo] FAI: ${summary.faiId}`);
+		console.log(`[smt-demo] OQC: ${summary.oqcId ?? "not required"}`);
+	} finally {
+		await ctx.prisma.$disconnect();
 	}
-
-	const summary = await runDemoFlow(options, seed);
-	console.log("[smt-demo] Demo run completed.");
-	console.log(`[smt-demo] Run: ${summary.runNo}`);
-	console.log(`[smt-demo] Units: ${summary.unitSns.slice(0, 3).join(", ")}${summary.unitSns.length > 3 ? "..." : ""}`);
-	console.log(`[smt-demo] FAI: ${summary.faiId}`);
-	console.log(`[smt-demo] OQC: ${summary.oqcId ?? "not required"}`);
 };
 
-main()
-	.catch((error) => {
-		console.error("[smt-demo] Failed:", error);
-		process.exitCode = 1;
-	})
-	.finally(async () => {
-		await prisma.$disconnect();
-	});
+main().catch((error) => {
+	console.error("[smt-demo] Failed:", error);
+	process.exitCode = 1;
+});
