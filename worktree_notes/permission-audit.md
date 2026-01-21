@@ -20,18 +20,49 @@ task:
 - [x] Slice 2: page permission map + role/page access matrix
 - [x] Slice 3: issues list + proposed fixes
 - [x] Slice 4: implement fixes (roles/UI/403 handling) + update docs
+- [ ] Slice 5: add permission guard UI + hook `enabled` support for config/ops pages
+- [ ] Slice 6: implement config/ops page gating (routes, route detail, route versions, data-specs, integration)
+- [ ] Slice 7: implement master data gating (materials, boms, work-centers)
 
 <!-- AUTO:BEGIN status -->
 
 ## Status (auto)
-- UpdatedAt: 2026-01-20T05:53:12.456Z
+- UpdatedAt: 2026-01-21T01:09:19.404Z
 - BaseRef: origin/main
-- CommitsAheadOfBase: 0
+- CommitsAheadOfBase: 10
 - Dirty: true
 - ChangedFiles:
+  - apps/web/src/components/select/route-select.tsx
+  - apps/web/src/hooks/use-boms.ts
+  - apps/web/src/hooks/use-data-collection-specs.ts
+  - apps/web/src/hooks/use-execution-configs.ts
+  - apps/web/src/hooks/use-fai.ts
+  - apps/web/src/hooks/use-integration-status.ts
+  - apps/web/src/hooks/use-lines.ts
+  - apps/web/src/hooks/use-materials.ts
+  - apps/web/src/hooks/use-operations.ts
+  - apps/web/src/hooks/use-oqc.ts
+  - apps/web/src/hooks/use-readiness.ts
+  - apps/web/src/hooks/use-route-versions.ts
+  - apps/web/src/hooks/use-routes.ts
+  - apps/web/src/hooks/use-station-execution.ts
+  - apps/web/src/hooks/use-station-groups.ts
+  - apps/web/src/hooks/use-work-centers.ts
+  - apps/web/src/lib/api-error.ts
+  - apps/web/src/lib/query-client.ts
+  - apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx
   - bun.lock
+  - conversation/2026-01-20_141212_permission_audit.md
+  - conversation/2026-01-20_142730_permission_audit_plan.md
+  - conversation/2026-01-20_180359_permission_audit_progress_-_main_flow_pages.md
+  - conversation/2026-01-20_181607_permission_audit_progress_-_rework_tasks.md
+  - conversation/2026-01-20_190922_permission_audit_progress_-_config_ops_pages.md
+  - packages/db/src/permissions/preset-roles.ts
+  - user_docs/demo/permission_audit_plan.md
+  - user_docs/demo/permission_audit_report.md
+  - worktree_notes/permission-audit.md
 - Next:
-  - Continue the next unchecked slice.
+  - Commit worktree note: git add worktree_notes/permission-audit.md && git commit -m "docs(worktree): add task context"
 <!-- AUTO:END status -->
 
 ## Decisions
@@ -63,6 +94,22 @@ task:
 - Route list/detail/execution-config hooks have no permission-aware `enabled` gating.
 - Data-collection spec table/card actions are gated by `data_spec:config`.
 - Logged config/ops page audit entries (routes, route detail, route versions, data-specs, integration, materials, boms, work-centers).
+- Re-opened `/mes/routes` list page to implement permission-first gating and query `enabled` guards.
+- Reviewed `/mes/routes/$routingCode` detail page to add permission checks for route read/config and suppress queries when unauthorized.
+- Checked route list columns and NoAccessCard usage to plan list-page gating.
+- Confirmed route hooks accept `enabled` options and NoAccessCard layout for permission gating.
+- Verified route permission constants (`ROUTE_READ/CONFIGURE/COMPILE`) and located gating spots in `/mes/routes/$routingCode`.
+- Reviewed route detail render sections to decide where to insert NoAccessCard and permission-gated queries.
+- Opened DataSpecSelector to add permission-driven `enabled` guard and no-access placeholder.
+- Checked data spec permission constants and re-opened route detail imports for gating updates.
+- Reviewed route versions page and hook to add route-read gating and NoAccessCard handling.
+- Opened data-collection-specs list page to apply permission gating on specs and operation filters.
+- Reviewed integration status and manual-entry pages for system integration + line binding gating changes.
+- Confirmed line list hook `enabled` support and run permissions for gating manual-entry line binding.
+- Reviewed materials list page to add route-read gating and NoAccessCard handling.
+- Reviewed BOM list page to add route-read gating and query guards.
+- Reviewed work-centers list page to add route-read gating and query guards.
+- Located config/ops page audit entries in permission audit plan for status updates.
 
 ## Findings
 - Worktree created; `bun.lock` modified by `bun install`.
