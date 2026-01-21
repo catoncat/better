@@ -78,6 +78,10 @@ task:
 
 ## Progress
 - Completed Slice 12: quality + trace page gating shipped; audit plan updated and committed.
+- Ran `bun run format` to resolve Biome formatting issues before re-running verification.
+- Ran `bun run lint -- --write` to apply Biome import-order fixes.
+- Re-ran `bun run lint -- --write` after typing filter fields in runs/work-orders.
+- `bun scripts/smart-verify.ts` now passes (lint + check-types).
 - Completed Slice 11: execution gating shipped and audit plan updated.
 - Updated execution section statuses in `user_docs/demo/permission_audit_plan.md`.
 - Completed Slice 10: readiness + loading gating shipped and audit plan updated.
@@ -144,12 +148,24 @@ task:
 - Located loading page and slot-config route files under `apps/web/src/routes/_authenticated/mes/loading/` for Slice 10 updates.
 
 ## Findings
+- Runs/work-orders filter fields now typed with `FilterFieldDefinition`; import order updated by Biome.
+- `FilterFieldDefinition` is exported from `@/components/data-list`; can import it to type filter arrays in runs/work-orders.
+- `work-orders.tsx` filter fields array is untyped; add `FilterFieldDefinition[]` typing to keep literal `type` values.
+- `runs/index.tsx` builds filter field array without `FilterFieldDefinition[]` typing; `work-orders.tsx` likely similar, causing `type` to widen to `string` and reject `render`.
+- `FilterFieldDefinition` supports `type: "custom"` with optional `render` (see `apps/web/src/components/data-list/filter-toolbar.tsx`); type errors likely from inferred `type: string` in filter arrays.
+- Biome import-order fixes touched FAI, OQC list/rules, and loading slot-config pages.
+- Formatting-only fixes are staged; worktree note still unstaged.
+- `bun run format` touched work-orders hook plus execution/loading/readiness/run detail routes; changes are formatting-only.
 - Remaining unstaged changes are audit plan + worktree note updates after code commit.
 - Slice 12 code files are staged; audit plan + worktree notes still unstaged.
 - Current diff limited to Slice 12 hooks/routes plus audit plan + worktree note updates.
 
 ## Errors
 - `git add apps/web/src/routes/_authenticated/mes/oqc/-components/oqc-card.tsx ...` failed: pathspec did not match (files live under `apps/web/src/routes/_authenticated/mes/-components/`). Next: re-run `git add` with corrected paths.
+- `bun scripts/smart-verify.ts` failed at `bun run lint` (Biome) due to formatting/import-order issues in `apps/web/src/hooks/use-work-orders.ts`, `apps/web/src/routes/_authenticated/mes/execution.tsx`, `apps/web/src/routes/_authenticated/mes/oqc/index.tsx`, `apps/web/src/routes/_authenticated/mes/oqc/rules.tsx`, `apps/web/src/routes/_authenticated/mes/readiness-config.tsx`, and `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx`. Next: run `bun run format`, re-check `git status`, then re-run `bun scripts/smart-verify.ts`.
+- `git add ... apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` failed because `$runNo` expanded in shell (pathspec `.../runs/.tsx`). Next: re-run `git add` with the `$` escaped or quoted.
+- `bun scripts/smart-verify.ts` failed again due to Biome import ordering in `apps/web/src/routes/_authenticated/mes/fai.tsx`, `apps/web/src/routes/_authenticated/mes/loading/slot-config.tsx`, `apps/web/src/routes/_authenticated/mes/oqc/index.tsx`, and `apps/web/src/routes/_authenticated/mes/oqc/rules.tsx`. Next: run `bun run lint -- --write` (Biome check with safe fixes), then re-run `bun scripts/smart-verify.ts`.
+- `bun scripts/smart-verify.ts` failed at `check-types` with `FilterFieldDefinition` mismatches in `apps/web/src/routes/_authenticated/mes/runs/index.tsx` (custom filter uses `render` but type doesn't include it; `type` inferred as string) and `apps/web/src/routes/_authenticated/mes/work-orders.tsx` (filter `type` inferred as string). Next: inspect filter field definitions and align with `FilterFieldDefinition` typing (likely `type: "custom"` with proper render function signature), then re-run `bun scripts/smart-verify.ts`.
 - Permission audit plan sections for FAI/OQC/defects/rework/trace are updated; Slice 12 still unchecked in worktree note until commit.
 - FAI record dialog now hides spec picker and shows a permission hint when missing data-spec permissions; generate-units flow checks `run:authorize`.
 - `useUnitTrace` is only used in defects + trace pages now; both pass `enabled` options.
