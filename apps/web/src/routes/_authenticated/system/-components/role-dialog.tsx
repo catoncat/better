@@ -50,11 +50,19 @@ interface RoleDialogProps {
 	onOpenChange: (open: boolean) => void;
 	role: RoleItem | null;
 	initialValues?: RoleFormValues | null;
+	readOnly?: boolean;
 	onSubmit: (values: RoleFormValues) => Promise<void>;
 	isSubmitting?: boolean;
 }
 
-export function RoleDialog({ open, onOpenChange, role, initialValues, onSubmit }: RoleDialogProps) {
+export function RoleDialog({
+	open,
+	onOpenChange,
+	role,
+	initialValues,
+	readOnly = false,
+	onSubmit,
+}: RoleDialogProps) {
 	const permissionGroups = useMemo(() => Object.values(PERMISSION_GROUPS), []);
 	const form = useForm({
 		defaultValues: {
@@ -100,19 +108,28 @@ export function RoleDialog({ open, onOpenChange, role, initialValues, onSubmit }
 
 	const isSystemRole = role?.isSystem ?? false;
 	const isClone = Boolean(!role && initialValues);
+	const isReadOnly = Boolean(readOnly);
+	const title = role
+		? isReadOnly
+			? "查看系统角色"
+			: "编辑角色"
+		: isClone
+			? "克隆角色"
+			: "新增角色";
+	const description = role
+		? isReadOnly
+			? "系统角色不可修改，可使用克隆创建自定义角色。"
+			: "更新角色名称、描述与权限范围"
+		: isClone
+			? "基于现有角色复制，生成新的自定义角色"
+			: "创建一个新的自定义角色";
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-3xl">
 				<DialogHeader>
-					<DialogTitle>{role ? "编辑角色" : isClone ? "克隆角色" : "新增角色"}</DialogTitle>
-					<DialogDescription>
-						{role
-							? "更新角色名称、描述与权限范围"
-							: isClone
-								? "基于现有角色复制，生成新的自定义角色"
-								: "创建一个新的自定义角色"}
-					</DialogDescription>
+					<DialogTitle>{title}</DialogTitle>
+					<DialogDescription>{description}</DialogDescription>
 				</DialogHeader>
 				<form
 					onSubmit={(e) => {
@@ -139,7 +156,7 @@ export function RoleDialog({ open, onOpenChange, role, initialValues, onSubmit }
 										onBlur={field.handleBlur}
 										onChange={(e) => field.handleChange(e.target.value)}
 										placeholder="例如: planner"
-										disabled={Boolean(role)}
+										disabled={Boolean(role) || isReadOnly}
 									/>
 								)}
 							</Field>
@@ -158,6 +175,7 @@ export function RoleDialog({ open, onOpenChange, role, initialValues, onSubmit }
 										onBlur={field.handleBlur}
 										onChange={(e) => field.handleChange(e.target.value)}
 										placeholder="例如: 生产计划员"
+										disabled={isReadOnly}
 									/>
 								)}
 							</Field>
@@ -177,6 +195,7 @@ export function RoleDialog({ open, onOpenChange, role, initialValues, onSubmit }
 										onBlur={field.handleBlur}
 										onChange={(e) => field.handleChange(e.target.value)}
 										placeholder="可选"
+										disabled={isReadOnly}
 									/>
 								)}
 							</Field>
@@ -196,7 +215,7 @@ export function RoleDialog({ open, onOpenChange, role, initialValues, onSubmit }
 										onValueChange={(value) =>
 											field.handleChange(value as RoleFormValues["dataScope"])
 										}
-										disabled={isSystemRole}
+										disabled={isSystemRole || isReadOnly}
 									>
 										<SelectTrigger className="w-full">
 											<SelectValue placeholder="选择数据范围" />
@@ -234,7 +253,7 @@ export function RoleDialog({ open, onOpenChange, role, initialValues, onSubmit }
 														<div key={perm.value} className="flex items-center gap-2 text-sm">
 															<Checkbox
 																id={checkboxId}
-																disabled={isSystemRole}
+																disabled={isSystemRole || isReadOnly}
 																checked={field.state.value.includes(perm.value)}
 																onCheckedChange={(checked: boolean | "indeterminate") => {
 																	const next =
@@ -261,15 +280,17 @@ export function RoleDialog({ open, onOpenChange, role, initialValues, onSubmit }
 					</DialogBody>
 					<DialogFooter>
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-							取消
+							{isReadOnly ? "关闭" : "取消"}
 						</Button>
-						<form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-							{([canSubmit, isSubmitting]) => (
-								<Button type="submit" disabled={!canSubmit}>
-									{isSubmitting ? "保存中..." : role ? "保存" : "创建"}
-								</Button>
-							)}
-						</form.Subscribe>
+						{!isReadOnly && (
+							<form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+								{([canSubmit, isSubmitting]) => (
+									<Button type="submit" disabled={!canSubmit}>
+										{isSubmitting ? "保存中..." : role ? "保存" : "创建"}
+									</Button>
+								)}
+							</form.Subscribe>
+						)}
 					</DialogFooter>
 				</form>
 			</DialogContent>

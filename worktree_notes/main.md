@@ -98,3 +98,29 @@
 - Slice 4: Demo data recipes + validation checklists (detailed steps).
 - Created new SMT docs folder `domain_docs/mes/smt_playbook/` with README, scope/terms, data sources/ownership, and initial configuration docs (lines/slots, materials/lots, slot mappings).
 - Committed docs slice: "docs: add SMT playbook scaffold and initial config docs".
+## 2026-01-21 Findings (Routing)
+- Routing Engine: Run binds a frozen ExecutableRouteVersion snapshot at creation; run uses routeVersionId for stable execution/traceability.
+- Routing selection prioritizes explicit WorkOrder routingId, otherwise productCode + effective range + active; requires READY executable version.
+- Execution semantics (station types, gates) are MES-owned via RouteExecutionConfig; ERP routing sequence is read-only.
+- Added routes/products config doc: `domain_docs/mes/smt_playbook/02_configuration/04_routes_and_products.md`.
+- Committed routes/products config doc: "docs: add SMT routes and products configuration guide".
+- Added run-flow docs: work order → run (`03_run_flow/01_work_order_to_run.md`) and readiness/prep (`03_run_flow/02_readiness_and_prep.md`).
+- Committed run-flow docs slice: "docs: add SMT work order and readiness flow".
+## 2026-01-21 Findings (Loading flow details)
+- verifyLoading: requires Run PREP + lineId + operatorId; checks slot, expectation; if expectation already LOADED, returns idempotent record when same material is scanned, else SLOT_ALREADY_LOADED and requires replace.
+- verifyLoading: on mismatch increments failedAttempts and locks slot when >=3; sets expectation status MISMATCH; records LoadingRecord status UNLOADED with failReason.
+- replaceLoading: requires Run PREP + operatorId + reason + expectation status LOADED; marks previous LOADED records as REPLACED with unloadedAt/By; creates new LoadingRecord (LOADED or UNLOADED) and writes meta.replaceReason; mismatch clears loadedMaterialCode and can lock after 3 failures.
+- Added loading flow doc: `domain_docs/mes/smt_playbook/03_run_flow/03_loading_flow.md`.
+- Committed loading flow doc: "docs: add SMT loading flow guide".
+## 2026-01-21 Findings (FAI flow details)
+- FAI creation requires Run PREP and latest formal readiness check PASSED; rejects if active FAI exists or sample units insufficient.
+- FAI lifecycle: Inspection status PENDING → INSPECTING → PASS/FAIL; creation stores sampleQty, passedQty/failedQty, remark.
+- FAI gate uses route steps requiring FAI; run authorization checks FAI passed if required.
+## 2026-01-21 Findings (FAI trial/complete)
+- FAI trial summary is built from Track records created after FAI start; requires outAt not null and uses sampleQty to pick units.
+- Completing FAI requires INSPECTING status, trial completed, and counts validation; PASS blocks if any SPI/AOI inspection FAIL exists for the run.
+- Added FAI flow doc: `domain_docs/mes/smt_playbook/03_run_flow/04_fai_flow.md`.
+- Committed FAI flow doc: "docs: add SMT FAI flow guide".
+## 2026-01-21 Findings (Trace output)
+- Trace API returns unit, route + frozen routeVersion, steps, tracks, dataValues, inspections, loadingRecords, materials; mode defaults to run/frozen.
+- Trace contract requires including route identity and frozen route version to prevent historical drift.
