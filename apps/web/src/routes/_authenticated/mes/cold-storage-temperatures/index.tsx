@@ -3,8 +3,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
+import { useAbility } from "@/hooks/use-ability";
 import {
 	type ColdStorageTemperatureRecord,
 	useColdStorageTemperatureRecordList,
@@ -47,6 +49,8 @@ function ColdStorageTemperaturePage() {
 	const navigate = useNavigate();
 	const searchParams = Route.useSearch();
 	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
+	const { hasPermission } = useAbility();
+	const canViewRecords = hasPermission(Permission.READINESS_VIEW);
 
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const createRecord = useCreateColdStorageTemperatureRecord();
@@ -155,12 +159,15 @@ function ColdStorageTemperaturePage() {
 		[setFilters, applyPreset],
 	);
 
-	const { data, isLoading, error, refetch } = useColdStorageTemperatureRecordList({
-		page: pageIndex + 1,
-		pageSize,
-		measuredFrom: filters.measuredFrom,
-		measuredTo: filters.measuredTo,
-	});
+	const { data, isLoading, error, refetch } = useColdStorageTemperatureRecordList(
+		{
+			page: pageIndex + 1,
+			pageSize,
+			measuredFrom: filters.measuredFrom,
+			measuredTo: filters.measuredTo,
+		},
+		{ enabled: canViewRecords },
+	);
 
 	const handlePaginationChange = useCallback(
 		(next: { pageIndex: number; pageSize: number }) => {
@@ -183,6 +190,37 @@ function ColdStorageTemperaturePage() {
 		await createRecord.mutateAsync(values);
 	};
 
+	const header = (
+		<div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+			<div>
+				<h1 className="text-2xl font-bold tracking-tight">冷藏温度记录</h1>
+				<p className="text-muted-foreground">记录 SMT 冷藏柜的温度测量结果。</p>
+			</div>
+			{canViewRecords && (
+				<div className="flex items-center gap-2">
+					<Button variant="secondary" size="sm" onClick={() => void refetch()}>
+						刷新列表
+					</Button>
+					<Can permissions={Permission.READINESS_CHECK}>
+						<Button size="sm" onClick={() => setDialogOpen(true)}>
+							<Plus className="mr-2 h-4 w-4" />
+							新增记录
+						</Button>
+					</Can>
+				</div>
+			)}
+		</div>
+	);
+
+	if (!canViewRecords) {
+		return (
+			<div className="space-y-6">
+				{header}
+				<NoAccessCard description="需要准备查看权限才能访问该页面。" />
+			</div>
+		);
+	}
+
 	return (
 		<div className="space-y-6">
 			<DataListLayout
@@ -202,25 +240,7 @@ function ColdStorageTemperaturePage() {
 						</div>
 					) : null
 				}
-				header={
-					<div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-						<div>
-							<h1 className="text-2xl font-bold tracking-tight">冷藏温度记录</h1>
-							<p className="text-muted-foreground">记录 SMT 冷藏柜的温度测量结果。</p>
-						</div>
-						<div className="flex items-center gap-2">
-							<Button variant="secondary" size="sm" onClick={() => void refetch()}>
-								刷新列表
-							</Button>
-							<Can permissions={Permission.READINESS_CHECK}>
-								<Button size="sm" onClick={() => setDialogOpen(true)}>
-									<Plus className="mr-2 h-4 w-4" />
-									新增记录
-								</Button>
-							</Can>
-						</div>
-					</div>
-				}
+				header={header}
 				queryPresetBarProps={{
 					systemPresets: COLD_STORAGE_SYSTEM_PRESETS,
 					userPresets,

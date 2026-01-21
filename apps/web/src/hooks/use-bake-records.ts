@@ -23,9 +23,10 @@ export type BakeRecordQuery = {
 
 type BakeRecordCreateInput = Parameters<(typeof client.api)["bake-records"]["post"]>[0];
 
-export function useBakeRecordList(query: BakeRecordQuery) {
+export function useBakeRecordList(query: BakeRecordQuery, options?: { enabled?: boolean }) {
 	return useQuery<BakeRecordListData>({
 		queryKey: ["mes", "bake-records", query],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await client.api["bake-records"].get({ query });
 			return unwrap(response);

@@ -257,7 +257,7 @@ DIP 重点：
 2) 流程进度卡（就绪/FAI/授权/执行/收尾）  
 - View 权限：`readiness:view`, `quality:fai`, `run:read`  
 - 展示策略：缺 view → 显示“无权限”标签（已在 readiness/fai stage 处理）  
-- 状态：✅ 基本符合（需确认文案一致性）  
+- 状态：✅ 文案一致性已确认  
 
 3) 批次统计卡（含“生成单件”）  
 - View 权限：`run:read`  
@@ -288,7 +288,7 @@ DIP 重点：
 - View 权限：`run:read`（数据来自 run 详情）  
 - 额外权限：`route:read`（进入路由详情页）  
 - 展示策略：无 `route:read` 时链接降级为纯文本  
-- 状态：⚠️ 需确认  
+- 状态：✅ 无权限时降级为文本  
 
 8) 路由进度 / Unit 列表  
 - View 权限：`run:read`  
@@ -900,3 +900,63 @@ DIP 重点：
 - View 权限：`route:read`  
 - 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
 - 状态：✅ 页面级无权限占位 + query enabled  
+
+### 页面：/mes/bake-records（烘烤记录）
+
+**页面级查询**：
+- 烘烤记录列表：`readiness:view` → `/bake-records`
+
+**动作 API**：
+- 新增烘烤记录：`readiness:check` → `/bake-records`（POST）
+
+**模块审计**：
+
+1) 列表 + 筛选  
+- View 权限：`readiness:view`  
+- 展示策略：辅助记录模块，缺 view → 页面级无权限占位  
+- 状态：✅ 页面级无权限占位 + query enabled  
+
+2) 新增记录  
+- Action 权限：`readiness:check`  
+- 展示策略：缺权限 → 隐藏入口  
+- 状态：✅ `<Can>` gating  
+
+### 页面：/mes/solder-paste-usage（锡膏使用记录）
+
+**页面级查询**：
+- 锡膏使用记录列表：`readiness:view` → `/solder-paste-usage-records`
+
+**动作 API**：
+- 新增使用记录：`readiness:check` → `/solder-paste-usage-records`（POST）
+
+**模块审计**：
+
+1) 列表 + 筛选  
+- View 权限：`readiness:view`  
+- 展示策略：辅助记录模块，缺 view → 页面级无权限占位  
+- 状态：✅ 页面级无权限占位 + query enabled  
+
+2) 新增记录  
+- Action 权限：`readiness:check`  
+- 展示策略：缺权限 → 隐藏入口  
+- 状态：✅ `<Can>` gating  
+
+### 页面：/mes/cold-storage-temperatures（冷藏温度记录）
+
+**页面级查询**：
+- 冷藏温度记录列表：`readiness:view` → `/cold-storage-temperature-records`
+
+**动作 API**：
+- 新增温度记录：`readiness:check` → `/cold-storage-temperature-records`（POST）
+
+**模块审计**：
+
+1) 列表 + 筛选  
+- View 权限：`readiness:view`  
+- 展示策略：辅助记录模块，缺 view → 页面级无权限占位  
+- 状态：✅ 页面级无权限占位 + query enabled  
+
+2) 新增记录  
+- Action 权限：`readiness:check`  
+- 展示策略：缺权限 → 隐藏入口  
+- 状态：✅ `<Can>` gating  
