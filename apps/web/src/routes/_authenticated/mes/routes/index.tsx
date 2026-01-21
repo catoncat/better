@@ -149,12 +149,15 @@ function RouteListPage() {
 		[setFilters, applyPreset],
 	);
 
-	const { data, isLoading, error } = useRouteList({
-		page: pageIndex + 1,
-		pageSize,
-		search: filters.search || undefined,
-		sourceSystem: filters.sourceSystem === "all" ? undefined : filters.sourceSystem,
-	}, { enabled: canViewRoutes });
+	const { data, isLoading, error } = useRouteList(
+		{
+			page: pageIndex + 1,
+			pageSize,
+			search: filters.search || undefined,
+			sourceSystem: filters.sourceSystem === "all" ? undefined : filters.sourceSystem,
+		},
+		{ enabled: canViewRoutes },
+	);
 
 	const handlePaginationChange = useCallback(
 		(next: { pageIndex: number; pageSize: number }) => {

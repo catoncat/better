@@ -131,7 +131,11 @@ function RouteDetailPage() {
 	const canViewDataSpecs =
 		hasPermission(Permission.DATA_SPEC_READ) && hasPermission(Permission.DATA_SPEC_CONFIG);
 
-	const { data: routeDetail, isLoading, refetch } = useRouteDetail(routingCode, {
+	const {
+		data: routeDetail,
+		isLoading,
+		refetch,
+	} = useRouteDetail(routingCode, {
 		enabled: canViewRoutes,
 	});
 	const updateProcessType = useUpdateRouteProcessType(routingCode);

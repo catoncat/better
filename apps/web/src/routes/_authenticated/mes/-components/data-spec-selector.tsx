@@ -43,11 +43,14 @@ export function DataSpecSelector({
 	const [search, setSearch] = useState("");
 
 	// 获取采集项列表（启用状态）
-	const { data, isLoading } = useDataCollectionSpecList({
-		pageSize: 100,
-		isActive: "true",
-		operationCode: operationCode || undefined,
-	}, { enabled });
+	const { data, isLoading } = useDataCollectionSpecList(
+		{
+			pageSize: 100,
+			isActive: "true",
+			operationCode: operationCode || undefined,
+		},
+		{ enabled },
+	);
 
 	const specs = data?.items ?? [];
 

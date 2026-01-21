@@ -25,7 +25,10 @@ interface OperationListParams {
 	sortDir?: "asc" | "desc";
 }
 
-export function useOperationList(params: OperationListParams = {}, options?: { enabled?: boolean }) {
+export function useOperationList(
+	params: OperationListParams = {},
+	options?: { enabled?: boolean },
+) {
 	return useQuery({
 		queryKey: ["mes", "operations", params],
 		enabled: options?.enabled ?? true,

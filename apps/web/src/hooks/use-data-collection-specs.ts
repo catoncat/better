@@ -58,10 +58,7 @@ export function useDataCollectionSpecList(
 	});
 }
 
-export function useDataCollectionSpec(
-	specId: string | undefined,
-	options?: { enabled?: boolean },
-) {
+export function useDataCollectionSpec(specId: string | undefined, options?: { enabled?: boolean }) {
 	return useQuery({
 		queryKey: ["mes", "data-collection-specs", specId],
 		queryFn: async () => {
