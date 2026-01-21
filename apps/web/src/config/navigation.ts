@@ -130,6 +130,11 @@ export const navMain: NavItem[] = [
 		icon: Database,
 		items: [
 			{
+				title: "产线管理",
+				url: "/mes/lines",
+				permissions: [Permission.LINE_CONFIG],
+			},
+			{
 				title: "路由管理",
 				url: "/mes/routes",
 				permissions: [Permission.ROUTE_READ],

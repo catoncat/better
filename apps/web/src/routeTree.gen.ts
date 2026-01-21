@@ -39,6 +39,7 @@ import { Route as AuthenticatedMesRoutesIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedMesOqcIndexRouteImport } from './routes/_authenticated/mes/oqc/index'
 import { Route as AuthenticatedMesMaterialsIndexRouteImport } from './routes/_authenticated/mes/materials/index'
 import { Route as AuthenticatedMesLoadingIndexRouteImport } from './routes/_authenticated/mes/loading/index'
+import { Route as AuthenticatedMesLinesIndexRouteImport } from './routes/_authenticated/mes/lines/index'
 import { Route as AuthenticatedMesDataCollectionSpecsIndexRouteImport } from './routes/_authenticated/mes/data-collection-specs/index'
 import { Route as AuthenticatedMesColdStorageTemperaturesIndexRouteImport } from './routes/_authenticated/mes/cold-storage-temperatures/index'
 import { Route as AuthenticatedMesBomsIndexRouteImport } from './routes/_authenticated/mes/boms/index'
@@ -220,6 +221,12 @@ const AuthenticatedMesLoadingIndexRoute =
     path: '/mes/loading/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedMesLinesIndexRoute =
+  AuthenticatedMesLinesIndexRouteImport.update({
+    id: '/mes/lines/',
+    path: '/mes/lines/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMesDataCollectionSpecsIndexRoute =
   AuthenticatedMesDataCollectionSpecsIndexRouteImport.update({
     id: '/mes/data-collection-specs/',
@@ -314,6 +321,7 @@ export interface FileRoutesByFullPath {
   '/mes/boms': typeof AuthenticatedMesBomsIndexRoute
   '/mes/cold-storage-temperatures': typeof AuthenticatedMesColdStorageTemperaturesIndexRoute
   '/mes/data-collection-specs': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
+  '/mes/lines': typeof AuthenticatedMesLinesIndexRoute
   '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
   '/mes/materials': typeof AuthenticatedMesMaterialsIndexRoute
   '/mes/oqc': typeof AuthenticatedMesOqcIndexRoute
@@ -354,6 +362,7 @@ export interface FileRoutesByTo {
   '/mes/boms': typeof AuthenticatedMesBomsIndexRoute
   '/mes/cold-storage-temperatures': typeof AuthenticatedMesColdStorageTemperaturesIndexRoute
   '/mes/data-collection-specs': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
+  '/mes/lines': typeof AuthenticatedMesLinesIndexRoute
   '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
   '/mes/materials': typeof AuthenticatedMesMaterialsIndexRoute
   '/mes/oqc': typeof AuthenticatedMesOqcIndexRoute
@@ -397,6 +406,7 @@ export interface FileRoutesById {
   '/_authenticated/mes/boms/': typeof AuthenticatedMesBomsIndexRoute
   '/_authenticated/mes/cold-storage-temperatures/': typeof AuthenticatedMesColdStorageTemperaturesIndexRoute
   '/_authenticated/mes/data-collection-specs/': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
+  '/_authenticated/mes/lines/': typeof AuthenticatedMesLinesIndexRoute
   '/_authenticated/mes/loading/': typeof AuthenticatedMesLoadingIndexRoute
   '/_authenticated/mes/materials/': typeof AuthenticatedMesMaterialsIndexRoute
   '/_authenticated/mes/oqc/': typeof AuthenticatedMesOqcIndexRoute
@@ -440,6 +450,7 @@ export interface FileRouteTypes {
     | '/mes/boms'
     | '/mes/cold-storage-temperatures'
     | '/mes/data-collection-specs'
+    | '/mes/lines'
     | '/mes/loading'
     | '/mes/materials'
     | '/mes/oqc'
@@ -480,6 +491,7 @@ export interface FileRouteTypes {
     | '/mes/boms'
     | '/mes/cold-storage-temperatures'
     | '/mes/data-collection-specs'
+    | '/mes/lines'
     | '/mes/loading'
     | '/mes/materials'
     | '/mes/oqc'
@@ -522,6 +534,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/boms/'
     | '/_authenticated/mes/cold-storage-temperatures/'
     | '/_authenticated/mes/data-collection-specs/'
+    | '/_authenticated/mes/lines/'
     | '/_authenticated/mes/loading/'
     | '/_authenticated/mes/materials/'
     | '/_authenticated/mes/oqc/'
@@ -748,6 +761,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesLoadingIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/mes/lines/': {
+      id: '/_authenticated/mes/lines/'
+      path: '/mes/lines'
+      fullPath: '/mes/lines'
+      preLoaderRoute: typeof AuthenticatedMesLinesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/mes/data-collection-specs/': {
       id: '/_authenticated/mes/data-collection-specs/'
       path: '/mes/data-collection-specs'
@@ -869,6 +889,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesBomsIndexRoute: typeof AuthenticatedMesBomsIndexRoute
   AuthenticatedMesColdStorageTemperaturesIndexRoute: typeof AuthenticatedMesColdStorageTemperaturesIndexRoute
   AuthenticatedMesDataCollectionSpecsIndexRoute: typeof AuthenticatedMesDataCollectionSpecsIndexRoute
+  AuthenticatedMesLinesIndexRoute: typeof AuthenticatedMesLinesIndexRoute
   AuthenticatedMesLoadingIndexRoute: typeof AuthenticatedMesLoadingIndexRoute
   AuthenticatedMesMaterialsIndexRoute: typeof AuthenticatedMesMaterialsIndexRoute
   AuthenticatedMesOqcIndexRoute: typeof AuthenticatedMesOqcIndexRoute
@@ -916,6 +937,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedMesColdStorageTemperaturesIndexRoute,
   AuthenticatedMesDataCollectionSpecsIndexRoute:
     AuthenticatedMesDataCollectionSpecsIndexRoute,
+  AuthenticatedMesLinesIndexRoute: AuthenticatedMesLinesIndexRoute,
   AuthenticatedMesLoadingIndexRoute: AuthenticatedMesLoadingIndexRoute,
   AuthenticatedMesMaterialsIndexRoute: AuthenticatedMesMaterialsIndexRoute,
   AuthenticatedMesOqcIndexRoute: AuthenticatedMesOqcIndexRoute,

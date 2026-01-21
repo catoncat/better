@@ -28,14 +28,13 @@ type LineCreateInput = Parameters<typeof client.api.lines.post>[0];
 
 const processTypeValues = Object.keys(PROCESS_TYPE_MAP) as LineCreateInput["processType"][];
 
-const formSchema = z
-	.object({
-		code: z.string().min(1, "请输入产线代码").max(50, "产线代码过长"),
-		name: z.string().min(1, "请输入产线名称").max(100, "产线名称过长"),
-		processType: z.enum(
-			processTypeValues as [LineCreateInput["processType"], ...LineCreateInput["processType"][]],
-		),
-	}) satisfies z.ZodType<LineCreateInput>;
+const formSchema = z.object({
+	code: z.string().min(1, "请输入产线代码").max(50, "产线代码过长"),
+	name: z.string().min(1, "请输入产线名称").max(100, "产线名称过长"),
+	processType: z.enum(
+		processTypeValues as [LineCreateInput["processType"], ...LineCreateInput["processType"][]],
+	),
+}) satisfies z.ZodType<LineCreateInput>;
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -65,7 +64,7 @@ export function LineDialog({
 			code: line?.code ?? "",
 			name: line?.name ?? "",
 			processType: defaultProcessType,
-		} as FormValues,
+		} satisfies FormValues,
 		onSubmit: async ({ value }) => {
 			const payload: LineCreateInput = {
 				code: value.code.trim(),
@@ -76,7 +75,7 @@ export function LineDialog({
 			onOpenChange(false);
 		},
 		validators: {
-			onChange: formSchema,
+			onSubmit: formSchema,
 		},
 	});
 
@@ -86,7 +85,7 @@ export function LineDialog({
 				code: line?.code ?? "",
 				name: line?.name ?? "",
 				processType: line?.processType ?? defaultProcessType,
-			} as FormValues);
+			});
 		}
 	}, [open, line, defaultProcessType, form]);
 
