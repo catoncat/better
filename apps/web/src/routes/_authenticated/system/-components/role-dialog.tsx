@@ -49,11 +49,18 @@ interface RoleDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	role: RoleItem | null;
+	initialValues?: RoleFormValues | null;
 	onSubmit: (values: RoleFormValues) => Promise<void>;
 	isSubmitting?: boolean;
 }
 
-export function RoleDialog({ open, onOpenChange, role, onSubmit }: RoleDialogProps) {
+export function RoleDialog({
+	open,
+	onOpenChange,
+	role,
+	initialValues,
+	onSubmit,
+}: RoleDialogProps) {
 	const permissionGroups = useMemo(() => Object.values(PERMISSION_GROUPS), []);
 	const form = useForm({
 		defaultValues: {
@@ -80,26 +87,37 @@ export function RoleDialog({ open, onOpenChange, role, onSubmit }: RoleDialogPro
 				dataScope: role.dataScope,
 				permissions: role.permissions,
 			});
-		} else {
-			form.reset({
-				code: "",
-				name: "",
-				description: "",
-				dataScope: "ALL",
-				permissions: [],
-			});
+			return;
 		}
-	}, [form, role]);
+
+		if (initialValues) {
+			form.reset(initialValues);
+			return;
+		}
+
+		form.reset({
+			code: "",
+			name: "",
+			description: "",
+			dataScope: "ALL",
+			permissions: [],
+		});
+	}, [form, role, initialValues]);
 
 	const isSystemRole = role?.isSystem ?? false;
+	const isClone = Boolean(!role && initialValues);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-3xl">
 				<DialogHeader>
-					<DialogTitle>{role ? "编辑角色" : "新增角色"}</DialogTitle>
+					<DialogTitle>{role ? "编辑角色" : isClone ? "克隆角色" : "新增角色"}</DialogTitle>
 					<DialogDescription>
-						{role ? "更新角色名称、描述与权限范围" : "创建一个新的自定义角色"}
+						{role
+							? "更新角色名称、描述与权限范围"
+							: isClone
+								? "基于现有角色复制，生成新的自定义角色"
+								: "创建一个新的自定义角色"}
 					</DialogDescription>
 				</DialogHeader>
 				<form

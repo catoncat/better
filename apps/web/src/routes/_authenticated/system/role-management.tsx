@@ -1,6 +1,6 @@
 import { PERMISSION_GROUPS, Permission } from "@better-app/db/permissions";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, Shield, Trash2 } from "lucide-react";
+import { Copy, Plus, Shield, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Can } from "@/components/ability/can";
@@ -47,6 +47,7 @@ function RoleManagementPage() {
 	const deleteRole = useDeleteRole();
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editingRole, setEditingRole] = useState<RoleItem | null>(null);
+	const [initialValues, setInitialValues] = useState<RoleFormValues | null>(null);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [deletingRole, setDeletingRole] = useState<RoleItem | null>(null);
 
@@ -68,11 +69,25 @@ function RoleManagementPage() {
 
 	const handleCreate = () => {
 		setEditingRole(null);
+		setInitialValues(null);
 		setDialogOpen(true);
 	};
 
 	const handleEdit = (role: RoleItem) => {
 		setEditingRole(role);
+		setInitialValues(null);
+		setDialogOpen(true);
+	};
+
+	const handleClone = (role: RoleItem) => {
+		setEditingRole(null);
+		setInitialValues({
+			code: `${role.code}-copy`,
+			name: `${role.name} (复制)`,
+			description: role.description ?? "",
+			dataScope: role.dataScope,
+			permissions: role.permissions,
+		});
 		setDialogOpen(true);
 	};
 
@@ -193,6 +208,10 @@ function RoleManagementPage() {
 										<Button size="sm" variant="outline" onClick={() => handleEdit(role)}>
 											编辑
 										</Button>
+										<Button size="sm" variant="secondary" onClick={() => handleClone(role)}>
+											<Copy className="mr-2 h-4 w-4" />
+											克隆
+										</Button>
 										<Button
 											size="sm"
 											variant="destructive"
@@ -212,8 +231,15 @@ function RoleManagementPage() {
 
 			<RoleDialog
 				open={dialogOpen}
-				onOpenChange={setDialogOpen}
+				onOpenChange={(open) => {
+					setDialogOpen(open);
+					if (!open) {
+						setEditingRole(null);
+						setInitialValues(null);
+					}
+				}}
 				role={editingRole}
+				initialValues={initialValues}
 				onSubmit={handleSubmit}
 				isSubmitting={createRole.isPending || updateRole.isPending}
 			/>
