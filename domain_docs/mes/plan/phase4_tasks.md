@@ -126,6 +126,11 @@ P0（必须）：
 - [ ] 4.6.11 日常 QC 与异常（WP-10）
   - DoD：班次/时间段统计可生成；生产异常报告可记录停机与措施
 
+### 2.7 Track G — Master Data: Line Management（P1）
+
+- [x] 4.7.1 产线管理 API：列表/新建/编辑/删除（带依赖校验与提示）
+- [x] 4.7.2 Web 产线管理页面：列表 + 新建/编辑/删除入口与权限控制
+
 ---
 
 ## 3. Conflicts / Shared Touch Points

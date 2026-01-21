@@ -11,6 +11,7 @@
 |------|-----|--------|-----|
 | 路由/主数据同步入库 | `POST /api/integration/erp/routes/sync` | `apps/server/src/modules/mes/integration/erp/index.ts` | - |
 | 映射校验/补全 (Operation/WorkCenter) | `POST /api/integration/erp/routes/sync` | `apps/server/src/modules/mes/integration/erp/apply-routes.ts` | - |
+| 产线主数据管理 | `GET/POST/PATCH/DELETE /api/lines` | `apps/server/src/modules/mes/line/routes.ts` | `apps/web/src/routes/_authenticated/mes/lines/index.tsx` |
 | 配置执行语义 (RouteExecutionConfig) | `GET/POST/PATCH /api/routes/:routingCode/execution-config` | `apps/server/src/modules/mes/routing/service.ts` | `apps/web/src/routes/_authenticated/mes/routes/$routingCode.tsx` |
 | 编译可执行版本 (ExecutableRouteVersion=READY) | `POST /api/routes/:routingCode/compile`, `GET /api/routes/:routingCode/versions` | `apps/server/src/modules/mes/routing/service.ts` | `apps/web/src/routes/_authenticated/mes/route-versions.tsx` |
 

@@ -97,3 +97,46 @@
 
 # Findings (Permissions)
 - Permissions are centralized in `packages/db/src/permissions/permissions.ts` with grouped labels for UI; new permission should be added there.
+
+# Progress (2026-01-20)
+- Added Phase 4 plan items for line management.
+- Added LINE_CONFIG permission + role presets; started line CRUD schemas/routes/services with pagination and delete guard.
+- Adjusted line list API to support paging/search/processType and split processType update endpoint.
+
+# Progress (2026-01-20 continued)
+- Added line management UI route + dialog (web) and nav entry.
+- Updated align doc to include line master data management node.
+
+# Findings (2026-01-20)
+- Line delete guard checks direct line-related dependencies: stations, runs, user bindings, feeder slots, stencil/solder paste bindings, solder paste usage, and OQC rules.
+- Added dedicated `/lines/:lineId/process-type` endpoint to keep readiness-config permission separate from line master data updates.
+
+# Progress (Verification)
+- Ran `bun run --filter web build` to regenerate route tree; build succeeded.
+
+# Progress (Plan)
+- Marked Phase 4 line management tasks (4.7.1/4.7.2) as complete.
+Update 2026-01-20
+Progress: Line management UI + API + permissions added; align and plan updated; route tree regenerated.
+Status: Worktree is dirty with unrelated changes; lint/typecheck not re-run yet due to unrelated file error.
+Next: Decide whether to fix unrelated lint error or skip smart-verify; re-run verification after cleanup.
+Findings: line schema imports `ProcessType` from `@better-app/db`; need to confirm it is exported to avoid runtime import error.
+Finding: `packages/db/src/index.ts` does not mention `ProcessType`; import error likely caused by missing enum in Prisma or missing export.
+Finding: Prisma generated client exports `ProcessType` via CJS `exports`, so ESM `export * from` may not re-export named enums.
+Finding: `routing/schema.ts` also uses `ProcessType` as runtime in `t.Enum`, so `@better-app/db` must provide a runtime enum export.
+Finding: Prisma client `index.d.ts` exports `ProcessType` value/type, so runtime export failure likely due to module interop, not schema absence.
+Check: Bun import with DATABASE_URL shows `ProcessType` and `StationType` exported from `@better-app/db`.
+Finding: `line/service.ts` delete guard lists dependency types but messages are English and generic; may need more user guidance if required.
+Finding: `@better-app/db/prismabox` exports `ProcessType` TypeBox schema (t.Union literals), could be used in schema if runtime enum import is unstable.
+Finding: permission plugin treats array `requirePermission` as "any-of", so line list endpoint access is not all-of.
+Finding: nav entry for 产线管理 uses `Permission.LINE_CONFIG`; users without it won't see the menu.
+Progress: switched line/routing TypeBox schemas to use `Prismabox.ProcessType` to avoid runtime enum export issues.
+Check: server modules now only use `ProcessType` as types; runtime schemas use Prismabox union.
+Check: emoji scan `rg -nP "\\p{Extended_Pictographic}" domain_docs/mes` returns existing emoji in spec/test docs (pre-existing).
+Error: `bun scripts/smart-verify.ts` failed (tsgo/tsc) on line/service dependency count types and line dialog `satisfies`, plus line filter type mismatch; fixing and will rerun.
+Error: `bun scripts/smart-verify.ts` failed again due to Biome formatting in `apps/server/src/modules/mes/line/service.ts`; adjusted formatting.
+Error: `bun scripts/smart-verify.ts` failed on line dialog schema typing and processType filter typing; adjusted schema typing and filter narrowing.
+Error: `bun scripts/smart-verify.ts` failed on import ordering in `apps/server/src/modules/mes/routes.ts`; reordered imports.
+Progress: adjusted line dialog form typing and processType label formatting to avoid TS errors.
+Progress: fixed Biome formatting + hook deps for line dialog/page.
+Verification: `bun scripts/smart-verify.ts` passes lint, fails typecheck due to existing errors (server `src/index.ts` implicit any, missing `./smt-basic/routes`, and widespread web `unknown`/`implicit any`).
