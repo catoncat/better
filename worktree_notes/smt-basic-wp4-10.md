@@ -127,3 +127,12 @@ task:
 
 ## Errors (2026-01-20)
 - `cat <<'EOF' > apps/server/src/modules/mes/smt-basic/schema.ts` failed with "no such file or directory" even though `mkdir -p` ran; verified `apps/server/src/modules/mes/smt-basic` exists and re-ran the write successfully.
+
+## Findings (2026-01-20 cont. 22)
+- DataListFieldMeta supports card/table renderers and optional formatting; bake field meta shows how to format dates and badges for list display.
+
+## Progress (2026-01-21)
+- Removed stray smt-basic import/usages from `apps/server/src/modules/mes/routes.ts` on main to avoid missing module error; worktree remains source for SMT basic feature.
+
+## Findings (2026-01-21)
+- Filter toolbar supports `type: "select"` with `options` (example in materials list), and custom render inputs for additional filters.
