@@ -28,6 +28,8 @@ type UnitDataSpecsEnvelope = Awaited<
 export type UnitDataSpecs = UnwrapEnvelope<NonNullable<UnitDataSpecsEnvelope>>;
 export type DataSpecItem = UnitDataSpecs["specs"][number];
 
+type StationQueryOptions = { enabled?: boolean };
+
 export function useStations(options?: { enabled?: boolean }) {
 	return useQuery<StationList>({
 		queryKey: ["mes", "stations"],
@@ -39,10 +41,10 @@ export function useStations(options?: { enabled?: boolean }) {
 	});
 }
 
-export function useStationQueue(stationCode: string) {
+export function useStationQueue(stationCode: string, options?: StationQueryOptions) {
 	return useQuery<StationQueue>({
 		queryKey: ["mes", "station-queue", stationCode],
-		enabled: Boolean(stationCode),
+		enabled: Boolean(stationCode) && (options?.enabled ?? true),
 		refetchInterval: 10_000,
 		queryFn: async () => {
 			const response = await client.api.stations({ stationCode }).queue.get();
@@ -51,10 +53,10 @@ export function useStationQueue(stationCode: string) {
 	});
 }
 
-export function useUnitDataSpecs(stationCode: string, sn: string) {
+export function useUnitDataSpecs(stationCode: string, sn: string, options?: StationQueryOptions) {
 	return useQuery<UnitDataSpecs>({
 		queryKey: ["mes", "unit-data-specs", stationCode, sn],
-		enabled: Boolean(stationCode) && Boolean(sn),
+		enabled: Boolean(stationCode) && Boolean(sn) && (options?.enabled ?? true),
 		queryFn: async () => {
 			const response = await client.api.stations({ stationCode }).unit({ sn })["data-specs"].get();
 			return unwrap(response);

@@ -36,6 +36,7 @@ interface TrackOutDialogProps {
 	initialResult?: "PASS" | "FAIL";
 	lockResult?: boolean;
 	onSuccess?: () => void;
+	canTrackOut?: boolean;
 }
 
 const resultSchema = z.enum(["PASS", "FAIL"]);
@@ -49,10 +50,12 @@ export function TrackOutDialog({
 	initialResult,
 	lockResult,
 	onSuccess,
+	canTrackOut = true,
 }: TrackOutDialogProps) {
 	const { data: specsData, isLoading: isLoadingSpecs } = useUnitDataSpecs(
 		open ? stationCode : "",
 		open ? sn : "",
+		{ enabled: open && canTrackOut },
 	);
 	const { mutateAsync: trackOut, isPending: isSubmitting } = useTrackOut();
 	const resolvedInitialResult = initialResult ?? "PASS";

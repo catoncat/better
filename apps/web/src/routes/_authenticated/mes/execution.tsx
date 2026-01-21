@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ChevronRight, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as z from "zod";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,23 +78,30 @@ function ExecutionPage() {
 	// Track if we've applied search params to avoid re-applying on re-renders
 	const appliedSearchParamsRef = useRef(false);
 	const { data: userProfile } = useUserProfile();
-	const { data: stations } = useStations();
+	const { hasPermission } = useAbility();
+	const canTrackIn = hasPermission(Permission.EXEC_TRACK_IN);
+	const canTrackOut = hasPermission(Permission.EXEC_TRACK_OUT);
+	const canViewExec =
+		hasPermission(Permission.EXEC_READ) || canTrackIn || canTrackOut;
+	const canReadRun = hasPermission(Permission.RUN_READ);
+	const canResolveUnit = canTrackIn || canTrackOut;
+	const { data: stations } = useStations({ enabled: canViewExec });
 	const {
 		data: queueData,
 		refetch: refetchQueue,
 		isFetching: isQueueFetching,
-	} = useStationQueue(selectedStation);
+	} = useStationQueue(selectedStation, { enabled: canViewExec });
 	// Fetch executable runs (AUTHORIZED or PREP with active FAI for trial production)
-	const { data: executableRuns, isFetching: isRunsFetching } = useRunList({
-		status: ["AUTHORIZED", "PREP", "IN_PROGRESS"],
-		pageSize: 50,
-		sort: "-updatedAt",
-	});
+	const { data: executableRuns, isFetching: isRunsFetching } = useRunList(
+		{
+			status: ["AUTHORIZED", "PREP", "IN_PROGRESS"],
+			pageSize: 50,
+			sort: "-updatedAt",
+		},
+		{ enabled: canReadRun },
+	);
 	const { mutateAsync: trackIn, isPending: isInPending } = useTrackIn();
 	const { mutateAsync: resolveUnitBySn, isPending: isResolvingSn } = useResolveUnitBySn();
-	const { hasPermission } = useAbility();
-	const canTrackIn = hasPermission(Permission.EXEC_TRACK_IN);
-	const canTrackOut = hasPermission(Permission.EXEC_TRACK_OUT);
 	const resolveTimerRef = useRef<number | null>(null);
 	const lastResolvedSnRef = useRef<string>("");
 
@@ -136,17 +144,20 @@ function ExecutionPage() {
 	const inSn = useStore(inForm.store, (state) => state.values.sn);
 	const outSn = useStore(outForm.store, (state) => state.values.sn);
 
-	const { data: selectedRunDetail } = useRunDetail(selectedRunNo);
+	const { data: selectedRunDetail } = useRunDetail(selectedRunNo, { enabled: canReadRun });
 	const {
 		data: queuedUnits,
 		refetch: refetchQueuedUnits,
 		isFetching: isQueuedFetching,
-	} = useRunUnits({
-		runNo: selectedRunNo || undefined,
-		status: "QUEUED",
-		stationCode: selectedStation || undefined,
-		pageSize: 50,
-	});
+	} = useRunUnits(
+		{
+			runNo: selectedRunNo || undefined,
+			status: "QUEUED",
+			stationCode: selectedStation || undefined,
+			pageSize: 50,
+		},
+		{ enabled: canReadRun },
+	);
 
 	useEffect(() => {
 		return () => {
@@ -195,7 +206,7 @@ function ExecutionPage() {
 		return items.filter((station) => boundStationIds.has(station.id));
 	}, [stations?.items, userProfile?.stationIds]);
 
-	const runItems = executableRuns?.items ?? [];
+	const runItems = canReadRun ? (executableRuns?.items ?? []) : [];
 
 	const runOptions = useMemo(() => {
 		const options = runItems.map((run) => ({
@@ -402,6 +413,7 @@ function ExecutionPage() {
 	};
 
 	const scheduleResolveFromSn = (sn: string, target: "in" | "out") => {
+		if (!canResolveUnit) return;
 		const trimmed = sn.trim();
 		if (!trimmed) return;
 		if (trimmed === lastResolvedSnRef.current) return;
@@ -432,6 +444,10 @@ function ExecutionPage() {
 			}
 		}, 250);
 	};
+
+	if (!canViewExec) {
+		return <NoAccessCard description="需要工位执行权限才能访问该页面。" />;
+	}
 
 	return (
 		<div className="space-y-6">
@@ -468,58 +484,64 @@ function ExecutionPage() {
 			</Card>
 
 			{/* Executable Runs Card */}
-			<Card>
-				<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-					<div>
-						<CardTitle>待执行批次</CardTitle>
-						<CardDescription>选择批次快速预填表单</CardDescription>
-					</div>
-					{isRunsFetching && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
-				</CardHeader>
-				<CardContent>
-					{!executableRuns?.items || executableRuns.items.length === 0 ? (
-						<div className="py-4 text-center text-sm text-muted-foreground">暂无待执行批次</div>
-					) : (
-						<div className="space-y-2">
-							{executableRuns.items.slice(0, 5).map((run) => (
-								<button
-									key={run.runNo}
-									type="button"
-									className="flex w-full items-center justify-between rounded-lg border p-3 text-left hover:bg-accent"
-									onClick={() => handleSelectRun({ runNo: run.runNo, woNo: run.workOrder.woNo })}
-								>
-									<div className="space-y-1">
-										<div className="flex items-center gap-2">
-											<span className="font-mono text-sm font-medium">{run.runNo}</span>
-											<Badge
-												variant={
-													run.status === "AUTHORIZED"
-														? "default"
-														: run.status === "IN_PROGRESS"
-															? "default"
-															: "outline"
-												}
-											>
-												{run.status === "AUTHORIZED"
-													? "已授权"
-													: run.status === "IN_PROGRESS"
-														? "生产中"
-														: run.status === "PREP"
-															? "准备中"
-															: run.status}
-											</Badge>
-										</div>
-										<div className="text-xs text-muted-foreground">
-											工单: {run.workOrder.woNo} · 产品: {run.workOrder.productCode}
-										</div>
-									</div>
-									<ChevronRight className="h-4 w-4 text-muted-foreground" />
-								</button>
-							))}
+			{canReadRun && (
+				<Card>
+					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+						<div>
+							<CardTitle>待执行批次</CardTitle>
+							<CardDescription>选择批次快速预填表单</CardDescription>
 						</div>
-					)}
-				</CardContent>
-			</Card>
+						{isRunsFetching && (
+							<RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+						)}
+					</CardHeader>
+					<CardContent>
+						{!executableRuns?.items || executableRuns.items.length === 0 ? (
+							<div className="py-4 text-center text-sm text-muted-foreground">
+								暂无待执行批次
+							</div>
+						) : (
+							<div className="space-y-2">
+								{executableRuns.items.slice(0, 5).map((run) => (
+									<button
+										key={run.runNo}
+										type="button"
+										className="flex w-full items-center justify-between rounded-lg border p-3 text-left hover:bg-accent"
+										onClick={() => handleSelectRun({ runNo: run.runNo, woNo: run.workOrder.woNo })}
+									>
+										<div className="space-y-1">
+											<div className="flex items-center gap-2">
+												<span className="font-mono text-sm font-medium">{run.runNo}</span>
+												<Badge
+													variant={
+														run.status === "AUTHORIZED"
+															? "default"
+															: run.status === "IN_PROGRESS"
+																? "default"
+																: "outline"
+													}
+												>
+													{run.status === "AUTHORIZED"
+														? "已授权"
+														: run.status === "IN_PROGRESS"
+															? "生产中"
+															: run.status === "PREP"
+																? "准备中"
+																: run.status}
+												</Badge>
+											</div>
+											<div className="text-xs text-muted-foreground">
+												工单: {run.workOrder.woNo} · 产品: {run.workOrder.productCode}
+											</div>
+										</div>
+										<ChevronRight className="h-4 w-4 text-muted-foreground" />
+									</button>
+								))}
+							</div>
+						)}
+					</CardContent>
+				</Card>
+			)}
 
 			{selectedStation && (
 				<div className="grid gap-6 lg:grid-cols-2">
@@ -643,119 +665,126 @@ function ExecutionPage() {
 								</Button>
 							</CardHeader>
 							<CardContent>
-								{selectedRunDetail?.faiTrial && selectedRunDetail.run.status === "PREP" && (
-									<div className="mb-4 rounded-lg border bg-muted/30 p-3">
-										<div className="flex flex-wrap items-center justify-between gap-2">
-											<div className="flex items-center gap-2 text-sm">
-												<Badge variant="secondary">FAI 试产</Badge>
-												<span className="text-muted-foreground">
-													已试产 {selectedRunDetail.faiTrial.trackedQty}/
-													{selectedRunDetail.faiTrial.sampleQty}
-												</span>
-											</div>
-											<span className="text-xs text-muted-foreground">
-												{selectedRunDetail.faiTrial.status}
-											</span>
-										</div>
-										<Progress
-											className="mt-2"
-											value={
-												selectedRunDetail.faiTrial.sampleQty > 0
-													? (selectedRunDetail.faiTrial.trackedQty /
-															selectedRunDetail.faiTrial.sampleQty) *
-														100
-													: 0
-											}
-										/>
-									</div>
-								)}
-								{selectedRunDetail && selectedRunDetail.run.status === "PREP" && (
-									<div className="mb-4 rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
-										<p className="font-medium text-foreground">FAI 试产规则</p>
-										<ul className="mt-2 list-disc space-y-1 pl-4">
-											<li>仅在第一工序进行首件试产</li>
-											<li>
-												需完成{" "}
-												{selectedRunDetail.faiTrial?.sampleQty
-													? `${selectedRunDetail.faiTrial.sampleQty} 个`
-													: "指定数量的"}{" "}
-												Unit TrackIn/TrackOut
-											</li>
-											<li>试产完成后返回 FAI 页面记录检验项并判定</li>
-										</ul>
-									</div>
-								)}
-
-								{!selectedRunNo ? (
-									<div className="py-8 text-center text-muted-foreground">
-										请选择批次以查看待进站产品
-									</div>
-								) : isQueuedFetching && !queuedUnits ? (
-									<div className="py-8 text-center text-muted-foreground">加载中...</div>
-								) : !queuedUnits || queuedUnits.items.length === 0 ? (
-									<div className="py-8 text-center text-muted-foreground">暂无待进站产品</div>
+								{!canReadRun ? (
+									<NoAccessCard description="需要批次查看权限才能查看待进站列表。" />
 								) : (
-									<Table>
-										<TableHeader>
-											<TableRow>
-												<TableHead>SN</TableHead>
-												<TableHead>步骤</TableHead>
-												<TableHead>操作</TableHead>
-											</TableRow>
-										</TableHeader>
-										<TableBody>
-											{queuedUnits?.items.map((item) => (
-												<TableRow key={item.sn}>
-													<TableCell
-														className="font-mono text-sm max-w-[160px] truncate"
-														title={item.sn}
-													>
-														{item.sn}
-													</TableCell>
-													<TableCell>
-														<div className="space-y-1">
-															<div>
-																<div className="text-sm font-medium">
-																	{formatStepLabel(item.currentStep)}
+									<>
+										{selectedRunDetail?.faiTrial && selectedRunDetail.run.status === "PREP" && (
+											<div className="mb-4 rounded-lg border bg-muted/30 p-3">
+												<div className="flex flex-wrap items-center justify-between gap-2">
+													<div className="flex items-center gap-2 text-sm">
+														<Badge variant="secondary">FAI 试产</Badge>
+														<span className="text-muted-foreground">
+															已试产 {selectedRunDetail.faiTrial.trackedQty}/
+															{selectedRunDetail.faiTrial.sampleQty}
+														</span>
+													</div>
+													<span className="text-xs text-muted-foreground">
+														{selectedRunDetail.faiTrial.status}
+													</span>
+												</div>
+												<Progress
+													className="mt-2"
+													value={
+														selectedRunDetail.faiTrial.sampleQty > 0
+															? (selectedRunDetail.faiTrial.trackedQty /
+																	selectedRunDetail.faiTrial.sampleQty) *
+																100
+															: 0
+													}
+												/>
+											</div>
+										)}
+										{selectedRunDetail && selectedRunDetail.run.status === "PREP" && (
+											<div className="mb-4 rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+												<p className="font-medium text-foreground">FAI 试产规则</p>
+												<ul className="mt-2 list-disc space-y-1 pl-4">
+													<li>仅在第一工序进行首件试产</li>
+													<li>
+														需完成{" "}
+														{selectedRunDetail.faiTrial?.sampleQty
+															? `${selectedRunDetail.faiTrial.sampleQty} 个`
+															: "指定数量的"}{" "}
+														Unit TrackIn/TrackOut
+													</li>
+													<li>试产完成后返回 FAI 页面记录检验项并判定</li>
+												</ul>
+											</div>
+										)}
+
+										{!selectedRunNo ? (
+											<div className="py-8 text-center text-muted-foreground">
+												请选择批次以查看待进站产品
+											</div>
+										) : isQueuedFetching && !queuedUnits ? (
+											<div className="py-8 text-center text-muted-foreground">加载中...</div>
+										) : !queuedUnits || queuedUnits.items.length === 0 ? (
+											<div className="py-8 text-center text-muted-foreground">暂无待进站产品</div>
+										) : (
+											<Table>
+												<TableHeader>
+													<TableRow>
+														<TableHead>SN</TableHead>
+														<TableHead>步骤</TableHead>
+														<TableHead>操作</TableHead>
+													</TableRow>
+												</TableHeader>
+												<TableBody>
+													{queuedUnits?.items.map((item) => (
+														<TableRow key={item.sn}>
+															<TableCell
+																className="font-mono text-sm max-w-[160px] truncate"
+																title={item.sn}
+															>
+																{item.sn}
+															</TableCell>
+															<TableCell>
+																<div className="space-y-1">
+																	<div>
+																		<div className="text-sm font-medium">
+																			{formatStepLabel(item.currentStep)}
+																		</div>
+																		<div className="text-xs text-muted-foreground">
+																			{formatStepStation(item.currentStep)}
+																		</div>
+																	</div>
+																	<div className="text-xs text-muted-foreground">
+																		下一步: {formatStepLabel(item.nextStep)}
+																		{formatStepStation(item.nextStep) !== "-" && (
+																			<span> · {formatStepStation(item.nextStep)}</span>
+																		)}
+																	</div>
 																</div>
-																<div className="text-xs text-muted-foreground">
-																	{formatStepStation(item.currentStep)}
-																</div>
-															</div>
-															<div className="text-xs text-muted-foreground">
-																下一步: {formatStepLabel(item.nextStep)}
-																{formatStepStation(item.nextStep) !== "-" && (
-																	<span> · {formatStepStation(item.nextStep)}</span>
-																)}
-															</div>
-														</div>
-													</TableCell>
-													<TableCell>
-														<Button
-															variant="secondary"
-															size="sm"
-															disabled={!canTrackIn || isInPending}
-															onClick={async () => {
-																if (!selectedStation || !selectedRunNo) return;
-																const woNo = queuedUnits?.workOrder.woNo || selectedWoNo;
-																if (!woNo) return;
-																await trackIn({
-																	stationCode: selectedStation,
-																	sn: item.sn,
-																	runNo: selectedRunNo,
-																	woNo,
-																});
-																refetchQueue();
-																refetchQueuedUnits();
-															}}
-														>
-															进站
-														</Button>
-													</TableCell>
-												</TableRow>
-											))}
-										</TableBody>
-									</Table>
+															</TableCell>
+															<TableCell>
+																<Button
+																	variant="secondary"
+																	size="sm"
+																	disabled={!canTrackIn || isInPending}
+																	onClick={async () => {
+																		if (!selectedStation || !selectedRunNo) return;
+																		const woNo =
+																			queuedUnits?.workOrder.woNo || selectedWoNo;
+																		if (!woNo) return;
+																		await trackIn({
+																			stationCode: selectedStation,
+																			sn: item.sn,
+																			runNo: selectedRunNo,
+																			woNo,
+																		});
+																		refetchQueue();
+																		refetchQueuedUnits();
+																	}}
+																>
+																	进站
+																</Button>
+															</TableCell>
+														</TableRow>
+													))}
+												</TableBody>
+											</Table>
+										)}
+									</>
 								)}
 							</CardContent>
 						</Card>
@@ -821,24 +850,42 @@ function ExecutionPage() {
 										<div className="grid grid-cols-2 gap-4">
 											<Field form={inForm} name="woNo" label="工单号">
 												{(field) => (
-													<Combobox
-														options={workOrderOptions}
-														value={field.state.value}
-														onValueChange={handleWorkOrderValueChange}
-														placeholder="选择工单..."
-														emptyText={isRunsFetching ? "加载中..." : "未找到工单"}
-													/>
+													canReadRun ? (
+														<Combobox
+															options={workOrderOptions}
+															value={field.state.value}
+															onValueChange={handleWorkOrderValueChange}
+															placeholder="选择工单..."
+															emptyText={isRunsFetching ? "加载中..." : "未找到工单"}
+														/>
+													) : (
+														<Input
+															placeholder="请输入工单号"
+															value={field.state.value}
+															onBlur={field.handleBlur}
+															onChange={(e) => field.handleChange(e.target.value)}
+														/>
+													)
 												)}
 											</Field>
 											<Field form={inForm} name="runNo" label="批次号 (Run)">
 												{(field) => (
-													<Combobox
-														options={runOptions}
-														value={field.state.value}
-														onValueChange={handleRunValueChange}
-														placeholder="选择批次..."
-														emptyText={isRunsFetching ? "加载中..." : "未找到批次"}
-													/>
+													canReadRun ? (
+														<Combobox
+															options={runOptions}
+															value={field.state.value}
+															onValueChange={handleRunValueChange}
+															placeholder="选择批次..."
+															emptyText={isRunsFetching ? "加载中..." : "未找到批次"}
+														/>
+													) : (
+														<Input
+															placeholder="请输入批次号"
+															value={field.state.value}
+															onBlur={field.handleBlur}
+															onChange={(e) => field.handleChange(e.target.value)}
+														/>
+													)
 												)}
 											</Field>
 										</div>
@@ -894,13 +941,22 @@ function ExecutionPage() {
 										)}
 										<Field form={outForm} name="runNo" label="批次号 (Run)">
 											{(field) => (
-												<Combobox
-													options={runOptions}
-													value={field.state.value}
-													onValueChange={handleRunValueChange}
-													placeholder="选择批次..."
-													emptyText={isRunsFetching ? "加载中..." : "未找到批次"}
-												/>
+												canReadRun ? (
+													<Combobox
+														options={runOptions}
+														value={field.state.value}
+														onValueChange={handleRunValueChange}
+														placeholder="选择批次..."
+														emptyText={isRunsFetching ? "加载中..." : "未找到批次"}
+													/>
+												) : (
+													<Input
+														placeholder="请输入批次号"
+														value={field.state.value}
+														onBlur={field.handleBlur}
+														onChange={(e) => field.handleChange(e.target.value)}
+													/>
+												)
 											)}
 										</Field>
 										<Field form={outForm} name="result" label="结果">
@@ -942,7 +998,7 @@ function ExecutionPage() {
 			)}
 
 			{/* TrackOut with Data Collection Dialog */}
-			{trackOutItem && (
+			{trackOutItem && canTrackOut && (
 				<TrackOutDialog
 					open={trackOutDialogOpen}
 					onOpenChange={setTrackOutDialogOpen}
@@ -952,6 +1008,7 @@ function ExecutionPage() {
 					initialResult={trackOutItem.initialResult}
 					lockResult={trackOutItem.lockResult}
 					onSuccess={handleTrackOutSuccess}
+					canTrackOut={canTrackOut}
 				/>
 			)}
 		</div>
