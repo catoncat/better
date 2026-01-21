@@ -16,6 +16,8 @@ export type SlotMappingQuery = {
 	routingId?: string;
 };
 
+type SlotMappingQueryOptions = { enabled?: boolean };
+
 type CreateSlotMappingInput = {
 	slotId: string;
 	materialCode: string;
@@ -40,13 +42,14 @@ type UpdateSlotMappingInput = {
 /**
  * List slot material mappings with optional filters
  */
-export function useSlotMappings(query: SlotMappingQuery) {
+export function useSlotMappings(query: SlotMappingQuery, options?: SlotMappingQueryOptions) {
 	return useQuery<SlotMappingsData>({
 		queryKey: ["mes", "loading", "slot-mappings", query],
 		queryFn: async () => {
 			const response = await client.api["slot-mappings"].get({ query });
 			return unwrap(response);
 		},
+		enabled: options?.enabled ?? true,
 		placeholderData: (previousData: SlotMappingsData | undefined) => previousData,
 		staleTime: 10_000,
 	});

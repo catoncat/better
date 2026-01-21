@@ -4,6 +4,7 @@ import { Loader2, MoreHorizontal, Plus, Search, Settings2, Trash2 } from "lucide
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Can } from "@/components/ability/can";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { LineSelect } from "@/components/select/line-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { type FeederSlot, useDeleteFeederSlot, useFeederSlots } from "@/hooks/use-feeder-slots";
+import { useAbility } from "@/hooks/use-ability";
 import { useLines } from "@/hooks/use-lines";
 import { type SlotMapping, useDeleteSlotMapping, useSlotMappings } from "@/hooks/use-slot-mappings";
 import { MappingDialog } from "./-components/mapping-dialog";
@@ -45,24 +47,32 @@ export const Route = createFileRoute("/_authenticated/mes/loading/slot-config")(
 function SlotConfigPage() {
 	const search = Route.useSearch();
 	const navigate = Route.useNavigate();
-	const { data: lines } = useLines();
+	const { hasPermission } = useAbility();
+	const canViewLoading = hasPermission(Permission.LOADING_VIEW);
+	const canViewLines = hasPermission(Permission.RUN_READ) && hasPermission(Permission.RUN_CREATE);
+	const canReadRoute = hasPermission(Permission.ROUTE_READ);
+	const { data: lines } = useLines({ enabled: canViewLines });
 
 	// Default to first line if none selected
 	const selectedLineId = search.lineId || lines?.items[0]?.id;
+	const canQueryLoading = canViewLoading && Boolean(selectedLineId);
 
 	const {
 		data: slotsData,
 		isLoading: slotsLoading,
 		refetch: refetchSlots,
-	} = useFeederSlots(selectedLineId);
+	} = useFeederSlots(selectedLineId, { enabled: canQueryLoading });
 	const {
 		data: mappingsData,
 		isLoading: mappingsLoading,
 		refetch: refetchMappings,
-	} = useSlotMappings({
-		lineId: selectedLineId,
-		productCode: search.productCode,
-	});
+	} = useSlotMappings(
+		{
+			lineId: selectedLineId,
+			productCode: search.productCode,
+		},
+		{ enabled: canQueryLoading },
+	);
 
 	const deleteSlot = useDeleteFeederSlot();
 	const deleteMapping = useDeleteSlotMapping();
@@ -130,6 +140,10 @@ function SlotConfigPage() {
 		}
 	};
 
+	if (!canViewLoading) {
+		return <NoAccessCard description="需要上料查看权限才能访问该页面。" />;
+	}
+
 	return (
 		<div className="space-y-6">
 			<div className="flex items-center justify-between">
@@ -147,223 +161,229 @@ function SlotConfigPage() {
 								value={selectedLineId}
 								onValueChange={handleLineChange}
 								placeholder="选择产线"
+								enabled={canViewLines}
+								disabled={!canViewLines}
 							/>
 						</div>
 					</div>
 				</CardHeader>
 				<CardContent>
-					<Tabs value={search.tab} onValueChange={handleTabChange}>
-						<div className="flex items-center justify-between mb-4">
-							<TabsList>
-								<TabsTrigger value="slots">
-									<Settings2 className="mr-2 h-4 w-4" />
-									站位管理
-								</TabsTrigger>
-								<TabsTrigger value="mappings">物料映射</TabsTrigger>
-							</TabsList>
+					{canViewLines ? (
+						<Tabs value={search.tab} onValueChange={handleTabChange}>
+							<div className="flex items-center justify-between mb-4">
+								<TabsList>
+									<TabsTrigger value="slots">
+										<Settings2 className="mr-2 h-4 w-4" />
+										站位管理
+									</TabsTrigger>
+									<TabsTrigger value="mappings">物料映射</TabsTrigger>
+								</TabsList>
 
-							<Can permissions={Permission.LOADING_CONFIG}>
-								{search.tab === "slots" ? (
-									<Button onClick={handleCreateSlot} disabled={!selectedLineId}>
-										<Plus className="mr-2 h-4 w-4" />
-										新建站位
-									</Button>
-								) : (
-									<Button
-										onClick={handleCreateMapping}
-										disabled={!selectedLineId || !slotsData?.items.length}
-									>
-										<Plus className="mr-2 h-4 w-4" />
-										新建映射
-									</Button>
-								)}
-							</Can>
-						</div>
-
-						<TabsContent value="slots">
-							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead className="w-[100px]">站位码</TableHead>
-										<TableHead>站位名称</TableHead>
-										<TableHead className="w-[100px]">顺序</TableHead>
-										<TableHead className="w-[100px]">锁定状态</TableHead>
-										<TableHead className="w-[80px]" />
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{slotsLoading ? (
-										<TableRow>
-											<TableCell colSpan={5} className="h-24 text-center">
-												<Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
-											</TableCell>
-										</TableRow>
-									) : !selectedLineId ? (
-										<TableRow>
-											<TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-												请先选择产线
-											</TableCell>
-										</TableRow>
-									) : slotsData?.items.length === 0 ? (
-										<TableRow>
-											<TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-												暂无站位，点击"新建站位"添加
-											</TableCell>
-										</TableRow>
+								<Can permissions={Permission.LOADING_CONFIG}>
+									{search.tab === "slots" ? (
+										<Button onClick={handleCreateSlot} disabled={!selectedLineId}>
+											<Plus className="mr-2 h-4 w-4" />
+											新建站位
+										</Button>
 									) : (
-										slotsData?.items.map((slot) => (
-											<TableRow key={slot.id}>
-												<TableCell className="font-mono">{slot.slotCode}</TableCell>
-												<TableCell>{slot.slotName || "-"}</TableCell>
-												<TableCell>{slot.position}</TableCell>
-												<TableCell>
-													{slot.isLocked ? (
-														<Badge variant="destructive">已锁定</Badge>
-													) : (
-														<Badge variant="outline">正常</Badge>
-													)}
-												</TableCell>
-												<TableCell>
-													<Can permissions={Permission.LOADING_CONFIG}>
-														<DropdownMenu>
-															<DropdownMenuTrigger asChild>
-																<Button variant="ghost" className="h-8 w-8 p-0">
-																	<MoreHorizontal className="h-4 w-4" />
-																</Button>
-															</DropdownMenuTrigger>
-															<DropdownMenuContent align="end">
-																<DropdownMenuItem onClick={() => handleEditSlot(slot)}>
-																	编辑
-																</DropdownMenuItem>
-																<DropdownMenuSeparator />
-																<DropdownMenuItem
-																	className="text-red-600"
-																	onClick={() => handleDeleteSlot(slot.id)}
-																>
-																	<Trash2 className="mr-2 h-4 w-4" />
-																	删除
-																</DropdownMenuItem>
-															</DropdownMenuContent>
-														</DropdownMenu>
-													</Can>
-												</TableCell>
-											</TableRow>
-										))
+										<Button
+											onClick={handleCreateMapping}
+											disabled={!selectedLineId || !slotsData?.items.length}
+										>
+											<Plus className="mr-2 h-4 w-4" />
+											新建映射
+										</Button>
 									)}
-								</TableBody>
-							</Table>
-						</TabsContent>
-
-						<TabsContent value="mappings">
-							<div className="mb-4">
-								<div className="relative w-64">
-									<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-									<Input
-										placeholder="按产品编码筛选..."
-										className="pl-8"
-										value={productSearch}
-										onChange={(e) => setProductSearch(e.target.value)}
-									/>
-								</div>
+								</Can>
 							</div>
 
-							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead className="w-[100px]">站位码</TableHead>
-										<TableHead>站位名称</TableHead>
-										<TableHead>物料编码</TableHead>
-										<TableHead>产品编码</TableHead>
-										<TableHead className="w-[100px]">单机用量</TableHead>
-										<TableHead className="w-[80px]">优先级</TableHead>
-										<TableHead className="w-[80px]">类型</TableHead>
-										<TableHead className="w-[80px]">通用料</TableHead>
-										<TableHead className="w-[80px]" />
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{mappingsLoading ? (
+							<TabsContent value="slots">
+								<Table>
+									<TableHeader>
 										<TableRow>
-											<TableCell colSpan={9} className="h-24 text-center">
-												<Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
-											</TableCell>
+											<TableHead className="w-[100px]">站位码</TableHead>
+											<TableHead>站位名称</TableHead>
+											<TableHead className="w-[100px]">顺序</TableHead>
+											<TableHead className="w-[100px]">锁定状态</TableHead>
+											<TableHead className="w-[80px]" />
 										</TableRow>
-									) : !selectedLineId ? (
-										<TableRow>
-											<TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-												请先选择产线
-											</TableCell>
-										</TableRow>
-									) : mappingsData?.items.length === 0 ? (
-										<TableRow>
-											<TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-												暂无物料映射
-											</TableCell>
-										</TableRow>
-									) : (
-										mappingsData?.items.map((mapping) => (
-											<TableRow key={mapping.id}>
-												<TableCell className="font-mono">{mapping.slotCode}</TableCell>
-												<TableCell>{mapping.slotName || "-"}</TableCell>
-												<TableCell className="font-mono">{mapping.materialCode}</TableCell>
-												<TableCell>
-													{mapping.productCode || (
-														<span className="text-muted-foreground">ALL</span>
-													)}
-												</TableCell>
-												<TableCell>
-													{mapping.unitConsumption ?? (
-														<span className="text-muted-foreground">-</span>
-													)}
-												</TableCell>
-												<TableCell>
-													<Badge variant="outline">{mapping.priority}</Badge>
-												</TableCell>
-												<TableCell>
-													{mapping.isAlternate ? (
-														<Badge variant="secondary">替代</Badge>
-													) : (
-														<Badge>主料</Badge>
-													)}
-												</TableCell>
-												<TableCell>
-													{mapping.isCommonMaterial ? (
-														<Badge variant="secondary">通用</Badge>
-													) : (
-														<Badge variant="outline">专用</Badge>
-													)}
-												</TableCell>
-												<TableCell>
-													<Can permissions={Permission.LOADING_CONFIG}>
-														<DropdownMenu>
-															<DropdownMenuTrigger asChild>
-																<Button variant="ghost" className="h-8 w-8 p-0">
-																	<MoreHorizontal className="h-4 w-4" />
-																</Button>
-															</DropdownMenuTrigger>
-															<DropdownMenuContent align="end">
-																<DropdownMenuItem onClick={() => handleEditMapping(mapping)}>
-																	编辑
-																</DropdownMenuItem>
-																<DropdownMenuSeparator />
-																<DropdownMenuItem
-																	className="text-red-600"
-																	onClick={() => handleDeleteMapping(mapping.id)}
-																>
-																	<Trash2 className="mr-2 h-4 w-4" />
-																	删除
-																</DropdownMenuItem>
-															</DropdownMenuContent>
-														</DropdownMenu>
-													</Can>
+									</TableHeader>
+									<TableBody>
+										{slotsLoading ? (
+											<TableRow>
+												<TableCell colSpan={5} className="h-24 text-center">
+													<Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
 												</TableCell>
 											</TableRow>
-										))
-									)}
-								</TableBody>
-							</Table>
-						</TabsContent>
-					</Tabs>
+										) : !selectedLineId ? (
+											<TableRow>
+												<TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+													请先选择产线
+												</TableCell>
+											</TableRow>
+										) : slotsData?.items.length === 0 ? (
+											<TableRow>
+												<TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+													暂无站位，点击"新建站位"添加
+												</TableCell>
+											</TableRow>
+										) : (
+											slotsData?.items.map((slot) => (
+												<TableRow key={slot.id}>
+													<TableCell className="font-mono">{slot.slotCode}</TableCell>
+													<TableCell>{slot.slotName || "-"}</TableCell>
+													<TableCell>{slot.position}</TableCell>
+													<TableCell>
+														{slot.isLocked ? (
+															<Badge variant="destructive">已锁定</Badge>
+														) : (
+															<Badge variant="outline">正常</Badge>
+														)}
+													</TableCell>
+													<TableCell>
+														<Can permissions={Permission.LOADING_CONFIG}>
+															<DropdownMenu>
+																<DropdownMenuTrigger asChild>
+																	<Button variant="ghost" className="h-8 w-8 p-0">
+																		<MoreHorizontal className="h-4 w-4" />
+																	</Button>
+																</DropdownMenuTrigger>
+																<DropdownMenuContent align="end">
+																	<DropdownMenuItem onClick={() => handleEditSlot(slot)}>
+																		编辑
+																	</DropdownMenuItem>
+																	<DropdownMenuSeparator />
+																	<DropdownMenuItem
+																		className="text-red-600"
+																		onClick={() => handleDeleteSlot(slot.id)}
+																	>
+																		<Trash2 className="mr-2 h-4 w-4" />
+																		删除
+																	</DropdownMenuItem>
+																</DropdownMenuContent>
+															</DropdownMenu>
+														</Can>
+													</TableCell>
+												</TableRow>
+											))
+										)}
+									</TableBody>
+								</Table>
+							</TabsContent>
+
+							<TabsContent value="mappings">
+								<div className="mb-4">
+									<div className="relative w-64">
+										<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+										<Input
+											placeholder="按产品编码筛选..."
+											className="pl-8"
+											value={productSearch}
+											onChange={(e) => setProductSearch(e.target.value)}
+										/>
+									</div>
+								</div>
+
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead className="w-[100px]">站位码</TableHead>
+											<TableHead>站位名称</TableHead>
+											<TableHead>物料编码</TableHead>
+											<TableHead>产品编码</TableHead>
+											<TableHead className="w-[100px]">单机用量</TableHead>
+											<TableHead className="w-[80px]">优先级</TableHead>
+											<TableHead className="w-[80px]">类型</TableHead>
+											<TableHead className="w-[80px]">通用料</TableHead>
+											<TableHead className="w-[80px]" />
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{mappingsLoading ? (
+											<TableRow>
+												<TableCell colSpan={9} className="h-24 text-center">
+													<Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+												</TableCell>
+											</TableRow>
+										) : !selectedLineId ? (
+											<TableRow>
+												<TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+													请先选择产线
+												</TableCell>
+											</TableRow>
+										) : mappingsData?.items.length === 0 ? (
+											<TableRow>
+												<TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+													暂无物料映射
+												</TableCell>
+											</TableRow>
+										) : (
+											mappingsData?.items.map((mapping) => (
+												<TableRow key={mapping.id}>
+													<TableCell className="font-mono">{mapping.slotCode}</TableCell>
+													<TableCell>{mapping.slotName || "-"}</TableCell>
+													<TableCell className="font-mono">{mapping.materialCode}</TableCell>
+													<TableCell>
+														{mapping.productCode || (
+															<span className="text-muted-foreground">ALL</span>
+														)}
+													</TableCell>
+													<TableCell>
+														{mapping.unitConsumption ?? (
+															<span className="text-muted-foreground">-</span>
+														)}
+													</TableCell>
+													<TableCell>
+														<Badge variant="outline">{mapping.priority}</Badge>
+													</TableCell>
+													<TableCell>
+														{mapping.isAlternate ? (
+															<Badge variant="secondary">替代</Badge>
+														) : (
+															<Badge>主料</Badge>
+														)}
+													</TableCell>
+													<TableCell>
+														{mapping.isCommonMaterial ? (
+															<Badge variant="secondary">通用</Badge>
+														) : (
+															<Badge variant="outline">专用</Badge>
+														)}
+													</TableCell>
+													<TableCell>
+														<Can permissions={Permission.LOADING_CONFIG}>
+															<DropdownMenu>
+																<DropdownMenuTrigger asChild>
+																	<Button variant="ghost" className="h-8 w-8 p-0">
+																		<MoreHorizontal className="h-4 w-4" />
+																	</Button>
+																</DropdownMenuTrigger>
+																<DropdownMenuContent align="end">
+																	<DropdownMenuItem onClick={() => handleEditMapping(mapping)}>
+																		编辑
+																	</DropdownMenuItem>
+																	<DropdownMenuSeparator />
+																	<DropdownMenuItem
+																		className="text-red-600"
+																		onClick={() => handleDeleteMapping(mapping.id)}
+																	>
+																		<Trash2 className="mr-2 h-4 w-4" />
+																		删除
+																	</DropdownMenuItem>
+																</DropdownMenuContent>
+															</DropdownMenu>
+														</Can>
+													</TableCell>
+												</TableRow>
+											))
+										)}
+									</TableBody>
+								</Table>
+							</TabsContent>
+						</Tabs>
+					) : (
+						<NoAccessCard description="需要批次权限才能选择产线并配置站位表。" />
+					)}
 				</CardContent>
 			</Card>
 
@@ -380,6 +400,7 @@ function SlotConfigPage() {
 						onOpenChange={setMappingDialogOpen}
 						slots={slotsData?.items ?? []}
 						mapping={editingMapping}
+						canReadRoute={canReadRoute}
 					/>
 				</>
 			)}

@@ -22,10 +22,12 @@ type UpdateFeederSlotInput = {
 	position?: number;
 };
 
+type FeederSlotQueryOptions = { enabled?: boolean };
+
 /**
  * List feeder slots for a line
  */
-export function useFeederSlots(lineId: string | undefined) {
+export function useFeederSlots(lineId: string | undefined, options?: FeederSlotQueryOptions) {
 	return useQuery<FeederSlotsData>({
 		queryKey: ["mes", "loading", "feeder-slots", lineId],
 		queryFn: async () => {
@@ -33,7 +35,7 @@ export function useFeederSlots(lineId: string | undefined) {
 			const response = await client.api.lines({ lineId })["feeder-slots"].get();
 			return unwrap(response);
 		},
-		enabled: !!lineId,
+		enabled: Boolean(lineId) && (options?.enabled ?? true),
 		staleTime: 10_000,
 	});
 }

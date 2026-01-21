@@ -1,6 +1,8 @@
+import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +23,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useAbility } from "@/hooks/use-ability";
 import { useLines } from "@/hooks/use-lines";
 import { type ExceptionsQuery, useReadinessExceptions } from "@/hooks/use-readiness";
 import { READINESS_STATUS_MAP, RUN_STATUS_MAP } from "@/lib/constants";
@@ -31,14 +34,18 @@ export const Route = createFileRoute("/_authenticated/mes/readiness-exceptions")
 });
 
 function ReadinessExceptionsPage() {
+	const { hasPermission } = useAbility();
+	const canViewReadiness = hasPermission(Permission.READINESS_VIEW);
+	const canViewLines = hasPermission(Permission.RUN_READ) && hasPermission(Permission.RUN_CREATE);
+	const canViewRuns = hasPermission(Permission.RUN_READ);
 	const [query, setQuery] = useState<ExceptionsQuery>({
 		status: "ALL",
 		page: 1,
 		limit: 20,
 	});
 
-	const { data: linesData } = useLines();
-	const { data, isLoading } = useReadinessExceptions(query);
+	const { data: linesData } = useLines({ enabled: canViewLines });
+	const { data, isLoading } = useReadinessExceptions(query, { enabled: canViewReadiness });
 
 	const items = data?.items ?? [];
 	const total = data?.total ?? 0;
@@ -107,12 +114,25 @@ function ReadinessExceptionsPage() {
 		setQuery((prev) => ({ ...prev, page: newPage }));
 	};
 
+	const header = (
+		<div>
+			<h1 className="text-2xl font-bold tracking-tight">准备异常看板</h1>
+			<p className="text-muted-foreground">查看准备检查失败的批次</p>
+		</div>
+	);
+
+	if (!canViewReadiness) {
+		return (
+			<div className="space-y-6">
+				{header}
+				<NoAccessCard description="需要准备检查查看权限才能访问该页面。" />
+			</div>
+		);
+	}
+
 	return (
 		<div className="space-y-6">
-			<div>
-				<h1 className="text-2xl font-bold tracking-tight">准备异常看板</h1>
-				<p className="text-muted-foreground">查看准备检查失败的批次</p>
-			</div>
+			{header}
 
 			<Card>
 				<CardHeader>
@@ -120,22 +140,29 @@ function ReadinessExceptionsPage() {
 				</CardHeader>
 				<CardContent>
 					<div className="grid gap-4 md:grid-cols-4">
-						<div className="space-y-2">
-							<Label>产线</Label>
-							<Select value={query.lineId ?? "ALL"} onValueChange={handleLineChange}>
-								<SelectTrigger>
-									<SelectValue placeholder="全部产线" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="ALL">全部产线</SelectItem>
-									{linesData?.items.map((line) => (
-										<SelectItem key={line.id} value={line.id}>
-											{line.name} ({line.code})
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
+						{canViewLines ? (
+							<div className="space-y-2">
+								<Label>产线</Label>
+								<Select value={query.lineId ?? "ALL"} onValueChange={handleLineChange}>
+									<SelectTrigger>
+										<SelectValue placeholder="全部产线" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="ALL">全部产线</SelectItem>
+										{linesData?.items.map((line) => (
+											<SelectItem key={line.id} value={line.id}>
+												{line.name} ({line.code})
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+						) : (
+							<div className="space-y-2">
+								<Label>产线</Label>
+								<p className="text-sm text-muted-foreground">无权限查看产线筛选</p>
+							</div>
+						)}
 
 						<div className="space-y-2">
 							<Label>批次状态</Label>
@@ -192,13 +219,17 @@ function ReadinessExceptionsPage() {
 										{items.map((item) => (
 											<TableRow key={item.runNo}>
 												<TableCell>
-													<Link
-														to="/mes/runs/$runNo"
-														params={{ runNo: item.runNo }}
-														className="font-mono text-primary hover:underline"
-													>
-														{item.runNo}
-													</Link>
+													{canViewRuns ? (
+														<Link
+															to="/mes/runs/$runNo"
+															params={{ runNo: item.runNo }}
+															className="font-mono text-primary hover:underline"
+														>
+															{item.runNo}
+														</Link>
+													) : (
+														<span className="font-mono">{item.runNo}</span>
+													)}
 												</TableCell>
 												<TableCell>{item.productCode}</TableCell>
 												<TableCell>{item.lineName ?? item.lineCode ?? "-"}</TableCell>

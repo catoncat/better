@@ -1,12 +1,15 @@
+import { Permission } from "@better-app/db/permissions";
 import { createFileRoute } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Combobox } from "@/components/ui/combobox";
 import { Label } from "@/components/ui/label";
+import { useAbility } from "@/hooks/use-ability";
 import { useLoadingExpectations, useLoadTable } from "@/hooks/use-loading";
 import { useRunDetail, useRunList } from "@/hooks/use-runs";
 import { LoadingHistory } from "./-components/loading-history";
@@ -28,15 +31,28 @@ function LoadingPage() {
 	const [inputRunNo, setInputRunNo] = useState(search.runNo ?? "");
 	const [runSearch, setRunSearch] = useState("");
 	const runNo = search.runNo;
+	const { hasPermission } = useAbility();
+	const canReadRun = hasPermission(Permission.RUN_READ);
+	const canViewLoading = hasPermission(Permission.LOADING_VIEW);
+	const canVerifyLoading = hasPermission(Permission.LOADING_VERIFY);
+	const canConfigureLoading = hasPermission(Permission.LOADING_CONFIG);
+	const canAccessLoading = canViewLoading || canVerifyLoading;
 
-	const { data: run, isLoading: isRunLoading } = useRunDetail(runNo ?? "");
-	const { data: runList, isLoading: isRunListLoading } = useRunList({
-		page: 1,
-		pageSize: 20,
-		status: "PREP",
-		search: runSearch,
+	const { data: run, isLoading: isRunLoading } = useRunDetail(runNo ?? "", {
+		enabled: Boolean(runNo) && canReadRun,
 	});
-	const { data: expectations, isLoading: isExpectationsLoading } = useLoadingExpectations(runNo);
+	const { data: runList, isLoading: isRunListLoading } = useRunList(
+		{
+			page: 1,
+			pageSize: 20,
+			status: "PREP",
+			search: runSearch,
+		},
+		{ enabled: canReadRun },
+	);
+	const { data: expectations, isLoading: isExpectationsLoading } = useLoadingExpectations(runNo, {
+		enabled: canViewLoading,
+	});
 	const loadTable = useLoadTable();
 
 	useEffect(() => {
@@ -71,14 +87,23 @@ function LoadingPage() {
 	};
 
 	const handleLoadTable = async () => {
-		if (runNo) {
+		if (runNo && canVerifyLoading) {
 			await loadTable.mutateAsync(runNo);
 		}
 	};
 
-	const showScan = Boolean(runNo && run && expectations && expectations.length > 0);
+	const hasRun = Boolean(runNo && run);
+	const showScan = hasRun;
 	const showLoadTable =
-		run && (!expectations || expectations.length === 0) && !isExpectationsLoading;
+		hasRun && (!expectations || expectations.length === 0) && !isExpectationsLoading;
+
+	if (!canReadRun) {
+		return <NoAccessCard description="需要批次查看权限才能访问该页面。" />;
+	}
+
+	if (!canAccessLoading) {
+		return <NoAccessCard description="需要上料查看或验证权限才能访问该页面。" />;
+	}
 
 	return (
 		<div className="space-y-6">
@@ -129,32 +154,50 @@ function LoadingPage() {
 			)}
 
 			{showLoadTable && (
-				<Card>
-					<CardHeader>
-						<CardTitle>初始化站位表</CardTitle>
-						<CardDescription>当前批次尚未加载站位期望，请点击下方按钮加载。</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<Button onClick={handleLoadTable} disabled={loadTable.isPending}>
-							{loadTable.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-							加载站位表
-						</Button>
-					</CardContent>
-				</Card>
+				canVerifyLoading ? (
+					<Card>
+						<CardHeader>
+							<CardTitle>初始化站位表</CardTitle>
+							<CardDescription>当前批次尚未加载站位期望，请点击下方按钮加载。</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<Button onClick={handleLoadTable} disabled={loadTable.isPending}>
+								{loadTable.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+								加载站位表
+							</Button>
+						</CardContent>
+					</Card>
+				) : (
+					<NoAccessCard description="需要上料验证权限才能加载站位表。" />
+				)
 			)}
 
 			{runNo && showScan && (
 				<div className="grid gap-6 lg:grid-cols-2">
 					<div className="space-y-6">
-						<ScanPanel runNo={runNo} />
+						{canVerifyLoading ? (
+							<ScanPanel runNo={runNo} />
+						) : (
+							<NoAccessCard description="需要上料验证权限才能进行扫码作业。" />
+						)}
 					</div>
 					<div className="space-y-6">
-						<SlotList runNo={runNo} />
+						{canViewLoading ? (
+							<SlotList runNo={runNo} canUnlock={canConfigureLoading} enabled={canViewLoading} />
+						) : (
+							<NoAccessCard description="需要上料查看权限才能查看站位状态。" />
+						)}
 					</div>
 				</div>
 			)}
 
-			{runNo && run && <LoadingHistory runNo={runNo} />}
+			{runNo && run && (
+				canViewLoading ? (
+					<LoadingHistory runNo={runNo} enabled={canViewLoading} />
+				) : (
+					<NoAccessCard description="需要上料查看权限才能查看上料记录。" />
+				)
+			)}
 		</div>
 	);
 }
