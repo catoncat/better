@@ -5,6 +5,7 @@ import {
 	ArrowLeft,
 	CheckCircle2,
 	ClipboardCheck,
+	ExternalLink,
 	Loader2,
 	Package,
 	Play,
@@ -937,7 +938,8 @@ function RunDetailPage() {
 																		<Shield className="mr-1 h-3 w-3" />
 																		豁免
 																	</Button>
-																	{item.itemType === "LOADING" && (
+																	{/* LOADING: 站位表缺失 → 配置站位表 */}
+																	{item.itemType === "LOADING" && item.itemKey === "SLOT_TABLE" && (
 																		<Button variant="ghost" size="sm" asChild>
 																			<Link
 																				to="/mes/loading/slot-config"
@@ -945,6 +947,60 @@ function RunDetailPage() {
 																			>
 																				<Settings className="mr-1 h-3 w-3" />
 																				配置站位表
+																			</Link>
+																		</Button>
+																	)}
+																	{/* LOADING: 未上料/物料不匹配 → 前往上料 */}
+																	{item.itemType === "LOADING" && item.itemKey !== "SLOT_TABLE" && (
+																		<Button variant="ghost" size="sm" asChild>
+																			<Link to="/mes/loading">
+																				<ExternalLink className="mr-1 h-3 w-3" />
+																				前往上料
+																			</Link>
+																		</Button>
+																	)}
+																	{/* ROUTE: 工艺路线问题 → 工艺管理 */}
+																	{item.itemType === "ROUTE" && (
+																		<Button variant="ghost" size="sm" asChild>
+																			<Link to="/mes/routes">
+																				<ExternalLink className="mr-1 h-3 w-3" />
+																				工艺管理
+																			</Link>
+																		</Button>
+																	)}
+																	{/* MATERIAL: 物料主数据问题 → 物料管理 */}
+																	{item.itemType === "MATERIAL" && (
+																		<Button variant="ghost" size="sm" asChild>
+																			<Link to="/mes/materials">
+																				<ExternalLink className="mr-1 h-3 w-3" />
+																				物料管理
+																			</Link>
+																		</Button>
+																	)}
+																	{/* EQUIPMENT: 设备问题 → 设备管理 */}
+																	{item.itemType === "EQUIPMENT" && (
+																		<Button variant="ghost" size="sm" asChild>
+																			<Link to="/mes/integration/status">
+																				<ExternalLink className="mr-1 h-3 w-3" />
+																				设备管理
+																			</Link>
+																		</Button>
+																	)}
+																	{/* STENCIL: 钢网问题 → 钢网管理 */}
+																	{item.itemType === "STENCIL" && (
+																		<Button variant="ghost" size="sm" asChild>
+																			<Link to="/mes/integration/manual-entry">
+																				<ExternalLink className="mr-1 h-3 w-3" />
+																				钢网管理
+																			</Link>
+																		</Button>
+																	)}
+																	{/* SOLDER_PASTE: 锡膏问题 → 锡膏管理 */}
+																	{item.itemType === "SOLDER_PASTE" && (
+																		<Button variant="ghost" size="sm" asChild>
+																			<Link to="/mes/integration/manual-entry">
+																				<ExternalLink className="mr-1 h-3 w-3" />
+																				锡膏管理
 																			</Link>
 																		</Button>
 																	)}
