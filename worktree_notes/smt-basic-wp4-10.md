@@ -143,6 +143,15 @@ task:
 ## Errors (2026-01-21)
 - Write `equipment-inspection-field-meta.tsx` failed from main cwd (no such file); retrying with worktree cwd.
 
+## Errors (2026-01-21 cont.)
+- `bunx biome check --write` via `{ git diff --name-only ... } | rg -e '\\.(ts|tsx)$' | xargs ...` failed: Biome saw line-number-prefixed paths (e.g., `10:apps/...`) and reported `No such file or directory`. Next: strip line numbers (`rg --no-line-number` or `sed`) before passing to Biome.
+
+## Errors (2026-01-21 cont. 2)
+- `bun scripts/smart-verify.ts` typecheck failed: Eden `client.api` missing `*-records` endpoints (daily-qc/equipment-inspection/oven-program/etc). Next: locate Eden client typing/source and ensure server routes are included or regenerate types.
+
+## Errors (2026-01-21 cont. 3)
+- `bun scripts/smart-verify.ts` failed `check-types`: missing export `smtBasicRoutes` in `apps/server/src/modules/mes/smt-basic/routes.ts` and many pre-existing `noImplicitAny`/`unknown` errors across web routes/hooks. Next: add `smtBasicRoutes` export, re-run; note remaining baseline type errors.
+
 ## Findings (2026-01-21 cont. 2)
 - FilterToolbar select fields use empty string for no filter; clearing is via reset. No built-in "all" handling.
 
@@ -167,3 +176,33 @@ task:
 
 ## Findings (2026-01-21 cont. 9)
 - Updated SMT align with stencil/squeegee/inspection/oven + daily QC/exception record endpoints in `domain_docs/mes/spec/impl_align/03_smt_align.md`.
+
+## Findings (2026-01-21 cont. 10)
+- Branch includes two pre-existing commits beyond `origin/main`: `da403aa` (UI truncate route names) and `2a26b68` (worktree docs). These add extra files to diff and can surface lint issues outside SMT basic changes.
+
+## Findings (2026-01-21 cont. 11)
+- `bun scripts/smart-verify.ts` fails on Biome formatting/import order; includes `apps/server/src/modules/mes/fai/service.ts` organizeImports and multiple SMT basic files. Need to format/organize imports and rerun lint.
+
+## Findings (2026-01-21 cont. 12)
+- Ran `bunx biome check --write` on all changed `.ts/.tsx` plus `apps/server/src/modules/mes/fai/service.ts`; fixed 25 files (format + organizeImports).
+
+## Findings (2026-01-21 cont. 13)
+- Web Eden client types come from `apps/server/src/index` (`ServerApp["~Routes"]` in `apps/web/src/lib/eden.ts`), so missing endpoints mean server app type may not include new routes or generated types need refresh.
+
+## Findings (2026-01-21 cont. 14)
+- `apps/server/src/index.ts` exports `App` as the `api` instance and mounts `mesModule`; `apps/server/src/modules/mes/index.ts` only re-exports `mesModule` from `routes.ts`. Need to confirm `smt-basic` routes are registered in `apps/server/src/modules/mes/routes.ts`.
+
+## Findings (2026-01-21 cont. 15)
+- `apps/server/src/modules/mes/routes.ts` did not include `smt-basic` routes; added import and `.use(smtBasicRoutes)` to register endpoints.
+
+## Findings (2026-01-21 cont. 16)
+- `apps/server/src/modules/mes/smt-basic/routes.ts` exports individual route modules but no aggregated `smtBasicRoutes`; need to add combined Elysia module for `mesModule` import.
+
+## Findings (2026-01-21 cont. 17)
+- Typecheck now fails only on `use-equipment-inspections.ts`: `equipmentType` typed as `string` but API expects union (`inspectionTypeSchema` / `inspectionResultSchema`). Align hook query type with Eden `get` query type.
+
+## Findings (2026-01-21 cont. 18)
+- Updated equipment inspection hook/query typing to use Eden `get` query type; added parsing in list page to coerce `equipmentType`/`result` from URL strings into allowed unions.
+
+## Findings (2026-01-21 cont. 19)
+- `bun scripts/smart-verify.ts` now passes (biome check + db:generate + server/web check-types).
