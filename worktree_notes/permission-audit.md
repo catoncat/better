@@ -23,7 +23,7 @@ task:
 - [x] Slice 5: add permission guard UI + hook `enabled` support for config/ops pages
 - [x] Slice 6: implement config/ops page gating (routes, route detail, route versions, data-specs, integration)
 - [x] Slice 7: implement master data gating (materials, boms, work-centers)
-- [ ] Slice 8: work orders + runs list gating
+- [x] Slice 8: work orders + runs list gating
 - [ ] Slice 9: run detail flow gating
 - [ ] Slice 10: readiness + loading pages gating
 - [ ] Slice 11: execution page gating
