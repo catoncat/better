@@ -81,8 +81,7 @@ function ExecutionPage() {
 	const { hasPermission } = useAbility();
 	const canTrackIn = hasPermission(Permission.EXEC_TRACK_IN);
 	const canTrackOut = hasPermission(Permission.EXEC_TRACK_OUT);
-	const canViewExec =
-		hasPermission(Permission.EXEC_READ) || canTrackIn || canTrackOut;
+	const canViewExec = hasPermission(Permission.EXEC_READ) || canTrackIn || canTrackOut;
 	const canReadRun = hasPermission(Permission.RUN_READ);
 	const canResolveUnit = canTrackIn || canTrackOut;
 	const { data: stations } = useStations({ enabled: canViewExec });
@@ -491,15 +490,11 @@ function ExecutionPage() {
 							<CardTitle>待执行批次</CardTitle>
 							<CardDescription>选择批次快速预填表单</CardDescription>
 						</div>
-						{isRunsFetching && (
-							<RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
-						)}
+						{isRunsFetching && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
 					</CardHeader>
 					<CardContent>
 						{!executableRuns?.items || executableRuns.items.length === 0 ? (
-							<div className="py-4 text-center text-sm text-muted-foreground">
-								暂无待执行批次
-							</div>
+							<div className="py-4 text-center text-sm text-muted-foreground">暂无待执行批次</div>
 						) : (
 							<div className="space-y-2">
 								{executableRuns.items.slice(0, 5).map((run) => (
@@ -763,8 +758,7 @@ function ExecutionPage() {
 																	disabled={!canTrackIn || isInPending}
 																	onClick={async () => {
 																		if (!selectedStation || !selectedRunNo) return;
-																		const woNo =
-																			queuedUnits?.workOrder.woNo || selectedWoNo;
+																		const woNo = queuedUnits?.workOrder.woNo || selectedWoNo;
 																		if (!woNo) return;
 																		await trackIn({
 																			stationCode: selectedStation,
@@ -849,7 +843,7 @@ function ExecutionPage() {
 										)}
 										<div className="grid grid-cols-2 gap-4">
 											<Field form={inForm} name="woNo" label="工单号">
-												{(field) => (
+												{(field) =>
 													canReadRun ? (
 														<Combobox
 															options={workOrderOptions}
@@ -866,10 +860,10 @@ function ExecutionPage() {
 															onChange={(e) => field.handleChange(e.target.value)}
 														/>
 													)
-												)}
+												}
 											</Field>
 											<Field form={inForm} name="runNo" label="批次号 (Run)">
-												{(field) => (
+												{(field) =>
 													canReadRun ? (
 														<Combobox
 															options={runOptions}
@@ -886,7 +880,7 @@ function ExecutionPage() {
 															onChange={(e) => field.handleChange(e.target.value)}
 														/>
 													)
-												)}
+												}
 											</Field>
 										</div>
 										<Button type="submit" className="w-full" disabled={isInPending || !canTrackIn}>
@@ -940,7 +934,7 @@ function ExecutionPage() {
 											</div>
 										)}
 										<Field form={outForm} name="runNo" label="批次号 (Run)">
-											{(field) => (
+											{(field) =>
 												canReadRun ? (
 													<Combobox
 														options={runOptions}
@@ -957,7 +951,7 @@ function ExecutionPage() {
 														onChange={(e) => field.handleChange(e.target.value)}
 													/>
 												)
-											)}
+											}
 										</Field>
 										<Field form={outForm} name="result" label="结果">
 											{(field) => (

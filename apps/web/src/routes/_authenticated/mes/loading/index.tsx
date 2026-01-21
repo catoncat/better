@@ -153,8 +153,8 @@ function LoadingPage() {
 				</Card>
 			)}
 
-			{showLoadTable && (
-				canVerifyLoading ? (
+			{showLoadTable &&
+				(canVerifyLoading ? (
 					<Card>
 						<CardHeader>
 							<CardTitle>初始化站位表</CardTitle>
@@ -169,8 +169,7 @@ function LoadingPage() {
 					</Card>
 				) : (
 					<NoAccessCard description="需要上料验证权限才能加载站位表。" />
-				)
-			)}
+				))}
 
 			{runNo && showScan && (
 				<div className="grid gap-6 lg:grid-cols-2">
@@ -191,13 +190,13 @@ function LoadingPage() {
 				</div>
 			)}
 
-			{runNo && run && (
-				canViewLoading ? (
+			{runNo &&
+				run &&
+				(canViewLoading ? (
 					<LoadingHistory runNo={runNo} enabled={canViewLoading} />
 				) : (
 					<NoAccessCard description="需要上料查看权限才能查看上料记录。" />
-				)
-			)}
+				))}
 		</div>
 	);
 }

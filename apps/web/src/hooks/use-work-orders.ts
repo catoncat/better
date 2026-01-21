@@ -26,10 +26,7 @@ interface UseWorkOrderListParams {
 	sort?: string;
 }
 
-export function useWorkOrderList(
-	params: UseWorkOrderListParams,
-	options?: { enabled?: boolean },
-) {
+export function useWorkOrderList(params: UseWorkOrderListParams, options?: { enabled?: boolean }) {
 	const page = params.page ?? 1;
 	const pageSize = params.pageSize ?? 30;
 	const status = Array.isArray(params.status) ? params.status.join(",") : (params.status ?? "");

@@ -101,10 +101,7 @@ function RunDetailPage() {
 		data: runUnits,
 		isLoading: runUnitsLoading,
 		isFetching: runUnitsFetching,
-	} = useRunUnits(
-		{ runNo, page: unitsPage, pageSize: unitsPageSize },
-		{ enabled: canViewRun },
-	);
+	} = useRunUnits({ runNo, page: unitsPage, pageSize: unitsPageSize }, { enabled: canViewRun });
 	const {
 		data: readinessData,
 		isLoading: readinessLoading,

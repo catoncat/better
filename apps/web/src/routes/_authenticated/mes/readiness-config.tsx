@@ -244,7 +244,10 @@ function ReadinessConfigPage() {
 
 										<div className="grid grid-cols-2 gap-4 md:grid-cols-3">
 											{ALL_READINESS_ITEM_TYPES.map((type) => (
-												<div key={type} className="flex items-center space-x-3 rounded-lg border p-4">
+												<div
+													key={type}
+													className="flex items-center space-x-3 rounded-lg border p-4"
+												>
 													<Checkbox
 														id={type}
 														checked={enabledTypes.has(type)}
@@ -263,7 +266,10 @@ function ReadinessConfigPage() {
 
 										<Can permissions={Permission.READINESS_CONFIG}>
 											<div className="flex justify-end pt-4">
-												<Button onClick={handleSave} disabled={!hasChanges || updateConfig.isPending}>
+												<Button
+													onClick={handleSave}
+													disabled={!hasChanges || updateConfig.isPending}
+												>
 													{updateConfig.isPending ? (
 														<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 													) : (
