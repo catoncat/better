@@ -4,7 +4,11 @@ import { Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
 import { NoAccessCard } from "@/components/ability/no-access-card";
-import { DataListLayout, type SystemPreset } from "@/components/data-list";
+import {
+	DataListLayout,
+	type FilterFieldDefinition,
+	type SystemPreset,
+} from "@/components/data-list";
 import { Button } from "@/components/ui/button";
 import { useAbility } from "@/hooks/use-ability";
 import { useQueryPresets } from "@/hooks/use-query-presets";
@@ -255,7 +259,7 @@ function WorkOrdersPage() {
 	);
 
 	const filterFields = useMemo(() => {
-		const fields = [
+		const fields: FilterFieldDefinition[] = [
 			{
 				key: "search",
 				type: "search",

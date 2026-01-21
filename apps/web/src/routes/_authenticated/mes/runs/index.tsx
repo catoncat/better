@@ -6,7 +6,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Can } from "@/components/ability/can";
 import { NoAccessCard } from "@/components/ability/no-access-card";
-import { DataListLayout, type SystemPreset } from "@/components/data-list";
+import {
+	DataListLayout,
+	type FilterFieldDefinition,
+	type SystemPreset,
+} from "@/components/data-list";
 import { LineSelect } from "@/components/select/line-select";
 import { Button } from "@/components/ui/button";
 import { useAbility } from "@/hooks/use-ability";
@@ -208,7 +212,7 @@ function RunsPage() {
 	);
 
 	const filterFields = useMemo(() => {
-		const fields = [
+		const fields: FilterFieldDefinition[] = [
 			{
 				key: "search",
 				type: "search",
