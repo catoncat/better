@@ -22,6 +22,7 @@
 ## 4. 加载站位表验证
 ### 4.1 正常加载
 - 操作：调用 `load-table`
+- 示例：`POST /api/runs/RUN-WO-20250526-001-.../loading/load-table`（无请求体）
 - 期望：返回 created=站位数量
 - 数据检查：
   - RunSlotExpectation 生成
@@ -39,6 +40,15 @@
 
 ## 5. 扫码验证（PASS）
 - 操作：`verify` + 正确条码（物料编码|批次号）
+- 示例请求体：
+```json
+{
+  "runNo": "RUN-WO-20250526-001-...",
+  "slotCode": "2F-34",
+  "materialLotBarcode": "5212090007|LOT-20250526-003",
+  "operatorId": "OP-01"
+}
+```
 - 期望：
   - 返回 verifyResult=PASS
   - RunSlotExpectation.status = LOADED
@@ -47,6 +57,16 @@
 
 ## 6. 扫码验证（WARNING 替代料）
 - 操作：`verify` + 替代料条码
+- 示例请求体：
+```json
+{
+  "runNo": "RUN-WO-20250526-001-...",
+  "slotCode": "2F-46",
+  "materialLotBarcode": "5212090001B|LOT-20250526-002",
+  "operatorId": "OP-01",
+  "packageQty": 2000
+}
+```
 - 期望：
   - verifyResult=WARNING
   - RunSlotExpectation.status = LOADED
@@ -54,6 +74,15 @@
 
 ## 7. 扫码验证（FAIL + 锁定）
 - 操作：连续 3 次扫码错误物料
+- 示例请求体（重复 3 次）：
+```json
+{
+  "runNo": "RUN-WO-20250526-001-...",
+  "slotCode": "1R-14",
+  "materialLotBarcode": "9999999999|LOT-FAIL-001",
+  "operatorId": "OP-01"
+}
+```
 - 期望：
   - verifyResult=FAIL
   - LoadingRecord.status = UNLOADED
@@ -79,6 +108,17 @@
 ## 11. 换料验证
 - 前置：站位已 LOADED
 - 操作：`replace` + reason
+- 示例请求体：
+```json
+{
+  "runNo": "RUN-WO-20250526-001-...",
+  "slotCode": "2F-46",
+  "newMaterialLotBarcode": "5212090001|LOT-20250526-001",
+  "operatorId": "OP-01",
+  "reason": "Demo replace to primary",
+  "packageQty": 1800
+}
+```
 - 期望：
   - 旧记录标记 REPLACED
   - 新记录写入 meta.replaceReason
@@ -86,6 +126,12 @@
 
 ## 12. 解锁验证
 - 操作：`unlock`
+- 示例请求体：
+```json
+{
+  "reason": "Demo unlock after wrong scan"
+}
+```
 - 期望：
   - isLocked=false
   - failedAttempts=0

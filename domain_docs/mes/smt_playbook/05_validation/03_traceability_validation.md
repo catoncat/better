@@ -11,6 +11,11 @@
 ## 3. 验证接口
 - `GET /api/trace/units/{sn}`
 - `GET /api/trace/material-lots/{materialCode}/{lotNo}/units`
+示例：
+```
+GET /api/trace/units/SN-RUN-WO-20250526-001-...-0001
+GET /api/trace/material-lots/5212090007/LOT-20250526-003/units
+```
 
 ## 4. 单件追溯验证
 ### 4.1 基本字段

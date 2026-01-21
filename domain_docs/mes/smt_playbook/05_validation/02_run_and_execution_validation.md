@@ -24,6 +24,13 @@
 ## 4. 工单 → 批次验证
 ### 4.1 创建批次
 - 操作：`POST /api/work-orders/:woNo/runs`
+- 示例请求体：
+```json
+{
+  "lineCode": "SMT-A",
+  "planQty": 10
+}
+```
 - 期望：Run 状态 PREP
 - 检查：
   - 绑定 routeVersionId
@@ -31,6 +38,13 @@
 
 ## 5. Unit 生成验证
 - 操作：`POST /api/runs/:runNo/generate-units`
+- 示例请求体：
+```json
+{
+  "quantity": 10,
+  "snPrefix": "SN-RUN-WO-20250526-001-..."
+}
+```
 - 期望：
   - SN 连续
   - Unit 状态 QUEUED
@@ -39,6 +53,7 @@
 
 ## 6. 就绪检查验证
 - 操作：`POST /api/runs/:runNo/readiness/check`
+- 示例请求体：`{}`
 - 期望：
   - 未上料时 LOADING 失败
   - 上料完成后 LOADING 通过
@@ -47,6 +62,12 @@
 ## 7. FAI 验证
 ### 7.1 创建 FAI
 - 期望：就绪检查未通过时禁止创建
+- 示例请求体：
+```json
+{
+  "sampleQty": 2
+}
+```
 
 ### 7.2 启动 FAI
 - 期望：状态 PENDING → INSPECTING
@@ -54,15 +75,34 @@
 ### 7.3 试产与记录
 - 完成 sampleQty 个 Unit 的 TrackIn/TrackOut
 - 记录检验项后可完成判定
+- 示例检验项请求体：
+```json
+{
+  "itemName": "Solder Paste Thickness",
+  "result": "PASS"
+}
+```
 
 ### 7.4 判定
 - PASS：FAI 状态 PASS
 - FAIL：FAI 状态 FAIL
 - 若 SPI/AOI FAIL 存在，PASS 被阻断
+- 示例判定请求体：
+```json
+{
+  "decision": "PASS"
+}
+```
 
 ## 8. 授权与执行验证
 ### 8.1 授权
 - 操作：`POST /api/runs/:runNo/authorize`
+- 示例请求体：
+```json
+{
+  "action": "AUTHORIZE"
+}
+```
 - 期望：Run 状态 AUTHORIZED
 - 若 FAI required 且未通过 → 授权失败
 
@@ -70,6 +110,23 @@
 - TrackIn → Unit 状态 IN_STATION
 - TrackOut PASS → Unit 状态 DONE
 - TrackOut FAIL → Unit 状态 OUT_FAILED
+- TrackIn 示例请求体：
+```json
+{
+  "sn": "SN-RUN-WO-20250526-001-...-0001",
+  "woNo": "WO-20250526-001",
+  "runNo": "RUN-WO-20250526-001-..."
+}
+```
+- TrackOut 示例请求体：
+```json
+{
+  "sn": "SN-RUN-WO-20250526-001-...-0001",
+  "runNo": "RUN-WO-20250526-001-...",
+  "result": "PASS",
+  "operatorId": "OP-01"
+}
+```
 
 ## 9. OQC 触发验证
 ### 9.1 无抽检规则
@@ -79,6 +136,16 @@
 
 ### 9.2 有抽检规则
 - 前置：配置抽检规则（PERCENTAGE 或 FIXED）
+- 示例请求体（抽检规则创建）：
+```json
+{
+  "productCode": "5223029018",
+  "samplingType": "PERCENTAGE",
+  "sampleValue": 10,
+  "priority": 100,
+  "isActive": true
+}
+```
 - 操作：所有 Unit DONE/SCRAPPED
 - 期望：创建 OQC 任务，sampleSize 与 sampledUnitIds 记录在 OQC 数据中
 
@@ -94,8 +161,22 @@
 ### 10.2 记录检验项
 - 操作：`POST /api/oqc/:oqcId/items`
 - 期望：仅允许 sampledUnitIds 中的 unitSn
+- 示例请求体：
+```json
+{
+  "unitSn": "SN-RUN-WO-20250526-001-...-0001",
+  "itemName": "OQC Visual",
+  "result": "PASS"
+}
+```
 
 ### 10.3 完成 OQC
 - 操作：`POST /api/oqc/:oqcId/complete`
 - PASS：Run → COMPLETED
 - FAIL：Run → ON_HOLD，进入 MRB 决策
+- 示例请求体：
+```json
+{
+  "decision": "PASS"
+}
+```
