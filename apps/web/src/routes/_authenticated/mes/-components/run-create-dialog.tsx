@@ -1,5 +1,6 @@
 import { useForm } from "@tanstack/react-form";
-import { useEffect } from "react";
+import { Link } from "@tanstack/react-router";
+import { useEffect, useMemo } from "react";
 import * as z from "zod";
 import { LineSelect } from "@/components/select/line-select";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
+import { useLines } from "@/hooks/use-lines";
 import type { WorkOrder } from "@/hooks/use-work-orders";
 
 const runSchema = z.object({
@@ -51,6 +53,12 @@ export function RunCreateDialog({
 }: RunCreateDialogProps) {
 	const dispatchedLineCode = getDispatchedLineCode(workOrder);
 	const defaultPlanQty = workOrder?.plannedQty ?? 1;
+	const routingProcessType = workOrder?.routing?.processType;
+	const { data: linesData, isLoading: linesLoading } = useLines();
+	const hasMatchingLines = useMemo(() => {
+		if (!routingProcessType) return true;
+		return (linesData?.items ?? []).some((line) => line.processType === routingProcessType);
+	}, [linesData?.items, routingProcessType]);
 	const defaultValues: RunFormValues = {
 		lineCode: dispatchedLineCode ?? "",
 		planQty: defaultPlanQty,
@@ -105,10 +113,24 @@ export function RunCreateDialog({
 								value={field.state.value}
 								onValueChange={field.handleChange}
 								placeholder="选择线体"
+								processType={routingProcessType}
 								disabled={Boolean(dispatchedLineCode)}
 							/>
 						)}
 					</Field>
+					{routingProcessType && !linesLoading && !hasMatchingLines && (
+						<div className="text-xs text-muted-foreground">
+							未找到匹配当前路由工艺的产线，请前往
+							<Link
+								to="/mes/lines"
+								search={{ processType: routingProcessType }}
+								className="mx-1 text-primary hover:underline"
+							>
+								产线管理
+							</Link>
+							创建。
+						</div>
+					)}
 					<Field form={form} name="planQty" label="计划数量">
 						{(field) => (
 							<Input

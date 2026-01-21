@@ -1,12 +1,13 @@
 import * as React from "react";
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
-import { useLines } from "@/hooks/use-lines";
+import { type LineSummary, useLines } from "@/hooks/use-lines";
 import { PROCESS_TYPE_MAP } from "@/lib/constants";
 
 interface LineSelectProps {
 	value?: string;
 	onValueChange: (value: string) => void;
 	valueKey?: "code" | "id";
+	processType?: LineSummary["processType"];
 	disabled?: boolean;
 	placeholder?: string;
 	className?: string;
@@ -16,15 +17,22 @@ export function LineSelect({
 	value,
 	onValueChange,
 	valueKey = "code",
+	processType,
 	disabled,
 	placeholder = "选择线体",
 	className,
 }: LineSelectProps) {
 	const { data, isLoading } = useLines();
 
-	const options: ComboboxOption[] = React.useMemo(() => {
+	const filteredItems = React.useMemo(() => {
 		if (!data?.items) return [];
-		return data.items.map((item) => {
+		if (!processType) return data.items;
+		return data.items.filter((item) => item.processType === processType);
+	}, [data?.items, processType]);
+
+	const options: ComboboxOption[] = React.useMemo(() => {
+		if (!filteredItems.length) return [];
+		return filteredItems.map((item) => {
 			const processLabel = item.processType
 				? (PROCESS_TYPE_MAP[item.processType] ?? item.processType)
 				: "";
@@ -36,7 +44,7 @@ export function LineSelect({
 				label,
 			};
 		});
-	}, [data?.items, valueKey]);
+	}, [filteredItems, valueKey]);
 
 	return (
 		<Combobox
