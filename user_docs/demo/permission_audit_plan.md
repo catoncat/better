@@ -526,36 +526,36 @@ DIP 重点：
 1) 工位选择器  
 - View 权限：`exec:read` 或 `exec:track_in` / `exec:track_out`  
 - 展示策略：缺权限 → 页面级无权限占位  
-- 状态：⚠️ 当前无 gating  
+- 状态：✅ 页面级 gating + `/stations` enabled  
 
 2) 待执行批次列表（快捷选择）  
 - View 权限：`run:read`  
 - 展示策略：缺权限 → 隐藏  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ 缺权限隐藏 + 查询 gated  
 
 3) 当前队列  
 - View 权限：`exec:read` 或 `exec:track_in` / `exec:track_out`  
 - Action 权限：`exec:track_out`（出站/报不良）  
 - 展示策略：缺 view → 无权限占位；缺 action → 禁用按钮  
-- 状态：⚠️ 当前仅按钮禁用，队列查询未 gating  
+- 状态：✅ 队列查询 gated + 按钮按权限禁用  
 
 4) 待进站列表  
 - View 权限：`run:read`（队列数据）  
 - Action 权限：`exec:track_in`（进站）  
 - 展示策略：缺 view → 无权限占位；缺 action → 禁用按钮  
-- 状态：⚠️ 当前仅按钮禁用，查询未 gating  
+- 状态：✅ 视图占位 + 查询 gated  
 
 5) 进站/出站表单  
 - View 权限：`run:read`（下拉列表）  
 - Action 权限：`exec:track_in` / `exec:track_out`  
 - 展示策略：缺 action → 禁用提交  
-- 状态：⚠️ 仅按钮禁用；`resolve-unit` 查询未按权限 gating  
+- 状态：✅ 下拉按权限显示 + `resolve-unit` 按 exec 权限 gating  
 
 6) TrackOut 对话框（含数据采集）  
 - View 权限：`exec:track_out`  
 - Action 权限：`exec:track_out`  
 - 展示策略：缺权限 → 不可打开  
-- 状态：⚠️ 入口依赖按钮禁用，但对话框内 query 未显式 gating  
+- 状态：✅ 对话框查询按权限 gating  
 
 ### 页面：/mes/fai（首件检验）
 
