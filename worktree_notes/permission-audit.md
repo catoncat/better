@@ -32,40 +32,62 @@ task:
 <!-- AUTO:BEGIN status -->
 
 ## Status (auto)
-- UpdatedAt: 2026-01-21T01:09:19.404Z
+- UpdatedAt: 2026-01-21T05:23:23.143Z
 - BaseRef: origin/main
-- CommitsAheadOfBase: 10
+- CommitsAheadOfBase: 41
 - Dirty: true
 - ChangedFiles:
+  - apps/server/src/modules/mes/integration/routes.ts
+  - apps/web/src/components/ability/no-access-card.tsx
+  - apps/web/src/components/select/line-select.tsx
   - apps/web/src/components/select/route-select.tsx
   - apps/web/src/hooks/use-boms.ts
   - apps/web/src/hooks/use-data-collection-specs.ts
+  - apps/web/src/hooks/use-defects.ts
   - apps/web/src/hooks/use-execution-configs.ts
   - apps/web/src/hooks/use-fai.ts
+  - apps/web/src/hooks/use-feeder-slots.ts
   - apps/web/src/hooks/use-integration-status.ts
   - apps/web/src/hooks/use-lines.ts
+  - apps/web/src/hooks/use-loading.ts
   - apps/web/src/hooks/use-materials.ts
   - apps/web/src/hooks/use-operations.ts
+  - apps/web/src/hooks/use-oqc-rules.ts
   - apps/web/src/hooks/use-oqc.ts
   - apps/web/src/hooks/use-readiness.ts
   - apps/web/src/hooks/use-route-versions.ts
   - apps/web/src/hooks/use-routes.ts
+  - apps/web/src/hooks/use-runs.ts
+  - apps/web/src/hooks/use-slot-mappings.ts
   - apps/web/src/hooks/use-station-execution.ts
   - apps/web/src/hooks/use-station-groups.ts
+  - apps/web/src/hooks/use-trace.ts
   - apps/web/src/hooks/use-work-centers.ts
+  - apps/web/src/hooks/use-work-orders.ts
   - apps/web/src/lib/api-error.ts
   - apps/web/src/lib/query-client.ts
-  - apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx
-  - bun.lock
-  - conversation/2026-01-20_141212_permission_audit.md
-  - conversation/2026-01-20_142730_permission_audit_plan.md
-  - conversation/2026-01-20_180359_permission_audit_progress_-_main_flow_pages.md
-  - conversation/2026-01-20_181607_permission_audit_progress_-_rework_tasks.md
-  - conversation/2026-01-20_190922_permission_audit_progress_-_config_ops_pages.md
-  - packages/db/src/permissions/preset-roles.ts
-  - user_docs/demo/permission_audit_plan.md
-  - user_docs/demo/permission_audit_report.md
-  - worktree_notes/permission-audit.md
+  - apps/web/src/routes/_authenticated/mes/-components/data-spec-selector.tsx
+  - apps/web/src/routes/_authenticated/mes/-components/oqc-card.tsx
+  - apps/web/src/routes/_authenticated/mes/-components/oqc-columns.tsx
+  - apps/web/src/routes/_authenticated/mes/-components/run-columns.tsx
+  - apps/web/src/routes/_authenticated/mes/-components/track-out-dialog.tsx
+  - apps/web/src/routes/_authenticated/mes/boms/index.tsx
+  - apps/web/src/routes/_authenticated/mes/data-collection-specs/index.tsx
+  - apps/web/src/routes/_authenticated/mes/defects.tsx
+  - apps/web/src/routes/_authenticated/mes/execution.tsx
+  - apps/web/src/routes/_authenticated/mes/fai.tsx
+  - apps/web/src/routes/_authenticated/mes/integration/manual-entry.tsx
+  - apps/web/src/routes/_authenticated/mes/integration/status.tsx
+  - apps/web/src/routes/_authenticated/mes/loading/-components/loading-history.tsx
+  - apps/web/src/routes/_authenticated/mes/loading/-components/mapping-dialog.tsx
+  - apps/web/src/routes/_authenticated/mes/loading/-components/slot-list.tsx
+  - apps/web/src/routes/_authenticated/mes/loading/index.tsx
+  - apps/web/src/routes/_authenticated/mes/loading/slot-config.tsx
+  - apps/web/src/routes/_authenticated/mes/materials/index.tsx
+  - apps/web/src/routes/_authenticated/mes/oqc/-components/rule-dialog.tsx
+  - apps/web/src/routes/_authenticated/mes/oqc/index.tsx
+  - apps/web/src/routes/_authenticated/mes/oqc/rules.tsx
+  - ... (+22 more)
 - Next:
   - Commit worktree note: git add worktree_notes/permission-audit.md && git commit -m "docs(worktree): add task context"
 <!-- AUTO:END status -->
@@ -84,6 +106,7 @@ task:
 - `bun scripts/smart-verify.ts` now passes (lint + check-types).
 - Merging into `main`: resolved conflicts in FAI filters, loading slot-config line selection, OQC rule dialog route list, and run detail readiness/actions.
 - `bun scripts/smart-verify.ts` re-run on `main` after merge (lint + check-types) passed.
+- Added readiness:view gating for bake/solder/cold record pages and downgraded run detail route link when missing `route:read`; audit plan updated.
 - Completed Slice 11: execution gating shipped and audit plan updated.
 - Updated execution section statuses in `user_docs/demo/permission_audit_plan.md`.
 - Completed Slice 10: readiness + loading gating shipped and audit plan updated.
@@ -150,6 +173,18 @@ task:
 - Located loading page and slot-config route files under `apps/web/src/routes/_authenticated/mes/loading/` for Slice 10 updates.
 
 ## Findings
+- Permission audit plan has two open confirmations: copy consistency note and route version card link downgrade (need confirm).
+- Open items are in `/mes/runs/:runNo`: flow progress card wording consistency and route version card link downgrade when missing `route:read`.
+- Auxiliary pages exist in routes: `/mes/bake-records`, `/mes/solder-paste-usage`, `/mes/cold-storage-temperatures`; need audit entries added.
+- `/mes/runs/$runNo` route version card link is still unconditional; should downgrade to text when missing `route:read`.
+- Flow progress stage labels for readiness/FAI are already explicit (`无权限/加载中/已完成/未通过/失败`); can confirm wording is acceptable or adjust to a unified failure label.
+- `/mes/bake-records` page currently has no page-level permission gating; create button uses `readiness:check` and list hook lacks `enabled` option.
+- Bake records API requires `readiness:view` for list and `readiness:check` for create (`apps/server/src/modules/mes/bake/routes.ts`).
+- `/mes/solder-paste-usage` page has no view gating; create button uses `readiness:check` and list hook lacks `enabled` option.
+- Solder paste usage and cold storage temperature APIs: list requires `readiness:view`, create requires `readiness:check` (`apps/server/src/modules/mes/solder-paste/routes.ts`).
+- `/mes/cold-storage-temperatures` page has no view gating; create button uses `readiness:check` and list hook lacks `enabled` option.
+- Bake/solder/cold record list hooks are only used in their respective pages, so adding `enabled` options is low-risk.
+- Remaining “待检查/已修复” appears only in the example snippet of the plan template, not a real open item.
 - Additional merge conflicts in run detail (generate-units gating and readiness action links) and OQC rule dialog route list rendering; plan to combine permission gating with existing UI truncation/action links.
 - Merge into `main` hit conflicts in FAI filter area and loading slot-config line selection; need to keep permission gating while preserving existing UI details.
 - Runs/work-orders filter fields now typed with `FilterFieldDefinition`; import order updated by Biome.
