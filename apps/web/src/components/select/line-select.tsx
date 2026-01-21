@@ -7,6 +7,7 @@ interface LineSelectProps {
 	value?: string;
 	onValueChange: (value: string) => void;
 	disabled?: boolean;
+	enabled?: boolean;
 	placeholder?: string;
 	className?: string;
 }
@@ -15,10 +16,11 @@ export function LineSelect({
 	value,
 	onValueChange,
 	disabled,
+	enabled,
 	placeholder = "选择线体",
 	className,
 }: LineSelectProps) {
-	const { data, isLoading } = useLines();
+	const { data, isLoading } = useLines({ enabled: enabled ?? !disabled });
 
 	const options: ComboboxOption[] = React.useMemo(() => {
 		if (!data?.items) return [];

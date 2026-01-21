@@ -32,7 +32,7 @@ interface UseRunListParams {
 	lineCode?: string;
 }
 
-export function useRunList(params: UseRunListParams) {
+export function useRunList(params: UseRunListParams, options?: { enabled?: boolean }) {
 	const page = params.page ?? 1;
 	const pageSize = params.pageSize ?? 30;
 	const status = Array.isArray(params.status) ? params.status.join(",") : (params.status ?? "");
@@ -43,6 +43,7 @@ export function useRunList(params: UseRunListParams) {
 
 	return useQuery<RunList>({
 		queryKey: ["mes", "runs", page, pageSize, search, status, sort, woNo, lineCode],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const { data, error } = await client.api.runs.get({
 				query: {
