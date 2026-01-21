@@ -131,12 +131,12 @@ export function LineDialog({
 
 					<Field form={form} name="processType" label="工艺类型" required>
 						{(field) => (
-						<Select
-							value={field.state.value}
-							onValueChange={(value) =>
-								field.handleChange(value as LineCreateInput["processType"])
-							}
-						>
+							<Select
+								value={field.state.value}
+								onValueChange={(value) =>
+									field.handleChange(value as LineCreateInput["processType"])
+								}
+							>
 								<SelectTrigger className="w-full">
 									<SelectValue placeholder="选择工艺类型" />
 								</SelectTrigger>
