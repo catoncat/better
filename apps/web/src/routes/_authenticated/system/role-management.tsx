@@ -50,6 +50,7 @@ function RoleManagementPage() {
 	const [initialValues, setInitialValues] = useState<RoleFormValues | null>(null);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [deletingRole, setDeletingRole] = useState<RoleItem | null>(null);
+	const isReadOnlyDialog = Boolean(editingRole?.isSystem);
 
 	const roles = data?.items ?? [];
 	const sortedRoles = useMemo(
@@ -179,7 +180,12 @@ function RoleManagementPage() {
 								<div>
 									<CardTitle className="flex items-center gap-2">
 										<span>{role.name}</span>
-										{role.isSystem && <Badge variant="secondary">系统</Badge>}
+										{role.isSystem && (
+											<>
+												<Badge variant="secondary">系统</Badge>
+												<Badge variant="outline">只读</Badge>
+											</>
+										)}
 									</CardTitle>
 									<p className="text-sm text-muted-foreground">{role.code}</p>
 								</div>
@@ -206,7 +212,7 @@ function RoleManagementPage() {
 								<Can permissions={Permission.SYSTEM_ROLE_MANAGE}>
 									<div className="flex flex-wrap gap-2">
 										<Button size="sm" variant="outline" onClick={() => handleEdit(role)}>
-											编辑
+											{role.isSystem ? "查看" : "编辑"}
 										</Button>
 										<Button size="sm" variant="secondary" onClick={() => handleClone(role)}>
 											<Copy className="mr-2 h-4 w-4" />
@@ -240,6 +246,7 @@ function RoleManagementPage() {
 				}}
 				role={editingRole}
 				initialValues={initialValues}
+				readOnly={isReadOnlyDialog}
 				onSubmit={handleSubmit}
 				isSubmitting={createRole.isPending || updateRole.isPending}
 			/>
