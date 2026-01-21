@@ -1,12 +1,15 @@
+import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useAbility } from "@/hooks/use-ability";
 import { type BomParentListItem, useBomParentList } from "@/hooks/use-boms";
 import { useQueryPresets } from "@/hooks/use-query-presets";
 import { formatDateTime } from "@/lib/utils";
@@ -49,6 +52,8 @@ function BomPage() {
 	const navigate = useNavigate();
 	const searchParams = useSearch({ from: "/_authenticated/mes/boms/" });
 	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
+	const { hasPermission } = useAbility();
+	const canViewBoms = hasPermission(Permission.ROUTE_READ);
 
 	const [activeItem, setActiveItem] = useState<BomParentListItem | null>(null);
 
@@ -179,16 +184,19 @@ function BomPage() {
 		[applyPreset, setFilters],
 	);
 
-	const { data, isLoading, error } = useBomParentList({
-		page: pageIndex + 1,
-		pageSize,
-		search: filters.search || undefined,
-		parentCode: filters.parentCode || undefined,
-		synced: filters.synced,
-		updatedFrom: filters.updatedFrom,
-		updatedTo: filters.updatedTo,
-		sort: searchParams.sort,
-	});
+	const { data, isLoading, error } = useBomParentList(
+		{
+			page: pageIndex + 1,
+			pageSize,
+			search: filters.search || undefined,
+			parentCode: filters.parentCode || undefined,
+			synced: filters.synced,
+			updatedFrom: filters.updatedFrom,
+			updatedTo: filters.updatedTo,
+			sort: searchParams.sort,
+		},
+		{ enabled: canViewBoms },
+	);
 
 	const handlePaginationChange = useCallback(
 		(next: { pageIndex: number; pageSize: number }) => {
@@ -254,6 +262,22 @@ function BomPage() {
 		];
 	}, []);
 
+	const header = (
+		<div className="flex flex-col gap-2">
+			<h1 className="text-2xl font-bold tracking-tight">BOM</h1>
+			<p className="text-muted-foreground">按父物料查看 BOM 关系（parent → child → qty）。</p>
+		</div>
+	);
+
+	if (!canViewBoms) {
+		return (
+			<div className="flex flex-col gap-4">
+				{header}
+				<NoAccessCard description="需要路由查看权限才能查看 BOM 关系。" />
+			</div>
+		);
+	}
+
 	return (
 		<>
 			<DataListLayout
@@ -275,12 +299,7 @@ function BomPage() {
 						</div>
 					) : null
 				}
-				header={
-					<div className="flex flex-col gap-2">
-						<h1 className="text-2xl font-bold tracking-tight">BOM</h1>
-						<p className="text-muted-foreground">按父物料查看 BOM 关系（parent → child → qty）。</p>
-					</div>
-				}
+				header={header}
 				queryPresetBarProps={{
 					systemPresets,
 					userPresets,
