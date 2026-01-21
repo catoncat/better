@@ -27,7 +27,7 @@ task:
 - [x] Slice 9: run detail flow gating
 - [x] Slice 10: readiness + loading pages gating
 - [x] Slice 11: execution page gating
-- [ ] Slice 12: quality + trace pages gating
+- [x] Slice 12: quality + trace pages gating
 
 <!-- AUTO:BEGIN status -->
 
@@ -77,6 +77,7 @@ task:
 - Main-flow decisions: align work-order receive permission to `wo:receive`; show NoAccess placeholders for flow-critical cards on run detail.
 
 ## Progress
+- Completed Slice 12: quality + trace page gating shipped; audit plan updated and committed.
 - Completed Slice 11: execution gating shipped and audit plan updated.
 - Updated execution section statuses in `user_docs/demo/permission_audit_plan.md`.
 - Completed Slice 10: readiness + loading gating shipped and audit plan updated.
@@ -143,6 +144,41 @@ task:
 - Located loading page and slot-config route files under `apps/web/src/routes/_authenticated/mes/loading/` for Slice 10 updates.
 
 ## Findings
+- Remaining unstaged changes are audit plan + worktree note updates after code commit.
+- Slice 12 code files are staged; audit plan + worktree notes still unstaged.
+- Current diff limited to Slice 12 hooks/routes plus audit plan + worktree note updates.
+
+## Errors
+- `git add apps/web/src/routes/_authenticated/mes/oqc/-components/oqc-card.tsx ...` failed: pathspec did not match (files live under `apps/web/src/routes/_authenticated/mes/-components/`). Next: re-run `git add` with corrected paths.
+- Permission audit plan sections for FAI/OQC/defects/rework/trace are updated; Slice 12 still unchecked in worktree note until commit.
+- FAI record dialog now hides spec picker and shows a permission hint when missing data-spec permissions; generate-units flow checks `run:authorize`.
+- `useUnitTrace` is only used in defects + trace pages now; both pass `enabled` options.
+- Permission audit plan now reflects FAI/OQC/defects/rework/trace sections marked complete.
+- OQC rules page now gates list + actions by `quality:oqc` with NoAccess fallback.
+- FAI page gates data-spec list and shows NoAccess when missing `quality:fai`.
+- FAI hooks and OQC rules hooks now accept `enabled` options for permission gating.
+- OQC card and table actions are now wrapped with `quality:oqc` permission checks for start/record/complete/view.
+- OQC list page now uses `quality:oqc` for page-level NoAccess and gates list/detail queries with `enabled`.
+- Rework tasks page now gated by `quality:disposition`; list uses `enabled` guard and page-level NoAccess.
+- OQC hooks now accept `enabled` in list/detail/run queries.
+- Defects hooks now accept `enabled`; defects page gates list/detail by `quality:disposition` and uses trace query only with `trace:read`.
+- Trace hook now supports `enabled`; trace page shows NoAccessCard and gates queries by `trace:read`.
+- Verified Permission.RUN_AUTHORIZE and DATA_SPEC_* exist in permissions catalog; FAI page constant names should compile.
+- Rule dialog now gates line/route selectors with enabled flags and disables selects without permissions.
+- FAI page now references Permission.QUALITY_FAI, DATA_SPEC_READ/DATA_SPEC_CONFIG, and RUN_AUTHORIZE; need to confirm constants exist in permission catalog.
+- Permission constants live in `packages/db/src/permissions/permissions.ts` (DATA_SPEC_READ/DATA_SPEC_CONFIG); no `apps/web/src/lib/permissions.ts` path exists.
+- Re-read worktree note after context switch; continue Slice 12 (quality + trace gating) and verify permission enum names in FAI page before committing.
+- Trace page: useUnitTrace not permission-gated; needs page-level NoAccess for trace:read and query enabled flag.
+- Defect/rework hooks: useDefectList/useDefectDetail/useReworkTaskList lack enabled options; useUnitTrace lacks permission-aware options.
+- Defects/rework pages: list/detail queries and action buttons lack quality:disposition gating; need page-level NoAccess plus enabled guards.
+- useFaiList/useFaiDetail only used in FAI page; safe to add enabled gating there.
+- OQC rules hook useOqcRuleList now supports enabled gating; only used by rules page.
+- OQC rules page: list query gated by quality:oqc; RuleDialog lines/routes gated and disabled without permission.
+- OQC columns/actions: view action now gated; OqcRecordDialog relies on readOnly plus action gating.
+- OQC hooks: useOqcList/useOqcDetail now support enabled gating; OqcCard view action gated by quality:oqc.
+- OQC page: list/detail now permission-gated with NoAccess; view actions gated; dialogs opened via gated actions.
+- FAI hooks: useFaiList/useFaiDetail now support enabled gating; useDataCollectionSpecList already supports enabled gating.
+- FAI page: list/detail/run/spec queries now permission-gated; run filter hidden without run:read; run link gated; generate-units guarded by run:authorize; record dialog templates gated by data-spec permissions.
 - useStationQueue/useUnitDataSpecs updates only affect execution page and TrackOut dialog (no other call sites).
 - Execution hooks: useRunList/useRunDetail/useRunUnits already accept enabled flags; useStationQueue/useUnitDataSpecs updated to support enabled gating.
 - Station list/queue endpoints require exec read or exec track-in/out; station queue enforces data-scope and can return 403 with empty queue if station not in scope. Execution page should gate stations/queue by exec permissions and display no-access when missing view.
