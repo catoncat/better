@@ -856,13 +856,19 @@ function RunDetailPage() {
 							<div className="grid gap-4 md:grid-cols-2">
 								<div>
 									<p className="text-sm text-muted-foreground">路由编码</p>
-									<Link
-										to="/mes/routes/$routingCode"
-										params={{ routingCode: data.routeVersion.route.code }}
-										className="font-medium text-primary hover:underline"
-									>
-										{data.routeVersion.route.code}
-									</Link>
+									{canViewRoutes ? (
+										<Link
+											to="/mes/routes/$routingCode"
+											params={{ routingCode: data.routeVersion.route.code }}
+											className="font-medium text-primary hover:underline"
+										>
+											{data.routeVersion.route.code}
+										</Link>
+									) : (
+										<p className="font-medium text-muted-foreground">
+											{data.routeVersion.route.code}
+										</p>
+									)}
 								</div>
 								<div>
 									<p className="text-sm text-muted-foreground">路由名称</p>

@@ -25,9 +25,13 @@ type SolderPasteUsageRecordCreateInput = Parameters<
 	(typeof client.api)["solder-paste-usage-records"]["post"]
 >[0];
 
-export function useSolderPasteUsageRecordList(query: SolderPasteUsageRecordQuery) {
+export function useSolderPasteUsageRecordList(
+	query: SolderPasteUsageRecordQuery,
+	options?: { enabled?: boolean },
+) {
 	return useQuery<SolderPasteUsageRecordListData>({
 		queryKey: ["mes", "solder-paste-usage-records", query],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await client.api["solder-paste-usage-records"].get({ query });
 			return unwrap(response);

@@ -21,9 +21,13 @@ type ColdStorageTemperatureRecordCreateInput = Parameters<
 	(typeof client.api)["cold-storage-temperature-records"]["post"]
 >[0];
 
-export function useColdStorageTemperatureRecordList(query: ColdStorageTemperatureRecordQuery) {
+export function useColdStorageTemperatureRecordList(
+	query: ColdStorageTemperatureRecordQuery,
+	options?: { enabled?: boolean },
+) {
 	return useQuery<ColdStorageTemperatureRecordListData>({
 		queryKey: ["mes", "cold-storage-temperature-records", query],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await client.api["cold-storage-temperature-records"].get({ query });
 			return unwrap(response);
