@@ -26,7 +26,7 @@ task:
 - [x] Slice 8: work orders + runs list gating
 - [x] Slice 9: run detail flow gating
 - [x] Slice 10: readiness + loading pages gating
-- [ ] Slice 11: execution page gating
+- [x] Slice 11: execution page gating
 - [ ] Slice 12: quality + trace pages gating
 
 <!-- AUTO:BEGIN status -->
@@ -77,6 +77,8 @@ task:
 - Main-flow decisions: align work-order receive permission to `wo:receive`; show NoAccess placeholders for flow-critical cards on run detail.
 
 ## Progress
+- Completed Slice 11: execution gating shipped and audit plan updated.
+- Updated execution section statuses in `user_docs/demo/permission_audit_plan.md`.
 - Completed Slice 10: readiness + loading gating shipped and audit plan updated.
 - Updated `user_docs/demo/permission_audit_plan.md` statuses for readiness + loading pages.
 - Reviewed loading index and slot-config to align import order and permission gating after edits.
@@ -141,6 +143,13 @@ task:
 - Located loading page and slot-config route files under `apps/web/src/routes/_authenticated/mes/loading/` for Slice 10 updates.
 
 ## Findings
+- useStationQueue/useUnitDataSpecs updates only affect execution page and TrackOut dialog (no other call sites).
+- Execution hooks: useRunList/useRunDetail/useRunUnits already accept enabled flags; useStationQueue/useUnitDataSpecs updated to support enabled gating.
+- Station list/queue endpoints require exec read or exec track-in/out; station queue enforces data-scope and can return 403 with empty queue if station not in scope. Execution page should gate stations/queue by exec permissions and display no-access when missing view.
+- Execution plan section (user_docs) shows all execution modules still ⚠️; needs gating for station list, run list, queue, queued units, resolve-unit, and TrackOut dialog specs.
+- Execution API permissions: resolve-unit requires exec track-in/out; unit data specs require exec track-out; track-in/out endpoints require exec track-in/out. Station list/queue live in station routes and need permission checks.
+- useStations already supports enabled; useStationQueue/useUnitDataSpecs lack enabled options and execution page doesn't pass permission flags. TrackOutDialog always queries unit data specs when open; should be gated by exec track-out permission.
+- Execution page uses useStations/useStationQueue/useResolveUnitBySn/useRunList/useRunDetail/useRunUnits without permission-aware enabled gating; needs exec/run permissions to avoid 403s and to decide hide vs NoAccess for queue/forms.
 - LineSelect supports disabled/enabled; readiness-config shows NoAccessCard in CardContent when line permissions missing, so slot-config can mirror that gating pattern.
 - NoAccessCard supports optional title/description; readiness-config uses it for page-level and module-level gating, so loading pages can mirror this pattern.
 - NoAccessCard import path is "@/components/ability/no-access-card"; permission checks use useAbility from "@/hooks/use-ability".
