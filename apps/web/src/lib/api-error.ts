@@ -19,8 +19,20 @@ export const getApiErrorMessage = (error: unknown, fallback: string) => {
 		const registryMessage = getMesErrorMessage(error.code);
 		if (registryMessage) return registryMessage;
 		const message = error.message?.trim();
-		if (message && hasCjk(message)) {
-			return error.code ? `${message}（${error.code}）` : message;
+		const isCjkMessage = Boolean(message && hasCjk(message));
+		if (error.status === 401 || error.code === "UNAUTHORIZED") {
+			return isCjkMessage ? (message as string) : "登录已过期，请重新登录";
+		}
+		if (error.status === 403 || error.code === "FORBIDDEN") {
+			if (isCjkMessage) return message as string;
+			const match = message?.match(/Missing required permission: ([\w:.-]+)/);
+			if (match?.[1]) {
+				return `权限不足（缺少权限: ${match[1]}）`;
+			}
+			return "权限不足";
+		}
+		if (isCjkMessage) {
+			return error.code ? `${message}（${error.code}）` : (message as string);
 		}
 		const base = fallback;
 		return error.code ? `${base}（${error.code}）` : base;

@@ -4,6 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { CheckCircle2, Clock, Loader2, RefreshCw, XCircle } from "lucide-react";
 import { Can } from "@/components/ability/can";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +17,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAbility } from "@/hooks/use-ability";
 import { type IntegrationJobStatus, useIntegrationStatus } from "@/hooks/use-integration-status";
 import { formatDateTime } from "@/lib/utils";
 
@@ -41,15 +43,32 @@ const ENTITY_TYPE_LABELS: Record<string, string> = {
 };
 
 function IntegrationStatusPage() {
-	const { data, isLoading, refetch, isFetching } = useIntegrationStatus();
+	const { hasPermission } = useAbility();
+	const canViewIntegration = hasPermission(Permission.SYSTEM_INTEGRATION);
+	const { data, isLoading, refetch, isFetching } = useIntegrationStatus({
+		enabled: canViewIntegration,
+	});
+
+	const header = (
+		<div>
+			<h1 className="text-2xl font-bold tracking-tight">集成状态监控</h1>
+			<p className="text-muted-foreground">查看各外部系统集成同步状态</p>
+		</div>
+	);
+
+	if (!canViewIntegration) {
+		return (
+			<div className="flex flex-col gap-4">
+				{header}
+				<NoAccessCard description="需要系统集成权限才能查看同步状态。" />
+			</div>
+		);
+	}
 
 	return (
 		<div className="space-y-6">
 			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="text-2xl font-bold tracking-tight">集成状态监控</h1>
-					<p className="text-muted-foreground">查看各外部系统集成同步状态</p>
-				</div>
+				{header}
 				<Can permissions={Permission.SYSTEM_INTEGRATION}>
 					<Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
 						{isFetching ? (

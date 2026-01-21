@@ -47,6 +47,7 @@ export const PRESET_ROLES: PresetRole[] = [
 			Permission.RUN_CREATE,
 			Permission.ROUTE_READ,
 			Permission.TRACE_READ,
+			Permission.READINESS_VIEW,
 		],
 		dataScope: "ALL" as DataScope,
 		isSystem: true,

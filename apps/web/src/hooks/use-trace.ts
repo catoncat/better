@@ -7,10 +7,14 @@ type TraceData = NonNullable<TraceResponse>;
 type UnwrapEnvelope<T> = T extends { data: infer D } ? D : T;
 export type UnitTrace = UnwrapEnvelope<TraceData>;
 
-export function useUnitTrace(sn: string, mode: "run" | "latest" = "run") {
+export function useUnitTrace(
+	sn: string,
+	mode: "run" | "latest" = "run",
+	options?: { enabled?: boolean },
+) {
 	return useQuery({
 		queryKey: ["mes", "trace", sn, mode],
-		enabled: Boolean(sn),
+		enabled: Boolean(sn) && (options?.enabled ?? true),
 		queryFn: async () => {
 			const response = await client.api.trace.units({ sn }).get({ query: { mode } });
 			return unwrap(response);

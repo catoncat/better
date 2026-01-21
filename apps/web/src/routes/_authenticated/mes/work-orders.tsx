@@ -3,8 +3,14 @@ import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router"
 import { Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
-import { DataListLayout, type SystemPreset } from "@/components/data-list";
+import { NoAccessCard } from "@/components/ability/no-access-card";
+import {
+	DataListLayout,
+	type FilterFieldDefinition,
+	type SystemPreset,
+} from "@/components/data-list";
 import { Button } from "@/components/ui/button";
+import { useAbility } from "@/hooks/use-ability";
 import { useQueryPresets } from "@/hooks/use-query-presets";
 import { useRouteList } from "@/hooks/use-routes";
 import { useCreateRun } from "@/hooks/use-runs";
@@ -91,6 +97,9 @@ function WorkOrdersPage() {
 	const navigate = useNavigate();
 	const searchParams = useSearch({ from: "/_authenticated/mes/work-orders" });
 	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
+	const { hasPermission } = useAbility();
+	const canViewWorkOrders = hasPermission(Permission.WO_READ);
+	const canViewRoutes = hasPermission(Permission.ROUTE_READ);
 
 	const [receiveDialogOpen, setReceiveDialogOpen] = useState(false);
 	const [runDialogOpen, setRunDialogOpen] = useState(false);
@@ -228,7 +237,10 @@ function WorkOrdersPage() {
 	);
 
 	// Fetch route list for filter options
-	const { data: routeListData } = useRouteList({ page: 1, pageSize: 100 });
+	const { data: routeListData } = useRouteList(
+		{ page: 1, pageSize: 100 },
+		{ enabled: canViewRoutes },
+	);
 	const routeOptions = useMemo(() => {
 		if (!routeListData?.items) return [];
 		return routeListData.items.map((r) => ({
@@ -237,19 +249,60 @@ function WorkOrdersPage() {
 		}));
 	}, [routeListData]);
 
-	const { data, isLoading, error } = useWorkOrderList({
-		page: pageIndex + 1,
-		pageSize,
-		search: filters.search || undefined,
-		status: filters.status.length > 0 ? filters.status.join(",") : undefined,
-		erpPickStatus:
-			filters.erpPickStatus && filters.erpPickStatus.length > 0
-				? filters.erpPickStatus.join(",")
-				: undefined,
-		routingId:
-			filters.routingId && filters.routingId.length > 0 ? filters.routingId.join(",") : undefined,
-		sort: searchParams.sort,
-	});
+	const { data, isLoading, error } = useWorkOrderList(
+		{
+			page: pageIndex + 1,
+			pageSize,
+			search: filters.search || undefined,
+			status: filters.status.length > 0 ? filters.status.join(",") : undefined,
+			erpPickStatus:
+				filters.erpPickStatus && filters.erpPickStatus.length > 0
+					? filters.erpPickStatus.join(",")
+					: undefined,
+			routingId:
+				filters.routingId && filters.routingId.length > 0 ? filters.routingId.join(",") : undefined,
+			sort: searchParams.sort,
+		},
+		{ enabled: canViewWorkOrders },
+	);
+
+	const filterFields = useMemo(() => {
+		const fields: FilterFieldDefinition[] = [
+			{
+				key: "search",
+				type: "search",
+				placeholder: "搜索工单号或产品编码...",
+			},
+			{
+				key: "status",
+				type: "multiSelect",
+				label: "状态",
+				options: [
+					{ label: "已接收", value: "RECEIVED" },
+					{ label: "已发布", value: "RELEASED" },
+					{ label: "进行中", value: "IN_PROGRESS" },
+					{ label: "已完成", value: "COMPLETED" },
+				],
+			},
+			{
+				key: "erpPickStatus",
+				type: "multiSelect",
+				label: "领料状态",
+				options: PICK_STATUS_OPTIONS,
+			},
+		];
+
+		if (canViewRoutes) {
+			fields.push({
+				key: "routingId",
+				type: "multiSelect",
+				label: "路由工艺",
+				options: routeOptions,
+			});
+		}
+
+		return fields;
+	}, [canViewRoutes, routeOptions]);
 
 	const handlePaginationChange = useCallback(
 		(next: { pageIndex: number; pageSize: number }) => {
@@ -358,6 +411,24 @@ function WorkOrdersPage() {
 		}
 	};
 
+	const header = (
+		<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+			<div>
+				<h1 className="text-2xl font-bold tracking-tight">工单管理</h1>
+				<p className="text-muted-foreground">管理生产工单的接收与发布</p>
+			</div>
+		</div>
+	);
+
+	if (!canViewWorkOrders) {
+		return (
+			<div className="flex flex-col gap-4">
+				{header}
+				<NoAccessCard description="需要工单查看权限才能访问该页面。" />
+			</div>
+		);
+	}
+
 	return (
 		<DataListLayout
 			mode="server"
@@ -399,14 +470,7 @@ function WorkOrdersPage() {
 				),
 			}}
 			viewPreferencesKey={viewPreferencesKey}
-			header={
-				<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-					<div>
-						<h1 className="text-2xl font-bold tracking-tight">工单管理</h1>
-						<p className="text-muted-foreground">管理生产工单的接收与发布</p>
-					</div>
-				</div>
-			}
+			header={header}
 			queryPresetBarProps={{
 				systemPresets: WORK_ORDER_SYSTEM_PRESETS,
 				userPresets,
@@ -417,36 +481,7 @@ function WorkOrdersPage() {
 				onRenamePreset: renamePreset,
 			}}
 			filterToolbarProps={{
-				fields: [
-					{
-						key: "search",
-						type: "search",
-						placeholder: "搜索工单号或产品编码...",
-					},
-					{
-						key: "status",
-						type: "multiSelect",
-						label: "状态",
-						options: [
-							{ label: "已接收", value: "RECEIVED" },
-							{ label: "已发布", value: "RELEASED" },
-							{ label: "进行中", value: "IN_PROGRESS" },
-							{ label: "已完成", value: "COMPLETED" },
-						],
-					},
-					{
-						key: "erpPickStatus",
-						type: "multiSelect",
-						label: "领料状态",
-						options: PICK_STATUS_OPTIONS,
-					},
-					{
-						key: "routingId",
-						type: "multiSelect",
-						label: "路由工艺",
-						options: routeOptions,
-					},
-				],
+				fields: filterFields,
 				filters,
 				onFilterChange: setFilter,
 				onFiltersChange: setFilters,

@@ -22,10 +22,10 @@ type ExecutionConfigUpdateInput = Parameters<
 >[0];
 export type { ExecutionConfigUpdateInput };
 
-export function useExecutionConfigs(routingCode: string) {
+export function useExecutionConfigs(routingCode: string, options?: { enabled?: boolean }) {
 	return useQuery({
 		queryKey: ["mes", "execution-configs", routingCode],
-		enabled: Boolean(routingCode),
+		enabled: Boolean(routingCode) && (options?.enabled ?? true),
 		queryFn: async () => {
 			const response = await client.api.routes({ routingCode })["execution-config"].get();
 			const data = unwrap(response);

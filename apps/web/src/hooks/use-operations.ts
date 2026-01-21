@@ -25,9 +25,13 @@ interface OperationListParams {
 	sortDir?: "asc" | "desc";
 }
 
-export function useOperationList(params: OperationListParams = {}) {
+export function useOperationList(
+	params: OperationListParams = {},
+	options?: { enabled?: boolean },
+) {
 	return useQuery({
 		queryKey: ["mes", "operations", params],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const { data, error } = await client.api.operations.get({
 				query: {

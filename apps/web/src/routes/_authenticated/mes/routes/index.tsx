@@ -1,6 +1,9 @@
+import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
+import { useAbility } from "@/hooks/use-ability";
 import { useQueryPresets } from "@/hooks/use-query-presets";
 import { type RouteSummary, useRouteList } from "@/hooks/use-routes";
 import { RouteCard } from "../-components/route-card";
@@ -33,6 +36,8 @@ function RouteListPage() {
 	const navigate = useNavigate();
 	const searchParams = useSearch({ from: "/_authenticated/mes/routes/" });
 	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
+	const { hasPermission } = useAbility();
+	const canViewRoutes = hasPermission(Permission.ROUTE_READ);
 
 	// Parse filters from URL
 	const filters: RouteFilters = useMemo(
@@ -144,12 +149,15 @@ function RouteListPage() {
 		[setFilters, applyPreset],
 	);
 
-	const { data, isLoading, error } = useRouteList({
-		page: pageIndex + 1,
-		pageSize,
-		search: filters.search || undefined,
-		sourceSystem: filters.sourceSystem === "all" ? undefined : filters.sourceSystem,
-	});
+	const { data, isLoading, error } = useRouteList(
+		{
+			page: pageIndex + 1,
+			pageSize,
+			search: filters.search || undefined,
+			sourceSystem: filters.sourceSystem === "all" ? undefined : filters.sourceSystem,
+		},
+		{ enabled: canViewRoutes },
+	);
 
 	const handlePaginationChange = useCallback(
 		(next: { pageIndex: number; pageSize: number }) => {
@@ -163,6 +171,22 @@ function RouteListPage() {
 		},
 		[navigate, searchParams],
 	);
+
+	const header = (
+		<div className="flex flex-col gap-2">
+			<h1 className="text-2xl font-bold tracking-tight">路由管理</h1>
+			<p className="text-muted-foreground">查看工艺路线、来源与步骤信息。</p>
+		</div>
+	);
+
+	if (!canViewRoutes) {
+		return (
+			<div className="flex flex-col gap-4">
+				{header}
+				<NoAccessCard description="需要路由查看权限才能查看路由列表。" />
+			</div>
+		);
+	}
 
 	return (
 		<DataListLayout
@@ -182,12 +206,7 @@ function RouteListPage() {
 					</div>
 				) : null
 			}
-			header={
-				<div className="flex flex-col gap-2">
-					<h1 className="text-2xl font-bold tracking-tight">路由管理</h1>
-					<p className="text-muted-foreground">查看工艺路线、来源与步骤信息。</p>
-				</div>
-			}
+			header={header}
 			queryPresetBarProps={{
 				systemPresets,
 				userPresets,

@@ -1,10 +1,13 @@
+import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useAbility } from "@/hooks/use-ability";
 import { type MaterialListItem, useMaterialList } from "@/hooks/use-materials";
 import { useQueryPresets } from "@/hooks/use-query-presets";
 import { formatDateTime } from "@/lib/utils";
@@ -53,6 +56,8 @@ function MaterialsPage() {
 	const navigate = useNavigate();
 	const searchParams = useSearch({ from: "/_authenticated/mes/materials/" });
 	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
+	const { hasPermission } = useAbility();
+	const canViewMaterials = hasPermission(Permission.ROUTE_READ);
 
 	const filters: MaterialFilters = useMemo(
 		() => ({
@@ -189,18 +194,21 @@ function MaterialsPage() {
 		[applyPreset, setFilters],
 	);
 
-	const { data, isLoading, error } = useMaterialList({
-		page: pageIndex + 1,
-		pageSize,
-		search: filters.search || undefined,
-		category: filters.category || undefined,
-		unit: filters.unit || undefined,
-		model: filters.model || undefined,
-		synced: filters.synced,
-		updatedFrom: filters.updatedFrom,
-		updatedTo: filters.updatedTo,
-		sort: searchParams.sort,
-	});
+	const { data, isLoading, error } = useMaterialList(
+		{
+			page: pageIndex + 1,
+			pageSize,
+			search: filters.search || undefined,
+			category: filters.category || undefined,
+			unit: filters.unit || undefined,
+			model: filters.model || undefined,
+			synced: filters.synced,
+			updatedFrom: filters.updatedFrom,
+			updatedTo: filters.updatedTo,
+			sort: searchParams.sort,
+		},
+		{ enabled: canViewMaterials },
+	);
 
 	const initialSorting = useMemo(() => [{ id: "code", desc: false }], []);
 
@@ -259,6 +267,22 @@ function MaterialsPage() {
 		];
 	}, []);
 
+	const header = (
+		<div className="flex flex-col gap-2">
+			<h1 className="text-2xl font-bold tracking-tight">物料主数据</h1>
+			<p className="text-muted-foreground">查看 ERP 同步的物料数据（含同步时间）。</p>
+		</div>
+	);
+
+	if (!canViewMaterials) {
+		return (
+			<div className="flex flex-col gap-4">
+				{header}
+				<NoAccessCard description="需要路由查看权限才能查看物料主数据。" />
+			</div>
+		);
+	}
+
 	return (
 		<DataListLayout
 			mode="server"
@@ -279,12 +303,7 @@ function MaterialsPage() {
 					</div>
 				) : null
 			}
-			header={
-				<div className="flex flex-col gap-2">
-					<h1 className="text-2xl font-bold tracking-tight">物料主数据</h1>
-					<p className="text-muted-foreground">查看 ERP 同步的物料数据（含同步时间）。</p>
-				</div>
-			}
+			header={header}
 			queryPresetBarProps={{
 				systemPresets,
 				userPresets,

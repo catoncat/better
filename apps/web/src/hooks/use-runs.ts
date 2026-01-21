@@ -32,7 +32,7 @@ interface UseRunListParams {
 	lineCode?: string;
 }
 
-export function useRunList(params: UseRunListParams) {
+export function useRunList(params: UseRunListParams, options?: { enabled?: boolean }) {
 	const page = params.page ?? 1;
 	const pageSize = params.pageSize ?? 30;
 	const status = Array.isArray(params.status) ? params.status.join(",") : (params.status ?? "");
@@ -43,6 +43,7 @@ export function useRunList(params: UseRunListParams) {
 
 	return useQuery<RunList>({
 		queryKey: ["mes", "runs", page, pageSize, search, status, sort, woNo, lineCode],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const { data, error } = await client.api.runs.get({
 				query: {
@@ -71,10 +72,10 @@ export function useRunList(params: UseRunListParams) {
 	});
 }
 
-export function useRunDetail(runNo: string) {
+export function useRunDetail(runNo: string, options?: { enabled?: boolean }) {
 	return useQuery<RunDetail>({
 		queryKey: ["mes", "run-detail", runNo],
-		enabled: Boolean(runNo),
+		enabled: Boolean(runNo) && (options?.enabled ?? true),
 		queryFn: async () => {
 			const response = await client.api.runs({ runNo }).get();
 			return unwrap(response);
@@ -83,17 +84,20 @@ export function useRunDetail(runNo: string) {
 	});
 }
 
-export function useRunUnits(params: {
-	runNo: string | undefined;
-	status?: string;
-	stationCode?: string;
-	page?: number;
-	pageSize?: number;
-}) {
+export function useRunUnits(
+	params: {
+		runNo: string | undefined;
+		status?: string;
+		stationCode?: string;
+		page?: number;
+		pageSize?: number;
+	},
+	options?: { enabled?: boolean },
+) {
 	const { runNo, status, stationCode, page = 1, pageSize = 50 } = params;
 	return useQuery<RunUnitList>({
 		queryKey: ["mes", "run-units", runNo, status, stationCode, page, pageSize],
-		enabled: Boolean(runNo),
+		enabled: Boolean(runNo) && (options?.enabled ?? true),
 		queryFn: async () => {
 			if (!runNo) {
 				throw new Error("Run number is required");

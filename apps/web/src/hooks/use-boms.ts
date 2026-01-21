@@ -17,7 +17,7 @@ export interface UseBomParentListParams {
 	sort?: string;
 }
 
-export function useBomParentList(params: UseBomParentListParams) {
+export function useBomParentList(params: UseBomParentListParams, options?: { enabled?: boolean }) {
 	const page = params.page ?? 1;
 	const pageSize = params.pageSize ?? 20;
 	const search = params.search ?? "";
@@ -40,6 +40,7 @@ export function useBomParentList(params: UseBomParentListParams) {
 			updatedTo,
 			sort,
 		],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await bomsApi.get({
 				query: {

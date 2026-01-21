@@ -9,6 +9,7 @@ interface LineSelectProps {
 	valueKey?: "code" | "id";
 	processType?: LineSummary["processType"];
 	disabled?: boolean;
+	enabled?: boolean;
 	placeholder?: string;
 	className?: string;
 }
@@ -19,10 +20,11 @@ export function LineSelect({
 	valueKey = "code",
 	processType,
 	disabled,
+	enabled,
 	placeholder = "选择线体",
 	className,
 }: LineSelectProps) {
-	const { data, isLoading } = useLines();
+	const { data, isLoading } = useLines({ enabled: enabled ?? !disabled });
 
 	const filteredItems = React.useMemo(() => {
 		if (!data?.items) return [];

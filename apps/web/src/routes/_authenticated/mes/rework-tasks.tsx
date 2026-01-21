@@ -1,6 +1,8 @@
+import { Permission } from "@better-app/db/permissions";
 import { createFileRoute } from "@tanstack/react-router";
 import { CheckCircle2, ChevronLeft, ChevronRight, Loader2, RotateCcw } from "lucide-react";
 import { useState } from "react";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +32,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { useAbility } from "@/hooks/use-ability";
 import { type ReworkQuery, useCompleteRework, useReworkTaskList } from "@/hooks/use-defects";
 import { REWORK_TASK_STATUS_MAP } from "@/lib/constants";
 import { formatDateTime } from "@/lib/utils";
@@ -48,7 +51,9 @@ function ReworkTasksPage() {
 	const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
 	const [completeRemark, setCompleteRemark] = useState("");
 
-	const { data, isLoading, refetch } = useReworkTaskList(query);
+	const { hasPermission } = useAbility();
+	const canDispose = hasPermission(Permission.QUALITY_DISPOSITION);
+	const { data, isLoading, refetch } = useReworkTaskList(query, { enabled: canDispose });
 	const completeRework = useCompleteRework();
 
 	// Cast to include relations
@@ -93,14 +98,27 @@ function ReworkTasksPage() {
 		);
 	};
 
+	const header = (
+		<div className="flex items-center justify-between">
+			<div>
+				<h1 className="text-2xl font-bold">返工任务</h1>
+				<p className="text-muted-foreground">返工任务跟踪与管理</p>
+			</div>
+		</div>
+	);
+
+	if (!canDispose) {
+		return (
+			<div className="container mx-auto py-6 space-y-6">
+				{header}
+				<NoAccessCard description="需要质量处置权限才能访问该页面。" />
+			</div>
+		);
+	}
+
 	return (
 		<div className="container mx-auto py-6 space-y-6">
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="text-2xl font-bold">返工任务</h1>
-					<p className="text-muted-foreground">返工任务跟踪与管理</p>
-				</div>
-			</div>
+			{header}
 
 			{/* Filters */}
 			<Card>

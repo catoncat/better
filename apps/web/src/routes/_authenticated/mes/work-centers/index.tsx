@@ -1,10 +1,13 @@
+import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useAbility } from "@/hooks/use-ability";
 import { useQueryPresets } from "@/hooks/use-query-presets";
 import { useWorkCenterList, type WorkCenterListItem } from "@/hooks/use-work-centers";
 import { formatDateTime } from "@/lib/utils";
@@ -50,6 +53,8 @@ function WorkCentersPage() {
 	const navigate = useNavigate();
 	const searchParams = useSearch({ from: "/_authenticated/mes/work-centers/" });
 	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
+	const { hasPermission } = useAbility();
+	const canViewWorkCenters = hasPermission(Permission.ROUTE_READ);
 
 	const filters: WorkCenterFilters = useMemo(
 		() => ({
@@ -182,17 +187,20 @@ function WorkCentersPage() {
 		[applyPreset, setFilters],
 	);
 
-	const { data, isLoading, error } = useWorkCenterList({
-		page: pageIndex + 1,
-		pageSize,
-		search: filters.search || undefined,
-		departmentCode: filters.departmentCode || undefined,
-		stationGroupCode: filters.stationGroupCode || undefined,
-		synced: filters.synced,
-		updatedFrom: filters.updatedFrom,
-		updatedTo: filters.updatedTo,
-		sort: searchParams.sort,
-	});
+	const { data, isLoading, error } = useWorkCenterList(
+		{
+			page: pageIndex + 1,
+			pageSize,
+			search: filters.search || undefined,
+			departmentCode: filters.departmentCode || undefined,
+			stationGroupCode: filters.stationGroupCode || undefined,
+			synced: filters.synced,
+			updatedFrom: filters.updatedFrom,
+			updatedTo: filters.updatedTo,
+			sort: searchParams.sort,
+		},
+		{ enabled: canViewWorkCenters },
+	);
 
 	const handlePaginationChange = useCallback(
 		(next: { pageIndex: number; pageSize: number }) => {
@@ -266,6 +274,22 @@ function WorkCentersPage() {
 		];
 	}, []);
 
+	const header = (
+		<div className="flex flex-col gap-2">
+			<h1 className="text-2xl font-bold tracking-tight">工作中心</h1>
+			<p className="text-muted-foreground">查看工作中心与产线/工位组映射关系。</p>
+		</div>
+	);
+
+	if (!canViewWorkCenters) {
+		return (
+			<div className="flex flex-col gap-4">
+				{header}
+				<NoAccessCard description="需要路由查看权限才能查看工作中心。" />
+			</div>
+		);
+	}
+
 	return (
 		<DataListLayout
 			mode="server"
@@ -286,12 +310,7 @@ function WorkCentersPage() {
 					</div>
 				) : null
 			}
-			header={
-				<div className="flex flex-col gap-2">
-					<h1 className="text-2xl font-bold tracking-tight">工作中心</h1>
-					<p className="text-muted-foreground">查看工作中心与产线/工位组映射关系。</p>
-				</div>
-			}
+			header={header}
 			queryPresetBarProps={{
 				systemPresets,
 				userPresets,

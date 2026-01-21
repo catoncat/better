@@ -86,8 +86,10 @@ const actionsColumn: ColumnDef<Run> = {
 	},
 };
 
-export const runColumns: ColumnDef<Run>[] = [
-	selectionColumn,
-	...createColumnsFromFieldMeta(runFieldMeta),
-	actionsColumn,
-];
+export function getRunColumns(canBatchAuthorize: boolean): ColumnDef<Run>[] {
+	return [
+		...(canBatchAuthorize ? [selectionColumn] : []),
+		...createColumnsFromFieldMeta(runFieldMeta),
+		actionsColumn,
+	];
+}

@@ -5,7 +5,12 @@ import { Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Can } from "@/components/ability/can";
-import { DataListLayout, type SystemPreset } from "@/components/data-list";
+import { NoAccessCard } from "@/components/ability/no-access-card";
+import {
+	DataListLayout,
+	type FilterFieldDefinition,
+	type SystemPreset,
+} from "@/components/data-list";
 import { LineSelect } from "@/components/select/line-select";
 import { Button } from "@/components/ui/button";
 import { useAbility } from "@/hooks/use-ability";
@@ -14,7 +19,7 @@ import { type Run, useAuthorizeRun, useRunList } from "@/hooks/use-runs";
 import { RUN_STATUS_MAP } from "@/lib/constants";
 import { client } from "@/lib/eden";
 import { RunCard } from "../-components/run-card";
-import { runColumns } from "../-components/run-columns";
+import { getRunColumns } from "../-components/run-columns";
 
 interface RunFilters {
 	search: string;
@@ -69,6 +74,8 @@ function RunsPage() {
 	const queryClient = useQueryClient();
 	const { hasPermission } = useAbility();
 	const [isBatchAuthorizing, setIsBatchAuthorizing] = useState(false);
+	const canViewRuns = hasPermission(Permission.RUN_READ);
+	const canViewLines = hasPermission(Permission.RUN_READ) && hasPermission(Permission.RUN_CREATE);
 	const canBatchAuthorize = hasPermission(Permission.RUN_AUTHORIZE);
 
 	// Parse filters from URL
@@ -191,15 +198,56 @@ function RunsPage() {
 		[setFilters, applyPreset],
 	);
 
-	const { data, isLoading } = useRunList({
-		page: pageIndex + 1,
-		pageSize,
-		search: filters.search || undefined,
-		status: filters.status.length > 0 ? filters.status.join(",") : undefined,
-		sort: searchParams.sort,
-		woNo: searchParams.woNo,
-		lineCode: filters.lineCode,
-	});
+	const { data, isLoading } = useRunList(
+		{
+			page: pageIndex + 1,
+			pageSize,
+			search: filters.search || undefined,
+			status: filters.status.length > 0 ? filters.status.join(",") : undefined,
+			sort: searchParams.sort,
+			woNo: searchParams.woNo,
+			lineCode: filters.lineCode,
+		},
+		{ enabled: canViewRuns },
+	);
+
+	const filterFields = useMemo(() => {
+		const fields: FilterFieldDefinition[] = [
+			{
+				key: "search",
+				type: "search",
+				placeholder: "搜索批次号或工单号...",
+			},
+			{
+				key: "status",
+				type: "multiSelect",
+				label: "状态",
+				options: Object.entries(RUN_STATUS_MAP).map(([value, label]) => ({
+					label,
+					value,
+				})),
+			},
+		];
+
+		if (canViewLines) {
+			fields.push({
+				key: "lineCode",
+				type: "custom",
+				label: "线体",
+				render: (value, onChange) => (
+					<LineSelect
+						value={(value as string) || ""}
+						onValueChange={(nextValue) => onChange(nextValue || undefined)}
+						placeholder="选择线体"
+						className="w-[200px]"
+						enabled={canViewLines}
+					/>
+				),
+			});
+		}
+
+		return fields;
+	}, [canViewLines]);
 
 	const [selectedRunNos, setSelectedRunNos] = useState<Set<string>>(new Set());
 	const visibleRunNos = useMemo(
@@ -322,11 +370,41 @@ function RunsPage() {
 		}
 	}, [isBatchAuthorizing, queryClient, selectedRunNos]);
 
+	const columns = useMemo(() => getRunColumns(canBatchAuthorize), [canBatchAuthorize]);
+
+	const header = (
+		<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+			<div>
+				<h1 className="text-2xl font-bold tracking-tight">批次管理</h1>
+				<p className="text-muted-foreground">创建生产批次并进行授权</p>
+			</div>
+			<Can permissions={Permission.RUN_CREATE}>
+				<Button
+					onClick={() => {
+						navigate({ to: "/mes/work-orders" });
+					}}
+				>
+					<Plus className="mr-2 h-4 w-4" />
+					创建批次
+				</Button>
+			</Can>
+		</div>
+	);
+
+	if (!canViewRuns) {
+		return (
+			<div className="flex flex-col gap-4">
+				{header}
+				<NoAccessCard description="需要批次查看权限才能访问该页面。" />
+			</div>
+		);
+	}
+
 	return (
 		<DataListLayout
 			mode="server"
 			data={data?.items || []}
-			columns={runColumns}
+			columns={columns}
 			initialSorting={INITIAL_SORTING}
 			onSortingChange={handleSortingChange}
 			pageCount={data?.total ? Math.ceil(data.total / pageSize) : 1}
@@ -342,24 +420,7 @@ function RunsPage() {
 				onSelectRun: handleSelectRun,
 				onSelectAll: handleSelectAll,
 			}}
-			header={
-				<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-					<div>
-						<h1 className="text-2xl font-bold tracking-tight">批次管理</h1>
-						<p className="text-muted-foreground">创建生产批次并进行授权</p>
-					</div>
-					<Can permissions={Permission.RUN_CREATE}>
-						<Button
-							onClick={() => {
-								navigate({ to: "/mes/work-orders" });
-							}}
-						>
-							<Plus className="mr-2 h-4 w-4" />
-							创建批次
-						</Button>
-					</Can>
-				</div>
-			}
+			header={header}
 			queryPresetBarProps={{
 				systemPresets: RUN_SYSTEM_PRESETS,
 				userPresets,
@@ -370,52 +431,24 @@ function RunsPage() {
 				onRenamePreset: renamePreset,
 			}}
 			filterToolbarProps={{
-				fields: [
-					{
-						key: "search",
-						type: "search",
-						placeholder: "搜索批次号或工单号...",
-					},
-					{
-						key: "status",
-						type: "multiSelect",
-						label: "状态",
-						options: Object.entries(RUN_STATUS_MAP).map(([value, label]) => ({
-							label,
-							value,
-						})),
-					},
-					{
-						key: "lineCode",
-						type: "custom",
-						label: "线体",
-						render: (value, onChange) => (
-							<LineSelect
-								value={(value as string) || ""}
-								onValueChange={(nextValue) => onChange(nextValue || undefined)}
-								placeholder="选择线体"
-								className="w-[200px]"
-							/>
-						),
-					},
-				],
+				fields: filterFields,
 				filters,
 				onFilterChange: setFilter,
 				onFiltersChange: setFilters,
 				onReset: resetFilters,
 				isFiltered,
 				viewPreferencesKey,
-				actions: (
+				actions: canBatchAuthorize ? (
 					<Button
 						variant="secondary"
 						size="sm"
-						disabled={!canBatchAuthorize || selectedRunNos.size === 0 || isBatchAuthorizing}
+						disabled={selectedRunNos.size === 0 || isBatchAuthorizing}
 						onClick={handleBatchAuthorize}
 					>
 						批量授权
 						{selectedRunNos.size > 0 ? ` (${selectedRunNos.size})` : ""}
 					</Button>
-				),
+				) : null,
 			}}
 			dataListViewProps={{
 				viewPreferencesKey,

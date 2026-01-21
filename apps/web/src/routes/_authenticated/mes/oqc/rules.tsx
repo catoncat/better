@@ -4,6 +4,7 @@ import { Loader2, MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Can } from "@/components/ability/can";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -22,6 +23,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useAbility } from "@/hooks/use-ability";
 import { type OqcSamplingRule, useDeleteOqcRule, useOqcRuleList } from "@/hooks/use-oqc-rules";
 import { OQC_SAMPLING_TYPE_MAP } from "@/lib/constants";
 import { RuleDialog } from "./-components/rule-dialog";
@@ -43,6 +45,8 @@ function OqcRulesPage() {
 	const navigate = Route.useNavigate();
 	const [localSearch, setLocalSearch] = useState(search.productCode ?? "");
 	const [debouncedSearch, setDebouncedSearch] = useState(localSearch);
+	const { hasPermission } = useAbility();
+	const canViewOqc = hasPermission(Permission.QUALITY_OQC);
 
 	useEffect(() => {
 		const timer = setTimeout(() => {
@@ -51,10 +55,13 @@ function OqcRulesPage() {
 		return () => clearTimeout(timer);
 	}, [localSearch]);
 
-	const { data, isLoading, refetch } = useOqcRuleList({
-		...search,
-		productCode: debouncedSearch || undefined,
-	});
+	const { data, isLoading, refetch } = useOqcRuleList(
+		{
+			...search,
+			productCode: debouncedSearch || undefined,
+		},
+		{ enabled: canViewOqc },
+	);
 
 	const deleteRule = useDeleteOqcRule();
 	const [dialogOpen, setDialogOpen] = useState(false);
@@ -84,20 +91,33 @@ function OqcRulesPage() {
 		}
 	};
 
+	const header = (
+		<div className="flex items-center justify-between">
+			<div>
+				<h1 className="text-2xl font-bold tracking-tight">OQC 抽检规则</h1>
+				<p className="text-muted-foreground">配置出货检验的自动抽样策略</p>
+			</div>
+			<Can permissions={Permission.QUALITY_OQC}>
+				<Button onClick={handleCreate}>
+					<Plus className="mr-2 h-4 w-4" />
+					新建规则
+				</Button>
+			</Can>
+		</div>
+	);
+
+	if (!canViewOqc) {
+		return (
+			<div className="space-y-6">
+				{header}
+				<NoAccessCard description="需要出货检验权限才能访问该页面。" />
+			</div>
+		);
+	}
+
 	return (
 		<div className="space-y-6">
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="text-2xl font-bold tracking-tight">OQC 抽检规则</h1>
-					<p className="text-muted-foreground">配置出货检验的自动抽样策略</p>
-				</div>
-				<Can permissions={Permission.QUALITY_OQC}>
-					<Button onClick={handleCreate}>
-						<Plus className="mr-2 h-4 w-4" />
-						新建规则
-					</Button>
-				</Can>
-			</div>
+			{header}
 
 			<Card>
 				<CardHeader className="pb-3">

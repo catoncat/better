@@ -1,6 +1,8 @@
+import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +23,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useAbility } from "@/hooks/use-ability";
 import { useUnitTrace } from "@/hooks/use-trace";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { UNIT_STATUS_MAP } from "@/lib/constants";
@@ -39,8 +42,10 @@ function TracePage() {
 	const [sn, setSn] = useState("");
 	const [searchSn, setSearchSn] = useState("");
 	const [mode, setMode] = useState<"run" | "latest">("run");
+	const { hasPermission } = useAbility();
+	const canTraceRead = hasPermission(Permission.TRACE_READ);
 
-	const { data, isLoading, error } = useUnitTrace(searchSn, mode);
+	const { data, isLoading, error } = useUnitTrace(searchSn, mode, { enabled: canTraceRead });
 
 	useEffect(() => {
 		if (searchParams.sn && searchParams.sn !== searchSn) {
@@ -81,12 +86,25 @@ function TracePage() {
 		return <Badge variant="outline">{result}</Badge>;
 	};
 
+	const header = (
+		<div className="flex flex-col gap-2">
+			<h1 className="text-3xl font-bold tracking-tight">追溯查询</h1>
+			<p className="text-muted-foreground">输入产品序列号查询完整生产历史。</p>
+		</div>
+	);
+
+	if (!canTraceRead) {
+		return (
+			<div className="space-y-6">
+				{header}
+				<NoAccessCard description="需要追溯查看权限才能访问该页面。" />
+			</div>
+		);
+	}
+
 	return (
 		<div className="space-y-6">
-			<div className="flex flex-col gap-2">
-				<h1 className="text-3xl font-bold tracking-tight">追溯查询</h1>
-				<p className="text-muted-foreground">输入产品序列号查询完整生产历史。</p>
-			</div>
+			{header}
 
 			<Card>
 				<CardHeader>

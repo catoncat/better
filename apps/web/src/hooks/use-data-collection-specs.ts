@@ -31,9 +31,13 @@ interface DataCollectionSpecListParams {
 	sortDir?: "asc" | "desc";
 }
 
-export function useDataCollectionSpecList(params: DataCollectionSpecListParams = {}) {
+export function useDataCollectionSpecList(
+	params: DataCollectionSpecListParams = {},
+	options?: { enabled?: boolean },
+) {
 	return useQuery({
 		queryKey: ["mes", "data-collection-specs", params],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const { data, error } = await client.api["data-collection-specs"].get({
 				query: {
@@ -54,7 +58,7 @@ export function useDataCollectionSpecList(params: DataCollectionSpecListParams =
 	});
 }
 
-export function useDataCollectionSpec(specId: string | undefined) {
+export function useDataCollectionSpec(specId: string | undefined, options?: { enabled?: boolean }) {
 	return useQuery({
 		queryKey: ["mes", "data-collection-specs", specId],
 		queryFn: async () => {
@@ -65,7 +69,7 @@ export function useDataCollectionSpec(specId: string | undefined) {
 			}
 			return data.data;
 		},
-		enabled: !!specId,
+		enabled: Boolean(specId) && (options?.enabled ?? true),
 	});
 }
 

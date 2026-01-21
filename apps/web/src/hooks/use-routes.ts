@@ -21,7 +21,7 @@ interface UseRouteListParams {
 	sourceSystem?: string;
 }
 
-export function useRouteList(params: UseRouteListParams) {
+export function useRouteList(params: UseRouteListParams, options?: { enabled?: boolean }) {
 	const page = params.page ?? 1;
 	const pageSize = params.pageSize ?? 30;
 	const search = params.search ?? "";
@@ -29,6 +29,7 @@ export function useRouteList(params: UseRouteListParams) {
 
 	return useQuery<RouteList>({
 		queryKey: ["mes", "routes", page, pageSize, search, sourceSystem],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await routesApi.get({
 				query: {
@@ -45,9 +46,10 @@ export function useRouteList(params: UseRouteListParams) {
 	});
 }
 
-export function useRouteSearch(search: string) {
+export function useRouteSearch(search: string, options?: { enabled?: boolean }) {
 	return useQuery<RouteList>({
 		queryKey: ["mes", "routes-search", search],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await routesApi.get({
 				query: {
@@ -62,10 +64,10 @@ export function useRouteSearch(search: string) {
 	});
 }
 
-export function useRouteDetail(routingCode: string) {
+export function useRouteDetail(routingCode: string, options?: { enabled?: boolean }) {
 	return useQuery<RouteDetail>({
 		queryKey: ["mes", "route-detail", routingCode],
-		enabled: Boolean(routingCode),
+		enabled: Boolean(routingCode) && (options?.enabled ?? true),
 		queryFn: async () => {
 			const response = await client.api.routes({ routingCode }).get();
 			return unwrap(response);

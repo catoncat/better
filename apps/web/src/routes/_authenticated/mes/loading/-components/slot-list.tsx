@@ -17,11 +17,14 @@ import { useLoadingExpectations, useUnlockSlot } from "@/hooks/use-loading";
 
 interface SlotListProps {
 	runNo: string;
+	enabled?: boolean;
+	canUnlock?: boolean;
 }
 
-export function SlotList({ runNo }: SlotListProps) {
-	const { data: expectations } = useLoadingExpectations(runNo);
+export function SlotList({ runNo, enabled, canUnlock }: SlotListProps) {
+	const { data: expectations } = useLoadingExpectations(runNo, { enabled });
 	const unlockSlot = useUnlockSlot();
+	const allowUnlock = Boolean(canUnlock);
 
 	const sortedItems = useMemo(() => {
 		if (!expectations) return [];
@@ -83,7 +86,7 @@ export function SlotList({ runNo }: SlotListProps) {
 									)}
 								</TableCell>
 								<TableCell>
-									{item.isLocked ? (
+									{item.isLocked && allowUnlock ? (
 										<TooltipProvider>
 											<Tooltip>
 												<TooltipTrigger asChild>

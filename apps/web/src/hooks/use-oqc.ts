@@ -27,9 +27,10 @@ type MrbDecisionInput = Parameters<ReturnType<typeof client.api.runs>["mrb-decis
 /**
  * List OQC inspections with filters
  */
-export function useOqcList(query: OqcQuery) {
+export function useOqcList(query: OqcQuery, options?: { enabled?: boolean }) {
 	return useQuery<OqcListData>({
 		queryKey: ["mes", "oqc", "list", query],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await client.api.oqc.get({ query });
 			return unwrap(response);
@@ -42,10 +43,10 @@ export function useOqcList(query: OqcQuery) {
 /**
  * Get OQC by ID
  */
-export function useOqcDetail(oqcId: string | undefined) {
+export function useOqcDetail(oqcId: string | undefined, options?: { enabled?: boolean }) {
 	return useQuery<OqcDetail | null>({
 		queryKey: ["mes", "oqc", "detail", oqcId],
-		enabled: Boolean(oqcId),
+		enabled: Boolean(oqcId) && (options?.enabled ?? true),
 		queryFn: async () => {
 			if (!oqcId) return null;
 			const response = await client.api.oqc({ oqcId }).get();
@@ -58,10 +59,10 @@ export function useOqcDetail(oqcId: string | undefined) {
 /**
  * Get OQC by run number
  */
-export function useOqcByRun(runNo: string | undefined) {
+export function useOqcByRun(runNo: string | undefined, options?: { enabled?: boolean }) {
 	return useQuery<OqcDetail | null>({
 		queryKey: ["mes", "oqc", "run", runNo],
-		enabled: Boolean(runNo),
+		enabled: Boolean(runNo) && (options?.enabled ?? true),
 		queryFn: async () => {
 			if (!runNo) return null;
 			const response = await client.api.oqc.run({ runNo }).get();

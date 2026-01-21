@@ -46,13 +46,20 @@ interface MappingDialogProps {
 	onOpenChange: (open: boolean) => void;
 	slots: FeederSlot[];
 	mapping?: SlotMapping | null;
+	canReadRoute?: boolean;
 }
 
-export function MappingDialog({ open, onOpenChange, slots, mapping }: MappingDialogProps) {
+export function MappingDialog({
+	open,
+	onOpenChange,
+	slots,
+	mapping,
+	canReadRoute = true,
+}: MappingDialogProps) {
 	const createMapping = useCreateSlotMapping();
 	const updateMapping = useUpdateSlotMapping();
 	const [routeSearch, setRouteSearch] = useState("");
-	const { data: routeOptions } = useRouteSearch(routeSearch);
+	const { data: routeOptions } = useRouteSearch(routeSearch, { enabled: canReadRoute });
 
 	const isEdit = !!mapping;
 
@@ -187,10 +194,11 @@ export function MappingDialog({ open, onOpenChange, slots, mapping }: MappingDia
 									value={field.state.value}
 									onValueChange={field.handleChange}
 									onOpenChange={(isOpen) => {
-										if (isOpen && !routeOptions) {
+										if (isOpen && canReadRoute && !routeOptions) {
 											setRouteSearch("");
 										}
 									}}
+									disabled={!canReadRoute}
 								>
 									<SelectTrigger>
 										<SelectValue placeholder="所有路由" />

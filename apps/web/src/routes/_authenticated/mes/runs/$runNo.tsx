@@ -18,6 +18,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Can } from "@/components/ability/can";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,7 +82,20 @@ function RunDetailPage() {
 	const { runNo } = Route.useParams();
 	const navigate = useNavigate();
 	const { hasPermission } = useAbility();
-	const { data, isLoading, refetch, isFetching } = useRunDetail(runNo);
+	const canViewRun = hasPermission(Permission.RUN_READ);
+	const canViewReadiness = hasPermission(Permission.READINESS_VIEW);
+	const canCheckReadiness = hasPermission(Permission.READINESS_CHECK);
+	const canOverrideReadiness = hasPermission(Permission.READINESS_OVERRIDE);
+	const canViewFai = hasPermission(Permission.QUALITY_FAI);
+	const canViewOqc = hasPermission(Permission.QUALITY_OQC);
+	const canViewLoading = hasPermission(Permission.LOADING_VIEW);
+	const canConfigLoading = hasPermission(Permission.LOADING_CONFIG);
+	const canViewRoutes = hasPermission(Permission.ROUTE_READ);
+	const canViewIntegration = hasPermission(Permission.SYSTEM_INTEGRATION);
+	const canGenerateUnits = hasPermission(Permission.RUN_AUTHORIZE);
+	const { data, isLoading, refetch, isFetching } = useRunDetail(runNo, {
+		enabled: canViewRun,
+	});
 	const authorizeRun = useAuthorizeRun();
 	const closeRun = useCloseRun();
 	const generateUnits = useGenerateUnits();
@@ -91,21 +105,29 @@ function RunDetailPage() {
 		data: runUnits,
 		isLoading: runUnitsLoading,
 		isFetching: runUnitsFetching,
-	} = useRunUnits({ runNo, page: unitsPage, pageSize: unitsPageSize });
+	} = useRunUnits({ runNo, page: unitsPage, pageSize: unitsPageSize }, { enabled: canViewRun });
 	const {
 		data: readinessData,
 		isLoading: readinessLoading,
 		refetch: refetchReadiness,
-	} = useReadinessLatest(runNo);
+	} = useReadinessLatest(runNo, undefined, { enabled: canViewReadiness });
 
 	// FAI hooks
-	const { data: faiGate, isLoading: faiGateLoading } = useFaiGate(runNo);
-	const { data: existingFai, isLoading: faiLoading, refetch: refetchFai } = useFaiByRun(runNo);
+	const { data: faiGate, isLoading: faiGateLoading } = useFaiGate(runNo, {
+		enabled: canViewFai,
+	});
+	const {
+		data: existingFai,
+		isLoading: faiLoading,
+		refetch: refetchFai,
+	} = useFaiByRun(runNo, { enabled: canViewFai });
 	const createFai = useCreateFai();
 	const startFai = useStartFai();
 
 	// OQC & MRB hooks
-	const { data: oqcDetail, isLoading: oqcLoading } = useOqcByRun(runNo);
+	const { data: oqcDetail, isLoading: oqcLoading } = useOqcByRun(runNo, {
+		enabled: canViewOqc,
+	});
 	const mrbDecision = useMrbDecision();
 
 	const performPrecheck = usePerformPrecheck();
@@ -442,6 +464,25 @@ function RunDetailPage() {
 		}
 	};
 
+	if (!canViewRun) {
+		return (
+			<div className="space-y-4">
+				<div className="flex items-center gap-4">
+					<Button variant="ghost" size="icon" asChild>
+						<Link to="/mes/runs">
+							<ArrowLeft className="h-4 w-4" />
+						</Link>
+					</Button>
+					<div>
+						<h1 className="text-2xl font-bold tracking-tight">批次详情</h1>
+						<p className="text-muted-foreground">批次号：{runNo}</p>
+					</div>
+				</div>
+				<NoAccessCard description="需要批次查看权限才能访问该页面。" />
+			</div>
+		);
+	}
+
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center py-12">
@@ -470,24 +511,30 @@ function RunDetailPage() {
 		data.unitStats.total > 0 ? Math.round((data.unitStats.done / data.unitStats.total) * 100) : 0;
 
 	const isInPrepStatus = data.run.status === "PREP";
-	const canCheckReadiness = hasPermission(Permission.READINESS_CHECK);
-	const canShowReadinessActions = isInPrepStatus && canCheckReadiness;
-	const readinessStatus = readinessData?.status ?? "PENDING";
-	const readinessStageLabel = readinessLoading
-		? "加载中"
-		: readinessStatus === "PASSED"
-			? "已完成"
-			: readinessStatus === "FAILED"
-				? "未通过"
-				: "待开始";
+	const canShowReadinessActions = isInPrepStatus && canViewReadiness && canCheckReadiness;
+	const canWaiveReadiness = canViewReadiness && canOverrideReadiness;
+	const canCreateFai = canViewFai && canShowReadinessActions;
+	const readinessStatus = canViewReadiness ? (readinessData?.status ?? "PENDING") : "UNKNOWN";
+	const readinessStageLabel = !canViewReadiness
+		? "无权限"
+		: readinessLoading
+			? "加载中"
+			: readinessStatus === "PASSED"
+				? "已完成"
+				: readinessStatus === "FAILED"
+					? "未通过"
+					: "待开始";
 	const readinessStageVariant =
 		readinessStatus === "PASSED"
 			? "secondary"
 			: readinessStatus === "FAILED"
 				? "destructive"
 				: "outline";
-	const requiresFai = faiGate?.requiresFai ?? false;
+	const requiresFai = canViewFai ? (faiGate?.requiresFai ?? false) : false;
 	const faiStage = (() => {
+		if (!canViewFai) {
+			return { label: "无权限", variant: "outline" as const };
+		}
 		if (faiGateLoading || faiLoading) {
 			return { label: "加载中", variant: "outline" as const };
 		}
@@ -514,9 +561,12 @@ function RunDetailPage() {
 	const executionStage = ["IN_PROGRESS", "COMPLETED", "CLOSED_REWORK"].includes(data.run.status);
 	const closeoutStage = ["COMPLETED", "CLOSED_REWORK"].includes(data.run.status);
 	const nextAction = (() => {
+		if (!canViewReadiness) return null;
 		if (readinessStatus === "FAILED") return "处理就绪检查失败项";
-		if (readinessStatus !== "PASSED") return "完成就绪检查";
-		if (requiresFai || existingFai) {
+		if (readinessStatus !== "PASSED") {
+			return canCheckReadiness ? "完成就绪检查" : "等待准备检查";
+		}
+		if (canViewFai && (requiresFai || existingFai)) {
 			if (!existingFai) return "创建并开始 FAI";
 			if (existingFai.status === "INSPECTING") return "完成试产并记录检验";
 			if (existingFai.status === "FAIL") return "复核 FAI 失败原因";
@@ -528,7 +578,7 @@ function RunDetailPage() {
 		return null;
 	})();
 	const trialCta =
-		data.run.status === "PREP"
+		canViewFai && data.run.status === "PREP"
 			? (() => {
 					if (faiGateLoading || faiLoading) {
 						return { label: "试产执行", disabled: true };
@@ -555,6 +605,8 @@ function RunDetailPage() {
 					return { label: "等待授权", disabled: true };
 				})()
 			: null;
+	const canShowFaiSection = canViewFai ? Boolean(faiGate?.requiresFai || existingFai) : true;
+	const canShowOqcSection = canViewOqc ? Boolean(oqcDetail || oqcLoading) : true;
 
 	return (
 		<div className="space-y-6">
@@ -720,15 +772,19 @@ function RunDetailPage() {
 						<p className="text-2xl font-bold">{data.unitStats.total}</p>
 						{data.unitStats.total < data.run.planQty &&
 						(data.run.status === "PREP" || data.run.status === "AUTHORIZED") ? (
-							<Button
-								variant="outline"
-								size="sm"
-								className="mt-2"
-								onClick={() => setGenerateUnitsDialogOpen(true)}
-							>
-								<Plus className="mr-1 h-3 w-3" />
-								{data.unitStats.total === 0 ? "生成单件" : "追加单件"}
-							</Button>
+							canGenerateUnits ? (
+								<Button
+									variant="outline"
+									size="sm"
+									className="mt-2"
+									onClick={() => setGenerateUnitsDialogOpen(true)}
+								>
+									<Plus className="mr-1 h-3 w-3" />
+									{data.unitStats.total === 0 ? "生成单件" : "追加单件"}
+								</Button>
+							) : (
+								<p className="text-xs text-muted-foreground mt-2">无权限生成单件</p>
+							)
 						) : (
 							<p className="text-xs text-muted-foreground">完成率: {progressPercent}%</p>
 						)}
@@ -833,18 +889,22 @@ function RunDetailPage() {
 					<CardHeader>
 						<div className="flex items-center justify-between">
 							<CardTitle className="flex items-center gap-2">
-								{readinessLoading ? (
-									<Loader2 className="h-5 w-5 animate-spin" />
-								) : !readinessData ? (
-									<AlertTriangle className="h-5 w-5 text-yellow-600" />
-								) : readinessData.status === "PASSED" ? (
-									<CheckCircle2 className="h-5 w-5 text-green-600" />
+								{canViewReadiness ? (
+									readinessLoading ? (
+										<Loader2 className="h-5 w-5 animate-spin" />
+									) : !readinessData ? (
+										<AlertTriangle className="h-5 w-5 text-yellow-600" />
+									) : readinessData.status === "PASSED" ? (
+										<CheckCircle2 className="h-5 w-5 text-green-600" />
+									) : (
+										<XCircle className="h-5 w-5 text-red-600" />
+									)
 								) : (
-									<XCircle className="h-5 w-5 text-red-600" />
+									<Shield className="h-5 w-5 text-muted-foreground" />
 								)}
 								准备状态
 							</CardTitle>
-							{canShowReadinessActions && (
+							{canViewReadiness && canShowReadinessActions && (
 								<div className="flex gap-2">
 									<Button
 										variant="outline"
@@ -858,12 +918,28 @@ function RunDetailPage() {
 											<RefreshCw className="h-4 w-4" />
 										)}
 									</Button>
+									{readinessData?.status === "PASSED" &&
+										(canViewLoading ? (
+											<Button variant="secondary" size="sm" asChild>
+												<Link to="/mes/loading" search={{ runNo }}>
+													<Package className="mr-2 h-4 w-4" />
+													前往上料
+												</Link>
+											</Button>
+										) : (
+											<Button variant="secondary" size="sm" disabled>
+												<Package className="mr-2 h-4 w-4" />
+												前往上料
+											</Button>
+										))}
 								</div>
 							)}
 						</div>
 					</CardHeader>
 					<CardContent>
-						{readinessLoading ? (
+						{!canViewReadiness ? (
+							<NoAccessCard description="无权限查看准备检查状态。" />
+						) : readinessLoading ? (
 							<p className="text-muted-foreground">加载中...</p>
 						) : !readinessData ? (
 							<div className="py-4 text-center text-muted-foreground">
@@ -923,37 +999,43 @@ function RunDetailPage() {
 														<TableCell>
 															{item.status === "FAILED" && canShowReadinessActions && (
 																<div className="flex items-center gap-1">
-																	<Button
-																		variant="ghost"
-																		size="sm"
-																		onClick={() => handleWaive(item)}
-																	>
-																		<Shield className="mr-1 h-3 w-3" />
-																		豁免
-																	</Button>
+																	{canWaiveReadiness && (
+																		<Button
+																			variant="ghost"
+																			size="sm"
+																			onClick={() => handleWaive(item)}
+																		>
+																			<Shield className="mr-1 h-3 w-3" />
+																			豁免
+																		</Button>
+																	)}
 																	{/* LOADING: 站位表缺失 → 配置站位表 */}
-																	{item.itemType === "LOADING" && item.itemKey === "SLOT_TABLE" && (
-																		<Button variant="ghost" size="sm" asChild>
-																			<Link
-																				to="/mes/loading/slot-config"
-																				search={{ lineId: data.line?.id }}
-																			>
-																				<Settings className="mr-1 h-3 w-3" />
-																				配置站位表
-																			</Link>
-																		</Button>
-																	)}
+																	{item.itemType === "LOADING" &&
+																		item.itemKey === "SLOT_TABLE" &&
+																		canConfigLoading && (
+																			<Button variant="ghost" size="sm" asChild>
+																				<Link
+																					to="/mes/loading/slot-config"
+																					search={{ lineId: data.line?.id }}
+																				>
+																					<Settings className="mr-1 h-3 w-3" />
+																					配置站位表
+																				</Link>
+																			</Button>
+																		)}
 																	{/* LOADING: 未上料/物料不匹配 → 前往上料 */}
-																	{item.itemType === "LOADING" && item.itemKey !== "SLOT_TABLE" && (
-																		<Button variant="ghost" size="sm" asChild>
-																			<Link to="/mes/loading">
-																				<ExternalLink className="mr-1 h-3 w-3" />
-																				前往上料
-																			</Link>
-																		</Button>
-																	)}
+																	{item.itemType === "LOADING" &&
+																		item.itemKey !== "SLOT_TABLE" &&
+																		canViewLoading && (
+																			<Button variant="ghost" size="sm" asChild>
+																				<Link to="/mes/loading">
+																					<ExternalLink className="mr-1 h-3 w-3" />
+																					前往上料
+																				</Link>
+																			</Button>
+																		)}
 																	{/* ROUTE: 工艺路线问题 → 工艺管理 */}
-																	{item.itemType === "ROUTE" && (
+																	{item.itemType === "ROUTE" && canViewRoutes && (
 																		<Button variant="ghost" size="sm" asChild>
 																			<Link to="/mes/routes">
 																				<ExternalLink className="mr-1 h-3 w-3" />
@@ -962,7 +1044,7 @@ function RunDetailPage() {
 																		</Button>
 																	)}
 																	{/* MATERIAL: 物料主数据问题 → 物料管理 */}
-																	{item.itemType === "MATERIAL" && (
+																	{item.itemType === "MATERIAL" && canViewRoutes && (
 																		<Button variant="ghost" size="sm" asChild>
 																			<Link to="/mes/materials">
 																				<ExternalLink className="mr-1 h-3 w-3" />
@@ -971,7 +1053,7 @@ function RunDetailPage() {
 																		</Button>
 																	)}
 																	{/* EQUIPMENT: 设备问题 → 设备管理 */}
-																	{item.itemType === "EQUIPMENT" && (
+																	{item.itemType === "EQUIPMENT" && canViewIntegration && (
 																		<Button variant="ghost" size="sm" asChild>
 																			<Link to="/mes/integration/status">
 																				<ExternalLink className="mr-1 h-3 w-3" />
@@ -980,7 +1062,7 @@ function RunDetailPage() {
 																		</Button>
 																	)}
 																	{/* STENCIL: 钢网问题 → 钢网管理 */}
-																	{item.itemType === "STENCIL" && (
+																	{item.itemType === "STENCIL" && canViewIntegration && (
 																		<Button variant="ghost" size="sm" asChild>
 																			<Link to="/mes/integration/manual-entry">
 																				<ExternalLink className="mr-1 h-3 w-3" />
@@ -989,7 +1071,7 @@ function RunDetailPage() {
 																		</Button>
 																	)}
 																	{/* SOLDER_PASTE: 锡膏问题 → 锡膏管理 */}
-																	{item.itemType === "SOLDER_PASTE" && (
+																	{item.itemType === "SOLDER_PASTE" && canViewIntegration && (
 																		<Button variant="ghost" size="sm" asChild>
 																			<Link to="/mes/integration/manual-entry">
 																				<ExternalLink className="mr-1 h-3 w-3" />
@@ -1017,13 +1099,15 @@ function RunDetailPage() {
 				</Card>
 			</div>
 
-			{/* FAI Card - only show if FAI is required or exists */}
-			{(faiGate?.requiresFai || existingFai) && (
+			{/* FAI Card - show placeholder when lacking permission */}
+			{canShowFaiSection && (
 				<Card>
 					<CardHeader>
 						<div className="flex items-center justify-between">
 							<CardTitle className="flex items-center gap-2">
-								{faiLoading || faiGateLoading ? (
+								{!canViewFai ? (
+									<Shield className="h-5 w-5 text-muted-foreground" />
+								) : faiLoading || faiGateLoading ? (
 									<Loader2 className="h-5 w-5 animate-spin" />
 								) : existingFai?.status === "PASS" ? (
 									<CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -1036,7 +1120,7 @@ function RunDetailPage() {
 								)}
 								首件检验 (FAI)
 							</CardTitle>
-							{canShowReadinessActions && !existingFai && (
+							{canCreateFai && !existingFai && (
 								<Button
 									variant="default"
 									size="sm"
@@ -1060,7 +1144,9 @@ function RunDetailPage() {
 						</div>
 					</CardHeader>
 					<CardContent>
-						{faiLoading || faiGateLoading ? (
+						{!canViewFai ? (
+							<NoAccessCard description="无权限查看首件检验状态。" />
+						) : faiLoading || faiGateLoading ? (
 							<p className="text-muted-foreground">加载中...</p>
 						) : existingFai ? (
 							<div className="space-y-4">
@@ -1097,21 +1183,21 @@ function RunDetailPage() {
 						) : (
 							<div className="py-4 text-center text-muted-foreground">
 								<p>此批次需要首件检验</p>
-								{canShowReadinessActions && (
-									<p className="text-sm mt-1">点击上方按钮创建 FAI 任务</p>
-								)}
+								{canCreateFai && <p className="text-sm mt-1">点击上方按钮创建 FAI 任务</p>}
 							</div>
 						)}
 					</CardContent>
 				</Card>
 			)}
 
-			{(oqcDetail || oqcLoading) && (
+			{canShowOqcSection && (
 				<Card>
 					<CardHeader>
 						<div className="flex flex-wrap items-center justify-between gap-3">
 							<CardTitle className="flex items-center gap-2">
-								{oqcLoading ? (
+								{!canViewOqc ? (
+									<Shield className="h-5 w-5 text-muted-foreground" />
+								) : oqcLoading ? (
 									<Loader2 className="h-5 w-5 animate-spin" />
 								) : oqcDetail?.status === "PASS" ? (
 									<CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -1124,27 +1210,31 @@ function RunDetailPage() {
 								)}
 								出货检验 (OQC)
 							</CardTitle>
-							<div className="flex flex-wrap items-center gap-2">
-								{oqcDetail && getOqcStatusBadge(oqcDetail.status)}
-								<Button variant="outline" size="sm" asChild>
-									<Link to="/mes/oqc">查看列表</Link>
-								</Button>
-								{data.run.status === "ON_HOLD" && oqcDetail?.status === "FAIL" && (
-									<Can permissions={Permission.QUALITY_DISPOSITION}>
-										<Button
-											size="sm"
-											onClick={() => setMrbDialogOpen(true)}
-											disabled={mrbDecision.isPending}
-										>
-											MRB 决策
-										</Button>
-									</Can>
-								)}
-							</div>
+							{canViewOqc && (
+								<div className="flex flex-wrap items-center gap-2">
+									{oqcDetail && getOqcStatusBadge(oqcDetail.status)}
+									<Button variant="outline" size="sm" asChild>
+										<Link to="/mes/oqc">查看列表</Link>
+									</Button>
+									{data.run.status === "ON_HOLD" && oqcDetail?.status === "FAIL" && (
+										<Can permissions={Permission.QUALITY_DISPOSITION}>
+											<Button
+												size="sm"
+												onClick={() => setMrbDialogOpen(true)}
+												disabled={mrbDecision.isPending}
+											>
+												MRB 决策
+											</Button>
+										</Can>
+									)}
+								</div>
+							)}
 						</div>
 					</CardHeader>
 					<CardContent>
-						{oqcLoading ? (
+						{!canViewOqc ? (
+							<NoAccessCard description="无权限查看出货检验状态。" />
+						) : oqcLoading ? (
 							<p className="text-muted-foreground">加载中...</p>
 						) : oqcDetail ? (
 							<div className="grid gap-4 md:grid-cols-4">

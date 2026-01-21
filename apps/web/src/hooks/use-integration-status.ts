@@ -11,9 +11,10 @@ export type IntegrationJobStatus = IntegrationStatusData["jobs"][number];
 /**
  * Get integration sync status for all jobs
  */
-export function useIntegrationStatus() {
+export function useIntegrationStatus(options?: { enabled?: boolean }) {
 	return useQuery<IntegrationStatusData>({
 		queryKey: ["mes", "integration", "status"],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await client.api.integration.status.get();
 			return unwrap(response);

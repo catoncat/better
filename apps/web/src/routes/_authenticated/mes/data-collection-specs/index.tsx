@@ -3,8 +3,10 @@ import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router"
 import { Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
+import { useAbility } from "@/hooks/use-ability";
 import {
 	type DataCollectionSpec,
 	useDataCollectionSpecList,
@@ -50,6 +52,11 @@ function DataCollectionSpecsPage() {
 		from: "/_authenticated/mes/data-collection-specs/",
 	});
 	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
+	const { hasPermission } = useAbility();
+	const canViewSpecs =
+		hasPermission(Permission.DATA_SPEC_READ) && hasPermission(Permission.DATA_SPEC_CONFIG);
+	const canViewOperations =
+		hasPermission(Permission.OPERATION_READ) && hasPermission(Permission.DATA_SPEC_CONFIG);
 	const { mutateAsync: updateSpec } = useUpdateDataCollectionSpec();
 
 	// Dialog state
@@ -57,7 +64,10 @@ function DataCollectionSpecsPage() {
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 
 	// Fetch operations for filter dropdown
-	const { data: operationsData } = useOperationList({ pageSize: 100 });
+	const { data: operationsData } = useOperationList(
+		{ pageSize: 100 },
+		{ enabled: canViewOperations },
+	);
 	const operationOptions = useMemo(() => {
 		if (!operationsData?.items) return [];
 		return operationsData.items.map((op) => ({
@@ -179,15 +189,18 @@ function DataCollectionSpecsPage() {
 	);
 
 	// Data query
-	const { data, isLoading } = useDataCollectionSpecList({
-		page: pageIndex + 1,
-		pageSize,
-		name: filters.search || undefined,
-		operationCode: filters.operationCode,
-		isActive: filters.isActive,
-		sortBy: searchParams.sort?.split(".")[0] as "updatedAt" | "name" | "createdAt" | undefined,
-		sortDir: searchParams.sort?.split(".")[1] as "asc" | "desc" | undefined,
-	});
+	const { data, isLoading } = useDataCollectionSpecList(
+		{
+			page: pageIndex + 1,
+			pageSize,
+			name: filters.search || undefined,
+			operationCode: filters.operationCode,
+			isActive: filters.isActive,
+			sortBy: searchParams.sort?.split(".")[0] as "updatedAt" | "name" | "createdAt" | undefined,
+			sortDir: searchParams.sort?.split(".")[1] as "asc" | "desc" | undefined,
+		},
+		{ enabled: canViewSpecs },
+	);
 
 	const initialSorting = useMemo(() => [{ id: "updatedAt", desc: true }], []);
 
@@ -260,6 +273,30 @@ function DataCollectionSpecsPage() {
 		onToggleActive: handleToggleActive,
 	};
 
+	const header = (
+		<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+			<div>
+				<h1 className="text-2xl font-bold tracking-tight">采集项管理</h1>
+				<p className="text-muted-foreground">配置生产过程中的数据采集规格</p>
+			</div>
+			<Can permissions={Permission.DATA_SPEC_CONFIG}>
+				<Button onClick={handleCreate}>
+					<Plus className="mr-2 h-4 w-4" />
+					新建采集项
+				</Button>
+			</Can>
+		</div>
+	);
+
+	if (!canViewSpecs) {
+		return (
+			<div className="flex flex-col gap-4">
+				{header}
+				<NoAccessCard description="需要采集项权限才能查看该列表。" />
+			</div>
+		);
+	}
+
 	return (
 		<>
 			<DataListLayout
@@ -275,20 +312,7 @@ function DataCollectionSpecsPage() {
 				locationSearch={locationSearch}
 				isLoading={isLoading}
 				tableMeta={tableMeta}
-				header={
-					<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-						<div>
-							<h1 className="text-2xl font-bold tracking-tight">采集项管理</h1>
-							<p className="text-muted-foreground">配置生产过程中的数据采集规格</p>
-						</div>
-						<Can permissions={Permission.DATA_SPEC_CONFIG}>
-							<Button onClick={handleCreate}>
-								<Plus className="mr-2 h-4 w-4" />
-								新建采集项
-							</Button>
-						</Can>
-					</div>
-				}
+				header={header}
 				queryPresetBarProps={{
 					systemPresets,
 					userPresets,

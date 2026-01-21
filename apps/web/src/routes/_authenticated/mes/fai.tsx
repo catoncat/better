@@ -13,6 +13,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Can } from "@/components/ability/can";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +44,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { useAbility } from "@/hooks/use-ability";
 import {
 	type DataCollectionSpec,
 	useDataCollectionSpecList,
@@ -105,6 +107,12 @@ export const Route = createFileRoute("/_authenticated/mes/fai")({
 function FaiPage() {
 	const navigate = useNavigate();
 	const searchParams = useSearch({ from: "/_authenticated/mes/fai" });
+	const { hasPermission } = useAbility();
+	const canViewFai = hasPermission(Permission.QUALITY_FAI);
+	const canReadRun = hasPermission(Permission.RUN_READ);
+	const canReadDataSpecs =
+		hasPermission(Permission.DATA_SPEC_READ) && hasPermission(Permission.DATA_SPEC_CONFIG);
+	const canGenerateUnits = hasPermission(Permission.RUN_AUTHORIZE);
 
 	const query: FaiQuery = {
 		runNo: searchParams.runNo,
@@ -121,13 +129,18 @@ function FaiPage() {
 	const [specSearch, setSpecSearch] = useState("");
 	const [selectedSpecId, setSelectedSpecId] = useState<string | null>(null);
 
-	const { data, isLoading, refetch } = useFaiList(query);
-	const { data: faiDetail, isLoading: detailLoading } = useFaiDetail(selectedFaiId ?? undefined);
-	const { data: runList, isLoading: isRunListLoading } = useRunList({
-		page: 1,
-		pageSize: 20,
-		search: runSearch,
+	const { data, isLoading, refetch } = useFaiList(query, { enabled: canViewFai });
+	const { data: faiDetail, isLoading: detailLoading } = useFaiDetail(selectedFaiId ?? undefined, {
+		enabled: canViewFai,
 	});
+	const { data: runList, isLoading: isRunListLoading } = useRunList(
+		{
+			page: 1,
+			pageSize: 20,
+			search: runSearch,
+		},
+		{ enabled: canReadRun },
+	);
 
 	const startFai = useStartFai();
 	const generateUnits = useGenerateUnits();
@@ -223,13 +236,16 @@ function FaiPage() {
 	const items = (data?.items ?? []) as FaiItemWithRun[];
 	const selectedFai = items.find((fai) => fai.id === selectedFaiId);
 	const selectedRunNo = selectedFai?.run?.runNo ?? "";
-	const { data: runDetail } = useRunDetail(selectedRunNo);
+	const { data: runDetail } = useRunDetail(selectedRunNo, { enabled: canReadRun });
 	const firstStep = runDetail?.routeSteps?.[0] ?? null;
-	const { data: specList, isLoading: specLoading } = useDataCollectionSpecList({
-		operationCode: firstStep?.operationCode,
-		isActive: "true",
-		pageSize: 50,
-	});
+	const { data: specList, isLoading: specLoading } = useDataCollectionSpecList(
+		{
+			operationCode: firstStep?.operationCode,
+			isActive: "true",
+			pageSize: 50,
+		},
+		{ enabled: canReadDataSpecs && Boolean(firstStep?.operationCode) },
+	);
 	const availableSpecs = specList?.items ?? [];
 	const selectedSpec = availableSpecs.find((spec) => spec.id === selectedSpecId) ?? null;
 	const sampleQty = faiDetail?.sampleQty ?? selectedFai?.sampleQty ?? null;
@@ -319,6 +335,10 @@ function FaiPage() {
 					toast.error("开始 FAI 检验失败", { description: "无法获取批次号" });
 					return;
 				}
+				if (!canGenerateUnits) {
+					toast.error("无法生成单件", { description: "缺少批次授权权限" });
+					return;
+				}
 				const quantity = fai.sampleQty && fai.sampleQty > 0 ? fai.sampleQty : 1;
 				if (!confirm(`当前批次暂无单件，是否生成 ${quantity} 个单件？`)) {
 					return;
@@ -402,14 +422,27 @@ function FaiPage() {
 		);
 	};
 
+	const header = (
+		<div className="flex items-center justify-between">
+			<div>
+				<h1 className="text-2xl font-bold">FAI 首件检验</h1>
+				<p className="text-muted-foreground">首件检验任务管理</p>
+			</div>
+		</div>
+	);
+
+	if (!canViewFai) {
+		return (
+			<div className="container mx-auto py-6 space-y-6">
+				{header}
+				<NoAccessCard description="需要首件检验权限才能访问该页面。" />
+			</div>
+		);
+	}
+
 	return (
 		<div className="container mx-auto py-6 space-y-6">
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="text-2xl font-bold">FAI 首件检验</h1>
-					<p className="text-muted-foreground">首件检验任务管理</p>
-				</div>
-			</div>
+			{header}
 
 			<Card>
 				<CardHeader>
@@ -431,22 +464,24 @@ function FaiPage() {
 				</CardHeader>
 				<CardContent>
 					<div className="flex gap-4 flex-wrap">
-						<div className="w-48 space-y-2">
-							<Label>Run 编号</Label>
-							<Combobox
-								options={runOptions}
-								value={runInput}
-								onValueChange={(value) => {
-									setRunInput(value);
-									updateSearch({ runNo: value || undefined, page: 1 });
-								}}
-								placeholder="选择批次..."
-								searchPlaceholder="搜索批次或工单号"
-								emptyText={isRunListLoading ? "加载中..." : "未找到批次"}
-								searchValue={runSearch}
-								onSearchValueChange={setRunSearch}
-							/>
-						</div>
+						{canReadRun && (
+							<div className="w-48 space-y-2">
+								<Label>Run 编号</Label>
+								<Combobox
+									options={runOptions}
+									value={runInput}
+									onValueChange={(value) => {
+										setRunInput(value);
+										updateSearch({ runNo: value || undefined, page: 1 });
+									}}
+									placeholder="选择批次..."
+									searchPlaceholder="搜索批次或工单号"
+									emptyText={isRunListLoading ? "加载中..." : "未找到批次"}
+									searchValue={runSearch}
+									onSearchValueChange={setRunSearch}
+								/>
+							</div>
+						)}
 						<div className="w-40 space-y-2">
 							<Label>状态</Label>
 							<Select
@@ -505,13 +540,17 @@ function FaiPage() {
 								{items.map((fai) => (
 									<TableRow key={fai.id}>
 										<TableCell>
-											<Link
-												to="/mes/runs/$runNo"
-												params={{ runNo: fai.run?.runNo ?? "" }}
-												className="text-primary underline-offset-4 hover:underline"
-											>
-												{fai.run?.runNo ?? "-"}
-											</Link>
+											{canReadRun && fai.run?.runNo ? (
+												<Link
+													to="/mes/runs/$runNo"
+													params={{ runNo: fai.run.runNo }}
+													className="text-primary underline-offset-4 hover:underline"
+												>
+													{fai.run.runNo}
+												</Link>
+											) : (
+												<span className="text-muted-foreground">{fai.run?.runNo ?? "-"}</span>
+											)}
 										</TableCell>
 										<TableCell>{getStatusBadge(fai.status)}</TableCell>
 										<TableCell>{fai.sampleQty ?? "-"}</TableCell>
@@ -798,28 +837,34 @@ function FaiPage() {
 					<div className="space-y-4">
 						<div className="space-y-2">
 							<Label>检验项模板（采集项）</Label>
-							<Combobox
-								options={availableSpecs.map((spec) => ({
-									value: spec.id,
-									label: `${spec.name} · ${spec.operationCode}`,
-								}))}
-								value={selectedSpecId ?? ""}
-								onValueChange={(value) => {
-									setSelectedSpecId(value || null);
-									if (!value) {
-										setItemForm((current) => ({ ...current, itemName: "", itemSpec: "" }));
-									}
-								}}
-								placeholder={specLoading ? "加载中..." : "选择采集项模板"}
-								searchPlaceholder="搜索检验项"
-								emptyText={specLoading ? "加载中..." : "暂无可用采集项"}
-								searchValue={specSearch}
-								onSearchValueChange={setSpecSearch}
-							/>
-							{firstStep && (
-								<p className="text-xs text-muted-foreground mt-1">
-									默认展示首工序 {firstStep.operationCode} 的采集项
-								</p>
+							{canReadDataSpecs ? (
+								<>
+									<Combobox
+										options={availableSpecs.map((spec) => ({
+											value: spec.id,
+											label: `${spec.name} · ${spec.operationCode}`,
+										}))}
+										value={selectedSpecId ?? ""}
+										onValueChange={(value) => {
+											setSelectedSpecId(value || null);
+											if (!value) {
+												setItemForm((current) => ({ ...current, itemName: "", itemSpec: "" }));
+											}
+										}}
+										placeholder={specLoading ? "加载中..." : "选择采集项模板"}
+										searchPlaceholder="搜索检验项"
+										emptyText={specLoading ? "加载中..." : "暂无可用采集项"}
+										searchValue={specSearch}
+										onSearchValueChange={setSpecSearch}
+									/>
+									{firstStep && (
+										<p className="text-xs text-muted-foreground mt-1">
+											默认展示首工序 {firstStep.operationCode} 的采集项
+										</p>
+									)}
+								</>
+							) : (
+								<p className="text-sm text-muted-foreground">需要采集项权限才能选择模板</p>
 							)}
 						</div>
 						<div className="space-y-2">

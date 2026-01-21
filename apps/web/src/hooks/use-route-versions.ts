@@ -55,10 +55,10 @@ function formatCompileErrors(errors: unknown, maxItems = 3): string | undefined 
 	return remaining > 0 ? `${shown.join("; ")} ... (+${remaining})` : shown.join("; ");
 }
 
-export function useRouteVersions(routingCode: string) {
+export function useRouteVersions(routingCode: string, options?: { enabled?: boolean }) {
 	return useQuery({
 		queryKey: ["mes", "route-versions", routingCode],
-		enabled: Boolean(routingCode),
+		enabled: Boolean(routingCode) && (options?.enabled ?? true),
 		queryFn: async () => {
 			const response = await client.api.routes({ routingCode }).versions.get();
 			const data = unwrap(response);

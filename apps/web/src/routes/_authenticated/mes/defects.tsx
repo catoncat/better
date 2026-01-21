@@ -12,6 +12,7 @@ import {
 	XCircle,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,15 +81,17 @@ function DefectsPage() {
 	const [dispositionDialogOpen, setDispositionDialogOpen] = useState(false);
 	const [releaseDialogOpen, setReleaseDialogOpen] = useState(false);
 
-	const { data, isLoading, refetch } = useDefectList(query);
+	const { hasPermission } = useAbility();
+	const canDispose = hasPermission(Permission.QUALITY_DISPOSITION);
+	const canTraceRead = hasPermission(Permission.TRACE_READ);
+	const { data, isLoading, refetch } = useDefectList(query, { enabled: canDispose });
 	const { data: defectDetail, isLoading: detailLoading } = useDefectDetail(
 		selectedDefectId ?? undefined,
+		{ enabled: canDispose },
 	);
 
 	const assignDisposition = useAssignDisposition();
 	const releaseHold = useReleaseHold();
-	const { hasPermission } = useAbility();
-	const canTraceRead = hasPermission(Permission.TRACE_READ);
 
 	const updateSearch = (patch: Partial<DefectQuery>) => {
 		const nextPage = patch.page ?? query.page ?? 1;
@@ -238,7 +241,9 @@ function DefectsPage() {
 		canTraceRead && dispositionDialogOpen && dispositionForm.type === "REWORK"
 			? selectedUnitSn
 			: "";
-	const { data: traceData, isLoading: isTraceLoading } = useUnitTrace(traceSn, "latest");
+	const { data: traceData, isLoading: isTraceLoading } = useUnitTrace(traceSn, "latest", {
+		enabled: canTraceRead,
+	});
 
 	const reworkStepOptions = useMemo(() => {
 		const steps = traceData?.steps ?? [];
@@ -250,14 +255,27 @@ function DefectsPage() {
 			}));
 	}, [traceData?.steps]);
 
+	const header = (
+		<div className="flex items-center justify-between">
+			<div>
+				<h1 className="text-2xl font-bold">缺陷管理</h1>
+				<p className="text-muted-foreground">缺陷记录与处置管理</p>
+			</div>
+		</div>
+	);
+
+	if (!canDispose) {
+		return (
+			<div className="container mx-auto py-6 space-y-6">
+				{header}
+				<NoAccessCard description="需要质量处置权限才能访问该页面。" />
+			</div>
+		);
+	}
+
 	return (
 		<div className="container mx-auto py-6 space-y-6">
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="text-2xl font-bold">缺陷管理</h1>
-					<p className="text-muted-foreground">缺陷记录与处置管理</p>
-				</div>
-			</div>
+			{header}
 
 			{/* Filters */}
 			<Card>

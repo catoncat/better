@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useApiError } from "@/hooks/use-api-error";
+import { ApiError } from "@/lib/api-error";
 import { client, unwrap } from "@/lib/eden";
 
 // Infer types from API responses
@@ -21,9 +22,10 @@ export type FaiQuery = {
 /**
  * List FAI inspections with filters
  */
-export function useFaiList(query: FaiQuery) {
+export function useFaiList(query: FaiQuery, options?: { enabled?: boolean }) {
 	return useQuery<FaiListData | null>({
 		queryKey: ["mes", "fai", "list", query],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await client.api.fai.get({ query });
 
@@ -43,10 +45,10 @@ export function useFaiList(query: FaiQuery) {
 /**
  * Get FAI by ID
  */
-export function useFaiDetail(faiId: string | undefined) {
+export function useFaiDetail(faiId: string | undefined, options?: { enabled?: boolean }) {
 	return useQuery<FaiDetail | null>({
 		queryKey: ["mes", "fai", "detail", faiId],
-		enabled: Boolean(faiId),
+		enabled: Boolean(faiId) && (options?.enabled ?? true),
 		queryFn: async () => {
 			if (!faiId) throw new Error("No FAI ID");
 			const response = await client.api.fai({ faiId }).get();
@@ -67,22 +69,21 @@ export function useFaiDetail(faiId: string | undefined) {
 /**
  * Get FAI by run number
  */
-export function useFaiByRun(runNo: string | undefined) {
+export function useFaiByRun(runNo: string | undefined, options?: { enabled?: boolean }) {
 	return useQuery({
 		queryKey: ["mes", "fai", "run", runNo],
-		enabled: Boolean(runNo),
+		enabled: Boolean(runNo) && (options?.enabled ?? true),
 		queryFn: async () => {
 			if (!runNo) return null;
 			const response = await client.api.fai.run({ runNo }).get();
-			if (response.error) {
-				const errorVal = response.error.value as { error?: { code?: string } } | undefined;
-				if (errorVal?.error?.code === "FAI_NOT_FOUND") {
+			try {
+				return unwrap(response);
+			} catch (error) {
+				if (error instanceof ApiError && error.code === "FAI_NOT_FOUND") {
 					return null;
 				}
-				throw new Error("Failed to fetch FAI");
+				throw error;
 			}
-			const data = response.data as { ok: boolean; data?: FaiDetail } | null;
-			return data?.ok ? (data.data ?? null) : null;
 		},
 		staleTime: 10_000,
 	});
@@ -91,23 +92,14 @@ export function useFaiByRun(runNo: string | undefined) {
 /**
  * Check FAI gate for run authorization
  */
-export function useFaiGate(runNo: string | undefined) {
+export function useFaiGate(runNo: string | undefined, options?: { enabled?: boolean }) {
 	return useQuery<{ requiresFai: boolean; faiPassed: boolean; faiId?: string } | null>({
 		queryKey: ["mes", "fai", "gate", runNo],
-		enabled: Boolean(runNo),
+		enabled: Boolean(runNo) && (options?.enabled ?? true),
 		queryFn: async () => {
 			if (!runNo) return null;
 			const response = await client.api.fai.run({ runNo }).gate.get();
-
-			if (response.error) {
-				throw new Error("Failed to fetch FAI gate");
-			}
-
-			if (!response.data) return null;
-
-			type FaiGateResult = { requiresFai: boolean; faiPassed: boolean; faiId?: string };
-			const data = response.data as { ok: boolean; data?: FaiGateResult };
-			return data.ok ? (data.data ?? null) : null;
+			return unwrap(response);
 		},
 		staleTime: 10_000,
 	});

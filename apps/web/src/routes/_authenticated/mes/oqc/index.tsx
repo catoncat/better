@@ -2,8 +2,10 @@ import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
+import { useAbility } from "@/hooks/use-ability";
 import {
 	type OqcInspection,
 	useCompleteOqc,
@@ -60,6 +62,8 @@ function OqcPage() {
 	const navigate = useNavigate();
 	const searchParams = Route.useSearch();
 	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
+	const { hasPermission } = useAbility();
+	const canViewOqc = hasPermission(Permission.QUALITY_OQC);
 
 	const [selectedOqcId, setSelectedOqcId] = useState<string | null>(null);
 	const [recordDialogOpen, setRecordDialogOpen] = useState(false);
@@ -173,14 +177,19 @@ function OqcPage() {
 		[setFilters, applyPreset],
 	);
 
-	const { data, isLoading, error, refetch } = useOqcList({
-		page: pageIndex + 1,
-		pageSize,
-		runNo: filters.runNo || undefined,
-		status: filters.status.length > 0 ? filters.status.join(",") : undefined,
-	});
+	const { data, isLoading, error, refetch } = useOqcList(
+		{
+			page: pageIndex + 1,
+			pageSize,
+			runNo: filters.runNo || undefined,
+			status: filters.status.length > 0 ? filters.status.join(",") : undefined,
+		},
+		{ enabled: canViewOqc },
+	);
 
-	const { data: selectedOqcDetail } = useOqcDetail(selectedOqcId ?? undefined);
+	const { data: selectedOqcDetail } = useOqcDetail(selectedOqcId ?? undefined, {
+		enabled: canViewOqc,
+	});
 	const startOqc = useStartOqc();
 	const recordOqcItem = useRecordOqcItem();
 	const completeOqc = useCompleteOqc();
@@ -249,6 +258,29 @@ function OqcPage() {
 		onView: (oqcId: string) => openRecordDialog(oqcId, true),
 	};
 
+	const header = (
+		<div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+			<div>
+				<h1 className="text-2xl font-bold tracking-tight">出货检验 (OQC)</h1>
+				<p className="text-muted-foreground">管理 OQC 抽检任务与检验记录。</p>
+			</div>
+			<Can permissions={Permission.QUALITY_OQC}>
+				<Button variant="secondary" size="sm" onClick={() => void refetch()}>
+					刷新列表
+				</Button>
+			</Can>
+		</div>
+	);
+
+	if (!canViewOqc) {
+		return (
+			<div className="space-y-6">
+				{header}
+				<NoAccessCard description="需要出货检验权限才能访问该页面。" />
+			</div>
+		);
+	}
+
 	return (
 		<div className="space-y-6">
 			<DataListLayout
@@ -268,19 +300,7 @@ function OqcPage() {
 						</div>
 					) : null
 				}
-				header={
-					<div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-						<div>
-							<h1 className="text-2xl font-bold tracking-tight">出货检验 (OQC)</h1>
-							<p className="text-muted-foreground">管理 OQC 抽检任务与检验记录。</p>
-						</div>
-						<Can permissions={Permission.QUALITY_OQC}>
-							<Button variant="secondary" size="sm" onClick={() => void refetch()}>
-								刷新列表
-							</Button>
-						</Can>
-					</div>
-				}
+				header={header}
 				queryPresetBarProps={{
 					systemPresets: OQC_SYSTEM_PRESETS,
 					userPresets,

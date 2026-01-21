@@ -22,9 +22,10 @@ export interface UseLineListParams {
 	sort?: string;
 }
 
-export function useLines() {
+export function useLines(options?: { enabled?: boolean }) {
 	return useQuery<LineListData>({
 		queryKey: ["mes", "lines"],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await client.api.lines.get({
 				query: {

@@ -15,6 +15,7 @@ import { formatDateTime } from "@/lib/utils";
 
 interface LoadingHistoryProps {
 	runNo: string;
+	enabled?: boolean;
 }
 
 const statusLabelMap: Record<
@@ -26,8 +27,8 @@ const statusLabelMap: Record<
 	UNLOADED: { label: "异常", variant: "outline" },
 };
 
-export function LoadingHistory({ runNo }: LoadingHistoryProps) {
-	const { data: records, isLoading } = useLoadingRecords(runNo);
+export function LoadingHistory({ runNo, enabled }: LoadingHistoryProps) {
+	const { data: records, isLoading } = useLoadingRecords(runNo, { enabled });
 
 	return (
 		<Card>

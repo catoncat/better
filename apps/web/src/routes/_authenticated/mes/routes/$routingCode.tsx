@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import * as z from "zod";
 import { Can } from "@/components/ability/can";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -125,11 +126,24 @@ function RouteDetailPage() {
 
 	const { routingCode } = useParams({ from: "/_authenticated/mes/routes/$routingCode" });
 	const queryClient = useQueryClient();
-	const { data: routeDetail, isLoading, refetch } = useRouteDetail(routingCode);
+	const { hasPermission } = useAbility();
+	const canViewRoutes = hasPermission(Permission.ROUTE_READ);
+	const canViewDataSpecs =
+		hasPermission(Permission.DATA_SPEC_READ) && hasPermission(Permission.DATA_SPEC_CONFIG);
+
+	const {
+		data: routeDetail,
+		isLoading,
+		refetch,
+	} = useRouteDetail(routingCode, {
+		enabled: canViewRoutes,
+	});
 	const updateProcessType = useUpdateRouteProcessType(routingCode);
-	const { data: configs, isLoading: configsLoading } = useExecutionConfigs(routingCode);
-	const { data: stationList } = useStations();
-	const { data: stationGroups } = useStationGroups();
+	const { data: configs, isLoading: configsLoading } = useExecutionConfigs(routingCode, {
+		enabled: canViewRoutes,
+	});
+	const { data: stationList } = useStations({ enabled: canViewRoutes });
+	const { data: stationGroups } = useStationGroups({ enabled: canViewRoutes });
 	const { mutateAsync: compileRoute, isPending: isCompiling } = useCompileRouteVersion();
 
 	const [dialogOpen, setDialogOpen] = useState(false);
@@ -316,6 +330,22 @@ function RouteDetailPage() {
 		});
 	};
 
+	const header = (
+		<div>
+			<h1 className="text-3xl font-bold tracking-tight">路由详情</h1>
+			<p className="text-muted-foreground">查看工艺路线步骤并维护执行语义配置。</p>
+		</div>
+	);
+
+	if (!canViewRoutes) {
+		return (
+			<div className="flex flex-col gap-4">
+				{header}
+				<NoAccessCard description="需要路由查看权限才能查看路由详情。" />
+			</div>
+		);
+	}
+
 	if (isLoading) {
 		return <div className="text-sm text-muted-foreground">加载路由详情中...</div>;
 	}
@@ -327,10 +357,7 @@ function RouteDetailPage() {
 	return (
 		<div className="space-y-6">
 			<div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-				<div>
-					<h1 className="text-3xl font-bold tracking-tight">路由详情</h1>
-					<p className="text-muted-foreground">查看工艺路线步骤并维护执行语义配置。</p>
-				</div>
+				{header}
 				<div className="flex flex-wrap gap-2">
 					<Tooltip>
 						<TooltipTrigger asChild>
@@ -626,6 +653,7 @@ function RouteDetailPage() {
 				stepOptions={stepOptions}
 				stationGroupOptions={stationGroupOptions}
 				stations={stationOptions}
+				canViewDataSpecs={canViewDataSpecs}
 			/>
 
 			<BulkStationGroupDialog
@@ -729,6 +757,7 @@ function ExecutionConfigDialog({
 	stepOptions,
 	stationGroupOptions,
 	stations,
+	canViewDataSpecs,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -742,6 +771,7 @@ function ExecutionConfigDialog({
 	}>;
 	stationGroupOptions: Array<{ value: string; label: string }>;
 	stations: StationOption[];
+	canViewDataSpecs: boolean;
 }) {
 	const { hasPermission } = useAbility();
 	const isEdit = Boolean(editingConfig);
@@ -1048,6 +1078,7 @@ function ExecutionConfigDialog({
 												value={field.state.value ?? []}
 												onChange={field.handleChange}
 												operationCode={selectedOperationCode}
+												enabled={canViewDataSpecs}
 											/>
 										)}
 									</Field>

@@ -58,12 +58,14 @@ export function OqcCard({ oqc, onStart, onRecord, onComplete, onView }: OqcCardP
 						</>
 					)}
 				</Can>
-				{(oqc.status === "PASS" || oqc.status === "FAIL") && (
-					<Button variant="ghost" size="sm" onClick={() => onView?.(oqc.id)}>
-						<Eye className="mr-2 h-4 w-4" />
-						查看记录
-					</Button>
-				)}
+				<Can permissions={Permission.QUALITY_OQC}>
+					{(oqc.status === "PASS" || oqc.status === "FAIL") && (
+						<Button variant="ghost" size="sm" onClick={() => onView?.(oqc.id)}>
+							<Eye className="mr-2 h-4 w-4" />
+							查看记录
+						</Button>
+					)}
+				</Can>
 			</CardFooter>
 		</Card>
 	);

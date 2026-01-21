@@ -19,7 +19,7 @@ export interface UseMaterialListParams {
 	sort?: string;
 }
 
-export function useMaterialList(params: UseMaterialListParams) {
+export function useMaterialList(params: UseMaterialListParams, options?: { enabled?: boolean }) {
 	const page = params.page ?? 1;
 	const pageSize = params.pageSize ?? 30;
 	const search = params.search ?? "";
@@ -46,6 +46,7 @@ export function useMaterialList(params: UseMaterialListParams) {
 			updatedTo,
 			sort,
 		],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await materialsApi.get({
 				query: {

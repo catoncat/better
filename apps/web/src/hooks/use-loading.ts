@@ -58,14 +58,15 @@ export type FeederSlot = {
 
 type VerifyLoadingInput = Parameters<typeof client.api.loading.verify.post>[0];
 type ReplaceLoadingInput = Parameters<typeof client.api.loading.replace.post>[0];
+type LoadingQueryOptions = { enabled?: boolean };
 
 /**
  * Get loading expectations for a run
  */
-export function useLoadingExpectations(runNo: string | undefined) {
+export function useLoadingExpectations(runNo: string | undefined, options?: LoadingQueryOptions) {
 	return useQuery<LoadingExpectation[]>({
 		queryKey: ["mes", "loading", "expectations", runNo],
-		enabled: Boolean(runNo),
+		enabled: Boolean(runNo) && (options?.enabled ?? true),
 		queryFn: async () => {
 			if (!runNo) return [];
 			const response = await client.api.runs({ runNo }).loading.expectations.get();
@@ -78,10 +79,10 @@ export function useLoadingExpectations(runNo: string | undefined) {
 /**
  * Get current loading records for a run
  */
-export function useLoadingRecords(runNo: string | undefined) {
+export function useLoadingRecords(runNo: string | undefined, options?: LoadingQueryOptions) {
 	return useQuery<LoadingRecord[]>({
 		queryKey: ["mes", "loading", "records", runNo],
-		enabled: Boolean(runNo),
+		enabled: Boolean(runNo) && (options?.enabled ?? true),
 		queryFn: async () => {
 			if (!runNo) return [];
 			const response = await client.api.runs({ runNo }).loading.get();
