@@ -12,16 +12,16 @@
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │  ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐   │
-│  │   主数据配置     │────▶│   生产准备      │────▶│   生产执行      │   │
+│  │   主数据配置     │──->│   生产准备      │──->│   生产执行      │   │
 │  │   (工程师)       │     │   (组长)        │     │   (操作员)      │   │
 │  └─────────────────┘     └─────────────────┘     └─────────────────┘   │
 │         │                       │                       │              │
-│         ▼                       ▼                       ▼              │
+│         v                       v                       v              │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │                        质量闭环 (质量工程师)                      │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 │                                 │                                      │
-│                                 ▼                                      │
+│                                 v                                      │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │                        追溯查询 (全员)                            │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
@@ -40,23 +40,23 @@
 ```
 物料 (Material)
     │
-    └──▶ BOM (Bill of Materials)
+    -> BOM (Bill of Materials)
               │
-              └──▶ 槽位映射 (SlotMaterialMapping)
+              -> 槽位映射 (SlotMaterialMapping)
                         │
-                        └──▶ 上料防错验证
+                        -> 上料防错验证
 
 路由 (Route)
     │
-    ├──▶ 路由步骤 (RouteStep)
+    -> 路由步骤 (RouteStep)
     │         │
-    │         ├──▶ 工作中心 (WorkCenter) ──▶ 工位 (Station)
+    │         -> 工作中心 (WorkCenter) -> 工位 (Station)
     │         │
-    │         └──▶ 采集项 (DataCollectionSpec)
+    │         -> 采集项 (DataCollectionSpec)
     │
-    └──▶ 路由版本 (RouteVersion)
+    -> 路由版本 (RouteVersion)
               │
-              └──▶ 创建批次时快照
+              -> 创建批次时快照
 ```
 
 ### 页面说明
@@ -100,11 +100,11 @@
 ```
 创建批次 (Run)
     │
-    ├──▶ 槽位配置 ──▶ 加载站位表 ──▶ 上料验证
+    -> 槽位配置 -> 加载站位表 -> 上料验证
     │
-    ├──▶ 就绪检查配置 ──▶ 执行就绪检查 ──▶ 异常处理/豁免
+    -> 就绪检查配置 -> 执行就绪检查 -> 异常处理/豁免
     │
-    └──▶ 集成状态 ──▶ 手动录入（降级）
+    -> 集成状态 -> 手动录入（降级）
 ```
 
 ### 页面说明
@@ -133,8 +133,8 @@ SlotMaterialMapping              ├── verifiedAt: 验证时间
 └── materialCode: "MAT-001"
                                  验证逻辑：
 含义：生产 P-1001 时              实际物料 == 期望物料 ?
-F001 槽位应上料 MAT-001              ✅ 上料成功
-                                     ❌ 物料不匹配
+F001 槽位应上料 MAT-001              OK 上料成功
+                                     NO 物料不匹配
 ```
 
 ### 就绪检查详解
@@ -163,20 +163,20 @@ SOLDER_PASTE       LineSolderPaste            status = COMPLIANT
 ───────────                ──────────                  ─────────
 PENDING                    创建 Run                   TrackIn
     │                          │                          │
-    ▼ 接收                     ▼                          ▼
-RECEIVED                   PREP ──────────────────▶ IN_STATION
+    v 接收                     v                          v
+RECEIVED                   PREP ────────────────-> IN_STATION
     │                          │                          │
-    ▼ 释放                     │ 就绪检查                   ▼ TrackOut
+    v 释放                     │ 就绪检查                   v TrackOut
 RELEASED                       │    │                  (采集数据)
-    │                          │    ▼ FAI                 │
-    └──▶ 创建批次 ─────────────┘    │                     ▼
-                                   ▼                  QUEUED (下一步)
+    │                          │    v FAI                 │
+    -> 创建批次 ─────────────┘    │                     v
+                                   v                  QUEUED (下一步)
                            AUTHORIZED                 或 DONE
                                    │
-                                   ▼
+                                   v
                            IN_PROGRESS
                                    │
-                                   ▼ 收尾
+                                   v 收尾
                            COMPLETED
 ```
 
@@ -224,13 +224,13 @@ FAI (首件检验)                     OQC (出货检验)
 ──────────────                     ──────────────
 创建 FAI                           批次收尾触发
     │                                   │
-    ▼ 开始                              ▼
-INSPECTING ──▶ 试产执行            OQC 任务创建
+    v 开始                              v
+INSPECTING -> 试产执行            OQC 任务创建
     │          (TrackIn/Out)            │
-    ▼                                   ▼ 检验
-PASS/FAIL ──▶ 授权/重试             PASS/FAIL
+    v                                   v 检验
+PASS/FAIL -> 授权/重试             PASS/FAIL
                                         │
-                                        ▼
+                                        v
                                    PASS → COMPLETED
                                    FAIL → ON_HOLD → MRB
 
@@ -238,13 +238,13 @@ PASS/FAIL ──▶ 授权/重试             PASS/FAIL
 ────────                           ────────
 不良 Unit                          创建返工任务
     │                                   │
-    ├──▶ 返工 ──▶ 返工任务              ▼
-    │         ──▶ 重新执行           OPEN
+    -> 返工 -> 返工任务              v
+    │         -> 重新执行           OPEN
     │                                   │
-    ├──▶ 报废 ──▶ SCRAPPED             ▼ 开始返工
+    -> 报废 -> SCRAPPED             v 开始返工
     │                               IN_PROGRESS
-    └──▶ 让步放行                       │
-                                       ▼ 完成
+    -> 让步放行                       │
+                                       v 完成
                                    COMPLETED
 ```
 
@@ -368,15 +368,15 @@ BOM 定义：产品 P-1001 需要物料 MAT-001, MAT-002, MAT-003
 
 ```
 路由 PCBA-STD-V1
-├── Step 1: PRINTING ──▶ 工作中心 "印刷组" ──▶ 工位 ST-PRINT-01, ST-PRINT-02
-├── Step 2: SPI ──────▶ 工作中心 "SPI组" ───▶ 工位 ST-SPI-01
-├── Step 3: MOUNTING ─▶ 工作中心 "贴片组" ──▶ 工位 ST-MOUNT-01, ST-MOUNT-02
-├── Step 4: REFLOW ───▶ 工作中心 "回流组" ──▶ 工位 ST-REFLOW-01
-└── Step 5: AOI ──────▶ 工作中心 "AOI组" ───▶ 工位 ST-AOI-01
+├── Step 1: PRINTING -> 工作中心 "印刷组" -> 工位 ST-PRINT-01, ST-PRINT-02
+├── Step 2: SPI ────-> 工作中心 "SPI组" ─-> 工位 ST-SPI-01
+├── Step 3: MOUNTING -> 工作中心 "贴片组" -> 工位 ST-MOUNT-01, ST-MOUNT-02
+├── Step 4: REFLOW ─-> 工作中心 "回流组" -> 工位 ST-REFLOW-01
+└── Step 5: AOI ────-> 工作中心 "AOI组" ─-> 工位 ST-AOI-01
 
 执行时：
-Unit 在 Step 1 ──▶ 可在 ST-PRINT-01 或 ST-PRINT-02 执行
-Unit 在 Step 2 ──▶ 只能在 ST-SPI-01 执行（该组只有一个工位）
+Unit 在 Step 1 -> 可在 ST-PRINT-01 或 ST-PRINT-02 执行
+Unit 在 Step 2 -> 只能在 ST-SPI-01 执行（该组只有一个工位）
 ```
 
 ### Q3: FAI 试产是什么？

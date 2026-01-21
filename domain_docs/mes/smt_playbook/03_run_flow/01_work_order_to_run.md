@@ -31,9 +31,38 @@
 - 工单的 `productCode` 与 `routingId` 是后续上料和执行的关键来源。
 
 ### 4.2 批次管理规则
-- Run 创建时绑定一条“已编译”的 ExecutableRouteVersion。
+- Run 创建时绑定一条"已编译"的 ExecutableRouteVersion。
 - Run 绑定的路由版本是冻结快照，后续路由更新不影响已创建 Run。
 - Run 状态流转：PREP → AUTHORIZED → IN_PROGRESS → COMPLETED/ON_HOLD/…
+
+### 4.3 状态流转图
+
+```mermaid
+stateDiagram-v2
+    direction LR
+
+    state "WorkOrder 状态" as wo {
+        [*] --> RECEIVED: ERP 同步
+        RECEIVED --> RELEASED: 释放
+        RELEASED --> CLOSED: 完成
+    }
+
+    state "Run 状态" as run {
+        [*] --> PREP: 创建批次
+        PREP --> AUTHORIZED: 授权
+        AUTHORIZED --> IN_PROGRESS: 首次 TrackIn
+        IN_PROGRESS --> COMPLETED: 全部完成 + OQC PASS
+        IN_PROGRESS --> ON_HOLD: OQC FAIL / 异常
+        ON_HOLD --> IN_PROGRESS: MRB 释放
+        ON_HOLD --> SCRAPPED: MRB 报废
+        PREP --> CANCELLED: 取消
+    }
+```
+
+**说明**：
+- WorkOrder 必须为 `RELEASED` 才能创建 Run
+- Run 创建后初始状态为 `PREP`
+- `ON_HOLD` 通常由 OQC 失败或异常触发，需 MRB 决策后继续
 
 ## 5. 真实例子（中文）
 ### 5.1 工单

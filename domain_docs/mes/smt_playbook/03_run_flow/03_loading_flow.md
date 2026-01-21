@@ -17,6 +17,37 @@
 - 产线已配置站位（FeederSlot）。
 - 站位已配置物料映射（SlotMaterialMapping）。
 
+## 3.1 上料流程状态图
+
+```mermaid
+stateDiagram-v2
+    direction TB
+
+    state "RunSlotExpectation 状态" as exp {
+        [*] --> PENDING: load-table
+        PENDING --> LOADED: verify PASS/WARNING
+        PENDING --> MISMATCH: verify FAIL
+        MISMATCH --> LOADED: 重新 verify PASS
+        LOADED --> LOADED: replace (换料)
+    }
+
+    state "FeederSlot 状态" as slot {
+        [*] --> UNLOCKED
+        UNLOCKED --> LOCKED: failedAttempts >= 3
+        LOCKED --> UNLOCKED: unlock
+    }
+
+    state "LoadingRecord 状态" as record {
+        [*] --> LOADED: verify PASS
+        LOADED --> REPLACED: replace
+    }
+```
+
+**关键规则**：
+- 站位连续 3 次扫码失败 → 自动锁定
+- 已 LOADED 的站位不能再次 verify，必须使用 replace
+- 换料时旧记录标记为 REPLACED，新记录写入
+
 ## 4. 加载站位表（B1）
 ### 4.1 数据如何产生
 - 触发接口：`POST /api/runs/:runNo/loading/load-table`

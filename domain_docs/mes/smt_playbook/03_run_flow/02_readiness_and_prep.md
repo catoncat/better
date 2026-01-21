@@ -39,12 +39,12 @@
 
 ## 7. 真实例子（中文）
 批次 `RUN-WO-20250526-001-01`：
-- ROUTE：路由版本 READY ✅
-- STENCIL：钢网已绑定并状态合规 ✅
-- SOLDER_PASTE：锡膏批次扫码未过期 ✅
-- EQUIPMENT：贴片机状态 normal ✅
-- MATERIAL：物料齐套 ✅
-- LOADING：尚未完成 ❌
+- ROUTE：路由版本 READY OK
+- STENCIL：钢网已绑定并状态合规 OK
+- SOLDER_PASTE：锡膏批次扫码未过期 OK
+- EQUIPMENT：贴片机状态 normal OK
+- MATERIAL：物料齐套 OK
+- LOADING：尚未完成 NO
 
 结论：就绪检查未通过，不能进入上料/授权。
 

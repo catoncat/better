@@ -10,6 +10,40 @@
 - Run 处于 `IN_PROGRESS`。
 - 所有 Unit 已进入终态（DONE 或 SCRAPPED）。
 
+## 3.1 OQC 与完工状态图
+
+```mermaid
+stateDiagram-v2
+    direction TB
+
+    state "OQC 状态" as oqc {
+        [*] --> PENDING: 自动/手动创建
+        PENDING --> INSPECTING: start
+        INSPECTING --> PASS: complete (PASS)
+        INSPECTING --> FAIL: complete (FAIL)
+    }
+
+    state "Run 完工流程" as closeout {
+        IN_PROGRESS --> check_oqc: 所有 Unit 终态
+        check_oqc --> no_rule: 无抽检规则
+        check_oqc --> has_rule: 有抽检规则
+        no_rule --> COMPLETED
+        has_rule --> oqc_task: 创建 OQC
+        oqc_task --> COMPLETED: OQC PASS
+        oqc_task --> ON_HOLD: OQC FAIL
+        ON_HOLD --> MRB: MRB 决策
+        MRB --> COMPLETED: RELEASE
+        MRB --> REWORK: 返修
+        MRB --> SCRAPPED: 报废
+    }
+```
+
+**完工逻辑**：
+1. 所有 Unit 进入终态后触发完工检查
+2. 若有匹配的抽检规则且样本数 > 0，创建 OQC
+3. OQC PASS → Run COMPLETED
+4. OQC FAIL → Run ON_HOLD → MRB 决策
+
 ## 4. 数据如何产生
 ### 4.1 抽检规则（OQC Sampling Rule）
 - 入口：`/api/oqc/sampling-rules`（CRUD）

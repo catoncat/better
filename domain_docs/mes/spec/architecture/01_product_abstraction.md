@@ -16,9 +16,9 @@
 
 | 机制 | 用途 | 成熟度 |
 |------|------|--------|
-| `DataCollectionSpec` + `DataValue` | 通用数据采集（工艺参数、测量值） | ✅ 成熟 |
-| `ReadinessCheck` + `ReadinessCheckItem` | 产线准备检查（阻断/放行） | ✅ 成熟 |
-| `meta Json?` 字段 | 扩展预留 | ✅ 已预埋 |
+| `DataCollectionSpec` + `DataValue` | 通用数据采集（工艺参数、测量值） | OK 成熟 |
+| `ReadinessCheck` + `ReadinessCheckItem` | 产线准备检查（阻断/放行） | OK 成熟 |
+| `meta Json?` 字段 | 扩展预留 | OK 已预埋 |
 
 ### 2.2 SMT 特定表（需抽象）
 
@@ -439,13 +439,13 @@ export const paramsSchemaByProcessType = {
 
 | 任务 | 用通用模型表达 | 可行性 |
 |------|---------------|--------|
-| WP-3 锡膏生命周期 | `ResourceStatusLog` (resourceType=SOLDER_PASTE) + payload | ✅ |
-| WP-4 刮刀寿命 | `ResourceStatusLog` (resourceType=SQUEEGEE) + payload | ✅ |
-| WP-5 转拉前检查 | 使用现有 `ReadinessCheck` + 模板化 | ✅ (已有机制) |
-| WP-6 FAI 多签 | 扩展 Inspection 或新建 Approval 模型 | ⚠️ (需单独设计) |
-| WP-7 设备点检 | `DataCollectionSpec` 或专用表 | ✅ |
-| WP-8 炉温程式 | `ProcessRecord` (processType=REFLOW) + params | ✅ |
-| WP-10 日常 QC | `DataCollectionSpec` 或扩展现有报表 | ✅ |
+| WP-3 锡膏生命周期 | `ResourceStatusLog` (resourceType=SOLDER_PASTE) + payload | OK |
+| WP-4 刮刀寿命 | `ResourceStatusLog` (resourceType=SQUEEGEE) + payload | OK |
+| WP-5 转拉前检查 | 使用现有 `ReadinessCheck` + 模板化 | OK (已有机制) |
+| WP-6 FAI 多签 | 扩展 Inspection 或新建 Approval 模型 | PARTIAL (需单独设计) |
+| WP-7 设备点检 | `DataCollectionSpec` 或专用表 | OK |
+| WP-8 炉温程式 | `ProcessRecord` (processType=REFLOW) + params | OK |
+| WP-10 日常 QC | `DataCollectionSpec` 或扩展现有报表 | OK |
 
 **结论**：通用模型可覆盖大部分需求，WP-6 可能需要单独的审批流模型设计。
 

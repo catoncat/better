@@ -28,6 +28,7 @@
   - `04_fai_flow.md` 首件流程
   - `05_execution_and_trace.md` 执行与追溯
   - `06_oqc_closeout.md` OQC 与完工
+  - `07_exception_and_recovery.md` 异常处理与回滚场景
 - `04_demo_data/`
   - `01_demo_dataset_blueprint.md` 演示数据蓝图
   - `02_demo_run_recipe.md` 演示批次生成步骤

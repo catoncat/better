@@ -12,6 +12,28 @@
 - 若路由要求 FAI，需 FAI=PASS
 - 已生成 Unit（单件 SN）
 
+## 3.1 Unit 状态流转图
+
+```mermaid
+stateDiagram-v2
+    direction LR
+
+    [*] --> QUEUED: generate-units
+    QUEUED --> IN_STATION: track-in
+    IN_STATION --> DONE: track-out (PASS)
+    IN_STATION --> OUT_FAILED: track-out (FAIL)
+    OUT_FAILED --> IN_STATION: 返修后 track-in
+    OUT_FAILED --> SCRAPPED: 报废
+    DONE --> [*]
+    SCRAPPED --> [*]
+```
+
+**关键规则**：
+- Unit 初始状态为 `QUEUED`
+- TrackIn 将状态变为 `IN_STATION`
+- TrackOut 根据结果变为 `DONE` 或 `OUT_FAILED`
+- `OUT_FAILED` 的 Unit 需要处置（返修/报废）才能继续
+
 ## 4. 数据如何产生
 ### 4.1 生成 Unit（单件）
 - 入口：`POST /api/runs/:runNo/generate-units`

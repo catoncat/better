@@ -11,6 +11,41 @@
 - 就绪检查（Formal）必须通过。
 - Run 已生成足够的 Unit（样本数量需满足）。
 
+## 3.1 FAI 状态流转图
+
+```mermaid
+stateDiagram-v2
+    direction LR
+
+    [*] --> PENDING: 创建 FAI
+    PENDING --> INSPECTING: start
+    INSPECTING --> PASS: complete (decision=PASS)
+    INSPECTING --> FAIL: complete (decision=FAIL)
+
+    note right of PENDING
+        等待启动
+        需 sampleQty 个 Unit
+    end note
+
+    note right of INSPECTING
+        首件试产中
+        记录检验项
+    end note
+
+    note right of PASS
+        Run 可授权
+    end note
+
+    note right of FAIL
+        需重新首件
+        或放弃批次
+    end note
+```
+
+**Gate 逻辑**：
+- 若路由要求 FAI（`faiRequired=true`），则 Run 授权前必须有 `FAI.status=PASS`
+- 若 FAI FAIL，Run 无法授权，需创建新 FAI 或取消批次
+
 ## 4. 数据如何产生
 ### 4.1 创建 FAI
 - 入口：`POST /api/fai/run/:runNo`
