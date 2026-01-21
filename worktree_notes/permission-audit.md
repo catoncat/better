@@ -111,6 +111,10 @@ task:
 - Reviewed work-centers list page to add route-read gating and query guards.
 - Located config/ops page audit entries in permission audit plan for status updates.
 - Applied lint-driven formatting adjustments for data spec hooks/components and import ordering.
+- Located main-flow page audit sections (work-orders, runs, readiness, loading, execution, FAI/OQC, defects, rework, trace) in permission audit plan to drive next slice.
+- Reviewed task-split + small-step-commits skill guidance; need a 2-6 slice plan with user confirmation before main-flow edits.
+- Re-checked dev + note skill requirements; plan/decision responses must be recorded in a conversation note.
+- Read main-flow audit entries: remaining ⚠️ items include work-orders route filter + receive permission mismatch, runs line filter + batch authorize column, readiness config/exceptions gating, loading & slot-config gating, execution query gating, FAI/OQC list + dialog gating, defects/rework gating, and trace gating.
 
 ## Findings
 - Worktree created; `bun.lock` modified by `bun install`.
