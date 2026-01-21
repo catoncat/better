@@ -107,6 +107,7 @@ task:
 - Merging into `main`: resolved conflicts in FAI filters, loading slot-config line selection, OQC rule dialog route list, and run detail readiness/actions.
 - `bun scripts/smart-verify.ts` re-run on `main` after merge (lint + check-types) passed.
 - Added readiness:view gating for bake/solder/cold record pages and downgraded run detail route link when missing `route:read`; audit plan updated.
+- `bun scripts/smart-verify.ts` passed after auxiliary record gating updates.
 - Completed Slice 11: execution gating shipped and audit plan updated.
 - Updated execution section statuses in `user_docs/demo/permission_audit_plan.md`.
 - Completed Slice 10: readiness + loading gating shipped and audit plan updated.
