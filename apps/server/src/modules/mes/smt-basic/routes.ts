@@ -512,3 +512,12 @@ export const productionExceptionRoutes = new Elysia({ prefix: "/production-excep
 			detail: { tags: ["MES - QC"], summary: "Create production exception record" },
 		},
 	);
+
+export const smtBasicRoutes = new Elysia()
+	.use(stencilUsageRoutes)
+	.use(stencilCleaningRoutes)
+	.use(squeegeeUsageRoutes)
+	.use(equipmentInspectionRoutes)
+	.use(ovenProgramRoutes)
+	.use(dailyQcRoutes)
+	.use(productionExceptionRoutes);
