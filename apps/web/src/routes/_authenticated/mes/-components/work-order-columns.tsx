@@ -29,7 +29,7 @@ const actionsColumn: ColumnDef<WorkOrder> = {
 		const isErpWorkOrder = Boolean(wo.erpStatus);
 		const effectivePickStatus = isErpWorkOrder ? wo.erpPickStatus : wo.pickStatus;
 
-		if (wo.status === "RECEIVED" && !wo.routing && hasPermission(Permission.WO_UPDATE)) {
+		if (!wo.routing && wo.status !== "COMPLETED" && hasPermission(Permission.WO_UPDATE)) {
 			actions.push({
 				icon: Link2,
 				label: "关联路由",

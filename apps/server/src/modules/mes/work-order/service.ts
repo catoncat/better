@@ -541,11 +541,21 @@ export const updateWorkOrderRouting = async (
 		};
 	}
 
-	if (wo.status !== WorkOrderStatus.RECEIVED) {
+	if (wo.status === WorkOrderStatus.COMPLETED) {
 		return {
 			success: false,
-			code: "WORK_ORDER_NOT_RECEIVED",
-			message: "工单已发布或生产中，无法修改路由",
+			code: "WORK_ORDER_COMPLETED",
+			message: "工单已完成，无法修改路由",
+			status: 400,
+		};
+	}
+
+	const hasRuns = await db.run.findFirst({ where: { woId: wo.id }, select: { id: true } });
+	if (hasRuns) {
+		return {
+			success: false,
+			code: "WORK_ORDER_HAS_RUNS",
+			message: "工单已创建批次，无法修改路由",
 			status: 400,
 		};
 	}

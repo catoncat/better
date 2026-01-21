@@ -120,8 +120,8 @@ export function WorkOrderCard({
 			</CardContent>
 
 			<CardFooter className="flex justify-end space-x-2">
-				{workOrder.status === "RECEIVED" &&
-					!workOrder.routing &&
+				{!workOrder.routing &&
+					workOrder.status !== "COMPLETED" &&
 					hasPermission(Permission.WO_UPDATE) && (
 						<Button variant="ghost" size="sm" onClick={() => onBindRouting?.(workOrder)}>
 							<Link2 className="mr-2 h-4 w-4" />
