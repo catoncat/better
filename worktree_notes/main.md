@@ -262,3 +262,57 @@
 
 ## Findings (2026-01-21 OQC rule)
 - OqcSamplingRule supports productCode/lineId/routingId targeting; samplingType (PERCENTAGE/FIXED) and sampleValue required.
+
+## Findings (2026-01-21 routing)
+- RoutingStep requires routingId, stepNo, operationId, stationType, optional stationGroupId; unique on (routingId, stepNo).
+- ExecutableRouteVersion created by compile endpoint; run creation requires latest READY version.
+
+## Findings (2026-01-21 run create)
+- /work-orders/:woNo/runs requires body { lineCode, planQty } (planQty mandatory).
+- Work order receive payload includes woNo, productCode, plannedQty, routingCode, pickStatus.
+
+## Findings (2026-01-21 test flow)
+- test-mes-flow.ts covers loading load-table + verify, readiness checks, FAI creation, authorize, track-in/out, OQC sampling rule creation, and trace verification; can adapt endpoint usage for SMT demo dataset.
+
+## Errors (2026-01-21)
+- rg -n "compile" apps/server/src/modules/mes/route failed: path not found. Next: search under apps/server/src/modules/mes for route modules by name.
+
+## Findings (2026-01-21 routing compile)
+- compileRouteExecution fails if steps missing stationGroupId/allowedStationIds; ensure routing steps set stationGroupId for demo route.
+
+## Findings (2026-01-21 integration enums)
+- IntegrationSource enum only has AUTO and MANUAL (use AUTO for stencil/paste status records).
+
+## Findings (2026-01-21 enums/station)
+- StencilStatus READY; SolderPasteStatus COMPLIANT; use IntegrationSource.AUTO.
+- Station requires code + name + stationType; optional lineId/groupId for line linkage.
+
+## Findings (2026-01-21 integration work order)
+- Integration POST /work-orders calls receiveWorkOrder (unknown upsert behavior). If woNo exists, behavior must be checked in receiveWorkOrder.
+
+## Findings (2026-01-21 receive work order)
+- integration/service receiveWorkOrder uses Prisma upsert on woNo, so re-running work order receive is idempotent.
+
+## Findings (2026-01-21 OQC schemas)
+- OQC sampling rule create expects samplingType PERCENTAGE/FIXED and sampleValue; OQC task create sampleQty optional.
+- OQC item payload requires unitSn + itemName + result (PASS/FAIL/NA); completion requires decision PASS/FAIL.
+
+## Findings (2026-01-21 run units)
+- POST /runs/:runNo/generate-units uses generateUnitsSchema; permission RUN_AUTHORIZE.
+
+## Findings (2026-01-21 generate units)
+- generateUnitsSchema: { quantity, snPrefix? }; response includes generated count and list of units with sn/status.
+
+## Findings (2026-01-21 unlock)
+- /feeder-slots/:slotId/unlock requires body { reason } and operatorId from auth context (service uses operatorId for audit).
+
+## Findings (2026-01-21 loading schema)
+- /loading/verify body { runNo, slotCode, materialLotBarcode, operatorId?, packageQty? }.
+- /loading/replace body { runNo, slotCode, newMaterialLotBarcode, operatorId?, reason, packageQty? }.
+
+## Findings (2026-01-21 verifyLoading)
+- verifyLoading returns errors (RUN_STATUS_INVALID, SLOT_LOCKED, SLOT_EXPECTATION_MISSING, MATERIAL_LOT_NOT_FOUND, etc.) as { success: false } and increments failedAttempts/locks slot on repeated failures.
+- It allows idempotent re-scan if expectation already LOADED with same material.
+
+## Findings (2026-01-21 loading routes)
+- Loading verify endpoint is under /loading/verify; feeder slot unlock uses /feeder-slots/:slotId/unlock (separate module).
