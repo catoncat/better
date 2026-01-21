@@ -54,13 +54,7 @@ interface RoleDialogProps {
 	isSubmitting?: boolean;
 }
 
-export function RoleDialog({
-	open,
-	onOpenChange,
-	role,
-	initialValues,
-	onSubmit,
-}: RoleDialogProps) {
+export function RoleDialog({ open, onOpenChange, role, initialValues, onSubmit }: RoleDialogProps) {
 	const permissionGroups = useMemo(() => Object.values(PERMISSION_GROUPS), []);
 	const form = useForm({
 		defaultValues: {
