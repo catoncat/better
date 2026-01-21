@@ -650,7 +650,7 @@ function DefectsPage() {
 						<DialogDescription>释放暂扣的单位</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-4">
-						<div>
+						<div className="space-y-2">
 							<Label>释放原因 *</Label>
 							<Textarea
 								value={releaseReason}

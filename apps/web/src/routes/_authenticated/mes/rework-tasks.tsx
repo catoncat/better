@@ -251,7 +251,7 @@ function ReworkTasksPage() {
 						<DialogDescription>确认返工任务已完成</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-4">
-						<div>
+						<div className="space-y-2">
 							<Label>备注</Label>
 							<Textarea
 								value={completeRemark}

@@ -431,7 +431,7 @@ function FaiPage() {
 				</CardHeader>
 				<CardContent>
 					<div className="flex gap-4 flex-wrap">
-						<div className="w-48">
+						<div className="w-48 space-y-2">
 							<Label>Run 编号</Label>
 							<Combobox
 								options={runOptions}
@@ -447,7 +447,7 @@ function FaiPage() {
 								onSearchValueChange={setRunSearch}
 							/>
 						</div>
-						<div className="w-40">
+						<div className="w-40 space-y-2">
 							<Label>状态</Label>
 							<Select
 								value={query.status ?? "ALL"}
@@ -796,7 +796,7 @@ function FaiPage() {
 						<DialogDescription>录入 FAI 检验结果</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-4">
-						<div>
+						<div className="space-y-2">
 							<Label>检验项模板（采集项）</Label>
 							<Combobox
 								options={availableSpecs.map((spec) => ({
@@ -822,7 +822,7 @@ function FaiPage() {
 								</p>
 							)}
 						</div>
-						<div>
+						<div className="space-y-2">
 							<Label>检验项名称 *</Label>
 							<Input
 								value={itemForm.itemName}
@@ -831,7 +831,7 @@ function FaiPage() {
 								placeholder="如：尺寸检验"
 							/>
 						</div>
-						<div>
+						<div className="space-y-2">
 							<Label>规格要求</Label>
 							<Input
 								value={itemForm.itemSpec}
@@ -840,7 +840,7 @@ function FaiPage() {
 								placeholder="如：10±0.5mm"
 							/>
 						</div>
-						<div>
+						<div className="space-y-2">
 							<Label>实测值</Label>
 							{selectedSpec?.dataType === "BOOLEAN" ? (
 								<Select
@@ -870,7 +870,7 @@ function FaiPage() {
 								/>
 							)}
 						</div>
-						<div>
+						<div className="space-y-2">
 							<Label>结果</Label>
 							<Select
 								value={itemForm.result}
@@ -888,7 +888,7 @@ function FaiPage() {
 								</SelectContent>
 							</Select>
 						</div>
-						<div>
+						<div className="space-y-2">
 							<Label>单位 SN（可选）</Label>
 							<Input
 								value={itemForm.unitSn}
@@ -896,7 +896,7 @@ function FaiPage() {
 								placeholder="被检单位序列号"
 							/>
 						</div>
-						<div>
+						<div className="space-y-2">
 							<Label>备注</Label>
 							<Textarea
 								value={itemForm.remark}
@@ -928,7 +928,7 @@ function FaiPage() {
 						<DialogDescription>确认检验结论</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-4">
-						<div>
+						<div className="space-y-2">
 							<Label>检验结论 *</Label>
 							<Select
 								value={completeForm.decision}
@@ -950,7 +950,7 @@ function FaiPage() {
 							</Select>
 						</div>
 						{isFailDecision && (
-							<div>
+							<div className="space-y-2">
 								<Label>失败数量 *</Label>
 								<Input
 									type="number"
@@ -970,7 +970,7 @@ function FaiPage() {
 								</div>
 							</div>
 						)}
-						<div>
+						<div className="space-y-2">
 							<Label>备注</Label>
 							<Textarea
 								value={completeForm.remark}
