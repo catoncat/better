@@ -110,6 +110,7 @@ task:
 - Reviewed BOM list page to add route-read gating and query guards.
 - Reviewed work-centers list page to add route-read gating and query guards.
 - Located config/ops page audit entries in permission audit plan for status updates.
+- Applied lint-driven formatting adjustments for data spec hooks/components and import ordering.
 
 ## Findings
 - Worktree created; `bun.lock` modified by `bun install`.
