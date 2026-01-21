@@ -24,7 +24,7 @@ task:
 - [x] Slice 6: implement config/ops page gating (routes, route detail, route versions, data-specs, integration)
 - [x] Slice 7: implement master data gating (materials, boms, work-centers)
 - [x] Slice 8: work orders + runs list gating
-- [ ] Slice 9: run detail flow gating
+- [x] Slice 9: run detail flow gating
 - [ ] Slice 10: readiness + loading pages gating
 - [ ] Slice 11: execution page gating
 - [ ] Slice 12: quality + trace pages gating
