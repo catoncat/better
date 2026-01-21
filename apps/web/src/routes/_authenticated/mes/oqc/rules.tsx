@@ -23,8 +23,8 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { type OqcSamplingRule, useDeleteOqcRule, useOqcRuleList } from "@/hooks/use-oqc-rules";
 import { useAbility } from "@/hooks/use-ability";
+import { type OqcSamplingRule, useDeleteOqcRule, useOqcRuleList } from "@/hooks/use-oqc-rules";
 import { OQC_SAMPLING_TYPE_MAP } from "@/lib/constants";
 import { RuleDialog } from "./-components/rule-dialog";
 

@@ -26,8 +26,8 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { type FeederSlot, useDeleteFeederSlot, useFeederSlots } from "@/hooks/use-feeder-slots";
 import { useAbility } from "@/hooks/use-ability";
+import { type FeederSlot, useDeleteFeederSlot, useFeederSlots } from "@/hooks/use-feeder-slots";
 import { useLines } from "@/hooks/use-lines";
 import { type SlotMapping, useDeleteSlotMapping, useSlotMappings } from "@/hooks/use-slot-mappings";
 import { MappingDialog } from "./-components/mapping-dialog";

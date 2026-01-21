@@ -5,6 +5,7 @@ import { Can } from "@/components/ability/can";
 import { NoAccessCard } from "@/components/ability/no-access-card";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
+import { useAbility } from "@/hooks/use-ability";
 import {
 	type OqcInspection,
 	useCompleteOqc,
@@ -13,7 +14,6 @@ import {
 	useRecordOqcItem,
 	useStartOqc,
 } from "@/hooks/use-oqc";
-import { useAbility } from "@/hooks/use-ability";
 import { useQueryPresets } from "@/hooks/use-query-presets";
 import { INSPECTION_STATUS_MAP } from "@/lib/constants";
 import { OqcCard } from "../-components/oqc-card";
