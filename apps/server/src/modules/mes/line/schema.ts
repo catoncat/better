@@ -1,23 +1,35 @@
-import { ProcessType } from "@better-app/db";
+import * as Prismabox from "@better-app/db/prismabox";
 import { t } from "elysia";
 
 const lineSummarySchema = t.Object({
 	id: t.String(),
 	code: t.String(),
 	name: t.String(),
-	processType: t.Enum(ProcessType),
+	processType: Prismabox.ProcessType,
+});
+
+const lineDetailSchema = t.Object({
+	id: t.String(),
+	code: t.String(),
+	name: t.String(),
+	processType: Prismabox.ProcessType,
+	createdAt: t.String({ format: "date-time" }),
+	updatedAt: t.String({ format: "date-time" }),
 });
 
 export const lineListResponseSchema = t.Object({
 	ok: t.Boolean(),
 	data: t.Object({
 		items: t.Array(lineSummarySchema),
+		total: t.Number(),
+		page: t.Number(),
+		pageSize: t.Number(),
 	}),
 });
 
 export const lineResponseSchema = t.Object({
 	ok: t.Boolean(),
-	data: lineSummarySchema,
+	data: lineDetailSchema,
 });
 
 export const lineIdParamSchema = t.Object({
@@ -25,7 +37,34 @@ export const lineIdParamSchema = t.Object({
 });
 
 export const lineUpdateSchema = t.Object({
-	processType: t.Enum(ProcessType),
+	code: t.Optional(t.String({ minLength: 1, maxLength: 50 })),
+	name: t.Optional(t.String({ minLength: 1, maxLength: 100 })),
+	processType: t.Optional(Prismabox.ProcessType),
+});
+
+export const lineProcessTypeUpdateSchema = t.Object({
+	processType: Prismabox.ProcessType,
+});
+
+export const lineCreateSchema = t.Object({
+	code: t.String({ minLength: 1, maxLength: 50 }),
+	name: t.String({ minLength: 1, maxLength: 100 }),
+	processType: Prismabox.ProcessType,
+});
+
+export const lineListQuerySchema = t.Object({
+	page: t.Optional(t.Numeric({ minimum: 1, default: 1 })),
+	pageSize: t.Optional(t.Numeric({ minimum: 1, maximum: 100, default: 30 })),
+	search: t.Optional(t.String()),
+	processType: t.Optional(Prismabox.ProcessType),
+	sort: t.Optional(t.String()),
+});
+
+export const lineDeleteResponseSchema = t.Object({
+	ok: t.Boolean(),
+	data: t.Object({
+		id: t.String(),
+	}),
 });
 
 // ReadinessItemType enum values as string array schema
