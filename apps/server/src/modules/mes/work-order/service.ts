@@ -526,6 +526,56 @@ export const updatePickStatus = async (
 	return { success: true, data: updated };
 };
 
+export const updateWorkOrderRouting = async (
+	db: PrismaClient,
+	woNo: string,
+	routingCode: string,
+): Promise<ServiceResult<Prisma.WorkOrderGetPayload<Prisma.WorkOrderDefaultArgs>>> => {
+	const wo = await db.workOrder.findUnique({ where: { woNo } });
+	if (!wo) {
+		return {
+			success: false,
+			code: "WORK_ORDER_NOT_FOUND",
+			message: "工单不存在",
+			status: 404,
+		};
+	}
+
+	if (wo.status !== WorkOrderStatus.RECEIVED) {
+		return {
+			success: false,
+			code: "WORK_ORDER_NOT_RECEIVED",
+			message: "工单已发布或生产中，无法修改路由",
+			status: 400,
+		};
+	}
+
+	const routing = await db.routing.findUnique({ where: { code: routingCode } });
+	if (!routing) {
+		return {
+			success: false,
+			code: "ROUTE_NOT_FOUND",
+			message: "路由不存在",
+			status: 404,
+		};
+	}
+
+	if (wo.routingId && wo.routingId !== routing.id) {
+		return {
+			success: false,
+			code: "WORK_ORDER_ROUTING_ALREADY_SET",
+			message: "工单已关联路由，无法修改",
+			status: 400,
+		};
+	}
+
+	const updated = await db.workOrder.update({
+		where: { woNo },
+		data: { routingId: routing.id },
+	});
+	return { success: true, data: updated };
+};
+
 export const closeWorkOrder = async (
 	db: PrismaClient,
 	woNo: string,

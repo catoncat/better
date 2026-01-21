@@ -132,6 +132,25 @@ export function useUpdatePickStatus() {
 	});
 }
 
+export function useUpdateWorkOrderRouting() {
+	const queryClient = useQueryClient();
+	const showError = useApiError();
+
+	return useMutation({
+		mutationFn: async ({ woNo, routingCode }: { woNo: string; routingCode: string }) => {
+			const response = await client.api["work-orders"]({ woNo }).routing.patch({
+				routingCode,
+			});
+			return unwrap(response);
+		},
+		onSuccess: () => {
+			toast.success("路由已关联");
+			queryClient.invalidateQueries({ queryKey: ["mes", "work-orders"] });
+		},
+		onError: (error: unknown) => showError("关联路由失败", error),
+	});
+}
+
 export function useCloseWorkOrder() {
 	const queryClient = useQueryClient();
 	const showError = useApiError();

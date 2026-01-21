@@ -12,6 +12,7 @@ import {
 	workOrderReleaseSchema,
 	workOrderResponseSchema,
 	workOrderUpdatePickStatusSchema,
+	workOrderUpdateRoutingSchema,
 } from "./schema";
 import {
 	closeWorkOrder,
@@ -19,9 +20,10 @@ import {
 	listWorkOrders,
 	releaseWorkOrder,
 	updatePickStatus,
+	updateWorkOrderRouting,
 } from "./service";
 
-const notFoundCodes = new Set(["WORK_ORDER_NOT_FOUND", "LINE_NOT_FOUND"]);
+const notFoundCodes = new Set(["WORK_ORDER_NOT_FOUND", "LINE_NOT_FOUND", "ROUTE_NOT_FOUND"]);
 
 export const workOrderModule = new Elysia({
 	prefix: "/work-orders",
@@ -183,6 +185,57 @@ export const workOrderModule = new Elysia({
 			body: runCreateSchema,
 			response: {
 				200: runResponseSchema,
+				400: workOrderErrorResponseSchema,
+				404: workOrderErrorResponseSchema,
+			},
+			detail: { tags: ["MES - Work Orders"] },
+		},
+	)
+	.patch(
+		"/:woNo/routing",
+		async ({ db, params: { woNo }, body, set, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const before = await db.workOrder.findUnique({ where: { woNo } });
+			const result = await updateWorkOrderRouting(db, woNo, body.routingCode);
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.WORK_ORDER,
+					entityId: String(before?.id ?? woNo),
+					entityDisplay: String(woNo),
+					action: "WORK_ORDER_ROUTING_UPDATE",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					before,
+					request: requestMeta,
+					payload: { routingCode: body.routingCode },
+				});
+				set.status = result.status ?? (notFoundCodes.has(result.code) ? 404 : 400);
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.WORK_ORDER,
+				entityId: String(result.data.id),
+				entityDisplay: String(result.data.woNo),
+				action: "WORK_ORDER_ROUTING_UPDATE",
+				actor,
+				status: "SUCCESS",
+				before,
+				after: result.data,
+				request: requestMeta,
+				payload: { routingCode: body.routingCode },
+			});
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.WO_UPDATE,
+			params: t.Object({ woNo: t.String() }),
+			body: workOrderUpdateRoutingSchema,
+			response: {
+				200: workOrderResponseSchema,
 				400: workOrderErrorResponseSchema,
 				404: workOrderErrorResponseSchema,
 			},

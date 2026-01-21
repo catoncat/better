@@ -1,6 +1,6 @@
 import { Permission } from "@better-app/db/permissions";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Pencil, Play, Send, ShieldCheck } from "lucide-react";
+import { Link2, Pencil, Play, Send, ShieldCheck } from "lucide-react";
 import { createColumnsFromFieldMeta } from "@/components/data-list/field-meta";
 import { TableActions } from "@/components/data-table/table-actions";
 import { useAbility } from "@/hooks/use-ability";
@@ -11,6 +11,7 @@ export type WorkOrderTableMeta = {
 	onRelease?: (wo: WorkOrder) => void;
 	onCreateRun?: (wo: WorkOrder) => void;
 	onEditPickStatus?: (wo: WorkOrder) => void;
+	onBindRouting?: (wo: WorkOrder) => void;
 	onCloseout?: (wo: WorkOrder) => void;
 };
 
@@ -27,6 +28,14 @@ const actionsColumn: ColumnDef<WorkOrder> = {
 		// Check if this is an ERP work order or manual work order
 		const isErpWorkOrder = Boolean(wo.erpStatus);
 		const effectivePickStatus = isErpWorkOrder ? wo.erpPickStatus : wo.pickStatus;
+
+		if (wo.status === "RECEIVED" && !wo.routing && hasPermission(Permission.WO_UPDATE)) {
+			actions.push({
+				icon: Link2,
+				label: "关联路由",
+				onClick: () => meta?.onBindRouting?.(wo),
+			});
+		}
 
 		if (wo.status === "RECEIVED" && hasPermission(Permission.WO_RELEASE)) {
 			actions.push({

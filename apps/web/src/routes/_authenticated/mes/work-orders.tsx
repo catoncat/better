@@ -13,6 +13,7 @@ import {
 	useReceiveWorkOrder,
 	useReleaseWorkOrder,
 	useUpdatePickStatus,
+	useUpdateWorkOrderRouting,
 	useWorkOrderList,
 	type WorkOrder,
 } from "@/hooks/use-work-orders";
@@ -21,6 +22,10 @@ import { PickStatusDialog, type PickStatusFormValues } from "./-components/pick-
 import { RunCreateDialog, type RunFormValues } from "./-components/run-create-dialog";
 import { WorkOrderCard } from "./-components/work-order-card";
 import { workOrderColumns } from "./-components/work-order-columns";
+import {
+	WorkOrderRoutingDialog,
+	type WorkOrderRoutingFormValues,
+} from "./-components/work-order-routing-dialog";
 import { WorkOrderReceiveDialog } from "./-components/work-order-receive-dialog";
 import {
 	WorkOrderReleaseDialog,
@@ -91,6 +96,7 @@ function WorkOrdersPage() {
 	const [runDialogOpen, setRunDialogOpen] = useState(false);
 	const [pickStatusDialogOpen, setPickStatusDialogOpen] = useState(false);
 	const [releaseDialogOpen, setReleaseDialogOpen] = useState(false);
+	const [routingDialogOpen, setRoutingDialogOpen] = useState(false);
 	const [closeoutDialogOpen, setCloseoutDialogOpen] = useState(false);
 	const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null);
 
@@ -179,6 +185,8 @@ function WorkOrdersPage() {
 	const { mutateAsync: receiveWO, isPending: isReceiving } = useReceiveWorkOrder();
 	const { mutateAsync: releaseWO, isPending: isReleasing } = useReleaseWorkOrder();
 	const { mutateAsync: updatePickStatus, isPending: isUpdatingPickStatus } = useUpdatePickStatus();
+	const { mutateAsync: updateWorkOrderRouting, isPending: isUpdatingRouting } =
+		useUpdateWorkOrderRouting();
 	const { mutateAsync: createRun, isPending: isCreatingRun } = useCreateRun();
 	const closeWorkOrder = useCloseWorkOrder();
 
@@ -290,6 +298,11 @@ function WorkOrdersPage() {
 		setPickStatusDialogOpen(true);
 	};
 
+	const handleBindRoutingOpen = (wo: WorkOrder) => {
+		setSelectedWO(wo);
+		setRoutingDialogOpen(true);
+	};
+
 	const handleCloseoutOpen = useCallback((wo: WorkOrder) => {
 		setSelectedWO(wo);
 		setCloseoutDialogOpen(true);
@@ -329,6 +342,12 @@ function WorkOrdersPage() {
 		}
 	};
 
+	const handleRoutingSubmit = async (values: WorkOrderRoutingFormValues) => {
+		if (selectedWO) {
+			await updateWorkOrderRouting({ woNo: selectedWO.woNo, routingCode: values.routingCode });
+		}
+	};
+
 	const handleCloseoutConfirm = async () => {
 		if (!selectedWO) return;
 		try {
@@ -363,6 +382,7 @@ function WorkOrdersPage() {
 				onRelease: handleReleaseOpen,
 				onCreateRun: handleCreateRunOpen,
 				onEditPickStatus: handleEditPickStatusOpen,
+				onBindRouting: handleBindRoutingOpen,
 				onCloseout: handleCloseoutOpen,
 			}}
 			dataListViewProps={{
@@ -373,6 +393,7 @@ function WorkOrdersPage() {
 						onCreateRun={handleCreateRunOpen}
 						onRelease={handleReleaseOpen}
 						onEditPickStatus={handleEditPickStatusOpen}
+						onBindRouting={handleBindRoutingOpen}
 						onCloseout={handleCloseoutOpen}
 					/>
 				),
@@ -467,6 +488,13 @@ function WorkOrdersPage() {
 				onOpenChange={setPickStatusDialogOpen}
 				onSubmit={handlePickStatusSubmit}
 				isSubmitting={isUpdatingPickStatus}
+				workOrder={selectedWO}
+			/>
+			<WorkOrderRoutingDialog
+				open={routingDialogOpen}
+				onOpenChange={setRoutingDialogOpen}
+				onSubmit={handleRoutingSubmit}
+				isSubmitting={isUpdatingRouting}
 				workOrder={selectedWO}
 			/>
 			<CloseoutDialog

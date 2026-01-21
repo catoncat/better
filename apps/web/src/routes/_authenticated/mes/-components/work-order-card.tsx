@@ -1,5 +1,5 @@
 import { Permission } from "@better-app/db/permissions";
-import { CheckCircle2, Clock, Pencil, Play, Send, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Clock, Link2, Pencil, Play, Send, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ interface WorkOrderCardProps {
 	onCreateRun?: (wo: WorkOrder) => void;
 	onRelease?: (wo: WorkOrder) => void;
 	onEditPickStatus?: (wo: WorkOrder) => void;
+	onBindRouting?: (wo: WorkOrder) => void;
 	onCloseout?: (wo: WorkOrder) => void;
 }
 
@@ -22,6 +23,7 @@ export function WorkOrderCard({
 	onCreateRun,
 	onRelease,
 	onEditPickStatus,
+	onBindRouting,
 	onCloseout,
 }: WorkOrderCardProps) {
 	const { hasPermission } = useAbility();
@@ -118,6 +120,14 @@ export function WorkOrderCard({
 			</CardContent>
 
 			<CardFooter className="flex justify-end space-x-2">
+				{workOrder.status === "RECEIVED" &&
+					!workOrder.routing &&
+					hasPermission(Permission.WO_UPDATE) && (
+						<Button variant="ghost" size="sm" onClick={() => onBindRouting?.(workOrder)}>
+							<Link2 className="mr-2 h-4 w-4" />
+							关联路由
+						</Button>
+					)}
 				{workOrder.status === "RECEIVED" && hasPermission(Permission.WO_RELEASE) && (
 					<Button variant="ghost" size="sm" onClick={() => onRelease?.(workOrder)}>
 						<Send className="mr-2 h-4 w-4" />

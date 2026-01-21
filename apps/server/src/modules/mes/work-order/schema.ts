@@ -53,3 +53,7 @@ export const workOrderListQuerySchema = t.Object({
 export const workOrderUpdatePickStatusSchema = t.Object({
 	pickStatus: t.String(), // "1" | "2" | "3" | "4"
 });
+
+export const workOrderUpdateRoutingSchema = t.Object({
+	routingCode: t.String(),
+});
