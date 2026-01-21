@@ -60,3 +60,70 @@ task:
 
 ## Findings (2026-01-20 cont. 2)
 - Migration SQL creates 7 new SMT record tables + indexes; diff shows schema + bun.lock + worktree note changes.
+
+## Findings (2026-01-20 cont. 3)
+- Backend API pattern: service returns ServiceResult, routes handle audit and envelopes; required `recordAuditEvent` on success/fail; TypeBox schemas + error mapping.
+
+## Findings (2026-01-20 cont. 4)
+- `apps/server/src/modules/mes` has only `integration/solder-paste-service.ts` for solder; no existing bake-related module found.
+
+## Findings (2026-01-20 cont. 5)
+- Bake routes use list+create with Permission.READINESS_VIEW/READINESS_CHECK and audit on create; good template for SMT base records.
+
+## Findings (2026-01-20 cont. 6)
+- Bake module provides reference for schema + service: map record fields, parse dates, list filters, create validation, list pagination.
+
+## Findings (2026-01-20 cont. 7)
+- MES routes module uses `.use(<routes>)` per feature (bake, solder-paste, etc.). New SMT basic routes must be registered in `apps/server/src/modules/mes/routes.ts`.
+
+## Findings (2026-01-20 cont. 8)
+- Permission checks use `requirePermission` with `Permission` enum from db; routes enforce permissions per module (need to pick for SMT record endpoints).
+
+## Findings (2026-01-20 cont. 9)
+- OQC routes require `Permission.QUALITY_OQC`; solder-paste routes use `READINESS_VIEW` for list and `READINESS_CHECK` for create. Likely use same split for SMT basic records (QC/exception use QUALITY_OQC).
+
+## Findings (2026-01-20 cont. 10)
+- Bake records web page uses DataListLayout server mode with filters, query presets, create dialog; includes list + card views and permission-gated create button. Use as template for SMT basic record pages.
+
+## Findings (2026-01-20 cont. 11)
+- Web list page pattern requires DataListLayout (server mode), filters/presets, table+card views; references `data_list_pattern.md` + `list_sorting.md`.
+- Web form dialog pattern requires Eden-inferred input types, Zod + TanStack Form, dialog owns form state; references `create_edit_dialog.md` + `form_building.md`.
+
+## Findings (2026-01-20 cont. 12)
+- Data list pattern: DataListLayout server mode with FilterToolbar + QueryPresetBar, sync pagination to URL, include card view, use dateRange filters with from/to keys.
+- List sorting: default to most relevant time desc; set initialSorting in UI; backend should order by time desc with stable fallback.
+
+## Findings (2026-01-20 cont. 13)
+- Create/edit dialog: infer input types from Eden, Zod schema is source of truth, store ISO strings for dates, reset form on close/open.
+- Form building: use TanStack Form + zodValidator, full-width inputs, required indicator in label, fixed error height; relationship fields use selector/combobox.
+
+## Findings (2026-01-20 cont. 14)
+- Hooks pattern: `useXList` uses Eden `client.api[route].get`, `unwrap`, queryKey; create mutation invalidates list and toasts success/failure.
+- Solder paste hook shows query types and create input inferred from Eden; use as template for SMT record hooks.
+
+## Findings (2026-01-20 cont. 15)
+- Solder paste list page mirrors bake list: search/date-range filters, query presets, DataListLayout server pagination, permission-gated create dialog.
+
+## Findings (2026-01-20 cont. 16)
+- Field meta pattern uses DataListFieldMeta with card/table renderers; common formatting helpers for dates and badges.
+- Dialog pattern uses TanStack Form + Zod; normalizes values to `undefined` for optional fields and uses DateTimePicker with ISO strings.
+
+## Findings (2026-01-20 cont. 17)
+- Phase4 plan Track F tasks: WP-4 (steel/squeegee life), WP-7 (equipment inspection), WP-8 (oven program), WP-10 (daily QC + production exception) are pending.
+- SMT align file currently maps bake/solder/cold storage; needs new rows for stencil/squeegee/inspection/oven/QC/exception records once implemented.
+
+## Findings (2026-01-20 cont. 18)
+- Navigation config in `apps/web/src/config/navigation.ts` has "准备与防错" and "质量管理" sections; new SMT basic pages should be added there with proper permissions.
+
+## Findings (2026-01-20 cont. 19)
+- Permissions available: READINESS_VIEW/READINESS_CHECK and QUALITY_OQC/QUALITY_DISPOSITION/QUALITY_FAI. For SMT basic records, readiness-type should use READINESS_*; QC/exception should use QUALITY_OQC.
+
+## Findings (2026-01-20 cont. 20)
+- Solder paste service pattern: parseDate helper, list queries map lineCode -> lineId(s), orderBy time desc + createdAt desc; create validates timestamps and trims required fields.
+- Schema pattern includes lineId/lineCode/lineName in response for line-linked records.
+
+## Findings (2026-01-20 cont. 21)
+- Enum schema pattern uses `t.Union([t.Literal(...)])` for inspection type/status in `inspection-result-schema.ts`.
+
+## Errors (2026-01-20)
+- `cat <<'EOF' > apps/server/src/modules/mes/smt-basic/schema.ts` failed with "no such file or directory" even though `mkdir -p` ran; verified `apps/server/src/modules/mes/smt-basic` exists and re-ran the write successfully.
