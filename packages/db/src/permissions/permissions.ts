@@ -50,6 +50,9 @@ export const Permission = {
 	READINESS_OVERRIDE: "readiness:override",
 	READINESS_CONFIG: "readiness:config",
 
+	// Line master data
+	LINE_CONFIG: "line:config",
+
 	// Loading domain (M2)
 	LOADING_VIEW: "loading:view",
 	LOADING_VERIFY: "loading:verify",
@@ -142,6 +145,10 @@ export const PERMISSION_GROUPS = {
 			{ value: Permission.READINESS_OVERRIDE, label: "豁免检查项" },
 			{ value: Permission.READINESS_CONFIG, label: "管理检查配置" },
 		],
+	},
+	line: {
+		label: "产线管理",
+		permissions: [{ value: Permission.LINE_CONFIG, label: "管理产线" }],
 	},
 	loading: {
 		label: "上料管理",

@@ -20,6 +20,7 @@ export const PRESET_ROLES: PresetRole[] = [
 			Permission.SYSTEM_CONFIG,
 			Permission.SYSTEM_INTEGRATION,
 			Permission.DATA_SPEC_CONFIG,
+			Permission.LINE_CONFIG,
 			// Admin can also view everything
 			Permission.WO_READ,
 			Permission.RUN_READ,
@@ -67,6 +68,7 @@ export const PRESET_ROLES: PresetRole[] = [
 			Permission.TRACE_READ,
 			Permission.READINESS_CONFIG,
 			Permission.LOADING_CONFIG,
+			Permission.LINE_CONFIG,
 		],
 		dataScope: "ALL" as DataScope,
 		isSystem: true,
