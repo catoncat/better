@@ -5,6 +5,7 @@ import { Loader2, Plus } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 import { Can } from "@/components/ability/can";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/form-field-wrapper";
@@ -16,6 +17,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { useAbility } from "@/hooks/use-ability";
 import { useLines } from "@/hooks/use-lines";
 import {
 	type SolderPasteStatus,
@@ -43,21 +45,37 @@ const SOLDER_PASTE_STATUS_OPTIONS: { value: SolderPasteStatus; label: string }[]
 ];
 
 function ManualEntryPage() {
-	const { data: lines } = useLines();
+	const { hasPermission } = useAbility();
+	const canAccessIntegration = hasPermission(Permission.SYSTEM_INTEGRATION);
+	const canViewLines = hasPermission(Permission.RUN_READ) && hasPermission(Permission.RUN_CREATE);
+	const { data: lines } = useLines({ enabled: canAccessIntegration && canViewLines });
+
+	const header = (
+		<div>
+			<h1 className="text-2xl font-bold tracking-tight">耗材状态录入</h1>
+			<p className="text-muted-foreground">手动录入钢网/锡膏状态（无自动集成时使用）</p>
+		</div>
+	);
+
+	if (!canAccessIntegration) {
+		return (
+			<div className="flex flex-col gap-4">
+				{header}
+				<NoAccessCard description="需要系统集成权限才能手动录入耗材状态。" />
+			</div>
+		);
+	}
 
 	return (
 		<div className="space-y-6">
-			<div>
-				<h1 className="text-2xl font-bold tracking-tight">耗材状态录入</h1>
-				<p className="text-muted-foreground">手动录入钢网/锡膏状态（无自动集成时使用）</p>
-			</div>
+			{header}
 
 			<div className="grid gap-6 lg:grid-cols-2">
 				<StencilStatusCard />
 				<SolderPasteStatusCard />
 			</div>
 
-			<LineBindingCard lines={lines?.items ?? []} />
+			<LineBindingCard lines={lines?.items ?? []} canViewLines={canViewLines} />
 		</div>
 	);
 }
@@ -329,7 +347,7 @@ interface Line {
 	name: string;
 }
 
-function LineBindingCard({ lines }: { lines: Line[] }) {
+function LineBindingCard({ lines, canViewLines }: { lines: Line[]; canViewLines: boolean }) {
 	const [selectedLineId, setSelectedLineId] = useState<string>("");
 	const [stencilId, setStencilId] = useState("");
 	const [lotId, setLotId] = useState("");
@@ -356,79 +374,83 @@ function LineBindingCard({ lines }: { lines: Line[] }) {
 				<CardDescription>将耗材绑定到指定产线，用于就绪检查</CardDescription>
 			</CardHeader>
 			<CardContent>
-				<div className="space-y-4">
-					<div className="grid gap-4 sm:grid-cols-3">
-						<div>
-							<label htmlFor="line-select" className="text-sm font-medium mb-2 block">
-								选择产线
-							</label>
-							<Select value={selectedLineId} onValueChange={setSelectedLineId}>
-								<SelectTrigger id="line-select">
-									<SelectValue placeholder="选择产线" />
-								</SelectTrigger>
-								<SelectContent>
-									{lines.map((line) => (
-										<SelectItem key={line.id} value={line.id}>
-											{line.name} ({line.code})
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-
-						<div>
-							<label htmlFor="stencil-id" className="text-sm font-medium mb-2 block">
-								钢网ID
-							</label>
-							<div className="flex gap-2">
-								<Input
-									id="stencil-id"
-									placeholder="输入钢网ID"
-									value={stencilId}
-									onChange={(e) => setStencilId(e.target.value)}
-								/>
-								<Can permissions={Permission.LOADING_CONFIG}>
-									<Button
-										onClick={handleBindStencil}
-										disabled={!selectedLineId || !stencilId.trim() || bindStencil.isPending}
-									>
-										{bindStencil.isPending ? (
-											<Loader2 className="h-4 w-4 animate-spin" />
-										) : (
-											<Plus className="h-4 w-4" />
-										)}
-									</Button>
-								</Can>
+				{!canViewLines ? (
+					<p className="text-sm text-muted-foreground">需要批次权限才能查看产线并完成绑定。</p>
+				) : (
+					<div className="space-y-4">
+						<div className="grid gap-4 sm:grid-cols-3">
+							<div>
+								<label htmlFor="line-select" className="text-sm font-medium mb-2 block">
+									选择产线
+								</label>
+								<Select value={selectedLineId} onValueChange={setSelectedLineId}>
+									<SelectTrigger id="line-select">
+										<SelectValue placeholder="选择产线" />
+									</SelectTrigger>
+									<SelectContent>
+										{lines.map((line) => (
+											<SelectItem key={line.id} value={line.id}>
+												{line.name} ({line.code})
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
 							</div>
-						</div>
 
-						<div>
-							<label htmlFor="solder-paste-lot" className="text-sm font-medium mb-2 block">
-								锡膏批次号
-							</label>
-							<div className="flex gap-2">
-								<Input
-									id="solder-paste-lot"
-									placeholder="输入锡膏批次号"
-									value={lotId}
-									onChange={(e) => setLotId(e.target.value)}
-								/>
-								<Can permissions={Permission.LOADING_CONFIG}>
-									<Button
-										onClick={handleBindSolderPaste}
-										disabled={!selectedLineId || !lotId.trim() || bindSolderPaste.isPending}
-									>
-										{bindSolderPaste.isPending ? (
-											<Loader2 className="h-4 w-4 animate-spin" />
-										) : (
-											<Plus className="h-4 w-4" />
-										)}
-									</Button>
-								</Can>
+							<div>
+								<label htmlFor="stencil-id" className="text-sm font-medium mb-2 block">
+									钢网ID
+								</label>
+								<div className="flex gap-2">
+									<Input
+										id="stencil-id"
+										placeholder="输入钢网ID"
+										value={stencilId}
+										onChange={(e) => setStencilId(e.target.value)}
+									/>
+									<Can permissions={Permission.LOADING_CONFIG}>
+										<Button
+											onClick={handleBindStencil}
+											disabled={!selectedLineId || !stencilId.trim() || bindStencil.isPending}
+										>
+											{bindStencil.isPending ? (
+												<Loader2 className="h-4 w-4 animate-spin" />
+											) : (
+												<Plus className="h-4 w-4" />
+											)}
+										</Button>
+									</Can>
+								</div>
+							</div>
+
+							<div>
+								<label htmlFor="solder-paste-lot" className="text-sm font-medium mb-2 block">
+									锡膏批次号
+								</label>
+								<div className="flex gap-2">
+									<Input
+										id="solder-paste-lot"
+										placeholder="输入锡膏批次号"
+										value={lotId}
+										onChange={(e) => setLotId(e.target.value)}
+									/>
+									<Can permissions={Permission.LOADING_CONFIG}>
+										<Button
+											onClick={handleBindSolderPaste}
+											disabled={!selectedLineId || !lotId.trim() || bindSolderPaste.isPending}
+										>
+											{bindSolderPaste.isPending ? (
+												<Loader2 className="h-4 w-4 animate-spin" />
+											) : (
+												<Plus className="h-4 w-4" />
+											)}
+										</Button>
+									</Can>
+								</div>
 							</div>
 						</div>
 					</div>
-				</div>
+				)}
 			</CardContent>
 		</Card>
 	);

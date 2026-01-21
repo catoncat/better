@@ -20,6 +20,10 @@ interface DataSpecSelectorProps {
 	 * 可选：按工序代码过滤（用于步骤级配置时自动过滤）
 	 */
 	operationCode?: string;
+	/**
+	 * 是否允许加载采集项（权限不足时禁用）
+	 */
+	enabled?: boolean;
 }
 
 /**
@@ -30,7 +34,12 @@ interface DataSpecSelectorProps {
  * - 搜索过滤
  * - 可选按 operationCode 过滤
  */
-export function DataSpecSelector({ value, onChange, operationCode }: DataSpecSelectorProps) {
+export function DataSpecSelector({
+	value,
+	onChange,
+	operationCode,
+	enabled = true,
+}: DataSpecSelectorProps) {
 	const [search, setSearch] = useState("");
 
 	// 获取采集项列表（启用状态）
@@ -38,7 +47,7 @@ export function DataSpecSelector({ value, onChange, operationCode }: DataSpecSel
 		pageSize: 100,
 		isActive: "true",
 		operationCode: operationCode || undefined,
-	});
+	}, { enabled });
 
 	const specs = data?.items ?? [];
 
@@ -91,6 +100,10 @@ export function DataSpecSelector({ value, onChange, operationCode }: DataSpecSel
 	};
 
 	const selectedSet = new Set(value);
+
+	if (!enabled) {
+		return <div className="text-sm text-muted-foreground py-4 text-center">无权限查看采集项</div>;
+	}
 
 	if (isLoading) {
 		return <div className="text-sm text-muted-foreground py-4 text-center">加载采集项...</div>;

@@ -2,6 +2,7 @@ import { Permission } from "@better-app/db/permissions";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
+import { NoAccessCard } from "@/components/ability/no-access-card";
 import { RouteSelect } from "@/components/select/route-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useAbility } from "@/hooks/use-ability";
 import {
 	type RouteVersion,
 	useCompileRouteVersion,
@@ -28,7 +30,11 @@ export const Route = createFileRoute("/_authenticated/mes/route-versions")({
 
 function RouteVersionsPage() {
 	const [routingCode, setRoutingCode] = useState("");
-	const { data, isLoading, isFetching, refetch } = useRouteVersions(routingCode);
+	const { hasPermission } = useAbility();
+	const canViewRoutes = hasPermission(Permission.ROUTE_READ);
+	const { data, isLoading, isFetching, refetch } = useRouteVersions(routingCode, {
+		enabled: canViewRoutes,
+	});
 	const { mutateAsync: compileRoute, isPending: isCompiling } = useCompileRouteVersion();
 
 	const versions = useMemo(() => data ?? [], [data]);
@@ -57,12 +63,25 @@ function RouteVersionsPage() {
 		return JSON.stringify(errors);
 	};
 
+	const header = (
+		<div className="flex flex-col gap-2">
+			<h1 className="text-3xl font-bold tracking-tight">路由版本</h1>
+			<p className="text-muted-foreground">查看路由编译结果，确保执行版本处于 READY。</p>
+		</div>
+	);
+
+	if (!canViewRoutes) {
+		return (
+			<div className="flex flex-col gap-4">
+				{header}
+				<NoAccessCard description="需要路由查看权限才能查看版本信息。" />
+			</div>
+		);
+	}
+
 	return (
 		<div className="space-y-6">
-			<div className="flex flex-col gap-2">
-				<h1 className="text-3xl font-bold tracking-tight">路由版本</h1>
-				<p className="text-muted-foreground">查看路由编译结果，确保执行版本处于 READY。</p>
-			</div>
+			{header}
 
 			<Card>
 				<CardHeader>
@@ -78,6 +97,7 @@ function RouteVersionsPage() {
 								onValueChange={(value) => setRoutingCode(value)}
 								className="mt-2"
 								placeholder="选择路由..."
+								enabled={canViewRoutes}
 							/>
 						</div>
 						<div className="flex flex-wrap gap-2">
