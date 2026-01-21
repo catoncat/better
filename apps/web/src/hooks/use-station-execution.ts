@@ -28,9 +28,10 @@ type UnitDataSpecsEnvelope = Awaited<
 export type UnitDataSpecs = UnwrapEnvelope<NonNullable<UnitDataSpecsEnvelope>>;
 export type DataSpecItem = UnitDataSpecs["specs"][number];
 
-export function useStations() {
+export function useStations(options?: { enabled?: boolean }) {
 	return useQuery<StationList>({
 		queryKey: ["mes", "stations"],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await client.api.stations.get();
 			return unwrap(response);

@@ -6,6 +6,7 @@ interface RouteSelectProps {
 	value?: string;
 	onValueChange: (value: string) => void;
 	disabled?: boolean;
+	enabled?: boolean;
 	placeholder?: string;
 	className?: string;
 }
@@ -14,6 +15,7 @@ export function RouteSelect({
 	value,
 	onValueChange,
 	disabled,
+	enabled,
 	placeholder = "选择路由",
 	className,
 }: RouteSelectProps) {
@@ -25,7 +27,9 @@ export function RouteSelect({
 		return () => window.clearTimeout(timer);
 	}, [searchValue]);
 
-	const { data, isLoading } = useRouteSearch(debouncedSearch);
+	const { data, isLoading } = useRouteSearch(debouncedSearch, {
+		enabled: enabled ?? !disabled,
+	});
 
 	const options: ComboboxOption[] = React.useMemo(() => {
 		if (!data?.items) return [];

@@ -8,9 +8,10 @@ type LineListResponse = Awaited<ReturnType<typeof client.api.lines.get>>["data"]
 type LineListData = UnwrapEnvelope<NonNullable<LineListResponse>>;
 type LineUpdateInput = Parameters<ReturnType<typeof client.api.lines>["patch"]>[0];
 
-export function useLines() {
+export function useLines(options?: { enabled?: boolean }) {
 	return useQuery<LineListData>({
 		queryKey: ["mes", "lines"],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await client.api.lines.get();
 			return unwrap(response);

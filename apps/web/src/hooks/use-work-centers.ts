@@ -18,7 +18,10 @@ export interface UseWorkCenterListParams {
 	sort?: string;
 }
 
-export function useWorkCenterList(params: UseWorkCenterListParams) {
+export function useWorkCenterList(
+	params: UseWorkCenterListParams,
+	options?: { enabled?: boolean },
+) {
 	const page = params.page ?? 1;
 	const pageSize = params.pageSize ?? 30;
 	const search = params.search ?? "";
@@ -43,6 +46,7 @@ export function useWorkCenterList(params: UseWorkCenterListParams) {
 			updatedTo,
 			sort,
 		],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await workCentersApi.get({
 				query: {
