@@ -522,7 +522,7 @@ function ExecutionPage() {
 			</Card>
 
 			{selectedStation && (
-				<div className="grid gap-6 lg:grid-cols-2">
+				<div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
 					<div className="space-y-6">
 						<Card>
 							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

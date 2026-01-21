@@ -15,7 +15,7 @@ import {
 	Shield,
 	XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Can } from "@/components/ability/can";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +45,6 @@ import { useCreateFai, useFaiByRun, useFaiGate, useStartFai } from "@/hooks/use-
 import { useMrbDecision, useOqcByRun } from "@/hooks/use-oqc";
 import {
 	type ReadinessCheckItem,
-	usePerformFormalCheck,
 	usePerformPrecheck,
 	useReadinessLatest,
 	useWaiveItem,
@@ -110,8 +109,22 @@ function RunDetailPage() {
 	const mrbDecision = useMrbDecision();
 
 	const performPrecheck = usePerformPrecheck();
-	const performFormalCheck = usePerformFormalCheck();
 	const waiveItem = useWaiveItem();
+
+	// Auto-refresh readiness check on page load for PREP status
+	const hasAutoChecked = useRef(false);
+	const runId = data?.run?.id;
+	const runStatus = data?.run?.status;
+	useEffect(() => {
+		if (!runId || runStatus !== "PREP") return;
+		if (hasAutoChecked.current) return;
+		hasAutoChecked.current = true;
+		// Silently trigger a precheck to refresh readiness status
+		performPrecheck
+			.mutateAsync(runNo)
+			.then(() => refetchReadiness())
+			.catch(() => {});
+	}, [runId, runStatus, runNo, performPrecheck, refetchReadiness]);
 
 	const [waiveDialogOpen, setWaiveDialogOpen] = useState(false);
 	const [selectedItem, setSelectedItem] = useState<ReadinessCheckItem | null>(null);
@@ -259,12 +272,8 @@ function RunDetailPage() {
 		refetchReadiness();
 	};
 
-	const handleRunCheck = async (type: "precheck" | "formal") => {
-		if (type === "precheck") {
-			await performPrecheck.mutateAsync(runNo);
-		} else {
-			await performFormalCheck.mutateAsync(runNo);
-		}
+	const handleRunCheck = async () => {
+		await performPrecheck.mutateAsync(runNo);
 		refetchReadiness();
 	};
 
@@ -685,8 +694,8 @@ function RunDetailPage() {
 						</div>
 					</div>
 					{nextAction && (
-						<div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
-							<span className="text-muted-foreground">下一步</span>
+						<div className="flex items-center rounded-md bg-muted/50 px-3 py-2 text-sm">
+							<span className="text-muted-foreground mr-2">下一步</span>
 							<span className="font-medium">{nextAction}</span>
 						</div>
 					)}
@@ -840,31 +849,15 @@ function RunDetailPage() {
 									<Button
 										variant="outline"
 										size="sm"
-										onClick={() => handleRunCheck("precheck")}
+										onClick={() => handleRunCheck()}
 										disabled={performPrecheck.isPending}
 									>
-										{performPrecheck.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-										执行预检
-									</Button>
-									<Button
-										variant="default"
-										size="sm"
-										onClick={() => handleRunCheck("formal")}
-										disabled={performFormalCheck.isPending}
-									>
-										{performFormalCheck.isPending && (
-											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										{performPrecheck.isPending ? (
+											<Loader2 className="h-4 w-4 animate-spin" />
+										) : (
+											<RefreshCw className="h-4 w-4" />
 										)}
-										正式检查
 									</Button>
-									{readinessData?.status === "PASSED" && (
-										<Button variant="secondary" size="sm" asChild>
-											<Link to="/mes/loading" search={{ runNo }}>
-												<Package className="mr-2 h-4 w-4" />
-												前往上料
-											</Link>
-										</Button>
-									)}
 								</div>
 							)}
 						</div>

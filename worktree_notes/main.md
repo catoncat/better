@@ -124,3 +124,54 @@
 ## 2026-01-21 Findings (Trace output)
 - Trace API returns unit, route + frozen routeVersion, steps, tracks, dataValues, inspections, loadingRecords, materials; mode defaults to run/frozen.
 - Trace contract requires including route identity and frozen route version to prevent historical drift.
+## 2026-01-21 Findings (Unit generation)
+- Units are generated via generateUnits: allowed when Run status PREP or AUTHORIZED; quantity cannot exceed planQty.
+- SNs are auto-generated with prefix `SN-${runNo}-` (or custom prefix), numbered sequentially; units start status QUEUED and currentStepNo set to first route step.
+
+## Findings (2025-03-24)
+- Ran git status; branch is ahead of origin/main by 7; no local changes shown in short status.
+- Using dev skill; next changes are wiring role-management to open read-only dialog for system roles and adjust button label, then run smart-verify.
+
+## Findings (2025-03-24, UI roles)
+- role-dialog already has readOnly prop and isReadOnly handling; needs wiring from role-management.
+- role-management still shows 编辑 button and likely doesn't pass readOnly for system roles; clone button present.
+## 2026-01-21 Findings (Unit API)
+- Units are generated via `POST /api/runs/:runNo/generate-units` (requires RUN_AUTHORIZE). Deleting queued units via `DELETE /api/runs/:runNo/units`.
+
+## Findings (2025-03-24, role-management)
+- role-management uses handleEdit for all roles; system roles currently show 编辑 button; delete disabled via role.isSystem.
+- handleSubmit still allows limited update for system roles, but readOnly UI can prevent edits if wired.
+
+## Findings (2025-03-24, role-dialog)
+- RoleDialog supports readOnly: disables inputs, hides save, shows "查看系统角色" title and "关闭" button.
+- Still relies on caller to set readOnly for system roles.
+- Added execution/trace flow doc: `domain_docs/mes/smt_playbook/03_run_flow/05_execution_and_trace.md`.
+
+## Progress (2025-03-24)
+- Updated role-management to show system roles as "系统 + 只读" badges, label edit as "查看", and pass readOnly into RoleDialog.
+- Committed execution/trace flow doc: "docs: add SMT execution and trace flow guide".
+## 2026-01-21 Findings (OQC creation)
+- OQC can be created only when Run status is IN_PROGRESS and all units are terminal (DONE/SCRAPPED); eligible units are DONE only.
+- OQC creation is idempotent; sampleQty defaults to eligibleCount and must be within range; OQC data stores sampling metadata.
+
+## Errors (2025-03-24)
+- git commit failed: "no changes added to commit" (only worktree_notes modified; role-management already clean). Next: verify if role-management changes already in HEAD; proceed without new commit if so.
+## 2026-01-21 Findings (OQC trigger + schema)
+- OQC trigger: if no applicable sampling rule or sampleSize<=0, run auto-completes (COMPLETED) without OQC; otherwise selects sampled units and creates OQC with sampling metadata.
+- OQC item schema includes unitSn, itemName/spec, actualValue, result PASS/FAIL/NA, defectCode, remark; sampling rules support PERCENTAGE/FIXED with priority and active flag.
+
+## Findings (2025-03-24, git state)
+- role-management file matches HEAD (no diff); latest commit touching it is cc11f1c (docs commit).
+- Only local modification now is worktree_notes/main.md plus untracked doc file.
+
+## Progress (2025-03-24, verify)
+- Ran `bun scripts/smart-verify.ts` successfully (biome check, db:generate, check-types).
+- Post-verify git status shows unrelated changes: apps/server/src/modules/mes/work-order/service.ts modified, domain_docs/mes/smt_playbook/03_run_flow/06_oqc_closeout.md untracked.
+- Added OQC/closeout flow doc: `domain_docs/mes/smt_playbook/03_run_flow/06_oqc_closeout.md`.
+
+## Findings (2025-03-24, scripts)
+- Confirmed role sync script exists: apps/server/scripts/seed-roles.ts
+- Added demo data docs: `domain_docs/mes/smt_playbook/04_demo_data/01_demo_dataset_blueprint.md` and `04_demo_data/02_demo_run_recipe.md`.
+- Committed demo data docs: "docs: add SMT demo data blueprint and recipe".
+- Added validation docs: `domain_docs/mes/smt_playbook/05_validation/01_loading_validation.md`, `05_validation/02_run_and_execution_validation.md`, `05_validation/03_traceability_validation.md`.
+- Committed validation docs: "docs: add SMT validation checklists".
