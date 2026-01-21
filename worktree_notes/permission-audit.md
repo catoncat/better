@@ -25,7 +25,7 @@ task:
 - [x] Slice 7: implement master data gating (materials, boms, work-centers)
 - [x] Slice 8: work orders + runs list gating
 - [x] Slice 9: run detail flow gating
-- [ ] Slice 10: readiness + loading pages gating
+- [x] Slice 10: readiness + loading pages gating
 - [ ] Slice 11: execution page gating
 - [ ] Slice 12: quality + trace pages gating
 
@@ -77,6 +77,13 @@ task:
 - Main-flow decisions: align work-order receive permission to `wo:receive`; show NoAccess placeholders for flow-critical cards on run detail.
 
 ## Progress
+- Completed Slice 10: readiness + loading gating shipped and audit plan updated.
+- Updated `user_docs/demo/permission_audit_plan.md` statuses for readiness + loading pages.
+- Reviewed loading index and slot-config to align import order and permission gating after edits.
+- Verified readiness-exceptions uses permission-gated filters and run links with new enabled support.
+- Reviewed readiness hooks/config for enabled gating; looks consistent with new permission guards.
+- Updated loading hooks/components to accept enabled options and started gating loading index/slot-config by loading permissions.
+- Re-read worktree note after context switch; continue Slice 10 with loading pages gating (loading index + slot-config) before updating plan.
 - Reviewed conversation plan note; continuing with the selected track.
 - Audited readiness config/exceptions, loading pages, execution, FAI, OQC, OQC rules, defects, and trace; recorded gaps in `user_docs/demo/permission_audit_plan.md`.
 - Started auditing `/mes/rework-tasks`; page uses `useReworkTaskList` and `useCompleteRework` with no permission gating yet.
@@ -129,8 +136,19 @@ task:
 - Started Slice 9: reviewed run detail page for missing view gating on run detail/units and flow cards; identified loading link and generate-units button needing permission checks.
 - Reviewed run detail sections: readiness actions should require view + check; generate-units button lacks `run:authorize` gating; FAI/OQC cards are hidden entirely when lacking view; loading link needs `loading:view` gating; run detail/units hooks need `enabled` support.
 - Updated audit plan for run detail: marked generate-units gating, loading link gating, and FAI/OQC placeholders as complete.
+- Reviewed readiness config/exceptions pages: line selectors and exceptions list lack permission-based query gating; readiness config checkboxes are editable without `readiness:config`; exceptions run links render without `run:read` checks.
+- Confirmed `useReadinessConfig` and `useReadinessExceptions` hooks lack `enabled` options; need to add for permission gating.
+- Located loading page and slot-config route files under `apps/web/src/routes/_authenticated/mes/loading/` for Slice 10 updates.
 
 ## Findings
+- LineSelect supports disabled/enabled; readiness-config shows NoAccessCard in CardContent when line permissions missing, so slot-config can mirror that gating pattern.
+- NoAccessCard supports optional title/description; readiness-config uses it for page-level and module-level gating, so loading pages can mirror this pattern.
+- NoAccessCard import path is "@/components/ability/no-access-card"; permission checks use useAbility from "@/hooks/use-ability".
+- useRunList and useRouteSearch already accept enabled options, so loading page and mapping dialog can pass permission-gated enabled flags.
+- useFeederSlots/useSlotMappings lack permission-aware enabled options; will add to avoid 403s in slot-config.
+- Loading page components: ScanPanel uses verify/replace mutations (loading:verify), SlotList unlocks slots (loading:config) and reads expectations (loading:view), LoadingHistory reads records (loading:view); these need permission-aware gating.
+- useLoadingExpectations/useLoadingRecords currently only gate by runNo; add enabled options to support permission-aware queries on loading pages.
+- Confirmed LOADING permission constants are used in navigation and loading/slot-config pages; will gate loading index modules by run:read + loading:view/verify and config pages by loading:view/config.
 - Worktree created; `bun.lock` modified by `bun install`.
 - Preset roles: planner lacks readiness/loading/quality permissions; engineer lacks run/create/authorize; operator only exec/trace/readiness/loading. Admin covers core view + system. See `packages/db/src/permissions/preset-roles.ts`.
 - Permissions catalog covers WO/RUN/EXEC/ROUTE/QUALITY/READINESS/LOADING/TRACE/SYSTEM; no extra role-specific hints. See `packages/db/src/permissions/permissions.ts`.
@@ -183,6 +201,7 @@ task:
 -
 
 ## Errors
+- apply_patch failed on relative path (file not found); next attempt uses absolute worktree path.
 - Attempted to write conversation note with `cat >`, failed due to `zsh: file exists`; next approach: write via `cat >|` or `apply_patch` to overwrite.
 - `git add` failed because `$runNo` expanded in path; next approach: quote or escape the path when adding.
 - `bun scripts/smart-verify.ts` failed: Biome wants import sorting + formatting in `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx`; next approach: run `bun run format` or apply suggested import order + formatting, then re-run verify.
