@@ -1,3 +1,4 @@
+import { Permission } from "@better-app/db/permissions";
 import { useForm } from "@tanstack/react-form";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -22,6 +23,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { useAbility } from "@/hooks/use-ability";
 import { useLines } from "@/hooks/use-lines";
 import { type OqcSamplingRule, useCreateOqcRule, useUpdateOqcRule } from "@/hooks/use-oqc-rules";
 import { useRouteSearch } from "@/hooks/use-routes";
@@ -46,9 +48,12 @@ interface RuleDialogProps {
 export function RuleDialog({ open, onOpenChange, rule }: RuleDialogProps) {
 	const createRule = useCreateOqcRule();
 	const updateRule = useUpdateOqcRule();
-	const { data: lines } = useLines();
+	const { hasPermission } = useAbility();
+	const canViewLines = hasPermission(Permission.RUN_READ) && hasPermission(Permission.RUN_CREATE);
+	const canReadRoute = hasPermission(Permission.ROUTE_READ);
+	const { data: lines } = useLines({ enabled: canViewLines });
 	const [routeSearch, setRouteSearch] = useState("");
-	const { data: routeOptions } = useRouteSearch(routeSearch);
+	const { data: routeOptions } = useRouteSearch(routeSearch, { enabled: canReadRoute });
 
 	const isEdit = !!rule;
 
@@ -145,17 +150,22 @@ export function RuleDialog({ open, onOpenChange, rule }: RuleDialogProps) {
 					<div className="grid grid-cols-2 gap-4">
 						<Field form={form} name="lineId" label="产线 (选填)">
 							{(field) => (
-								<Select value={field.state.value} onValueChange={field.handleChange}>
+								<Select
+									value={field.state.value}
+									onValueChange={field.handleChange}
+									disabled={!canViewLines}
+								>
 									<SelectTrigger>
 										<SelectValue placeholder="所有产线" />
 									</SelectTrigger>
 									<SelectContent>
 										<SelectItem value="ALL">所有产线</SelectItem>
-										{lines?.items.map((line) => (
-											<SelectItem key={line.id} value={line.id}>
-												{line.name} ({line.code})
-											</SelectItem>
-										))}
+										{canViewLines &&
+											lines?.items.map((line) => (
+												<SelectItem key={line.id} value={line.id}>
+													{line.name} ({line.code})
+												</SelectItem>
+											))}
 									</SelectContent>
 								</Select>
 							)}
@@ -167,29 +177,33 @@ export function RuleDialog({ open, onOpenChange, rule }: RuleDialogProps) {
 									value={field.state.value}
 									onValueChange={field.handleChange}
 									onOpenChange={(open) => {
-										if (open && !routeOptions) {
+										if (open && canReadRoute && !routeOptions) {
 											setRouteSearch("");
 										}
 									}}
+									disabled={!canReadRoute}
 								>
 									<SelectTrigger>
 										<SelectValue placeholder="所有路由" />
 									</SelectTrigger>
 									<SelectContent>
-										<div className="p-2">
-											<Input
-												placeholder="搜索路由..."
-												value={routeSearch}
-												onChange={(e) => setRouteSearch(e.target.value)}
-												onKeyDown={(e) => e.stopPropagation()}
-											/>
-										</div>
+										{canReadRoute && (
+											<div className="p-2">
+												<Input
+													placeholder="搜索路由..."
+													value={routeSearch}
+													onChange={(e) => setRouteSearch(e.target.value)}
+													onKeyDown={(e) => e.stopPropagation()}
+												/>
+											</div>
+										)}
 										<SelectItem value="ALL">所有路由</SelectItem>
-										{routeOptions?.items.map((route) => (
-											<SelectItem key={route.id} value={route.id}>
-												{route.name} ({route.code})
-											</SelectItem>
-										))}
+										{canReadRoute &&
+											routeOptions?.items.map((route) => (
+												<SelectItem key={route.id} value={route.id}>
+													{route.name} ({route.code})
+												</SelectItem>
+											))}
 									</SelectContent>
 								</Select>
 							)}

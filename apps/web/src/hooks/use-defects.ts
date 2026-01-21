@@ -25,9 +25,10 @@ export type DefectQuery = {
 /**
  * List defects with filters
  */
-export function useDefectList(query: DefectQuery) {
+export function useDefectList(query: DefectQuery, options?: { enabled?: boolean }) {
 	return useQuery<DefectListData | null>({
 		queryKey: ["mes", "defects", "list", query],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await client.api.defects.get({ query });
 
@@ -47,10 +48,10 @@ export function useDefectList(query: DefectQuery) {
 /**
  * Get defect by ID
  */
-export function useDefectDetail(defectId: string | undefined) {
+export function useDefectDetail(defectId: string | undefined, options?: { enabled?: boolean }) {
 	return useQuery<DefectDetail | null>({
 		queryKey: ["mes", "defects", "detail", defectId],
-		enabled: Boolean(defectId),
+		enabled: Boolean(defectId) && (options?.enabled ?? true),
 		queryFn: async () => {
 			if (!defectId) throw new Error("No defect ID");
 			const response = await client.api.defects({ defectId }).get();
@@ -163,9 +164,10 @@ export type ReworkQuery = {
 /**
  * List rework tasks
  */
-export function useReworkTaskList(query: ReworkQuery) {
+export function useReworkTaskList(query: ReworkQuery, options?: { enabled?: boolean }) {
 	return useQuery<ReworkListData | null>({
 		queryKey: ["mes", "rework-tasks", "list", query],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await client.api["rework-tasks"].get({ query });
 

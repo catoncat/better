@@ -26,9 +26,10 @@ type UpdateRuleInput = Parameters<
 /**
  * List OQC sampling rules
  */
-export function useOqcRuleList(query: OqcRuleQuery) {
+export function useOqcRuleList(query: OqcRuleQuery, options?: { enabled?: boolean }) {
 	return useQuery<OqcRuleListData>({
 		queryKey: ["mes", "oqc", "rules", query],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await client.api.oqc["sampling-rules"].get({ query });
 			return unwrap(response);

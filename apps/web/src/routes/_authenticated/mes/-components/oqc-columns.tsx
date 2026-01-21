@@ -45,7 +45,7 @@ const actionsColumn: ColumnDef<OqcInspection> = {
 			});
 		}
 
-		if (oqc.status === "PASS" || oqc.status === "FAIL") {
+		if (canOperate && (oqc.status === "PASS" || oqc.status === "FAIL")) {
 			actions.push({
 				icon: Eye,
 				label: "查看记录",

@@ -22,9 +22,10 @@ export type FaiQuery = {
 /**
  * List FAI inspections with filters
  */
-export function useFaiList(query: FaiQuery) {
+export function useFaiList(query: FaiQuery, options?: { enabled?: boolean }) {
 	return useQuery<FaiListData | null>({
 		queryKey: ["mes", "fai", "list", query],
+		enabled: options?.enabled ?? true,
 		queryFn: async () => {
 			const response = await client.api.fai.get({ query });
 
@@ -44,10 +45,10 @@ export function useFaiList(query: FaiQuery) {
 /**
  * Get FAI by ID
  */
-export function useFaiDetail(faiId: string | undefined) {
+export function useFaiDetail(faiId: string | undefined, options?: { enabled?: boolean }) {
 	return useQuery<FaiDetail | null>({
 		queryKey: ["mes", "fai", "detail", faiId],
-		enabled: Boolean(faiId),
+		enabled: Boolean(faiId) && (options?.enabled ?? true),
 		queryFn: async () => {
 			if (!faiId) throw new Error("No FAI ID");
 			const response = await client.api.fai({ faiId }).get();
