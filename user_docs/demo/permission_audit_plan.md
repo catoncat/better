@@ -723,12 +723,12 @@ DIP 重点：
 1) 路由列表/卡片  
 - View 权限：`route:read`  
 - 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
-- 状态：⚠️ 当前未 gating（`useRouteList`）  
+- 状态：✅ 页面级无权限占位 + `useRouteList` enabled  
 
 2) 详情入口（卡片/表格）  
 - View 权限：`route:read`  
 - 展示策略：缺权限 → 隐藏入口  
-- 状态：⚠️ `RouteCard` / `routeColumns` 未 gating  
+- 状态：✅ 页面级 gating（无权限不渲染列表）  
 
 ### 页面：/mes/routes/:routingCode（路由详情）
 
@@ -750,12 +750,12 @@ DIP 重点：
 1) 路由信息/步骤列表  
 - View 权限：`route:read`  
 - 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ 页面级 gating（`useRouteDetail` enabled）  
 
 2) 执行语义配置列表  
 - View 权限：`route:read`  
 - 展示策略：缺 view → 页面级无权限占位  
-- 状态：⚠️ 当前未 gating（`useExecutionConfigs`）  
+- 状态：✅ `useExecutionConfigs` enabled  
 
 3) 编译按钮  
 - Action 权限：`route:compile`  
@@ -770,18 +770,18 @@ DIP 重点：
 5) 执行配置弹窗提交  
 - Action 权限：`route:configure`  
 - 展示策略：缺权限 → 禁用保存  
-- 状态：⚠️ 仅禁用提交；入口需确认是否完全受控  
+- 状态：✅ 入口按钮受 `<Can>` 控制，提交按钮禁用  
 
 6) 站点组/工位选择器  
 - View 权限：`route:read` / `route:configure` / `wo:release` / `run:create`（站点组）  
 - View 权限：`exec:read` / `exec:track_in` / `exec:track_out`（工位）  
 - 展示策略：缺权限 → 隐藏对应选择器  
-- 状态：⚠️ 当前未 gating（`useStationGroups` / `useStations`）  
+- 状态：✅ 查询 enabled 受 route:read 控制  
 
 7) 采集项选择器（DataSpecSelector）  
 - View 权限：`data_spec:read` + `data_spec:config`  
 - 展示策略：缺权限 → 隐藏/提示无权限  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ DataSpecSelector 按权限 enabled  
 
 ### 页面：/mes/route-versions（路由版本）
 
@@ -797,7 +797,7 @@ DIP 重点：
 1) 路由选择器 + 版本列表  
 - View 权限：`route:read`  
 - 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
-- 状态：⚠️ 当前未 gating（`RouteSelect` / `useRouteVersions`）  
+- 状态：✅ `RouteSelect`/`useRouteVersions` 按 route:read gating  
 
 2) 编译按钮  
 - Action 权限：`route:compile`  
@@ -818,12 +818,12 @@ DIP 重点：
 1) 列表 + 筛选  
 - View 权限：`data_spec:read` + `data_spec:config`  
 - 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ 页面级无权限占位 + list enabled  
 
 2) 工序筛选  
 - View 权限：`operation:read` + `data_spec:config`  
 - 展示策略：缺权限 → 隐藏筛选  
-- 状态：⚠️ 当前未 gating（`useOperationList`）  
+- 状态：✅ `useOperationList` enabled  
 
 3) 新建/编辑/启停  
 - Action 权限：`data_spec:config`  
@@ -840,7 +840,7 @@ DIP 重点：
 1) 状态列表  
 - View 权限：`system:integration`  
 - 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
-- 状态：⚠️ 当前未 gating（仅刷新按钮受控）  
+- 状态：✅ 页面级无权限占位 + query enabled  
 
 ### 页面：/mes/integration/manual-entry（耗材状态录入）
 
@@ -857,13 +857,13 @@ DIP 重点：
 1) 钢网/锡膏状态录入表单  
 - Action 权限：`system:integration`  
 - 展示策略：缺权限 → 隐藏提交按钮  
-- 状态：✅ `<Can>` gating（但表单本体仍可见）  
+- 状态：✅ 页面级 system:integration gating + `<Can>` 提交控制  
 
 2) 产线绑定（选择产线 + 绑定按钮）  
 - View 权限：`run:read` + `run:create`  
 - Action 权限：`loading:config`  
 - 展示策略：缺 view → 隐藏产线选择；缺 action → 隐藏绑定按钮  
-- 状态：⚠️ 产线列表未 gating，按钮仅 `<Can>` gating  
+- 状态：✅ 产线列表 query gating + 无权限提示 + `<Can>` 按钮  
 
 ### 页面：/mes/materials（物料主数据）
 
@@ -875,7 +875,7 @@ DIP 重点：
 1) 列表 + 筛选  
 - View 权限：`route:read`  
 - 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ 页面级无权限占位 + query enabled  
 
 ### 页面：/mes/boms（BOM）
 
@@ -887,7 +887,7 @@ DIP 重点：
 1) 列表 + 明细弹窗  
 - View 权限：`route:read`  
 - 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ 页面级无权限占位 + query enabled  
 
 ### 页面：/mes/work-centers（工作中心）
 
@@ -899,4 +899,4 @@ DIP 重点：
 1) 列表 + 筛选  
 - View 权限：`route:read`  
 - 展示策略：配置与运维模块，缺 view → 页面级无权限占位  
-- 状态：⚠️ 当前未 gating  
+- 状态：✅ 页面级无权限占位 + query enabled  
