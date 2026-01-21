@@ -10,16 +10,12 @@ export type EquipmentInspectionRecordListData =
 	NonNullable<EquipmentInspectionRecordListResponse>["data"];
 export type EquipmentInspectionRecord = EquipmentInspectionRecordListData["items"][number];
 
-export type EquipmentInspectionRecordQuery = {
-	lineCode?: string;
-	equipmentType?: string;
-	result?: string;
-	machineName?: string;
-	inspectedFrom?: string;
-	inspectedTo?: string;
-	page?: number;
-	pageSize?: number;
-};
+type EquipmentInspectionListInput = Parameters<
+	(typeof client.api)["equipment-inspection-records"]["get"]
+>[0];
+export type EquipmentInspectionRecordQuery = NonNullable<
+	NonNullable<EquipmentInspectionListInput>["query"]
+>;
 
 type EquipmentInspectionCreateInput = Parameters<
 	(typeof client.api)["equipment-inspection-records"]["post"]

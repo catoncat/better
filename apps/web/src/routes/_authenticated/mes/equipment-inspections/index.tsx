@@ -7,6 +7,7 @@ import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
 import {
 	type EquipmentInspectionRecord,
+	type EquipmentInspectionRecordQuery,
 	useCreateEquipmentInspectionRecord,
 	useEquipmentInspectionRecordList,
 } from "@/hooks/use-equipment-inspections";
@@ -18,16 +19,29 @@ import {
 import { EquipmentInspectionCard } from "./-components/equipment-inspection-card";
 import { equipmentInspectionColumns } from "./-components/equipment-inspection-columns";
 
+type EquipmentInspectionType = NonNullable<EquipmentInspectionRecordQuery["equipmentType"]>;
+type EquipmentInspectionResult = NonNullable<EquipmentInspectionRecordQuery["result"]>;
+
 interface EquipmentInspectionFilters {
 	lineCode: string;
 	machineName: string;
-	equipmentType: string;
-	result: string;
+	equipmentType: EquipmentInspectionType | "";
+	result: EquipmentInspectionResult | "";
 	inspectedFrom?: string;
 	inspectedTo?: string;
 }
 
 const EQUIPMENT_INSPECTION_SYSTEM_PRESETS: SystemPreset<EquipmentInspectionFilters>[] = [];
+
+const parseEquipmentType = (value?: string): EquipmentInspectionType | "" => {
+	if (value === "AOI" || value === "SPI") return value;
+	return "";
+};
+
+const parseInspectionResult = (value?: string): EquipmentInspectionResult | "" => {
+	if (value === "PASS" || value === "FAIL") return value;
+	return "";
+};
 
 interface EquipmentInspectionSearchParams {
 	lineCode?: string;
@@ -67,8 +81,8 @@ function EquipmentInspectionPage() {
 		() => ({
 			lineCode: searchParams.lineCode || "",
 			machineName: searchParams.machineName || "",
-			equipmentType: searchParams.equipmentType || "",
-			result: searchParams.result || "",
+			equipmentType: parseEquipmentType(searchParams.equipmentType),
+			result: parseInspectionResult(searchParams.result),
 			inspectedFrom: searchParams.inspectedFrom || undefined,
 			inspectedTo: searchParams.inspectedTo || undefined,
 		}),
