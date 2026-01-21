@@ -51,6 +51,8 @@ export function RunCreateDialog({
 	isSubmitting,
 	workOrder,
 }: RunCreateDialogProps) {
+	const effectivePickStatus = workOrder?.erpStatus ? workOrder?.erpPickStatus : workOrder?.pickStatus;
+	const isMaterialReady = ["3", "4"].includes(effectivePickStatus ?? "");
 	const dispatchedLineCode = getDispatchedLineCode(workOrder);
 	const defaultPlanQty = workOrder?.plannedQty ?? 1;
 	const routingProcessType = workOrder?.routing?.processType;
@@ -107,6 +109,11 @@ export function RunCreateDialog({
 					}}
 					className="space-y-4"
 				>
+					{workOrder && !isMaterialReady && (
+						<div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+							当前工单物料未完全领料，仍可创建批次，请注意物料准备。
+						</div>
+					)}
 					<Field form={form} name="lineCode" label="线体编码">
 						{(field) => (
 							<LineSelect

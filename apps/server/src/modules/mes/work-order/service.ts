@@ -313,19 +313,6 @@ export const createRun = async (
 		};
 	}
 
-	// 判断物料是否就绪：ERP 工单使用 erpPickStatus，手动工单使用 pickStatus
-	const isMaterialReady = wo.erpStatus
-		? ["2", "3", "4"].includes(wo.erpPickStatus ?? "")
-		: ["2", "3", "4"].includes(wo.pickStatus ?? "");
-	if (!isMaterialReady) {
-		return {
-			success: false,
-			code: "WORK_ORDER_MATERIAL_NOT_READY",
-			message: "Work order material not ready",
-			status: 400,
-		};
-	}
-
 	if (!wo.routingId) {
 		return {
 			success: false,

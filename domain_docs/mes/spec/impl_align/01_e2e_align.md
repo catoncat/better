@@ -32,7 +32,7 @@
 |------|-----|--------|-----|
 | 工单接收 (WO=RECEIVED) | `POST /api/integration/work-orders` | `apps/server/src/modules/mes/integration/service.ts` | `apps/web/src/routes/_authenticated/mes/-components/work-order-receive-dialog.tsx` |
 | 工单释放/派工 (WO=RELEASED) | `POST /api/work-orders/:woNo/release` | `apps/server/src/modules/mes/work-order/service.ts` | `apps/web/src/routes/_authenticated/mes/-components/work-order-release-dialog.tsx` |
-| 创建批次 (Run=PREP) | `POST /api/work-orders/:woNo/runs` | `apps/server/src/modules/mes/work-order/service.ts` | `apps/web/src/routes/_authenticated/mes/-components/run-create-dialog.tsx` |
+| 创建批次 (Run=PREP) | `POST /api/work-orders/:woNo/runs` | `apps/server/src/modules/mes/work-order/service.ts` | `apps/web/src/routes/_authenticated/mes/-components/run-create-dialog.tsx`（未完全领料提醒） |
 
 ## 门禁（就绪/上料/首件/授权）
 

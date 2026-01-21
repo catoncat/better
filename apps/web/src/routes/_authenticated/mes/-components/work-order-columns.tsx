@@ -27,7 +27,6 @@ const actionsColumn: ColumnDef<WorkOrder> = {
 
 		// Check if this is an ERP work order or manual work order
 		const isErpWorkOrder = Boolean(wo.erpStatus);
-		const effectivePickStatus = isErpWorkOrder ? wo.erpPickStatus : wo.pickStatus;
 
 		if (!wo.routing && wo.status !== "COMPLETED" && hasPermission(Permission.WO_UPDATE)) {
 			actions.push({
@@ -54,11 +53,8 @@ const actionsColumn: ColumnDef<WorkOrder> = {
 			});
 		}
 
-		const isMaterialReady = ["2", "3", "4"].includes(effectivePickStatus ?? "");
-
 		if (
 			(wo.status === "RELEASED" || wo.status === "IN_PROGRESS") &&
-			isMaterialReady &&
 			hasPermission(Permission.RUN_CREATE)
 		) {
 			actions.push({

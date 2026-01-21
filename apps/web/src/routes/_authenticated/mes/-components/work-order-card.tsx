@@ -135,7 +135,6 @@ export function WorkOrderCard({
 					</Button>
 				)}
 				{(workOrder.status === "RELEASED" || workOrder.status === "IN_PROGRESS") &&
-					isMaterialReady &&
 					hasPermission(Permission.RUN_CREATE) && (
 						<Button variant="ghost" size="sm" onClick={() => onCreateRun?.(workOrder)}>
 							<Play className="mr-2 h-4 w-4" />
