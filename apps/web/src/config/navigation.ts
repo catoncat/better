@@ -37,6 +37,11 @@ export const navMain: NavItem[] = [
 				permissions: [Permission.RUN_READ],
 			},
 			{
+				title: "产线管理",
+				url: "/mes/lines",
+				permissions: [Permission.LINE_CONFIG],
+			},
+			{
 				title: "工位执行",
 				url: "/mes/execution",
 				permissions: [Permission.EXEC_READ, Permission.EXEC_TRACK_IN, Permission.EXEC_TRACK_OUT],

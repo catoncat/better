@@ -33,6 +33,7 @@ export function DashboardLayout({
 		"work-orders": "工单管理",
 		runs: "批次管理",
 		trace: "追溯查询",
+		lines: "产线管理",
 		execution: "工位执行",
 		notifications: "通知管理",
 		system: "系统管理",
