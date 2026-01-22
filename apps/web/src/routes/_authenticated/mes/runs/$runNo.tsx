@@ -8,6 +8,7 @@ import {
 	ExternalLink,
 	Loader2,
 	Package,
+	Pen,
 	Play,
 	Plus,
 	RefreshCw,
@@ -41,8 +42,9 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { useAbility } from "@/hooks/use-ability";
-import { useCreateFai, useFaiByRun, useFaiGate, useStartFai } from "@/hooks/use-fai";
+import { useCreateFai, useFaiByRun, useFaiGate, useSignFai, useStartFai } from "@/hooks/use-fai";
 import { useMrbDecision, useOqcByRun } from "@/hooks/use-oqc";
 import {
 	type ReadinessCheckItem,
@@ -123,6 +125,7 @@ function RunDetailPage() {
 	} = useFaiByRun(runNo, { enabled: canViewFai });
 	const createFai = useCreateFai();
 	const startFai = useStartFai();
+	const signFai = useSignFai();
 
 	// OQC & MRB hooks
 	const { data: oqcDetail, isLoading: oqcLoading } = useOqcByRun(runNo, {
@@ -165,6 +168,10 @@ function RunDetailPage() {
 	// MRB dialog state
 	const [mrbDialogOpen, setMrbDialogOpen] = useState(false);
 	const [closeoutDialogOpen, setCloseoutDialogOpen] = useState(false);
+
+	// FAI sign dialog state
+	const [faiSignDialogOpen, setFaiSignDialogOpen] = useState(false);
+	const [faiSignRemark, setFaiSignRemark] = useState("");
 
 	// Generate units dialog state
 	const [generateUnitsDialogOpen, setGenerateUnitsDialogOpen] = useState(false);
@@ -443,6 +450,18 @@ function RunDetailPage() {
 
 	const handleMrbDecision = async (values: MrbDecisionFormValues) => {
 		await mrbDecision.mutateAsync({ runNo, data: values });
+	};
+
+	const handleFaiSign = async () => {
+		if (!existingFai?.id) return;
+		try {
+			await signFai.mutateAsync({ faiId: existingFai.id, remark: faiSignRemark || undefined });
+			setFaiSignDialogOpen(false);
+			setFaiSignRemark("");
+			refetchFai();
+		} catch {
+			// Toast handled in mutation onError
+		}
 	};
 
 	const handleAuthorize = async (action: "AUTHORIZE" | "REVOKE") => {
@@ -1176,6 +1195,39 @@ function RunDetailPage() {
 										<p className="font-medium">{formatDateTime(existingFai.createdAt)}</p>
 									</div>
 								</div>
+								{/* FAI Signature Status */}
+								{existingFai.status === "PASS" && (
+									<div className="flex flex-wrap items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm">
+										{existingFai.signedBy ? (
+											<div className="flex items-center gap-2">
+												<CheckCircle2 className="h-4 w-4 text-green-600" />
+												<span>
+													已签字确认 ({formatDateTime(existingFai.signedAt)})
+													{existingFai.signatureRemark && (
+														<span className="text-muted-foreground ml-2">
+															备注: {existingFai.signatureRemark}
+														</span>
+													)}
+												</span>
+											</div>
+										) : (
+											<>
+												<span className="text-muted-foreground">
+													FAI 已通过，需签字确认后才能授权量产。
+												</span>
+												<Button
+													variant="default"
+													size="sm"
+													onClick={() => setFaiSignDialogOpen(true)}
+													disabled={signFai.isPending}
+												>
+													<Pen className="mr-2 h-4 w-4" />
+													签字确认
+												</Button>
+											</>
+										)}
+									</div>
+								)}
 								{existingFai.status === "INSPECTING" && (
 									<div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-dashed px-3 py-2 text-sm">
 										<span className="text-muted-foreground">完成试产后返回 FAI 判定。</span>
@@ -1472,6 +1524,39 @@ function RunDetailPage() {
 						<Button onClick={handleCreateFai} disabled={faiSampleQty < 1 || createFai.isPending}>
 							{createFai.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							创建并开始试产
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* FAI Sign Dialog */}
+			<Dialog open={faiSignDialogOpen} onOpenChange={setFaiSignDialogOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>FAI 签字确认</DialogTitle>
+						<DialogDescription>
+							确认首件检验已通过审核，签字后将允许批次进行量产授权。
+						</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4 py-4">
+						<div className="space-y-2">
+							<Label htmlFor="faiSignRemark">备注（可选）</Label>
+							<Textarea
+								id="faiSignRemark"
+								value={faiSignRemark}
+								onChange={(e) => setFaiSignRemark(e.target.value)}
+								placeholder="输入签字备注..."
+								rows={3}
+							/>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setFaiSignDialogOpen(false)}>
+							取消
+						</Button>
+						<Button onClick={handleFaiSign} disabled={signFai.isPending}>
+							{signFai.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+							确认签字
 						</Button>
 					</DialogFooter>
 				</DialogContent>
