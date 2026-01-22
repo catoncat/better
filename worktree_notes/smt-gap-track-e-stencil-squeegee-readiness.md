@@ -26,9 +26,9 @@ touchPoints:
 <!-- AUTO:BEGIN status -->
 
 ## Status (auto)
-- UpdatedAt: 2026-01-22T10:31:11.359Z
+- UpdatedAt: 2026-01-22T13:04:02.384Z
 - BaseRef: origin/main
-- CommitsAheadOfBase: 45
+- CommitsAheadOfBase: 54
 - Dirty: true
 - ChangedFiles:
   - apps/server/scripts/seed-demo.ts
@@ -39,7 +39,10 @@ touchPoints:
   - apps/server/src/modules/mes/fai/schema.ts
   - apps/server/src/modules/mes/fai/service.ts
   - apps/server/src/modules/mes/line/schema.ts
+  - apps/server/src/modules/mes/readiness/service.ts
   - apps/server/src/modules/mes/run/service.ts
+  - apps/server/src/modules/mes/smt-basic/schema.ts
+  - apps/server/src/modules/mes/smt-basic/service.ts
   - apps/server/src/modules/meta/index.ts
   - apps/server/src/modules/users/schema.ts
   - apps/server/src/modules/users/service.ts
@@ -48,6 +51,7 @@ touchPoints:
   - apps/web/src/hooks/use-readiness.ts
   - apps/web/src/lib/constants.ts
   - apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx
+  - apps/web/src/routes/_authenticated/mes/squeegee-usage/-components/squeegee-usage-dialog.tsx
   - apps/web/src/routes/_authenticated/system/-components/user-dialog.tsx
   - apps/web/src/routes/_authenticated/system/role-management.tsx
   - apps/web/src/routes/_authenticated/system/user-management.tsx
@@ -57,11 +61,18 @@ touchPoints:
   - conversation/2026-01-22_170611_smt-basic_merge_permissions_check.md
   - conversation/2026-01-22_173543_role_redesign_start.md
   - conversation/2026-01-22_182008_role_binding_validation_alignment.md
+  - conversation/2026-01-22_193728_Track_E_StencilSqueegee_implementation_review.md
+  - domain_docs/mes/dip_playbook/05_validation/01_insertion_validation.md
+  - domain_docs/mes/dip_playbook/05_validation/02_soldering_validation.md
+  - domain_docs/mes/dip_playbook/05_validation/03_testing_validation.md
+  - domain_docs/mes/dip_playbook/05_validation/04_traceability_validation.md
   - domain_docs/mes/permission_audit.md
   - domain_docs/mes/plan/smt_gap_task_breakdown.md
   - domain_docs/mes/plan/tasks.md
+  - domain_docs/mes/smt_playbook/03_run_flow/02_readiness_and_prep.md
   - domain_docs/mes/spec/config/samples/smt_a_waive_permission_matrix.yaml
   - domain_docs/mes/spec/config/templates/waive_permission_matrix.template.yaml
+  - domain_docs/mes/spec/impl_align/03_smt_align.md
   - domain_docs/mes/spec/rbac/01_role_permission_design.md
   - packages/db/prisma/schema/migrations/20260122090535_add_fai_signature_fields/migration.sql
   - packages/db/prisma/schema/schema.prisma
@@ -70,15 +81,7 @@ touchPoints:
   - user_docs/05_leader.md
   - user_docs/05_material.md
   - user_docs/07_trace.md
-  - user_docs/demo/acceptance_plan_dip.md
-  - user_docs/demo/guide.md
-  - user_docs/sop_degraded_mode.md
-  - worktree_notes/feat_fai-sign-ui.md
-  - worktree_notes/feat_fai-signature.md
-  - worktree_notes/fix-role-bindings.md
-  - worktree_notes/role-rbac-ui.md
-  - worktree_notes/role-redesign-v2.md
-  - worktree_notes/smt-gap-track-a.md
+  - ... (+10 more)
 - Next:
   - Commit worktree note: git add worktree_notes/smt-gap-track-e-stencil-squeegee-readiness.md && git commit -m "docs(worktree): add task context"
 <!-- AUTO:END status -->
