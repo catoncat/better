@@ -1,0 +1,22 @@
+version: 1
+rules:
+  - ruleCode: WASH_WITHIN_4H
+    scopeType: ROUTE
+    scopeRef: ROUTE_CODE_HERE
+    enabled: true
+    startEvent: REFLOW_COMPLETED
+    endEvent: WASH_SCAN
+    maxDurationHours: 4
+    alertLevel: ALERT
+    waivePermission: time_rule:override
+    notes: "Applies only when the route includes wash step"
+  - ruleCode: PASTE_EXPOSURE_24H
+    scopeType: ROUTE
+    scopeRef: ROUTE_CODE_HERE
+    enabled: true
+    startEvent: PASTE_ISSUED
+    endEvent: NOW
+    maxDurationHours: 24
+    alertLevel: ALERT
+    waivePermission: time_rule:override
+    notes: "Issued to now, alert and waive only"

@@ -1,0 +1,18 @@
+version: 1
+items:
+  - itemCode: PREP_BAKE
+    gateType: SOFT
+    recordRequired: true
+    confirmMode: MANUAL
+    dataSource: MANUAL
+    waivePermission: prep:waive
+    evidenceRefType: BAKE_RECORD
+    notes: "AUTO confirm only when dataSource is reliable"
+  - itemCode: PREP_PASTE
+    gateType: SOFT
+    recordRequired: true
+    confirmMode: AUTO
+    dataSource: SYSTEM
+    waivePermission: prep:waive
+    evidenceRefType: SOLDER_PASTE_USAGE
+    notes: "Uses system timestamps and status"
