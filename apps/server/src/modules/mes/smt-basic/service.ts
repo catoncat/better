@@ -233,9 +233,9 @@ type SqueegeeUsageCreateInput = {
 	printCount?: number;
 	totalPrintCount?: number;
 	replacedAt?: string;
-	checkSurface?: boolean;
-	checkEdge?: boolean;
-	checkFlatness?: boolean;
+	checkSurface: boolean;
+	checkEdge: boolean;
+	checkFlatness: boolean;
 	usedBy?: string;
 	confirmedBy?: string;
 	remark?: string;
@@ -932,9 +932,9 @@ export async function createSqueegeeUsageRecord(
 			printCount: input.printCount ?? null,
 			totalPrintCount: input.totalPrintCount ?? null,
 			replacedAt,
-			checkSurface: input.checkSurface ?? null,
-			checkEdge: input.checkEdge ?? null,
-			checkFlatness: input.checkFlatness ?? null,
+			checkSurface: input.checkSurface,
+			checkEdge: input.checkEdge,
+			checkFlatness: input.checkFlatness,
 			usedBy: input.usedBy?.trim() || null,
 			confirmedBy: input.confirmedBy?.trim() || null,
 			remark: input.remark?.trim() || null,

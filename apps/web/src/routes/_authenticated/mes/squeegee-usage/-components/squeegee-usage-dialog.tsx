@@ -37,16 +37,25 @@ const formSchema = z.object({
 	printCount: z.number().optional(),
 	totalPrintCount: z.number().optional(),
 	replacedAt: z.string().optional(),
-	checkSurface: z.boolean().optional(),
-	checkEdge: z.boolean().optional(),
-	checkFlatness: z.boolean().optional(),
+	checkSurface: z.boolean({ message: "请选择表面检查结果" }),
+	checkEdge: z.boolean({ message: "请选择刀口检查结果" }),
+	checkFlatness: z.boolean({ message: "请选择平整度检查结果" }),
 	usedBy: z.string().optional(),
 	confirmedBy: z.string().optional(),
 	remark: z.string().optional(),
 	lifeLimit: z.number().optional(),
 }) satisfies z.ZodType<SqueegeeUsageCreateInput>;
 
-export type SqueegeeUsageFormValues = z.infer<typeof formSchema>;
+type SqueegeeUsageFormState = Omit<
+	SqueegeeUsageCreateInput,
+	"checkSurface" | "checkEdge" | "checkFlatness"
+> & {
+	checkSurface?: boolean;
+	checkEdge?: boolean;
+	checkFlatness?: boolean;
+};
+
+export type SqueegeeUsageFormValues = SqueegeeUsageCreateInput;
 
 interface SqueegeeUsageDialogProps {
 	open: boolean;
@@ -55,7 +64,7 @@ interface SqueegeeUsageDialogProps {
 	isSubmitting?: boolean;
 }
 
-const buildDefaultValues = (): SqueegeeUsageFormValues => ({
+const buildDefaultValues = (): SqueegeeUsageFormState => ({
 	squeegeeId: "",
 	lineCode: "",
 	recordDate: "",
@@ -74,7 +83,6 @@ const buildDefaultValues = (): SqueegeeUsageFormValues => ({
 });
 
 const booleanOptions = [
-	{ label: "未填写", value: "unset" },
 	{ label: "通过", value: "true" },
 	{ label: "异常", value: "false" },
 ];
@@ -91,22 +99,23 @@ export function SqueegeeUsageDialog({
 			onSubmit: formSchema,
 		},
 		onSubmit: async ({ value }) => {
+			const parsed = formSchema.parse(value);
 			const normalized: SqueegeeUsageCreateInput = {
-				squeegeeId: value.squeegeeId.trim(),
-				lineCode: value.lineCode?.trim() || undefined,
-				recordDate: value.recordDate,
-				productModel: value.productModel?.trim() || undefined,
-				squeegeeSpec: value.squeegeeSpec?.trim() || undefined,
-				printCount: value.printCount ?? undefined,
-				totalPrintCount: value.totalPrintCount ?? undefined,
-				replacedAt: value.replacedAt || undefined,
-				checkSurface: value.checkSurface,
-				checkEdge: value.checkEdge,
-				checkFlatness: value.checkFlatness,
-				usedBy: value.usedBy?.trim() || undefined,
-				confirmedBy: value.confirmedBy?.trim() || undefined,
-				remark: value.remark?.trim() || undefined,
-				lifeLimit: value.lifeLimit ?? undefined,
+				squeegeeId: parsed.squeegeeId.trim(),
+				lineCode: parsed.lineCode?.trim() || undefined,
+				recordDate: parsed.recordDate,
+				productModel: parsed.productModel?.trim() || undefined,
+				squeegeeSpec: parsed.squeegeeSpec?.trim() || undefined,
+				printCount: parsed.printCount ?? undefined,
+				totalPrintCount: parsed.totalPrintCount ?? undefined,
+				replacedAt: parsed.replacedAt || undefined,
+				checkSurface: parsed.checkSurface,
+				checkEdge: parsed.checkEdge,
+				checkFlatness: parsed.checkFlatness,
+				usedBy: parsed.usedBy?.trim() || undefined,
+				confirmedBy: parsed.confirmedBy?.trim() || undefined,
+				remark: parsed.remark?.trim() || undefined,
+				lifeLimit: parsed.lifeLimit ?? undefined,
 			};
 
 			await onSubmit(normalized);
@@ -263,17 +272,17 @@ export function SqueegeeUsageDialog({
 					</div>
 
 					<div className="grid gap-4 md:grid-cols-3">
-						<Field form={form} name="checkSurface" label="表面检查 - 选填">
+						<Field form={form} name="checkSurface" label="表面检查">
 							{(field) => (
 								<Select
 									value={
-										field.state.value === undefined ? "unset" : field.state.value ? "true" : "false"
+										field.state.value === undefined
+											? undefined
+											: field.state.value
+												? "true"
+												: "false"
 									}
 									onValueChange={(value) => {
-										if (value === "unset") {
-											field.handleChange(undefined);
-											return;
-										}
 										field.handleChange(value === "true");
 									}}
 								>
@@ -290,17 +299,17 @@ export function SqueegeeUsageDialog({
 								</Select>
 							)}
 						</Field>
-						<Field form={form} name="checkEdge" label="刀口检查 - 选填">
+						<Field form={form} name="checkEdge" label="刀口检查">
 							{(field) => (
 								<Select
 									value={
-										field.state.value === undefined ? "unset" : field.state.value ? "true" : "false"
+										field.state.value === undefined
+											? undefined
+											: field.state.value
+												? "true"
+												: "false"
 									}
 									onValueChange={(value) => {
-										if (value === "unset") {
-											field.handleChange(undefined);
-											return;
-										}
 										field.handleChange(value === "true");
 									}}
 								>
@@ -317,17 +326,17 @@ export function SqueegeeUsageDialog({
 								</Select>
 							)}
 						</Field>
-						<Field form={form} name="checkFlatness" label="平整度检查 - 选填">
+						<Field form={form} name="checkFlatness" label="平整度检查">
 							{(field) => (
 								<Select
 									value={
-										field.state.value === undefined ? "unset" : field.state.value ? "true" : "false"
+										field.state.value === undefined
+											? undefined
+											: field.state.value
+												? "true"
+												: "false"
 									}
 									onValueChange={(value) => {
-										if (value === "unset") {
-											field.handleChange(undefined);
-											return;
-										}
 										field.handleChange(value === "true");
 									}}
 								>

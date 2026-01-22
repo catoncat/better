@@ -523,7 +523,7 @@ export async function checkPrepStencilClean(
 
 /**
  * Check squeegee inspection record for the run's line.
- * Queries latest SqueegeeUsageRecord for the line, verifies record exists and has no explicit failures.
+ * Queries latest SqueegeeUsageRecord for the line, verifies record exists and check fields are present and passing.
  */
 export async function checkPrepScraper(db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
 	if (!run.lineId) {
@@ -548,9 +548,14 @@ export async function checkPrepScraper(db: PrismaClient, run: Run): Promise<Chec
 	}
 
 	const failures: string[] = [];
-	if (latestUsage.checkSurface === false) failures.push("表面检查不通过");
-	if (latestUsage.checkEdge === false) failures.push("刀口检查不通过");
-	if (latestUsage.checkFlatness === false) failures.push("平整度检查不通过");
+	if (latestUsage.checkSurface === null) failures.push("表面检查未填写");
+	else if (latestUsage.checkSurface === false) failures.push("表面检查不通过");
+
+	if (latestUsage.checkEdge === null) failures.push("刀口检查未填写");
+	else if (latestUsage.checkEdge === false) failures.push("刀口检查不通过");
+
+	if (latestUsage.checkFlatness === null) failures.push("平整度检查未填写");
+	else if (latestUsage.checkFlatness === false) failures.push("平整度检查不通过");
 
 	if (
 		typeof latestUsage.lifeLimit === "number" &&
