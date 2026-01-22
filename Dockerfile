@@ -10,6 +10,7 @@ COPY apps/web/package.json ./apps/web/
 COPY packages/db/package.json ./packages/db/
 COPY packages/auth/package.json ./packages/auth/
 COPY packages/config/package.json ./packages/config/
+COPY packages/share/package.json ./packages/config/
 
 # Install dependencies
 RUN bun install --frozen-lockfile
