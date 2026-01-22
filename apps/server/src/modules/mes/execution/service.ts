@@ -12,6 +12,11 @@ import type { Static } from "elysia";
 import { createDefectFromTrackOut } from "../defect/service";
 import { checkAndTriggerOqc } from "../oqc/trigger-service";
 import { canAuthorize as canAuthorizeReadiness } from "../readiness/service";
+import {
+	completeInstanceByEntity as completeTimeRuleInstanceByEntity,
+	createInstance as createTimeRuleInstance,
+	routeHasWashStep,
+} from "../time-rule/service";
 import type { trackInSchema, trackOutSchema } from "./schema";
 
 type TrackInInput = Static<typeof trackInSchema>;
@@ -459,6 +464,19 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 				return { success: false, code: updatedUnit.code, message: updatedUnit.message };
 			}
 
+			// T2.4: Track-in to WASH → 完成水洗时间规则实例
+			const currentOperation = await db.operation.findUnique({
+				where: { id: currentStep.operationId },
+				select: { code: true },
+			});
+			if (currentOperation?.code?.toUpperCase().includes("WASH")) {
+				try {
+					await completeTimeRuleInstanceByEntity(db, "WASH_4H", "UNIT", updatedUnit.unit.id);
+				} catch (error) {
+					console.error(`[TrackIn] WASH time rule completion failed for unit ${data.sn}:`, error);
+				}
+			}
+
 			return { success: true, data: { status: UnitStatus.IN_STATION } };
 		} catch (error) {
 			span.recordException(error as Error);
@@ -834,6 +852,32 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 					}
 				} catch (error) {
 					console.error(`[TrackOut] OQC trigger error for run ${run.runNo}:`, error);
+				}
+			}
+
+			// T2.4: Track-out from REFLOW → 创建水洗时间规则实例（如果路由有 WASH 工序）
+			const trackOutOperation = await db.operation.findUnique({
+				where: { id: currentStep.operationId },
+				select: { code: true },
+			});
+			if (
+				result === TrackResult.PASS &&
+				trackOutOperation?.code?.toUpperCase().includes("REFLOW") &&
+				run.routeVersionId
+			) {
+				try {
+					const hasWash = await routeHasWashStep(db, run.routeVersionId);
+					if (hasWash) {
+						await createTimeRuleInstance(db, {
+							definitionCode: "WASH_4H",
+							runId: run.id,
+							entityType: "UNIT",
+							entityId: unit.id,
+							entityDisplay: `单元 ${unit.sn} - 回流焊后水洗`,
+						});
+					}
+				} catch (error) {
+					console.error(`[TrackOut] WASH time rule creation failed for unit ${unit.sn}:`, error);
 				}
 			}
 

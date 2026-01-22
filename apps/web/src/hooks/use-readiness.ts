@@ -36,6 +36,8 @@ export const ALL_READINESS_ITEM_TYPES: ReadinessItemType[] = [
 	"PREP_STENCIL_CLEAN",
 	"PREP_SCRAPER",
 	"PREP_FIXTURE",
+	// TIME_RULE 时间规则检查（SMT Gap Phase 2）
+	"TIME_RULE",
 ];
 
 export const READINESS_ITEM_TYPE_LABELS: Record<ReadinessItemType, string> = {
@@ -52,6 +54,8 @@ export const READINESS_ITEM_TYPE_LABELS: Record<ReadinessItemType, string> = {
 	PREP_STENCIL_CLEAN: "钢网清洗",
 	PREP_SCRAPER: "刮刀准备",
 	PREP_FIXTURE: "夹具准备",
+	// TIME_RULE 时间规则检查（SMT Gap Phase 2）
+	TIME_RULE: "时间规则",
 };
 
 export function useReadinessConfig(lineId: string | undefined, options?: { enabled?: boolean }) {

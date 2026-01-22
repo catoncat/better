@@ -134,3 +134,6 @@ Findings (emoji check):
 Progress:
 - Updated SMT flow note, align table, and Track C/Phase 2 acceptance checklists in smt_gap_task_breakdown.
 - bun scripts/smart-verify.ts passed (biome check, db:generate, check-types).
+
+Progress:
+- Committed docs updates for TimeRule plan/align/flow and conversation note.

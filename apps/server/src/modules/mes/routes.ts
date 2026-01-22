@@ -24,6 +24,7 @@ import { runModule } from "./run/routes";
 import { smtBasicRoutes } from "./smt-basic/routes";
 import { coldStorageTemperatureRoutes, solderPasteUsageRoutes } from "./solder-paste/routes";
 import { stationModule } from "./station/routes";
+import { timeRuleRoutes } from "./time-rule/routes";
 import { traceModule } from "./trace/routes";
 import { workOrderModule } from "./work-order/routes";
 
@@ -59,4 +60,6 @@ export const mesModule = new Elysia()
 	// OQC & MRB (M2)
 	.use(oqcRoutes)
 	.use(samplingRuleRoutes)
-	.use(mrbRoutes);
+	.use(mrbRoutes)
+	// Time Rules (SMT Gap Phase 2)
+	.use(timeRuleRoutes);

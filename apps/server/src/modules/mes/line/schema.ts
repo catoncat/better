@@ -84,6 +84,8 @@ export const readinessConfigSchema = t.Object({
 			t.Literal("PREP_STENCIL_CLEAN"),
 			t.Literal("PREP_SCRAPER"),
 			t.Literal("PREP_FIXTURE"),
+			// TIME_RULE 时间规则检查（SMT Gap Phase 2）
+			t.Literal("TIME_RULE"),
 		]),
 		{
 			description: "Enabled readiness check types for this line",
