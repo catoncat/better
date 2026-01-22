@@ -82,3 +82,6 @@ task:
 - Audited role-based logic: no remaining leader references; backend role service uses isSystem guard only.
 - Generalized binding validation messages/tooltips to cover custom roles with scoped data.
 - smart-verify passed after binding message updates.
+- Found smt-basic-wp4-10 merge commit: 1e2da31. Will inspect its file changes for permission impacts.
+- smt-basic merge files not present in current worktree; need to inspect via git show from merge parent (cd6acdd).
+- smt-basic routes (cd6acdd) use READINESS_VIEW for list and READINESS_CHECK for create (stencil/squeegee/equipment/oven), QUALITY_OQC for daily QC + production exceptions. No new permission points added.
