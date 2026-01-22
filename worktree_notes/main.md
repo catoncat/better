@@ -520,6 +520,9 @@
 - [x] Expand SMT sections with readiness/loading/FAI/authorize/execution/OQC detail + checkpoints.
 - [x] Expand DIP walkthrough + appendices (demo data, error codes, checkpoints).
 
+## Errors
+- cat > user_docs/demo/guide.md failed (zsh noclobber: file exists); retried with >| to overwrite file.
+
 ## SMT config sample context
 - Confirmed demo codes: line SMT-A, route SMT-BOT-标准路由, stations SMT-A-REFLOW/AOI, etc., from smt_playbook and smt-demo-dataset.
 

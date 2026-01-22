@@ -822,6 +822,7 @@ FAIL → Run ON_HOLD → MRB 决策
 | 执行 | UNIT_NOT_FOUND | Unit 不存在 | 先生成 Unit |
 | 执行 | UNIT_ALREADY_IN_STATION | Unit 已在站 | 先 TrackOut |
 | 执行 | UNIT_NOT_IN_STATION | Unit 不在站 | 先 TrackIn |
+| 执行 | STATION_NOT_IN_ROUTE | 站点不在路由中 | 检查路由配置 |
 | 执行 | REQUIRED_DATA_MISSING | 必填数据缺失 | 补全采集项 |
 | 执行 | DATA_VALIDATION_FAILED | 数据校验失败 | 修正数据值 |
 | 执行 | DISPOSITION_REQUIRED | 失败 Unit 未处置 | 先处置 |
