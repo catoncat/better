@@ -784,7 +784,7 @@ export async function listFai(
 export async function checkFaiGate(
 	db: PrismaClient,
 	runNo: string,
-): Promise<ServiceResult<{ requiresFai: boolean; faiPassed: boolean; faiId?: string }>> {
+): Promise<ServiceResult<{ requiresFai: boolean; faiPassed: boolean; faiSigned: boolean; faiId?: string }>> {
 	const run = await db.run.findUnique({
 		where: { runNo },
 		include: {
@@ -815,14 +815,14 @@ export async function checkFaiGate(
 	if (!requiresFai) {
 		return {
 			success: true as const,
-			data: { requiresFai: false, faiPassed: true },
+			data: { requiresFai: false, faiPassed: true, faiSigned: true },
 		};
 	}
 
 	if (run.authorizationType === "MRB_OVERRIDE" && run.mrbFaiWaiver && run.mrbWaiverReason) {
 		return {
 			success: true as const,
-			data: { requiresFai: true, faiPassed: true },
+			data: { requiresFai: true, faiPassed: true, faiSigned: true },
 		};
 	}
 
@@ -840,6 +840,7 @@ export async function checkFaiGate(
 		data: {
 			requiresFai: true,
 			faiPassed: latestFai?.status === InspectionStatus.PASS,
+			faiSigned: Boolean(latestFai?.signedBy && latestFai?.signedAt),
 			faiId: latestFai?.status === InspectionStatus.PASS ? latestFai.id : undefined,
 		},
 	};
