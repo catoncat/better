@@ -118,6 +118,12 @@
 - FAI gate uses route steps requiring FAI; run authorization checks FAI passed if required.
 ## 2026-01-21 Findings (FAI trial/complete)
 - FAI trial summary is built from Track records created after FAI start; requires outAt not null and uses sampleQty to pick units.
+## Findings (permission audit doc cleanup)
+- `domain_docs/mes/permission_audit.md` uses emoji markers in the role × page matrix; needs plain-text status labels.
+## Findings (mes emoji scan)
+- Replaced remaining emoji and pictographic arrows across `domain_docs/mes` with ASCII labels/arrows to satisfy no-emoji rule.
+## Errors (permission audit doc cleanup)
+- `python` not available in shell; switched to `perl` for emoji replacement.
 - Completing FAI requires INSPECTING status, trial completed, and counts validation; PASS blocks if any SPI/AOI inspection FAIL exists for the run.
 - Added FAI flow doc: `domain_docs/mes/smt_playbook/03_run_flow/04_fai_flow.md`.
 - Committed FAI flow doc: "docs: add SMT FAI flow guide".
@@ -316,3 +322,62 @@
 
 ## Findings (2026-01-21 loading routes)
 - Loading verify endpoint is under /loading/verify; feeder slot unlock uses /feeder-slots/:slotId/unlock (separate module).
+
+## Findings (2026-01-21 validation docs)
+- Validation docs list endpoints but lack request payload examples; add concrete JSON bodies for load-table, verify, replace, unlock, run create, generate-units, readiness, FAI, authorize, track-in/out, OQC.
+
+## Errors (2026-01-21 appendix)
+- sed domain_docs/mes/smt_playbook/99_appendix/01_entity_to_table_map.md failed: file not found. Next: list files under domain_docs/mes/smt_playbook to locate appendix structure.
+
+## Findings (2026-01-21 appendix)
+- Appendix mapping file missing; need to create 99_appendix/01_entity_to_table_map.md with validation step → Prisma models/fields. LoadingRecord model starts at schema.prisma line ~519.
+
+## Findings (2026-01-21 loading record fields)
+- LoadingRecord fields include runId, slotId, materialLotId, materialCode, expectedCode, status, verifyResult, failReason, loadedAt/loadedBy, packageQty, reviewedBy/At, meta.
+- Unit model located around schema.prisma line ~946 for execution mapping.
+
+## Findings (2026-01-21 unit/track)
+- Unit fields: sn, woId, runId, status, currentStepNo; Track fields: unitId, stepNo, stationId, inAt/outAt, result, operatorId.
+- Inspection model located around schema.prisma line ~1099.
+
+## Findings (2026-01-21 inspection/readiness)
+- Inspection fields include runId, type, status, sampleQty, decidedBy/At; InspectionItem includes unitSn, itemName, result, defectCode.
+- ReadinessCheck and ReadinessCheckItem models located around schema.prisma lines ~1058/1076.
+
+## Findings (2026-01-21 readiness fields)
+- ReadinessCheck fields include runId, type, status, checkedAt/By; ReadinessCheckItem includes itemType, itemKey, status, failReason, evidenceJson, waivedBy.
+- Run model located around schema.prisma line ~378.
+
+## Findings (2026-01-21 run fields)
+- Run fields: runNo, woId, lineId, routeVersionId, planQty, status, startedAt/endedAt; links to readinessChecks, inspections, units, slotExpectations, loadingRecords.
+- WorkOrder model located around schema.prisma line ~358.
+
+## Findings (2026-01-21 wo/expectations)
+- WorkOrder fields: woNo, productCode, plannedQty, routingId, status, pickStatus, meta.
+- RunSlotExpectation fields: runId, slotId, expectedMaterialCode, alternates, status, loadedMaterialCode/At/By.
+
+## Findings (2026-01-21 seed request)
+- Available server scripts include seed.ts, seed-demo.ts, seed-roles.ts, seed-mes.ts, and smt-demo-dataset.ts; need to pick the baseline seed that creates users/roles before demo data.
+
+## Findings (2026-01-21 seed script)
+- apps/server/scripts/seed.ts resets all tables (sqlite only) and seeds roles, admin user, test users, system config, MES master data, route versions, and demo WOs/Runs/Units.
+- seed.ts is the comprehensive seed script that creates users/roles and cleans DB with safety checks.
+
+## Findings (2026-01-21 server)
+- apps/server/scripts/dev-server.ts runs bun --watch src/index.ts with auto-restart; useful if we need the API running for smt-demo-dataset.ts.
+
+## Errors (2026-01-21 smt demo run)
+- bun apps/server/scripts/smt-demo-dataset.ts failed: DATABASE_URL required by @better-app/db import. Cause: static import of prisma before dotenv config runs. Next: switch to dynamic import (like seed.ts) so env is loaded before db init, then retry.
+
+## Findings (2026-01-21 api url)
+- apps/server/.env does not define PORT or MES_API_URL; server defaults to port 3000 unless overridden.
+
+## Findings (2026-01-21 ports)
+- Port 3000 is already in use by a bun process; port 3001 is used by a node process (likely web). We'll start a separate API server on a different port for the demo script.
+
+## Findings (2026-01-21 permissions)
+- PRESET_ROLES: admin lacks route:compile and wo:receive; engineer has route:compile; planner has wo:receive; leader has run create/authorize/track; quality has FAI/OQC.
+
+## Progress (2026-01-21)
+- Ran bun apps/server/scripts/seed.ts (DB reset + roles/users + MES seed).
+- Ran smt-demo-dataset.ts against API on port 3100; created run RUN-WO-20250526-001-1768978028478 with FAI/OQC IDs in output.
