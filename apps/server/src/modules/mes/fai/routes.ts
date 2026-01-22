@@ -4,7 +4,7 @@ import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
-import { completeFaiSchema, createFaiSchema, faiQuerySchema, recordFaiItemSchema } from "./schema";
+import { completeFaiSchema, createFaiSchema, faiQuerySchema, recordFaiItemSchema, signFaiSchema } from "./schema";
 import {
 	checkFaiGate,
 	completeFai,
@@ -13,6 +13,7 @@ import {
 	getFaiByRun,
 	listFai,
 	recordFaiItem,
+	signFai,
 	startFai,
 } from "./service";
 
@@ -276,5 +277,54 @@ export const faiRoutes = new Elysia({ prefix: "/fai" })
 			requirePermission: Permission.QUALITY_FAI,
 			body: completeFaiSchema,
 			detail: { tags: ["MES - FAI"], summary: "Complete FAI with decision" },
+		},
+	)
+	// Sign FAI
+	.post(
+		"/:faiId/sign",
+		async ({ db, params, body, set, user, request }) => {
+			const actor = buildAuditActor(user);
+			const meta = buildAuditRequestMeta(request);
+			const before = await db.inspection.findUnique({
+				where: { id: params.faiId },
+				include: { items: true },
+			});
+			const result = await signFai(db, params.faiId, body, user?.id ?? "");
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INSPECTION,
+					entityId: String(before?.id ?? params.faiId),
+					entityDisplay: `FAI ${params.faiId}`,
+					action: "FAI_SIGN",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					before,
+					payload: body,
+					request: meta,
+				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INSPECTION,
+				entityId: result.data.id,
+				entityDisplay: `FAI ${params.faiId}`,
+				action: "FAI_SIGN",
+				actor,
+				status: "SUCCESS",
+				before,
+				after: result.data,
+				payload: body,
+				request: meta,
+			});
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.QUALITY_FAI,
+			body: signFaiSchema,
+			detail: { tags: ["MES - FAI"], summary: "Sign FAI for run authorization" },
 		},
 	);
