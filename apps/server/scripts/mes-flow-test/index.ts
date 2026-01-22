@@ -307,6 +307,9 @@ async function runTest() {
     });
     if (!completeFaiRes.ok) throw new Error(`Complete FAI failed: ${JSON.stringify(completeFaiRes.data)}`);
 
+    const signFaiRes = await client.post(`/fai/${faiId}/sign`, { remark: "Auto sign" });
+    if (!signFaiRes.ok) throw new Error(`FAI sign failed: ${JSON.stringify(signFaiRes.data)}`);
+
     // 13. Authorize Run
     console.log("Step 12: Authorizing Run...");
     const authRes = await client.post(`/runs/${runNo}/authorize`, { action: "AUTHORIZE" });

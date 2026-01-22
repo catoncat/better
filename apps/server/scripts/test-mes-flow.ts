@@ -583,10 +583,12 @@ async function runTest(options: CliOptions) {
 				return data?.error;
 			}, { actor: "planner" });
 
+			let faiId: string | null = null;
 			// Complete FAI to proceed to Trace check
 			await runStep(summary, "FAI: complete (PASS)", async () => {
 				const created = await quality.post(`/fai/run/${runNo}`, { sampleQty: 1 });
 				const fai = expectOk(created.res, created.data, "FAI create");
+				faiId = fai.id as string;
 				
 				const started = await quality.post(`/fai/${fai.id}/start`);
 				expectOk(started.res, started.data, "FAI start");
@@ -596,6 +598,14 @@ async function runTest(options: CliOptions) {
 
 				const completed = await quality.post(`/fai/${fai.id}/complete`, { decision: "PASS" });
 				return expectOk(completed.res, completed.data, "FAI complete");
+			}, { actor: "quality" });
+
+			await runStep(summary, "FAI: sign", async () => {
+				if (!faiId) {
+					throw new ApiError("FAI sign failed: missing faiId");
+				}
+				const signed = await quality.post(`/fai/${faiId}/sign`, { remark: "Auto sign" });
+				return expectOk(signed.res, signed.data, "FAI sign");
 			}, { actor: "quality" });
 
 			await runStep(summary, "Run: authorize (expect PASS)", async () => {
@@ -766,6 +776,11 @@ async function runTest(options: CliOptions) {
 			expectOk(completed.res, completed.data, "FAI complete");
 
 			return { faiId };
+		}, { actor: "quality" });
+
+		await runStep(summary, "FAI: sign", async () => {
+			const signed = await quality.post(`/fai/${faiId}/sign`, { remark: "Auto sign" });
+			return expectOk(signed.res, signed.data, "FAI sign");
 		}, { actor: "quality" });
 
 		await runStep(summary, "Run: authorize (expect PASS)", async () => {

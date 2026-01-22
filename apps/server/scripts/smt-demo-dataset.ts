@@ -697,6 +697,9 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 	const faiComplete = await quality.post(`/fai/${faiId}/complete`, { decision: "PASS" });
 	expectOk(faiComplete.res, faiComplete.data, "FAI complete");
 
+	const faiSign = await quality.post(`/fai/${faiId}/sign`, { remark: "Auto sign" });
+	expectOk(faiSign.res, faiSign.data, "FAI sign");
+
 	const authorize = await planner.post(`/runs/${runNo}/authorize`, { action: "AUTHORIZE" });
 	expectOk(authorize.res, authorize.data, "Run authorize");
 

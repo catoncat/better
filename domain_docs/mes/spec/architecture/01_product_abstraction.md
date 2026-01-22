@@ -442,7 +442,7 @@ export const paramsSchemaByProcessType = {
 | WP-3 锡膏生命周期 | `ResourceStatusLog` (resourceType=SOLDER_PASTE) + payload | OK |
 | WP-4 刮刀寿命 | `ResourceStatusLog` (resourceType=SQUEEGEE) + payload | OK |
 | WP-5 转拉前检查 | 使用现有 `ReadinessCheck` + 模板化 | OK (已有机制) |
-| WP-6 FAI 多签 | 扩展 Inspection 或新建 Approval 模型 | PARTIAL (需单独设计) |
+| WP-6 FAI 签字 | Inspection（signedBy/signedAt/signatureRemark） | OK |
 | WP-7 设备点检 | `DataCollectionSpec` 或专用表 | OK |
 | WP-8 炉温程式 | `ProcessRecord` (processType=REFLOW) + params | OK |
 | WP-10 日常 QC | `DataCollectionSpec` 或扩展现有报表 | OK |

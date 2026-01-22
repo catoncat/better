@@ -289,13 +289,21 @@ export const faiRoutes = new Elysia({ prefix: "/fai" })
 	.post(
 		"/:faiId/sign",
 		async ({ db, params, body, set, user, request }) => {
+			if (!user?.id) {
+				set.status = 401;
+				return {
+					ok: false,
+					error: { code: "UNAUTHORIZED", message: "User not authenticated" },
+				};
+			}
+
 			const actor = buildAuditActor(user);
 			const meta = buildAuditRequestMeta(request);
 			const before = await db.inspection.findUnique({
 				where: { id: params.faiId },
 				include: { items: true },
 			});
-			const result = await signFai(db, params.faiId, body, user?.id ?? "");
+			const result = await signFai(db, params.faiId, body, user.id);
 			if (!result.success) {
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.INSPECTION,
