@@ -99,11 +99,7 @@ export const PRESET_ROLES: PresetRole[] = [
 		code: "material",
 		name: "物料员",
 		description: "上料验证、物料装载与换料",
-		permissions: [
-			Permission.RUN_READ,
-			Permission.LOADING_VIEW,
-			Permission.LOADING_VERIFY,
-		],
+		permissions: [Permission.RUN_READ, Permission.LOADING_VIEW, Permission.LOADING_VERIFY],
 		dataScope: "ASSIGNED_LINES" as DataScope,
 		isSystem: true,
 	},
@@ -137,7 +133,15 @@ export const PRESET_ROLES: PresetRole[] = [
  * Role priority for determining default home page
  * Lower index = higher priority
  */
-export const ROLE_PRIORITY = ["admin", "planner", "engineer", "quality", "material", "operator", "trace"];
+export const ROLE_PRIORITY = [
+	"admin",
+	"planner",
+	"engineer",
+	"quality",
+	"material",
+	"operator",
+	"trace",
+];
 
 /**
  * Default home page for each role
