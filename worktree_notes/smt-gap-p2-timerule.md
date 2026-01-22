@@ -82,3 +82,55 @@ touchPoints:
 
 ## Open Questions
 -
+
+## 2025-01-22 - TimeRule cron permission check fix
+
+Context:
+- Update time-rule cron supervisor permission check to avoid substring matching on JSON.
+
+Findings:
+- apps/server/src/plugins/time-rule-cron.ts uses role.permissions.includes("READINESS_OVERRIDE"), which is substring matching on JSON string; should parse JSON or reuse userHasAnyPermission.
+
+Plan:
+- Switch cron permission check to use userHasAnyPermission helper or JSON parse.
+
+Findings (perm fix):
+- apps/server/src/lib/permissions.ts exports userHasAnyPermission(db, userId, permissions: string[]) helper that parses role permissions JSON.
+- Plan: use userHasAnyPermission for supervisor filtering in time-rule cron to avoid JSON substring matching.
+
+Errors:
+- apply_patch failed updating apps/server/src/plugins/time-rule-cron.ts (path resolved to /Users/envvar/lzb/better/... not in worktree). Next: retry with absolute path in worktree.
+
+Progress:
+- Added roleHasPermission helper in time-rule cron and replaced substring check for READINESS_OVERRIDE.
+
+Errors:
+- conversation note write failed due to noclobber (file exists). Next: overwrite with >| or use tee.
+
+Findings (docs lookup):
+- rg in domain_docs/mes found time rule references in smt_gap_task_breakdown and compair docs; phase3_tasks.md missing in worktree (sed error).
+
+Findings (plan files):
+- domain_docs/mes/plan has tasks.md and smt_gap_task_breakdown.md; phase3_tasks.md not present.
+- tasks.md has no TimeRule mentions (rg returned no matches).
+
+Findings (align/plan):
+- Track C tasks for TimeRule are in domain_docs/mes/plan/smt_gap_task_breakdown.md with all subtask checkboxes unchecked.
+- No TimeRule references found in domain_docs/mes/spec/impl_align/*. Need to add mapping.
+
+Findings (process spec):
+- spec/process/03_smt_flows.md readiness item list does not include TIME_RULE; update needed for accuracy.
+- spec/impl_align/03_smt_align.md lacks time-rule nodes; add mappings for time rule checks/waive/definitions.
+
+Findings (config templates):
+- domain_docs/mes/spec/config/templates/time_rule_config.template.yaml exists; consider whether T2.1.5 should be marked complete.
+
+Findings (acceptance checklist):
+- Phase 2 acceptance checklist includes "锡膏暴露超 24h 自动 Alert" and "水洗时间规则按路线生效" checkboxes that should be marked done.
+
+Findings (emoji check):
+- rg -nP "\\p{Extended_Pictographic}" domain_docs/mes returned existing emoji in plan and dip_playbook files (pre-existing). Requires decision on cleanup.
+
+Progress:
+- Updated SMT flow note, align table, and Track C/Phase 2 acceptance checklists in smt_gap_task_breakdown.
+- bun scripts/smart-verify.ts passed (biome check, db:generate, check-types).

@@ -31,6 +31,9 @@
 | 设备点检记录 | `GET /api/equipment-inspection-records`, `POST /api/equipment-inspection-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/equipment-inspections/index.tsx` |
 | 炉温程式记录 | `GET /api/oven-program-records`, `POST /api/oven-program-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/oven-program-records/index.tsx` |
 | 异常记录/处理 | `GET /api/readiness/exceptions`, `POST /api/runs/:runNo/readiness/items/:itemId/waive` | `apps/server/src/modules/mes/readiness/service.ts` | `apps/web/src/routes/_authenticated/mes/readiness-exceptions.tsx` |
+| 时间规则配置 | `GET /api/time-rules/definitions`, `POST /api/time-rules/definitions` | `apps/server/src/modules/mes/time-rule/service.ts` | - |
+| 时间规则实例 | `GET /api/time-rules/runs/:runId/instances` | `apps/server/src/modules/mes/time-rule/service.ts` | - |
+| 时间规则豁免 | `POST /api/time-rules/instances/:instanceId/waive` | `apps/server/src/modules/mes/time-rule/service.ts` | - |
 | 上料防错 | `GET /api/runs/:runNo/loading/expectations`, `POST /api/runs/:runNo/loading/load-table`, `POST /api/loading/verify` | `apps/server/src/modules/mes/loading/service.ts` | `apps/web/src/routes/_authenticated/mes/loading/index.tsx` |
 | 加载站位表 | `POST /api/runs/:runNo/loading/load-table` | `apps/server/src/modules/mes/loading/service.ts` | `apps/web/src/routes/_authenticated/mes/loading/index.tsx` |
 | 扫码验证 | `POST /api/loading/verify` | `apps/server/src/modules/mes/loading/service.ts` | `apps/web/src/routes/_authenticated/mes/loading/-components/scan-panel.tsx` |
