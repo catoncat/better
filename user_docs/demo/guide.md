@@ -26,6 +26,27 @@
 
 ---
 
+## 快速演示总览（一页清单）
+
+用于现场快速跑通 SMT 闭环，详细步骤见对应章节。
+
+| 步骤 | 操作 | 验证点 | 参考章节 |
+|------|------|--------|----------|
+| 1 | 准备数据并登录 | 路由版本为 READY | 3.0 |
+| 2 | 下发工单并创建 Run | Run=PREP | 3.1 |
+| 3 | Readiness 正式检查 | Readiness=PASSED | 3.2 |
+| 4 | 加载站位表并上料验证 | 站位 LOADED | 3.3 |
+| 5 | 创建/启动 FAI | FAI=INSPECTING | 3.4 |
+| 6 | 首件试产 + 记录检验项 | FAI=PASS | 3.4 |
+| 7 | 授权生产 | Run=AUTHORIZED | 3.5 |
+| 8 | 批量执行 TrackIn/Out | Unit DONE/OUT_FAILED | 3.6 |
+| 9 | Run 收尾 + OQC/MRB | Run COMPLETED/ON_HOLD | 3.7 |
+| 10 | 工单收尾 + 追溯 | Trace 数据完整 | 3.8 |
+
+可选：演示失败分支与恢复路径（第 4 章）。
+
+---
+
 ## 一、项目进度概览
 
 ### 已完成里程碑
@@ -452,6 +473,9 @@ FAI FAIL → [是否可修复?]
 
 **页面**：`/mes/runs/{runNo}` 或 `/mes/runs`
 
+**提示**
+- 若未执行 Formal Readiness，授权时会自动触发一次检查，失败则阻止授权。
+
 **操作演示：授权成功**
 1. 点击“授权生产”
 2. Run 状态变为 AUTHORIZED
@@ -740,6 +764,14 @@ FAIL → Run ON_HOLD → MRB 决策
 - TrackIn/TrackOut 状态流转正确
 - OQC/MRB 决策影响 Run 终态
 - Trace 可见 tracks/dataValues/inspections/loadingRecords
+
+### 5.9 DIP 失败分支演示
+
+- Readiness 未通过：LOADING 未完成或外部状态缺失 → 修复或豁免后再检查
+- 上料异常：SLOT_MAPPING_MISSING / SLOT_LOCKED → 补充映射或解锁后重试
+- FAI 失败（如路由要求）：检验 FAIL 或样本不足 → 重新创建 FAI
+- 执行异常：RUN_NOT_AUTHORIZED / REQUIRED_DATA_MISSING → 授权或补全采集项
+- OQC 失败：Run 进入 ON_HOLD → MRB 选择 RELEASE/REWORK/SCRAP
 
 ---
 
