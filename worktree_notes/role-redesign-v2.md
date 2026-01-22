@@ -51,6 +51,7 @@ task:
 - Updated seed/test/demo scripts and login examples to use material/operator/planner/quality instead of leader.
 - Updated MES RBAC/permission docs, config samples, and user role guides to align with new roles.
 - Merge prep: reviewed decision notes, ready to commit conversation records before syncing with main.
+- Synced with main and ran `bun scripts/smart-verify.ts` (pass).
 
 ## Errors
 - apply_patch failed updating `apps/server/scripts/test-mes-flow.ts` (context mismatch around readiness/authorize block). Next: patch in smaller hunks after re-reading exact lines.
