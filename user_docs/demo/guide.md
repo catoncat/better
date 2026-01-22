@@ -649,7 +649,7 @@ FAIL → Run ON_HOLD → MRB 决策
 
 ## 五、DIP 流程演示（保持现有结构，补充同样细节）
 
-目标：按 `domain_docs/mes/spec/process/04_dip_flows.md` 的闭环顺序走完 DIP。 
+目标：按 `domain_docs/mes/spec/process/04_dip_flows.md` 的闭环顺序走完 DIP。
 
 ### 5.0 前置说明
 
@@ -688,6 +688,7 @@ FAIL → Run ON_HOLD → MRB 决策
 
 **期望结果**
 - Readiness 状态 PASSED
+- 检查项规则与 SMT 一致（LOADING 必须完成）
 
 ### 5.3 FAI（可选）+ 授权前试产过站
 
@@ -695,10 +696,17 @@ FAIL → Run ON_HOLD → MRB 决策
 2. 在 `/mes/execution` 完成首工位 TrackIn/Out
 3. 在 `/mes/fai` 记录检验项并判定 PASS
 
+**期望结果**
+- FAI 状态 PASS（如路由要求）
+- Run 保持 PREP，等待授权
+
 ### 5.4 Run 授权
 
 1. 点击“授权生产”
 2. Run 状态变为 AUTHORIZED
+
+**期望结果**
+- 授权成功后可开始批量执行
 
 ### 5.5 执行（Run=IN_PROGRESS）
 
@@ -716,10 +724,22 @@ FAIL → Run ON_HOLD → MRB 决策
 2. 若触发 OQC：完成检验
 3. OQC FAIL 时执行 MRB 决策
 
+**期望结果**
+- OQC PASS → Run COMPLETED
+- OQC FAIL → Run ON_HOLD → MRB 决策
+
 ### 5.7 工单收尾 + 追溯验证
 
 1. `/mes/work-orders` 收尾工单
 2. `/mes/trace` 输入 DIP SN 验证追溯数据
+
+### 5.8 验证检查点汇总
+
+- Readiness Formal Check 写入记录且为 PASSED
+- FAI（如要求）通过后可授权
+- TrackIn/TrackOut 状态流转正确
+- OQC/MRB 决策影响 Run 终态
+- Trace 可见 tracks/dataValues/inspections/loadingRecords
 
 ---
 
