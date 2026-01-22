@@ -68,6 +68,7 @@ task:
 - Added server-side binding validation for line/station requirements.
 - Expanded system role presets and added role binding validation in user dialog.
 - smart-verify passed (biome check, db:generate, check-types).
+- Synced with main and re-ran `bun scripts/smart-verify.ts` (pass).
 
 ## Findings
 - Role management UI only sorts by isSystem; no role-specific ordering or hints.
