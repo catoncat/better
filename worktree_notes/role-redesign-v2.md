@@ -50,6 +50,8 @@ task:
 - Updated role label map in web constants.
 - Updated seed/test/demo scripts and login examples to use material/operator/planner/quality instead of leader.
 - Updated MES RBAC/permission docs, config samples, and user role guides to align with new roles.
+- Merge prep: reviewed decision notes, ready to commit conversation records before syncing with main.
+- Synced with main and ran `bun scripts/smart-verify.ts` (pass).
 
 ## Errors
 - apply_patch failed updating `apps/server/scripts/test-mes-flow.ts` (context mismatch around readiness/authorize block). Next: patch in smaller hunks after re-reading exact lines.
@@ -57,3 +59,4 @@ task:
 - smart-verify failed: Biome formatting in `packages/db/src/permissions/preset-roles.ts`. Next: adjust formatting to match Biome, rerun smart-verify.
 - Fixed Biome formatting in preset roles (material permissions inline, ROLE_PRIORITY expanded).
 - smart-verify passed (biome check, db:generate, check-types).
+- Role model uses isSystem flag; comment says system preset roles cannot be deleted. Role assignments cascade on delete, so deleting role removes assignments.

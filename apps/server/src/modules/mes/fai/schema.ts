@@ -35,3 +35,7 @@ export const faiQuerySchema = t.Object({
 	page: t.Optional(t.Integer({ minimum: 1, default: 1 })),
 	pageSize: t.Optional(t.Integer({ minimum: 1, maximum: 100, default: 20 })),
 });
+
+export const signFaiSchema = t.Object({
+	remark: t.Optional(t.String({ description: "Optional signature remark" })),
+});

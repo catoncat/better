@@ -29,6 +29,13 @@ export const ALL_READINESS_ITEM_TYPES: ReadinessItemType[] = [
 	"STENCIL",
 	"SOLDER_PASTE",
 	"LOADING",
+	// PREP_* 准备项检查（SMT Gap Phase 1）
+	"PREP_BAKE",
+	"PREP_PASTE",
+	"PREP_STENCIL_USAGE",
+	"PREP_STENCIL_CLEAN",
+	"PREP_SCRAPER",
+	"PREP_FIXTURE",
 ];
 
 export const READINESS_ITEM_TYPE_LABELS: Record<ReadinessItemType, string> = {
@@ -38,6 +45,13 @@ export const READINESS_ITEM_TYPE_LABELS: Record<ReadinessItemType, string> = {
 	STENCIL: "钢网检查",
 	SOLDER_PASTE: "锡膏检查",
 	LOADING: "上料检查",
+	// PREP_* 准备项检查（SMT Gap Phase 1）
+	PREP_BAKE: "烘烤准备",
+	PREP_PASTE: "锡膏准备",
+	PREP_STENCIL_USAGE: "钢网使用",
+	PREP_STENCIL_CLEAN: "钢网清洗",
+	PREP_SCRAPER: "刮刀准备",
+	PREP_FIXTURE: "夹具准备",
 };
 
 export function useReadinessConfig(lineId: string | undefined, options?: { enabled?: boolean }) {

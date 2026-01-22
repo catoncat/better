@@ -69,6 +69,13 @@ export const READINESS_ITEM_TYPE_MAP: Record<string, string> = {
 	STENCIL: "钢网",
 	SOLDER_PASTE: "锡膏",
 	LOADING: "上料",
+	// PREP_* 准备项检查（SMT Gap Phase 1）
+	PREP_BAKE: "烘烤准备",
+	PREP_PASTE: "锡膏准备",
+	PREP_STENCIL_USAGE: "钢网使用",
+	PREP_STENCIL_CLEAN: "钢网清洗",
+	PREP_SCRAPER: "刮刀准备",
+	PREP_FIXTURE: "夹具准备",
 };
 
 export const PROCESS_TYPE_MAP: Record<ProcessType, string> = {
