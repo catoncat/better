@@ -76,6 +76,7 @@ export const READINESS_ITEM_TYPE_MAP: Record<string, string> = {
 	PREP_STENCIL_CLEAN: "钢网清洗",
 	PREP_SCRAPER: "刮刀准备",
 	PREP_FIXTURE: "夹具准备",
+	PREP_PROGRAM: "炉温程式",
 };
 
 export const PROCESS_TYPE_MAP: Record<ProcessType, string> = {
