@@ -1095,12 +1095,36 @@ function RunDetailPage() {
 																			</Link>
 																		</Button>
 																	)}
+																	{/* PREP_STENCIL_CLEAN: 清洗记录缺失/异常 → 前往清洗记录 */}
+																	{item.itemType === "PREP_STENCIL_CLEAN" && (
+																		<Button variant="ghost" size="sm" asChild>
+																			<Link
+																				to="/mes/stencil-cleaning"
+																				search={{ lineCode: data.line?.code }}
+																			>
+																				<ExternalLink className="mr-1 h-3 w-3" />
+																				清洗记录
+																			</Link>
+																		</Button>
+																	)}
 																	{/* SOLDER_PASTE: 锡膏问题 → 锡膏管理 */}
 																	{item.itemType === "SOLDER_PASTE" && canViewIntegration && (
 																		<Button variant="ghost" size="sm" asChild>
 																			<Link to="/mes/integration/manual-entry">
 																				<ExternalLink className="mr-1 h-3 w-3" />
 																				锡膏管理
+																			</Link>
+																		</Button>
+																	)}
+																	{/* PREP_SCRAPER: 刮刀点检缺失/异常 → 前往点检记录 */}
+																	{item.itemType === "PREP_SCRAPER" && (
+																		<Button variant="ghost" size="sm" asChild>
+																			<Link
+																				to="/mes/squeegee-usage"
+																				search={{ lineCode: data.line?.code }}
+																			>
+																				<ExternalLink className="mr-1 h-3 w-3" />
+																				刮刀点检
 																			</Link>
 																		</Button>
 																	)}
