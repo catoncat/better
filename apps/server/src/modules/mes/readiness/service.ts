@@ -522,6 +522,92 @@ export async function checkPrepStencilClean(
 }
 
 /**
+ * Check squeegee inspection record for the run's line.
+ * Queries latest SqueegeeUsageRecord for the line, verifies record exists and has no explicit failures.
+ */
+export async function checkPrepScraper(
+	db: PrismaClient,
+	run: Run,
+): Promise<CheckItemResult[]> {
+	if (!run.lineId) {
+		return [];
+	}
+
+	const latestUsage = await db.squeegeeUsageRecord.findFirst({
+		where: { lineId: run.lineId },
+		orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
+	});
+
+	if (!latestUsage) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_SCRAPER,
+				itemKey: run.lineId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: "产线无刮刀点检记录",
+				evidenceJson: { lineId: run.lineId },
+			},
+		];
+	}
+
+	const failures: string[] = [];
+	if (latestUsage.checkSurface === false) failures.push("表面检查不通过");
+	if (latestUsage.checkEdge === false) failures.push("刀口检查不通过");
+	if (latestUsage.checkFlatness === false) failures.push("平整度检查不通过");
+
+	if (
+		typeof latestUsage.lifeLimit === "number" &&
+		typeof latestUsage.totalPrintCount === "number" &&
+		latestUsage.totalPrintCount > latestUsage.lifeLimit
+	) {
+		failures.push(
+			`超过寿命上限: totalPrintCount=${latestUsage.totalPrintCount} > lifeLimit=${latestUsage.lifeLimit}`,
+		);
+	}
+
+	if (failures.length > 0) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_SCRAPER,
+				itemKey: latestUsage.squeegeeId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: failures.join("；"),
+				evidenceJson: {
+					squeegeeId: latestUsage.squeegeeId,
+					usageRecordId: latestUsage.id,
+					recordDate: latestUsage.recordDate.toISOString(),
+					lineId: run.lineId,
+					checkSurface: latestUsage.checkSurface,
+					checkEdge: latestUsage.checkEdge,
+					checkFlatness: latestUsage.checkFlatness,
+					totalPrintCount: latestUsage.totalPrintCount,
+					lifeLimit: latestUsage.lifeLimit,
+				},
+			},
+		];
+	}
+
+	return [
+		{
+			itemType: ReadinessItemType.PREP_SCRAPER,
+			itemKey: latestUsage.squeegeeId,
+			status: ReadinessItemStatus.PASSED,
+			evidenceJson: {
+				squeegeeId: latestUsage.squeegeeId,
+				usageRecordId: latestUsage.id,
+				recordDate: latestUsage.recordDate.toISOString(),
+				lineId: run.lineId,
+				checkSurface: latestUsage.checkSurface,
+				checkEdge: latestUsage.checkEdge,
+				checkFlatness: latestUsage.checkFlatness,
+				totalPrintCount: latestUsage.totalPrintCount,
+				lifeLimit: latestUsage.lifeLimit,
+			},
+		},
+	];
+}
+
+/**
  * Check loading status for the run.
  * Queries RunSlotExpectation, verifies all slots are LOADED.
  */
@@ -655,6 +741,7 @@ export async function performCheck(
 		stencilResults,
 		solderPasteResults,
 		stencilCleanResults,
+		scraperResults,
 		loadingResults,
 	] = await Promise.all([
 		shouldRunCheck(ReadinessItemType.EQUIPMENT) ? checkEquipment(db, run) : Promise.resolve([]),
@@ -667,6 +754,9 @@ export async function performCheck(
 		shouldRunCheck(ReadinessItemType.PREP_STENCIL_CLEAN)
 			? checkPrepStencilClean(db, run)
 			: Promise.resolve([]),
+		shouldRunCheck(ReadinessItemType.PREP_SCRAPER)
+			? checkPrepScraper(db, run)
+			: Promise.resolve([]),
 		shouldRunCheck(ReadinessItemType.LOADING) ? checkLoading(db, run) : Promise.resolve([]),
 	]);
 
@@ -677,6 +767,7 @@ export async function performCheck(
 		...stencilResults,
 		...solderPasteResults,
 		...stencilCleanResults,
+		...scraperResults,
 		...loadingResults,
 	];
 	const summary = calculateSummary(allResults);
