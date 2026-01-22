@@ -16,10 +16,10 @@ task:
 - Risks: RoutingStep 扩展可能影响现有路由配置
 
 ## Slices
-- [ ] Slice 1: ReflowProfile 模型设计（Schema + Migration）
-- [ ] Slice 2: ReflowProfile CRUD API + ReflowProfileUsage 记录
-- [ ] Slice 3: RoutingStep 扩展 expectedProfileId + 一致性校验 Service
-- [ ] Slice 4: Readiness 集成 PROGRAM 检查项 + 前端展示
+- [x] Slice 1: ReflowProfile 模型设计（Schema + Migration）
+- [x] Slice 2: ReflowProfile CRUD API + ReflowProfileUsage 记录
+- [x] Slice 3: RoutingStep 扩展 expectedProfileId + 一致性校验 Service
+- [x] Slice 4: Readiness 集成 PROGRAM 检查项 + 前端展示
 
 <!-- AUTO:BEGIN status -->
 
@@ -78,7 +78,13 @@ task:
 <!-- AUTO:END status -->
 
 ## Decisions
--
+- ReflowProfile 使用简化的 zoneConfig JSON 字段存储温区配置
+- 程式一致性检查通过 PREP_PROGRAM 集成到 Readiness 系统
+- RoutingStep.expectedReflowProfileId 关联期望程式
+
+## Completed
+- All slices completed and committed
+- Ready for merge to main
 
 ## Open Questions
--
+- (None - Track D complete)
