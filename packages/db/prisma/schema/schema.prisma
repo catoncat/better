@@ -283,6 +283,13 @@ enum ReadinessItemType {
   STENCIL   // 钢网状态
   SOLDER_PASTE // 锡膏状态
   LOADING   // 上料防错
+  // PREP_* 准备项检查（SMT Gap Phase 1）
+  PREP_BAKE          // 烘烤准备（需烘烤记录）
+  PREP_PASTE         // 锡膏准备（开封/回温/暴露时间）
+  PREP_STENCIL_USAGE // 钢网使用准备（使用记录+寿命检查）
+  PREP_STENCIL_CLEAN // 钢网清洗准备（清洗记录）
+  PREP_SCRAPER       // 刮刀准备（点检记录）
+  PREP_FIXTURE       // 夹具准备（寿命检查）
 }
 
 enum ReadinessItemStatus {
