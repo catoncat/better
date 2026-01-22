@@ -118,6 +118,49 @@ const resolveRoleIds = async (
 	return { success: true, data: [defaultRole.id] };
 };
 
+const getRoleBindingRequirements = async (db: PrismaClient, roleIds: string[]) => {
+	if (roleIds.length === 0) {
+		return { requiresLines: false, requiresStations: false };
+	}
+	const roles = await db.role.findMany({
+		where: { id: { in: roleIds } },
+		select: { dataScope: true },
+	});
+	return {
+		requiresLines: roles.some((role) => role.dataScope === "ASSIGNED_LINES"),
+		requiresStations: roles.some((role) => role.dataScope === "ASSIGNED_STATIONS"),
+	};
+};
+
+const validateRoleBindings = async (
+	db: PrismaClient,
+	roleIds: string[],
+	lineIds: string[],
+	stationIds: string[],
+): Promise<ServiceResult<null>> => {
+	const requirements = await getRoleBindingRequirements(db, roleIds);
+
+	if (requirements.requiresLines && lineIds.length === 0) {
+		return {
+			success: false,
+			code: "LINE_BINDING_REQUIRED",
+			message: "物料员必须绑定产线",
+			status: 400,
+		};
+	}
+
+	if (requirements.requiresStations && stationIds.length === 0) {
+		return {
+			success: false,
+			code: "STATION_BINDING_REQUIRED",
+			message: "操作员必须绑定工位",
+			status: 400,
+		};
+	}
+
+	return { success: true, data: null };
+};
+
 export const listUsers = async (
 	db: PrismaClient,
 	query: UserListQuery,
@@ -201,6 +244,13 @@ export const createUser = async (
 
 		const lineIds = body.lineIds ?? [];
 		const stationIds = body.stationIds ?? [];
+		const bindingResult = await validateRoleBindings(
+			db,
+			roleIdsResult.data,
+			lineIds,
+			stationIds,
+		);
+		if (!bindingResult.success) return bindingResult;
 
 		const createdUser = await db.$transaction(async (tx) => {
 			await tx.user.update({
@@ -280,6 +330,33 @@ export const updateUser = async (
 			fallbackToDefault: false,
 		});
 		if (!roleIdsResult.success) return roleIdsResult;
+
+		const existing = await db.user.findUnique({
+			where: { id },
+			select: {
+				id: true,
+				userRoles: { select: { roleId: true } },
+				lineBindings: { select: { lineId: true } },
+				stationBindings: { select: { stationId: true } },
+			},
+		});
+		if (!existing) {
+			return { success: false, code: "NOT_FOUND", message: "用户不存在", status: 404 };
+		}
+
+		const effectiveRoleIds = body.roleIds
+			? roleIdsResult.data
+			: existing.userRoles.map((assignment) => assignment.roleId);
+		const effectiveLineIds = body.lineIds ?? existing.lineBindings.map((binding) => binding.lineId);
+		const effectiveStationIds =
+			body.stationIds ?? existing.stationBindings.map((binding) => binding.stationId);
+		const bindingResult = await validateRoleBindings(
+			db,
+			effectiveRoleIds,
+			effectiveLineIds,
+			effectiveStationIds,
+		);
+		if (!bindingResult.success) return bindingResult;
 
 		const updated = await db.$transaction(async (tx) => {
 			const user = await tx.user.update({
