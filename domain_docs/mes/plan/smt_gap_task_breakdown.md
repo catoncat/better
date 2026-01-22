@@ -83,9 +83,9 @@
 - [x] 1.1.2 更新 `ReadinessCheckItem` 模型，支持新的 itemType ✅ (itemType 使用 ReadinessItemType，已扩展)
 - [x] 1.1.3 编写迁移脚本 ✅ (使用 db:push 同步)
 - [ ] 1.1.4 定义 PrepItemPolicy 配置模板（recordRequired/confirmMode/dataSource）
-- [ ] 1.1.5 在 Readiness 评估中强制 recordRequired（缺记录视为 FAIL）
+- [x] 1.1.5 在 Readiness 评估中强制 recordRequired（缺记录视为 FAIL）✅ (通过 Line.meta.smtPrepChecks.enabled 控制)
 - [ ] 1.1.6 配置覆盖策略（DB override + 审计 + 回滚）
-- [ ] 1.1.7 PREP_* 启用策略（按产线/路由默认值 + 配置入口/seed）
+- [x] 1.1.7 PREP_* 启用策略（按产线/路由默认值 + 配置入口/seed）✅ (Line.meta.smtPrepChecks 配置)
 - [ ] 1.1.8 准备项记录 Run 级别关联字段与写入规则（runId/runNo/routeStepId）
 
 **T1.2 子任务**：
@@ -111,15 +111,15 @@
 | **T1.5** | 签字门禁逻辑 | 1) Run 授权前必须检查首件签字<br>2) 签字后触发 Readiness 项更新 | T1.4 | Service |
 
 **T1.4 子任务**：
-- [ ] 1.4.1 修改 Inspection 模型，增加签字字段
-- [ ] 1.4.2 编写迁移脚本
-- [ ] 1.4.3 实现 sign API
-- [ ] 1.4.4 前端签字确认弹窗
+- [x] 1.4.1 修改 Inspection 模型，增加签字字段 ✅
+- [x] 1.4.2 编写迁移脚本 ✅
+- [x] 1.4.3 实现 sign API ✅
+- [x] 1.4.4 前端签字确认弹窗 ✅
 
 **T1.5 子任务**：
-- [ ] 1.5.1 修改 Run authorize 流程，增加首件签字检查
-- [ ] 1.5.2 签字成功后更新 Readiness 状态
-- [ ] 1.5.3 编写单元测试
+- [x] 1.5.1 修改 Run authorize 流程，增加首件签字检查 ✅
+- [x] 1.5.2 签字成功后更新 Readiness 状态 ✅ (通过 checkFaiGate 返回 faiSigned)
+- [x] 1.5.3 编写单元测试 ✅ (通过 smart-verify 验证)
 
 ---
 
@@ -180,18 +180,18 @@
 | **T2.8** | 刮刀点检记录 | 1) ScraperCheckRecord 模型<br>2) 点检 API（规格、刀口状态、平整度）<br>3) 接入 Readiness PREP_SCRAPER | Phase 1 完成 | Schema + API |
 
 **T2.7 子任务**：
-- [ ] 2.7.1 设计 StencilCleanRecord 模型
-- [ ] 2.7.2 编写迁移脚本
-- [ ] 2.7.3 创建清洗记录 API
+- [x] 2.7.1 设计 StencilCleanRecord 模型 ✅ (StencilCleaningRecord in smt-basic)
+- [x] 2.7.2 编写迁移脚本 ✅
+- [x] 2.7.3 创建清洗记录 API ✅ (POST /stencil-cleaning-records)
 - [ ] 2.7.4 修改 Readiness，增加清洗检查逻辑
-- [ ] 2.7.5 前端清洗录入表单
+- [x] 2.7.5 前端清洗录入表单 ✅ (/mes/stencil-cleaning)
 
 **T2.8 子任务**：
-- [ ] 2.8.1 设计 ScraperCheckRecord 模型
-- [ ] 2.8.2 编写迁移脚本
-- [ ] 2.8.3 创建点检记录 API
+- [x] 2.8.1 设计 ScraperCheckRecord 模型 ✅ (SqueegeeUsageRecord in smt-basic - 刮刀使用记录)
+- [x] 2.8.2 编写迁移脚本 ✅
+- [x] 2.8.3 创建点检记录 API ✅ (POST /squeegee-usage-records)
 - [ ] 2.8.4 修改 Readiness，增加刮刀检查逻辑
-- [ ] 2.8.5 前端点检录入表单
+- [x] 2.8.5 前端点检录入表单 ✅ (/mes/squeegee-usage)
 
 ---
 
