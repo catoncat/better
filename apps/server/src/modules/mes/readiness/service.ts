@@ -537,6 +537,315 @@ export async function checkLoading(db: PrismaClient, run: Run): Promise<CheckIte
 	return results;
 }
 
+async function checkPrepBake(db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
+	let latestRecord = await db.bakeRecord.findFirst({
+		where: { runId: run.id },
+		orderBy: { outAt: "desc" },
+	});
+	let recordSource: "runId" | "productCode" | null = latestRecord ? "runId" : null;
+
+	if (!latestRecord) {
+		const workOrder = await db.workOrder.findUnique({
+			where: { id: run.woId },
+			select: { productCode: true },
+		});
+		if (workOrder?.productCode) {
+			latestRecord = await db.bakeRecord.findFirst({
+				where: { itemCode: workOrder.productCode },
+				orderBy: { outAt: "desc" },
+			});
+			if (latestRecord) {
+				recordSource = "productCode";
+			}
+		}
+	}
+
+	if (!latestRecord) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_BAKE,
+				itemKey: run.runNo,
+				status: ReadinessItemStatus.FAILED,
+				failReason: "未找到烘烤记录",
+			},
+		];
+	}
+
+	return [
+		{
+			itemType: ReadinessItemType.PREP_BAKE,
+			itemKey: latestRecord.itemCode,
+			status: ReadinessItemStatus.PASSED,
+			evidenceJson: {
+				recordId: latestRecord.id,
+				source: recordSource ?? "unknown",
+				itemCode: latestRecord.itemCode,
+				inAt: latestRecord.inAt.toISOString(),
+				outAt: latestRecord.outAt.toISOString(),
+				materialLotId: latestRecord.materialLotId ?? undefined,
+			},
+		},
+	];
+}
+
+async function checkPrepPaste(db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
+	if (!run.lineId) {
+		return [];
+	}
+
+	const currentBinding = await db.lineSolderPaste.findFirst({
+		where: { lineId: run.lineId, isCurrent: true },
+	});
+
+	if (!currentBinding) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_PASTE,
+				itemKey: run.lineId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: "产线未绑定锡膏，无法验证准备记录",
+			},
+		];
+	}
+
+	const latestRecord = await db.solderPasteUsageRecord.findFirst({
+		where: {
+			lotId: currentBinding.lotId,
+			...(run.lineId && {
+				OR: [{ lineId: run.lineId }, { lineId: null }],
+			}),
+		},
+		orderBy: [{ issuedAt: "desc" }, { createdAt: "desc" }],
+	});
+
+	if (!latestRecord) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_PASTE,
+				itemKey: currentBinding.lotId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: "未找到锡膏使用记录",
+			},
+		];
+	}
+
+	return [
+		{
+			itemType: ReadinessItemType.PREP_PASTE,
+			itemKey: currentBinding.lotId,
+			status: ReadinessItemStatus.PASSED,
+			evidenceJson: {
+				recordId: latestRecord.id,
+				lotId: latestRecord.lotId,
+				lineId: latestRecord.lineId ?? undefined,
+				receivedAt: latestRecord.receivedAt?.toISOString(),
+				thawedAt: latestRecord.thawedAt?.toISOString(),
+				issuedAt: latestRecord.issuedAt?.toISOString(),
+			},
+		},
+	];
+}
+
+async function checkPrepStencilUsage(db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
+	if (!run.lineId) {
+		return [];
+	}
+
+	const currentBinding = await db.lineStencil.findFirst({
+		where: { lineId: run.lineId, isCurrent: true },
+	});
+
+	if (!currentBinding) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_STENCIL_USAGE,
+				itemKey: run.lineId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: "产线未绑定钢网，无法验证使用记录",
+			},
+		];
+	}
+
+	const latestRecord = await db.stencilUsageRecord.findFirst({
+		where: {
+			stencilId: currentBinding.stencilId,
+			OR: [{ lineId: run.lineId }, { lineId: null }],
+		},
+		orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
+	});
+
+	if (!latestRecord) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_STENCIL_USAGE,
+				itemKey: currentBinding.stencilId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: "未找到钢网使用记录",
+			},
+		];
+	}
+
+	if (
+		latestRecord.lifeLimit !== null &&
+		latestRecord.totalPrintCount !== null &&
+		latestRecord.totalPrintCount > latestRecord.lifeLimit
+	) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_STENCIL_USAGE,
+				itemKey: currentBinding.stencilId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: `钢网使用寿命超限: ${latestRecord.totalPrintCount}/${latestRecord.lifeLimit}`,
+				evidenceJson: {
+					recordId: latestRecord.id,
+					totalPrintCount: latestRecord.totalPrintCount,
+					lifeLimit: latestRecord.lifeLimit,
+				},
+			},
+		];
+	}
+
+	return [
+		{
+			itemType: ReadinessItemType.PREP_STENCIL_USAGE,
+			itemKey: currentBinding.stencilId,
+			status: ReadinessItemStatus.PASSED,
+			evidenceJson: {
+				recordId: latestRecord.id,
+				recordDate: latestRecord.recordDate.toISOString(),
+				totalPrintCount: latestRecord.totalPrintCount ?? undefined,
+				lifeLimit: latestRecord.lifeLimit ?? undefined,
+			},
+		},
+	];
+}
+
+async function checkPrepStencilClean(db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
+	if (!run.lineId) {
+		return [];
+	}
+
+	const currentBinding = await db.lineStencil.findFirst({
+		where: { lineId: run.lineId, isCurrent: true },
+	});
+
+	if (!currentBinding) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_STENCIL_CLEAN,
+				itemKey: run.lineId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: "产线未绑定钢网，无法验证清洗记录",
+			},
+		];
+	}
+
+	const latestRecord = await db.stencilCleaningRecord.findFirst({
+		where: {
+			stencilId: currentBinding.stencilId,
+			OR: [{ lineId: run.lineId }, { lineId: null }],
+		},
+		orderBy: [{ cleanedAt: "desc" }, { createdAt: "desc" }],
+	});
+
+	if (!latestRecord) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_STENCIL_CLEAN,
+				itemKey: currentBinding.stencilId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: "未找到钢网清洗记录",
+			},
+		];
+	}
+
+	return [
+		{
+			itemType: ReadinessItemType.PREP_STENCIL_CLEAN,
+			itemKey: currentBinding.stencilId,
+			status: ReadinessItemStatus.PASSED,
+			evidenceJson: {
+				recordId: latestRecord.id,
+				cleanedAt: latestRecord.cleanedAt.toISOString(),
+				cleanedBy: latestRecord.cleanedBy,
+			},
+		},
+	];
+}
+
+async function checkPrepScraper(db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
+	if (!run.lineId) {
+		return [];
+	}
+
+	const latestRecord = await db.squeegeeUsageRecord.findFirst({
+		where: {
+			OR: [{ lineId: run.lineId }, { lineId: null }],
+		},
+		orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
+	});
+
+	if (!latestRecord) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_SCRAPER,
+				itemKey: run.lineId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: "未找到刮刀点检记录",
+			},
+		];
+	}
+
+	if (
+		latestRecord.lifeLimit !== null &&
+		latestRecord.totalPrintCount !== null &&
+		latestRecord.totalPrintCount > latestRecord.lifeLimit
+	) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_SCRAPER,
+				itemKey: latestRecord.squeegeeId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: `刮刀使用寿命超限: ${latestRecord.totalPrintCount}/${latestRecord.lifeLimit}`,
+				evidenceJson: {
+					recordId: latestRecord.id,
+					totalPrintCount: latestRecord.totalPrintCount,
+					lifeLimit: latestRecord.lifeLimit,
+				},
+			},
+		];
+	}
+
+	return [
+		{
+			itemType: ReadinessItemType.PREP_SCRAPER,
+			itemKey: latestRecord.squeegeeId,
+			status: ReadinessItemStatus.PASSED,
+			evidenceJson: {
+				recordId: latestRecord.id,
+				recordDate: latestRecord.recordDate.toISOString(),
+				totalPrintCount: latestRecord.totalPrintCount ?? undefined,
+				lifeLimit: latestRecord.lifeLimit ?? undefined,
+			},
+		},
+	];
+}
+
+async function checkPrepFixture(_db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
+	if (!run.lineId) {
+		return [];
+	}
+
+	return [
+		{
+			itemType: ReadinessItemType.PREP_FIXTURE,
+			itemKey: run.lineId,
+			status: ReadinessItemStatus.FAILED,
+			failReason: "夹具寿命检查暂未实现",
+		},
+	];
+}
+
 function calculateSummary(items: Array<{ status: ReadinessItemStatus }>): CheckSummary {
 	let passed = 0;
 	let failed = 0;
@@ -591,6 +900,12 @@ export async function performCheck(
 		stencilResults,
 		solderPasteResults,
 		loadingResults,
+		prepBakeResults,
+		prepPasteResults,
+		prepStencilUsageResults,
+		prepStencilCleanResults,
+		prepScraperResults,
+		prepFixtureResults,
 	] = await Promise.all([
 		shouldRunCheck(ReadinessItemType.EQUIPMENT) ? checkEquipment(db, run) : Promise.resolve([]),
 		shouldRunCheck(ReadinessItemType.MATERIAL) ? checkMaterial(db, run) : Promise.resolve([]),
@@ -600,6 +915,20 @@ export async function performCheck(
 			? checkSolderPaste(db, run)
 			: Promise.resolve([]),
 		shouldRunCheck(ReadinessItemType.LOADING) ? checkLoading(db, run) : Promise.resolve([]),
+		shouldRunCheck(ReadinessItemType.PREP_BAKE) ? checkPrepBake(db, run) : Promise.resolve([]),
+		shouldRunCheck(ReadinessItemType.PREP_PASTE) ? checkPrepPaste(db, run) : Promise.resolve([]),
+		shouldRunCheck(ReadinessItemType.PREP_STENCIL_USAGE)
+			? checkPrepStencilUsage(db, run)
+			: Promise.resolve([]),
+		shouldRunCheck(ReadinessItemType.PREP_STENCIL_CLEAN)
+			? checkPrepStencilClean(db, run)
+			: Promise.resolve([]),
+		shouldRunCheck(ReadinessItemType.PREP_SCRAPER)
+			? checkPrepScraper(db, run)
+			: Promise.resolve([]),
+		shouldRunCheck(ReadinessItemType.PREP_FIXTURE)
+			? checkPrepFixture(db, run)
+			: Promise.resolve([]),
 	]);
 
 	const allResults = [
@@ -609,6 +938,12 @@ export async function performCheck(
 		...stencilResults,
 		...solderPasteResults,
 		...loadingResults,
+		...prepBakeResults,
+		...prepPasteResults,
+		...prepStencilUsageResults,
+		...prepStencilCleanResults,
+		...prepScraperResults,
+		...prepFixtureResults,
 	];
 	const summary = calculateSummary(allResults);
 	const checkStatus =
@@ -831,10 +1166,21 @@ export async function canAuthorize(
 
 export async function waiveItem(
 	db: PrismaClient,
+	runNo: string,
 	itemId: string,
 	waivedBy: string,
 	waiveReason: string,
 ): Promise<ServiceResult<WaiveResult>> {
+	const run = await db.run.findUnique({ where: { runNo }, select: { id: true } });
+	if (!run) {
+		return {
+			success: false as const,
+			code: "RUN_NOT_FOUND",
+			message: "Run not found",
+			status: 404,
+		};
+	}
+
 	const item = await db.readinessCheckItem.findUnique({
 		where: { id: itemId },
 		include: { check: { select: { runId: true } } },
@@ -846,6 +1192,15 @@ export async function waiveItem(
 			code: "ITEM_NOT_FOUND",
 			message: "Check item not found",
 			status: 404,
+		};
+	}
+
+	if (item.check.runId !== run.id) {
+		return {
+			success: false as const,
+			code: "RUN_MISMATCH",
+			message: `Check item does not belong to run ${runNo}`,
+			status: 400,
 		};
 	}
 

@@ -201,7 +201,7 @@ export const readinessModule = new Elysia({ prefix: "/runs" })
 			const actor = buildAuditActor(user);
 			const meta = buildAuditRequestMeta(request);
 
-			const result = await waiveItem(db, params.itemId, user.id, body.reason);
+			const result = await waiveItem(db, params.runNo, params.itemId, user.id, body.reason);
 
 			if (!result.success) {
 				await recordAuditEvent(db, {

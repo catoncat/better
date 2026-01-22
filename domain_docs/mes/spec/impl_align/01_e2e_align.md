@@ -38,7 +38,7 @@
 
 | 节点 | API | Server | Web |
 |------|-----|--------|-----|
-| 产线准备/就绪检查 | `POST /api/runs/:runNo/readiness/check` | `apps/server/src/modules/mes/readiness/service.ts` | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` |
+| 产线准备/就绪检查 | `POST /api/runs/:runNo/readiness/precheck`, `POST /api/runs/:runNo/readiness/check` | `apps/server/src/modules/mes/readiness/service.ts` | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` |
 | 异常处理 | `GET /api/readiness/exceptions`, `POST /api/runs/:runNo/readiness/items/:itemId/waive` | `apps/server/src/modules/mes/readiness/service.ts` | `apps/web/src/routes/_authenticated/mes/readiness-exceptions.tsx` |
 | 上料防错 | `GET /api/runs/:runNo/loading/expectations`, `POST /api/runs/:runNo/loading/load-table`, `POST /api/loading/verify` | `apps/server/src/modules/mes/loading/service.ts` | `apps/web/src/routes/_authenticated/mes/loading/index.tsx` |
 | 报警/锁定/重试 | `POST /api/loading/verify`, `POST /api/loading/replace` | `apps/server/src/modules/mes/loading/service.ts` | `apps/web/src/routes/_authenticated/mes/loading/-components/scan-panel.tsx` |

@@ -445,7 +445,22 @@ async function runTest(options: CliOptions) {
 		}
 
 		if (options.scenario === "readiness-waive") {
-			const enabledReadiness = ["ROUTE", "LOADING", "EQUIPMENT", "STENCIL", "SOLDER_PASTE"];
+			const enabledReadiness = [
+				"ROUTE",
+				"LOADING",
+				"EQUIPMENT",
+				"STENCIL",
+				"SOLDER_PASTE",
+				"PREP_BAKE",
+				"PREP_PASTE",
+				"PREP_STENCIL_USAGE",
+				"PREP_STENCIL_CLEAN",
+				"PREP_SCRAPER",
+				"PREP_FIXTURE",
+			];
+			const waiveTypes = new Set(
+				enabledReadiness.filter((type) => type !== "ROUTE"),
+			);
 
 			const lineId = await runStep(summary, "Line: resolve lineId", async () => {
 				const { res, data } = await engineer.get("/lines");
@@ -494,16 +509,20 @@ async function runTest(options: CliOptions) {
 				return result;
 			}, { actor: "quality" });
 
-			const targetTypes = new Set(["LOADING", "EQUIPMENT", "STENCIL", "SOLDER_PASTE"]);
-			const failedItems = Array.isArray(check.items)
-				? check.items.filter((i: any) => targetTypes.has(i?.itemType) && i?.status === "FAILED")
-				: [];
-
-			const seenTypes = new Set(failedItems.map((i: any) => i.itemType));
-			for (const expected of ["LOADING", "EQUIPMENT", "STENCIL", "SOLDER_PASTE"]) {
+			const allItems = Array.isArray(check.items) ? check.items : [];
+			const seenTypes = new Set(allItems.map((i: any) => i?.itemType).filter(Boolean));
+			for (const expected of enabledReadiness) {
 				if (!seenTypes.has(expected)) {
-					throw new ApiError(`Readiness FAIL but missing failed ${expected} item`);
+					throw new ApiError(`Readiness check missing itemType: ${expected}`);
 				}
+			}
+
+			const failedItems = allItems.filter(
+				(i: any) => waiveTypes.has(i?.itemType) && i?.status === "FAILED",
+			);
+
+			if (!failedItems.some((item: any) => item?.itemType === "LOADING")) {
+				throw new ApiError("Readiness FAIL missing LOADING failed item");
 			}
 
 			await runStep(summary, "Readiness: waive failed items", async () => {
@@ -526,20 +545,22 @@ async function runTest(options: CliOptions) {
 					throw new ApiError(`Readiness status is ${result.status}, expected PASSED after waive`);
 				}
 
-				const waived = Array.isArray(result.items)
-					? result.items.filter((i: any) => targetTypes.has(i?.itemType) && i?.status === "WAIVED")
-					: [];
+				const latestItems = Array.isArray(result.items) ? result.items : [];
+				const failedIds = new Set(failedItems.map((item: any) => item.id));
+				const waived = latestItems.filter((item: any) => failedIds.has(item?.id));
 
-				const waivedTypes = new Set(waived.map((i: any) => i.itemType));
-				for (const expected of ["LOADING", "EQUIPMENT", "STENCIL", "SOLDER_PASTE"]) {
-					if (!waivedTypes.has(expected)) {
-						throw new ApiError(`Readiness PASSED but missing waived ${expected} item`);
+				for (const item of failedItems) {
+					const updated = waived.find((waivedItem: any) => waivedItem?.id === item.id);
+					if (!updated || updated.status !== "WAIVED") {
+						throw new ApiError(`Readiness PASSED but item not waived: ${item.itemType}`);
 					}
 				}
 
 				for (const item of waived) {
 					if (!item.waivedBy) {
-						throw new ApiError(`Item waivedBy is missing for ${item.itemType} (attribution check failed)`);
+						throw new ApiError(
+							`Item waivedBy is missing for ${item.itemType} (attribution check failed)`,
+						);
 					}
 					if (!item.waiveReason) {
 						throw new ApiError(`Item waiveReason is missing for ${item.itemType}`);

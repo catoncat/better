@@ -142,6 +142,7 @@ function RunDetailPage() {
 	const runStatus = data?.run?.status;
 	useEffect(() => {
 		if (!runId || runStatus !== "PREP") return;
+		if (!canCheckReadiness) return;
 		if (hasAutoChecked.current) return;
 		hasAutoChecked.current = true;
 		// Silently trigger a precheck to refresh readiness status
@@ -149,7 +150,7 @@ function RunDetailPage() {
 			.mutateAsync(runNo)
 			.then(() => refetchReadiness())
 			.catch(() => {});
-	}, [runId, runStatus, runNo, performPrecheck, refetchReadiness]);
+	}, [runId, runStatus, runNo, canCheckReadiness, performPrecheck, refetchReadiness]);
 
 	const [waiveDialogOpen, setWaiveDialogOpen] = useState(false);
 	const [selectedItem, setSelectedItem] = useState<ReadinessCheckItem | null>(null);
