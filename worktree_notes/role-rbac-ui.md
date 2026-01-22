@@ -79,3 +79,5 @@ task:
 ## Errors
 - Biome formatting failure in `apps/server/src/modules/users/service.ts` (binding validation call needs single-line format).
 - web check-types failed: `formSchema` reference left in `user-dialog.tsx` (fixed to baseFormSchema).
+- Audited role-based logic: no remaining leader references; backend role service uses isSystem guard only.
+- Generalized binding validation messages/tooltips to cover custom roles with scoped data.

@@ -144,7 +144,7 @@ const validateRoleBindings = async (
 		return {
 			success: false,
 			code: "LINE_BINDING_REQUIRED",
-			message: "物料员必须绑定产线",
+			message: "存在需绑定产线的数据范围角色，请先绑定产线",
 			status: 400,
 		};
 	}
@@ -153,7 +153,7 @@ const validateRoleBindings = async (
 		return {
 			success: false,
 			code: "STATION_BINDING_REQUIRED",
-			message: "操作员必须绑定工位",
+			message: "存在需绑定工位的数据范围角色，请先绑定工位",
 			status: 400,
 		};
 	}

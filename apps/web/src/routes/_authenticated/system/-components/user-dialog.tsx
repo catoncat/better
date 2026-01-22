@@ -251,7 +251,7 @@ export function UserDialog({ open, onOpenChange, user, roles, onSubmit }: UserDi
 								form={form}
 								name="lineIds"
 								label="产线绑定"
-								tooltip="物料员必须绑定产线"
+								tooltip="包含产线范围角色时必须绑定产线"
 								validators={{ onChange: baseFormSchema.shape.lineIds }}
 							>
 								{(field) => (
@@ -269,7 +269,7 @@ export function UserDialog({ open, onOpenChange, user, roles, onSubmit }: UserDi
 								form={form}
 								name="stationIds"
 								label="工位绑定"
-								tooltip="仅对操作员的数据范围生效"
+								tooltip="包含工位范围角色时必须绑定工位"
 								validators={{ onChange: baseFormSchema.shape.stationIds }}
 							>
 								{(field) => (
