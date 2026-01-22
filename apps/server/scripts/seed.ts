@@ -161,11 +161,11 @@ const seedTestUsers = async (prisma: Db["default"], auth: AuthModule["auth"]) =>
 			roleCode: "quality",
 		},
 		{
-			email: "leader@example.com",
-			name: "赵组长",
-			username: "leader",
-			department: "生产部",
-			roleCode: "leader",
+			email: "material@example.com",
+			name: "周物料",
+			username: "material",
+			department: "物料部",
+			roleCode: "material",
 		},
 		{
 			email: "operator@example.com",
@@ -173,6 +173,13 @@ const seedTestUsers = async (prisma: Db["default"], auth: AuthModule["auth"]) =>
 			username: "operator",
 			department: "生产部",
 			roleCode: "operator",
+		},
+		{
+			email: "trace@example.com",
+			name: "孙追溯",
+			username: "trace",
+			department: "质量部",
+			roleCode: "trace",
 		},
 	];
 
@@ -231,7 +238,7 @@ const seedTestUsers = async (prisma: Db["default"], auth: AuthModule["auth"]) =>
 			},
 		});
 
-		if (testUser.roleCode === "leader") {
+		if (testUser.roleCode === "material") {
 			await prisma.userLineBinding.createMany({
 				data: [
 					{ userId: user.id, lineId: lineA.id },

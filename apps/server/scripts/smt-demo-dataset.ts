@@ -512,12 +512,14 @@ const seedConfig = async (ctx: DbContext): Promise<SeedResult> => {
 const runDemoFlow = async (options: Options, seed: SeedResult) => {
 	const planner = new ApiClient(options.apiUrl);
 	const engineer = new ApiClient(options.apiUrl);
-	const leader = new ApiClient(options.apiUrl);
+	const material = new ApiClient(options.apiUrl);
+	const operator = new ApiClient(options.apiUrl);
 	const quality = new ApiClient(options.apiUrl);
 
 	await planner.login("planner@example.com", options.testPassword);
 	await engineer.login("engineer@example.com", options.testPassword);
-	await leader.login("leader@example.com", options.testPassword);
+	await material.login("material@example.com", options.testPassword);
+	await operator.login("operator@example.com", options.testPassword);
 	await quality.login("quality@example.com", options.testPassword);
 
 	const woRes = await planner.post("/integration/work-orders", {
@@ -541,7 +543,7 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 	const run = expectOk(runRes.res, runRes.data, "Run create");
 	const runNo = run.runNo as string;
 
-	const unitsRes = await leader.post(`/runs/${runNo}/generate-units`, {
+	const unitsRes = await planner.post(`/runs/${runNo}/generate-units`, {
 		quantity: options.unitQty,
 		snPrefix: `SN-${runNo}-`,
 	});
@@ -557,10 +559,10 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 	});
 	expectOk(samplingRuleRes.res, samplingRuleRes.data, "OQC sampling rule create");
 
-	const loadTable = await leader.post(`/runs/${runNo}/loading/load-table`);
+	const loadTable = await material.post(`/runs/${runNo}/loading/load-table`);
 	expectOk(loadTable.res, loadTable.data, "Load slot table");
 
-	const passRes = await leader.post("/loading/verify", {
+	const passRes = await material.post("/loading/verify", {
 		runNo,
 		slotCode: "2F-34",
 		materialLotBarcode: "5212090007|LOT-20250526-003",
@@ -571,7 +573,7 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 		throw new Error(`Loading PASS returned ${passRecord.verifyResult}`);
 	}
 
-	const warnRes = await leader.post("/loading/verify", {
+	const warnRes = await material.post("/loading/verify", {
 		runNo,
 		slotCode: "2F-46",
 		materialLotBarcode: "5212090001B|LOT-20250526-002",
@@ -584,7 +586,7 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 	}
 
 	for (let attempt = 1; attempt <= 3; attempt++) {
-		const failRes = await leader.post("/loading/verify", {
+		const failRes = await material.post("/loading/verify", {
 			runNo,
 			slotCode: "1R-14",
 			materialLotBarcode: "9999999999|LOT-FAIL-001",
@@ -612,7 +614,7 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 	});
 	expectOk(unlockRes.res, unlockRes.data, "Unlock slot 1R-14");
 
-	const retryRes = await leader.post("/loading/verify", {
+	const retryRes = await material.post("/loading/verify", {
 		runNo,
 		slotCode: "1R-14",
 		materialLotBarcode: "5212098001|LOT-20250526-004",
@@ -623,7 +625,7 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 		throw new Error(`Loading PASS after unlock returned ${retryRecord.verifyResult}`);
 	}
 
-	const lastSlotRes = await leader.post("/loading/verify", {
+	const lastSlotRes = await material.post("/loading/verify", {
 		runNo,
 		slotCode: "1F-46",
 		materialLotBarcode: "5212098004|LOT-20250526-005",
@@ -634,7 +636,7 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 		throw new Error(`Loading PASS 1F-46 returned ${lastRecord.verifyResult}`);
 	}
 
-	const replaceRes = await leader.post("/loading/replace", {
+	const replaceRes = await material.post("/loading/replace", {
 		runNo,
 		slotCode: "2F-46",
 		newMaterialLotBarcode: "5212090001|LOT-20250526-001",
@@ -644,7 +646,7 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 	});
 	expectOk(replaceRes.res, replaceRes.data, "Loading replace");
 
-	const readinessRes = await leader.post(`/runs/${runNo}/readiness/check`);
+	const readinessRes = await quality.post(`/runs/${runNo}/readiness/check`);
 	const readiness = expectOk(readinessRes.res, readinessRes.data, "Readiness check");
 	if (readiness.status !== "PASSED") {
 		throw new Error(`Readiness check failed with status ${readiness.status}`);
@@ -664,14 +666,14 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 	}
 
 	for (const sn of sampleUnits) {
-		const trackIn = await leader.post(`/stations/${firstStation}/track-in`, {
+		const trackIn = await operator.post(`/stations/${firstStation}/track-in`, {
 			sn,
 			woNo: options.woNo,
 			runNo,
 		});
 		expectOk(trackIn.res, trackIn.data, `FAI track-in ${sn}`);
 
-		const trackOut = await leader.post(`/stations/${firstStation}/track-out`, {
+		const trackOut = await operator.post(`/stations/${firstStation}/track-out`, {
 			sn,
 			runNo,
 			result: "PASS",
@@ -695,7 +697,7 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 	const faiComplete = await quality.post(`/fai/${faiId}/complete`, { decision: "PASS" });
 	expectOk(faiComplete.res, faiComplete.data, "FAI complete");
 
-	const authorize = await leader.post(`/runs/${runNo}/authorize`, { action: "AUTHORIZE" });
+	const authorize = await planner.post(`/runs/${runNo}/authorize`, { action: "AUTHORIZE" });
 	expectOk(authorize.res, authorize.data, "Run authorize");
 
 	const sampleSet = new Set(sampleUnits);
@@ -704,14 +706,14 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 			if (sampleSet.has(sn) && station === firstStation) {
 				continue;
 			}
-			const trackIn = await leader.post(`/stations/${station}/track-in`, {
+			const trackIn = await operator.post(`/stations/${station}/track-in`, {
 				sn,
 				woNo: options.woNo,
 				runNo,
 			});
 			expectOk(trackIn.res, trackIn.data, `Track-in ${sn} ${station}`);
 
-			const trackOut = await leader.post(`/stations/${station}/track-out`, {
+			const trackOut = await operator.post(`/stations/${station}/track-out`, {
 				sn,
 				runNo,
 				result: "PASS",
@@ -721,7 +723,7 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 		}
 	}
 
-	const closeAttempt = await leader.post(`/runs/${runNo}/close`);
+	const closeAttempt = await planner.post(`/runs/${runNo}/close`);
 	if (closeAttempt.res.ok && closeAttempt.data?.ok) {
 		return { runNo, unitSns, faiId, oqcId: null as string | null };
 	}
@@ -748,7 +750,7 @@ const runDemoFlow = async (options: Options, seed: SeedResult) => {
 	const oqcComplete = await quality.post(`/oqc/${oqcId}/complete`, { decision: "PASS" });
 	expectOk(oqcComplete.res, oqcComplete.data, "OQC complete");
 
-	const closeFinal = await leader.post(`/runs/${runNo}/close`);
+	const closeFinal = await planner.post(`/runs/${runNo}/close`);
 	expectOk(closeFinal.res, closeFinal.data, "Run closeout (final)");
 
 	return { runNo, unitSns, faiId, oqcId };

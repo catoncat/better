@@ -306,12 +306,14 @@ async function runTest(options: CliOptions) {
 	const admin = new ApiClient(options.apiUrl);
 	const engineer = new ApiClient(options.apiUrl);
 	const planner = new ApiClient(options.apiUrl);
-	const leader = new ApiClient(options.apiUrl);
+	const material = new ApiClient(options.apiUrl);
+	const operator = new ApiClient(options.apiUrl);
 	const quality = new ApiClient(options.apiUrl);
 
 	const engineerEmail = "engineer@example.com";
 	const plannerEmail = "planner@example.com";
-	const leaderEmail = "leader@example.com";
+	const materialEmail = "material@example.com";
+	const operatorEmail = "operator@example.com";
 	const qualityEmail = "quality@example.com";
 	const now = Date.now();
 	const key = `${options.dataset}-${options.track}-${options.scenario}`;
@@ -347,9 +349,15 @@ async function runTest(options: CliOptions) {
 		);
 		await runStep(
 			summary,
-			"Auth: login leader",
-			() => leader.login(leaderEmail, options.testPassword),
-			{ actor: "leader" },
+			"Auth: login material",
+			() => material.login(materialEmail, options.testPassword),
+			{ actor: "material" },
+		);
+		await runStep(
+			summary,
+			"Auth: login operator",
+			() => operator.login(operatorEmail, options.testPassword),
+			{ actor: "operator" },
 		);
 		await runStep(
 			summary,
@@ -394,13 +402,13 @@ async function runTest(options: CliOptions) {
 		}, { actor: "planner" });
 
 		const runNo = await runStep(summary, "Run: create", async () => {
-			const { res, data } = await leader.post(`/work-orders/${woNo}/runs`, { lineCode: options.lineCode });
+			const { res, data } = await planner.post(`/work-orders/${woNo}/runs`, { lineCode: options.lineCode });
 			const created = expectOk(res, data, "Run create");
 			if (!created.runNo) {
 				throw new ApiError("Run create response missing runNo");
 			}
 			return created.runNo as string;
-		}, { actor: "leader" });
+		}, { actor: "planner" });
 
 		summary.context.runNo = runNo;
 
@@ -427,13 +435,13 @@ async function runTest(options: CliOptions) {
 
 		if (options.withLoading) {
 			await runStep(summary, "Loading: load slot expectations", async () => {
-				const { res, data } = await leader.post(`/runs/${runNo}/loading/load-table`);
+				const { res, data } = await material.post(`/runs/${runNo}/loading/load-table`);
 				return expectOk(res, data, "Load slot table");
-			}, { actor: "leader" });
+			}, { actor: "material" });
 		} else {
 			await runStep(summary, "Loading: skipped (withLoading=false)", async () => {
 				return { skipped: true };
-			}, { actor: "leader" });
+			}, { actor: "material" });
 		}
 
 		if (options.scenario === "readiness-waive") {
@@ -477,14 +485,14 @@ async function runTest(options: CliOptions) {
 
 			// Intentionally SKIP verify to cause Loading check failure (PENDING)
 			const check = await runStep(summary, "Readiness: formal check (expect FAIL)", async () => {
-				const { res, data } = await leader.post(`/runs/${runNo}/readiness/check`);
+				const { res, data } = await quality.post(`/runs/${runNo}/readiness/check`);
 				// Note: check API returns 200 even on FAIL, but data.status should be FAILED
 				const result = expectOk(res, data, "Readiness formal check");
 				if (result.status !== "FAILED") {
 					throw new ApiError(`Readiness status is ${result.status}, expected FAILED`);
 				}
 				return result;
-			}, { actor: "leader" });
+			}, { actor: "quality" });
 
 			const targetTypes = new Set(["LOADING", "EQUIPMENT", "STENCIL", "SOLDER_PASTE"]);
 			const failedItems = Array.isArray(check.items)
@@ -501,17 +509,17 @@ async function runTest(options: CliOptions) {
 			await runStep(summary, "Readiness: waive failed items", async () => {
 				const results: unknown[] = [];
 				for (const item of failedItems) {
-					const { res, data } = await leader.post(`/runs/${runNo}/readiness/items/${item.id}/waive`, {
+					const { res, data } = await quality.post(`/runs/${runNo}/readiness/items/${item.id}/waive`, {
 						reason: `Acceptance test waive: ${item.itemType}`,
 					});
 					results.push(expectOk(res, data, `Waive item ${item.itemType}`));
 				}
 				return { waived: results.length };
-			}, { actor: "leader" });
+			}, { actor: "quality" });
 
 			await runStep(summary, "Readiness: verify waived status (expect PASS)", async () => {
 				// Use GET /latest instead of POST /check to verify the WAIVER persists on the current check
-				const { res, data } = await leader.get(`/runs/${runNo}/readiness/latest?type=FORMAL`);
+				const { res, data } = await quality.get(`/runs/${runNo}/readiness/latest?type=FORMAL`);
 				const result = expectOk(res, data, "Readiness latest check");
 				
 				if (result.status !== "PASSED") {
@@ -539,10 +547,10 @@ async function runTest(options: CliOptions) {
 				}
 
 				return result;
-			}, { actor: "leader" });
+			}, { actor: "quality" });
 
 			await runStep(summary, "Run: authorize (expect FAI error, confirming Readiness passed)", async () => {
-				const { res, data } = await leader.post(`/runs/${runNo}/authorize`, { action: "AUTHORIZE" });
+				const { res, data } = await planner.post(`/runs/${runNo}/authorize`, { action: "AUTHORIZE" });
 				// We expect FAI_NOT_PASSED. If it was READINESS_CHECK_FAILED, then our waive didn't work.
 				if (res.ok && data?.ok) {
 					throw new ApiError("Authorize unexpectedly succeeded (expected FAI_NOT_PASSED)");
@@ -552,7 +560,7 @@ async function runTest(options: CliOptions) {
 					throw new ApiError(`Authorize failed with ${code}, expected FAI_NOT_PASSED (which implies Readiness passed)`);
 				}
 				return data?.error;
-			}, { actor: "leader" });
+			}, { actor: "planner" });
 
 			// Complete FAI to proceed to Trace check
 			await runStep(summary, "FAI: complete (PASS)", async () => {
@@ -570,19 +578,19 @@ async function runTest(options: CliOptions) {
 			}, { actor: "quality" });
 
 			await runStep(summary, "Run: authorize (expect PASS)", async () => {
-				const { res, data } = await leader.post(`/runs/${runNo}/authorize`, { action: "AUTHORIZE" });
+				const { res, data } = await planner.post(`/runs/${runNo}/authorize`, { action: "AUTHORIZE" });
 				return expectOk(res, data, "Run authorize");
-			}, { actor: "leader" });
+			}, { actor: "planner" });
 
 			// Track in to create unit
 			const unitSn = `SN-WAIVE-${Date.now()}`;
 			await runStep(summary, "Execution: track-in (create unit)", async () => {
-				const { res, data } = await leader.post(`/stations/ST-PRINT-01/track-in`, { sn: unitSn, woNo, runNo });
+				const { res, data } = await operator.post(`/stations/ST-PRINT-01/track-in`, { sn: unitSn, woNo, runNo });
 				return expectOk(res, data, "Track-in");
-			}, { actor: "leader" });
+			}, { actor: "operator" });
 
 			await runStep(summary, "Trace: verify readiness attribution", async () => {
-				const { res, data } = await leader.get(`/trace/units/${unitSn}?mode=run`);
+				const { res, data } = await quality.get(`/trace/units/${unitSn}?mode=run`);
 				const trace = expectOk(res, data, "Trace get unit");
 
 				if (!Array.isArray(trace.inspections)) {
@@ -624,7 +632,7 @@ async function runTest(options: CliOptions) {
 				}
 
 				return trace;
-			}, { actor: "leader" });
+			}, { actor: "quality" });
 
 			// End scenario early
 			summary.ok = true;
@@ -633,7 +641,7 @@ async function runTest(options: CliOptions) {
 
 		if (options.withLoading) {
 			await runStep(summary, "Loading: verify mismatch (expect FAIL)", async () => {
-				const { res, data } = await leader.post("/loading/verify", {
+				const { res, data } = await material.post("/loading/verify", {
 					runNo,
 					slotCode: options.slotCode,
 					materialLotBarcode: `WRONG-MAT|LOT-${Date.now()}`,
@@ -644,11 +652,11 @@ async function runTest(options: CliOptions) {
 					throw new ApiError("Loading mismatch unexpectedly PASS");
 				}
 				return record;
-			}, { actor: "leader" });
+			}, { actor: "material" });
 
 			const lotNo = `LOT-${Date.now()}`;
 			await runStep(summary, "Loading: verify expected material (expect PASS)", async () => {
-				const { res, data } = await leader.post("/loading/verify", {
+				const { res, data } = await material.post("/loading/verify", {
 					runNo,
 					slotCode: options.slotCode,
 					materialLotBarcode: `${options.materialCode}|${lotNo}`,
@@ -659,20 +667,20 @@ async function runTest(options: CliOptions) {
 					throw new ApiError(`Loading expected material verifyResult=${record.verifyResult}, expected PASS`);
 				}
 				return record;
-			}, { actor: "leader" });
+			}, { actor: "material" });
 		}
 
 		await runStep(summary, "Readiness: formal check (expect PASS)", async () => {
-			const { res, data } = await leader.post(`/runs/${runNo}/readiness/check`);
+			const { res, data } = await quality.post(`/runs/${runNo}/readiness/check`);
 			const check = expectOk(res, data, "Readiness formal check");
 			if (check.status !== "PASSED") {
 				throw new ApiError(`Readiness status is ${check.status}, expected PASSED`);
 			}
 			return check;
-		}, { actor: "leader" });
+		}, { actor: "quality" });
 
 		await runStep(summary, "Run: authorize (expect FAI_NOT_PASSED)", async () => {
-			const { res, data } = await leader.post(`/runs/${runNo}/authorize`, { action: "AUTHORIZE" });
+			const { res, data } = await planner.post(`/runs/${runNo}/authorize`, { action: "AUTHORIZE" });
 			if (res.ok && data?.ok) {
 				throw new ApiError("Authorize unexpectedly succeeded before FAI");
 			}
@@ -684,7 +692,7 @@ async function runTest(options: CliOptions) {
 				});
 			}
 			return data?.error;
-		}, { actor: "leader" });
+		}, { actor: "planner" });
 
 		const stations =
 			options.track === "dip"
@@ -711,10 +719,10 @@ async function runTest(options: CliOptions) {
 			const firstStationCode = stations[0];
 			if (!firstStationCode) throw new ApiError("No station code configured for trial execution");
 
-			const inResult = await leader.post(`/stations/${firstStationCode}/track-in`, { sn, woNo, runNo });
+			const inResult = await operator.post(`/stations/${firstStationCode}/track-in`, { sn, woNo, runNo });
 			expectOk(inResult.res, inResult.data, `FAI trial track-in ${firstStationCode}`);
 
-			const outResult = await leader.post(`/stations/${firstStationCode}/track-out`, {
+			const outResult = await operator.post(`/stations/${firstStationCode}/track-out`, {
 				sn,
 				runNo,
 				result: "PASS",
@@ -723,7 +731,7 @@ async function runTest(options: CliOptions) {
 			expectOk(outResult.res, outResult.data, `FAI trial track-out ${firstStationCode}`);
 
 			return { stationCode: firstStationCode };
-		}, { actor: "leader" });
+		}, { actor: "operator" });
 
 		await runStep(summary, "FAI: record/complete (PASS)", async () => {
 			const item = await quality.post(`/fai/${faiId}/items`, {
@@ -740,32 +748,32 @@ async function runTest(options: CliOptions) {
 		}, { actor: "quality" });
 
 		await runStep(summary, "Run: authorize (expect PASS)", async () => {
-			const { res, data } = await leader.post(`/runs/${runNo}/authorize`, { action: "AUTHORIZE" });
+			const { res, data } = await planner.post(`/runs/${runNo}/authorize`, { action: "AUTHORIZE" });
 			return expectOk(res, data, "Run authorize");
-		}, { actor: "leader" });
+		}, { actor: "planner" });
 
 		for (const stationCode of stations.slice(1)) {
 			await runStep(summary, `Execution: track-in ${stationCode}`, async () => {
-				const { res, data } = await leader.post(`/stations/${stationCode}/track-in`, { sn, woNo, runNo });
+				const { res, data } = await operator.post(`/stations/${stationCode}/track-in`, { sn, woNo, runNo });
 				return expectOk(res, data, `Track-in ${stationCode}`);
-			}, { actor: "leader" });
+			}, { actor: "operator" });
 
 			await runStep(summary, `Execution: track-out ${stationCode}`, async () => {
-				const { res, data } = await leader.post(`/stations/${stationCode}/track-out`, {
+				const { res, data } = await operator.post(`/stations/${stationCode}/track-out`, {
 					sn,
 					runNo,
 					result: "PASS",
 					operatorId: options.operatorId,
 				});
 				return expectOk(res, data, `Track-out ${stationCode}`);
-			}, { actor: "leader" });
+			}, { actor: "operator" });
 		}
 
 		// Handle OQC based on scenario
 		const isFailScenario = options.scenario.startsWith("oqc-fail");
 
 		await runStep(summary, `Run: closeout (scenario: ${options.scenario})`, async () => {
-			const closeAttempt = await leader.post(`/runs/${runNo}/close`);
+			const closeAttempt = await planner.post(`/runs/${runNo}/close`);
 			if (closeAttempt.res.ok && closeAttempt.data?.ok) {
 				// No OQC required, closeout succeeded directly
 				return closeAttempt.data.data;
@@ -813,12 +821,12 @@ async function runTest(options: CliOptions) {
 
 			if (!isFailScenario) {
 				// Happy path: closeout after OQC PASS
-				const closeFinal = await leader.post(`/runs/${runNo}/close`);
+				const closeFinal = await planner.post(`/runs/${runNo}/close`);
 				return expectOk(closeFinal.res, closeFinal.data, "Run closeout (final)");
 			}
 
 			// Fail scenario: Run should now be ON_HOLD
-			const runAfterOqc = await leader.get(`/runs/${runNo}`);
+			const runAfterOqc = await planner.get(`/runs/${runNo}`);
 			// Note: GET /runs/:runNo returns { run: { status, ... }, ... } structure
 			if (!runAfterOqc.res.ok) {
 				throw new ApiError(`Get run after OQC FAIL failed: ${runAfterOqc.res.statusText}`, {
@@ -831,7 +839,7 @@ async function runTest(options: CliOptions) {
 			}
 
 			return { oqcDecision: decision, runStatus };
-		}, { actor: "leader/quality" });
+		}, { actor: "planner/quality" });
 
 		// MRB decision for fail scenarios
 		if (isFailScenario) {
@@ -857,7 +865,7 @@ async function runTest(options: CliOptions) {
 
 		// Trace verification (adjust expectations for fail scenarios)
 		await runStep(summary, "Trace: verify", async () => {
-			const { res, data } = await leader.get(`/trace/units/${sn}?mode=run`);
+			const { res, data } = await quality.get(`/trace/units/${sn}?mode=run`);
 			const trace = expectOk(res, data, "Trace get unit");
 
 			if (trace.route?.code !== options.routeCode) {
@@ -915,7 +923,7 @@ async function runTest(options: CliOptions) {
 			}
 
 			return trace;
-		}, { actor: "leader" });
+		}, { actor: "quality" });
 
 		summary.ok = true;
 		return summary;

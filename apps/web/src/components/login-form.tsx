@@ -31,7 +31,7 @@ const TEST_ACCOUNTS = [
 		role: "生产计划员",
 		email: "planner@example.com",
 		password: "Test123!",
-		description: "工单接收/发布、批次创建、进度跟踪",
+		description: "工单接收/发布、批次创建/授权/关闭、进度跟踪",
 	},
 	{
 		role: "工艺工程师",
@@ -43,19 +43,25 @@ const TEST_ACCOUNTS = [
 		role: "质量工程师",
 		email: "quality@example.com",
 		password: "Test123!",
-		description: "质量检验、缺陷处置、追溯分析",
+		description: "质量检验、缺陷处置、准备检查/豁免、追溯分析",
 	},
 	{
-		role: "产线组长",
-		email: "leader@example.com",
+		role: "物料员",
+		email: "material@example.com",
 		password: "Test123!",
-		description: "批次授权、产线监控、工位执行",
+		description: "上料验证、物料装载与换料",
 	},
 	{
 		role: "操作员",
 		email: "operator@example.com",
 		password: "Test123!",
-		description: "工位进站/出站操作",
+		description: "工位进站/出站操作、数据采集",
+	},
+	{
+		role: "追溯审计员",
+		email: "trace@example.com",
+		password: "Test123!",
+		description: "追溯查询与报告导出",
 	},
 ] as const;
 

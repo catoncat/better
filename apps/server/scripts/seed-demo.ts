@@ -60,7 +60,6 @@ const run = async () => {
 
 	// 获取用户
 	const qualityUser = await prisma.user.findFirst({ where: { email: "quality@example.com" } });
-	const leaderUser = await prisma.user.findFirst({ where: { email: "leader@example.com" } });
 	const operatorUser = await prisma.user.findFirst({ where: { email: "operator@example.com" } });
 
 	// 2. 创建多状态工单
