@@ -56,3 +56,4 @@ task:
 - Found leader references across domain/user docs: rbac design, permission audit, config waive templates, role overview and leader user guide.
 - smart-verify failed: Biome formatting in `packages/db/src/permissions/preset-roles.ts`. Next: adjust formatting to match Biome, rerun smart-verify.
 - Fixed Biome formatting in preset roles (material permissions inline, ROLE_PRIORITY expanded).
+- smart-verify passed (biome check, db:generate, check-types).
