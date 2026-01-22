@@ -290,6 +290,7 @@ enum ReadinessItemType {
   PREP_STENCIL_CLEAN // 钢网清洗准备（清洗记录）
   PREP_SCRAPER       // 刮刀准备（点检记录）
   PREP_FIXTURE       // 夹具准备（寿命检查）
+  PREP_PROGRAM       // 炉温程式准备（程式一致性检查）
 }
 
 enum ReadinessItemStatus {
@@ -864,6 +865,7 @@ model ReflowProfile {
   updatedAt DateTime @updatedAt
 
   usageRecords ReflowProfileUsage[]
+  routingSteps RoutingStep[] // Steps expecting this profile
 
   @@index([status])
 }
@@ -1082,23 +1084,25 @@ model Routing {
 }
 
 model RoutingStep {
-  id             String      @id @default(cuid())
-  routingId      String
-  stepNo         Int
-  sourceStepKey  String?
-  operationId    String
-  stationGroupId String?
-  stationType    StationType // 推荐执行方式
-  isLast         Boolean     @default(false)
-  requiresFAI    Boolean     @default(false)
-  meta           Json?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id                      String      @id @default(cuid())
+  routingId               String
+  stepNo                  Int
+  sourceStepKey           String?
+  operationId             String
+  stationGroupId          String?
+  stationType             StationType // 推荐执行方式
+  isLast                  Boolean     @default(false)
+  requiresFAI             Boolean     @default(false)
+  expectedReflowProfileId String?     // T2.6: 期望的炉温程式
+  meta                    Json?
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
 
-  routing      Routing       @relation(fields: [routingId], references: [id])
-  operation    Operation     @relation(fields: [operationId], references: [id])
-  stationGroup StationGroup? @relation(fields: [stationGroupId], references: [id])
-  executionConfigs RouteExecutionConfig[]
+  routing               Routing        @relation(fields: [routingId], references: [id])
+  operation             Operation      @relation(fields: [operationId], references: [id])
+  stationGroup          StationGroup?  @relation(fields: [stationGroupId], references: [id])
+  expectedReflowProfile ReflowProfile? @relation(fields: [expectedReflowProfileId], references: [id])
+  executionConfigs      RouteExecutionConfig[]
 
   @@unique([routingId, stepNo])
   @@index([routingId])
