@@ -531,3 +531,12 @@
 
 ## Config sample + DB override docs
 - Added config README updates, SMT-A sample configs, and DB override schema doc under domain_docs/mes/spec/config/.
+
+## Review: mes-next triage note
+- Triage note structure is reasonable (tracks + conflicts + recommendation), but includes stale state (ahead 8, missing acceptance plan path) and does not reflect recent config spec completion; should update worktree scan and mark doc-only config work as done.
+- Potential overlap between Phase4 Track F and SMT gap plan; triage should clarify which plan is canonical to avoid duplicate execution.
+
+## Line refs for triage review
+- Stale state in Context and Worktree Scan lines 5-16; acceptance plan path note lines 22-25.
+- Config spec work in Track D lines 64-68 now complete; should mark done or remove.
+- Potential overlap between Phase4 Track F and SMT gap plan (lines 29-41) needs clarification.
