@@ -146,9 +146,9 @@ bun run dev
 | 阶段 | 推荐账号 | 密码 |
 |------|----------|------|
 | 工单接收/下发 | planner@example.com | Test123! |
-| Readiness/执行 | leader@example.com | Test123! |
+| Readiness/执行 | quality@example.com / operator@example.com | Test123! |
 | FAI/OQC/MRB | quality@example.com | Test123! |
-| 追溯 | 任意登录用户 | - |
+| 追溯 | trace@example.com | Test123! |
 
 ---
 

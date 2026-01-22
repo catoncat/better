@@ -1,12 +1,5 @@
 version: 1
 roles:
-  - roleKey: leader
-    permissions:
-      - prep:waive
-  - roleKey: production_supervisor
-    permissions:
-      - prep:waive
-      - time_rule:override
   - roleKey: quality
     permissions:
       - prep:waive
@@ -15,5 +8,4 @@ roles:
 dualApproval:
   enabled: false
   rolesRequired:
-    - production_supervisor
     - quality

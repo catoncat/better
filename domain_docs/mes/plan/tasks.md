@@ -186,12 +186,12 @@ P1（应该）：
 
 ### 3.4 Track D — UX & Training（P1）
 
-- [x] 3.4.1 角色化操作手册（计划/工艺/质量/组长/操作员）
+- [x] 3.4.1 角色化操作手册（计划/工艺/质量/物料/操作/追溯）
   - DoD：每个角色给出“入口→关键操作→常见异常→自助排查”；与现有权限/页面一致
   - Touch points：`user_docs/`、`apps/web/src/routes/_authenticated/mes/*`
   - As-built（实现入口）：
     - 概览：`user_docs/00_role_overview.md`
-    - 角色指南：`user_docs/02_planner.md`、`user_docs/03_engineer.md`、`user_docs/04_quality.md`、`user_docs/05_leader.md`、`user_docs/06_operator.md`
+    - 角色指南：`user_docs/02_planner.md`、`user_docs/03_engineer.md`、`user_docs/04_quality.md`、`user_docs/05_material.md`、`user_docs/06_operator.md`、`user_docs/07_trace.md`
 
 - [x] 3.4.2 上线演示脚本（现场演示顺序 + 讲解点）
   - DoD：形成 10~20 分钟可讲完的演示路线（包含失败分支示例与追溯展示）

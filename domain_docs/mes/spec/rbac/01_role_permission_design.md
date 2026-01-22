@@ -1,7 +1,7 @@
 # MES 系统角色权限设计
 
-**版本**: 1.2
-**日期**: 2025-01-02
+**版本**: 1.3
+**日期**: 2026-01-22
 **状态**: 已实现（前后端对齐，含 Readiness 权限）
 
 ---
@@ -25,8 +25,9 @@
 | `planner` | 生产计划员 | Production Planner | PMC 计划员 |
 | `engineer` | 工艺工程师 | Process Engineer | PE 工程师 |
 | `quality` | 质量工程师 | Quality Engineer | QE 工程师 |
-| `leader` | 产线组长 | Line Leader | 拉长/班组长 |
+| `material` | 物料员 | Material Handler | 物料/上料人员 |
 | `operator` | 操作员 | Operator | 产线作业员 |
+| `trace` | 追溯审计员 | Trace Auditor | 质量/审计 |
 
 ### 2.2 角色详细说明
 
@@ -39,11 +40,12 @@
 - 查看系统日志
 
 #### 2.2.2 生产计划员 (planner)
-**职责**: 工单管理、批次创建、生产调度  
+**职责**: 工单管理、批次创建/授权/关闭、生产调度  
 **典型场景**:
 - 从 ERP 接收工单
 - 发布工单到产线
 - 创建生产批次
+- 授权与收尾生产批次
 - 监控工单完成进度
 
 #### 2.2.3 工艺工程师 (engineer)
@@ -61,15 +63,15 @@
 - 处理缺陷处置（返工/报废/冻结）（M2）
 - 执行 OQC 抽检（M2）
 - MRB 评审与返修决策（放行/返修/报废）（M2）
+- 执行准备检查与豁免（M2）
 - 追溯查询和质量分析
 
-#### 2.2.5 产线组长 (leader)
-**职责**: 产线管理、批次授权、异常处理  
+#### 2.2.5 物料员 (material)
+**职责**: 上料验证、物料装载与换料  
 **典型场景**:
-- 授权生产批次
-- 监控产线进度
-- 处理生产异常
-- 管理产线人员排班
+- 为批次加载站位表
+- 执行上料扫码验证
+- 处理物料替换与站位解锁
 
 #### 2.2.6 操作员 (operator)
 **职责**: 工位执行操作  
@@ -78,7 +80,13 @@
 - 录入生产数据（M2）
 - 报告异常
 
-注：当前权限模型以权限点为最小单元，未单独预置只读角色；如需可通过自定义角色配置只读权限点。
+#### 2.2.7 追溯审计员 (trace)
+**职责**: 追溯查询、报告导出  
+**典型场景**:
+- 按 SN 查询生产履历
+- 导出追溯报告
+
+注：当前权限模型以权限点为最小单元，已预置 `trace` 只读角色；如需扩展可通过自定义角色配置权限点。
 
 ---
 
@@ -106,6 +114,14 @@ export const Permission = {
   EXEC_TRACK_OUT: 'exec:track_out',
   EXEC_DATA_COLLECT: 'exec:data_collect',
 
+  // 数据采集规格域
+  DATA_SPEC_READ: 'data_spec:read',
+  DATA_SPEC_CONFIG: 'data_spec:config',
+
+  // 工序域
+  OPERATION_READ: 'operation:read',
+  OPERATION_CONFIG: 'operation:config',
+
   // 路由域
   ROUTE_READ: 'route:read',
   ROUTE_CONFIGURE: 'route:configure',
@@ -117,6 +133,14 @@ export const Permission = {
   READINESS_CHECK: 'readiness:check',
   READINESS_OVERRIDE: 'readiness:override',
   READINESS_CONFIG: 'readiness:config',
+
+  // 产线主数据
+  LINE_CONFIG: 'line:config',
+
+  // 上料域
+  LOADING_VIEW: 'loading:view',
+  LOADING_VERIFY: 'loading:verify',
+  LOADING_CONFIG: 'loading:config',
 
   // 质量域 (M2)
   QUALITY_FAI: 'quality:fai',
@@ -144,7 +168,7 @@ export const Permission = {
 
 | 角色 | 数据范围 |
 |-----|---------|
-| `leader` | 仅管辖的产线 |
+| `material` | 仅管辖的产线 |
 | `operator` | 仅绑定的工位所属产线 |
 | 其他角色 | 全部产线 |
 
@@ -152,7 +176,7 @@ export const Permission = {
 操作员需要绑定到特定工位：
 - 操作员账号关联一个或多个允许操作的工位
 - 进站/出站时验证操作员是否有权操作该工位
-- 组长可操作其管辖产线的所有工位
+- 物料员仅可操作其绑定产线内的上料记录与站位
 
 ---
 
@@ -163,7 +187,7 @@ export const Permission = {
 |---------|---------|
 | 老板/厂长 | `admin` + `planner` |
 | 技术主管 | `engineer` + `quality` |
-| 拉长 | `leader` |
+| 物料/上料 | `material` |
 | 作业员 | `operator` |
 
 ### 5.2 中型工厂（标准配置）
@@ -173,8 +197,9 @@ export const Permission = {
 | PMC 计划员 | `planner` |
 | PE 工程师 | `engineer` |
 | QE 工程师 | `quality` |
-| 产线拉长 | `leader` |
+| 物料员 | `material` |
 | 作业员 | `operator` |
+| 追溯审计 | `trace` |
 
 ### 5.3 大型工厂（精细分工）
 可能需要更细的角色划分，如：
@@ -323,15 +348,16 @@ export const navMain = [
 
 | 权限点 | 说明 | 典型角色 |
 |-------|------|---------|
-| `readiness:view` | 查看准备检查结果 | leader, quality, engineer |
-| `readiness:check` | 执行预检/正式检查 | leader, quality |
-| `readiness:override` | 豁免检查项 | quality, admin |
-| `readiness:config` | 管理检查配置（预留） | admin, engineer |
+| `readiness:view` | 查看准备检查结果 | planner, engineer, quality, operator, admin |
+| `readiness:check` | 执行预检/正式检查 | quality |
+| `readiness:override` | 豁免检查项 | quality |
+| `readiness:config` | 管理检查配置（预留） | engineer |
 
 **建议角色配置**：
-- `leader`: `readiness:view`, `readiness:check`
 - `quality`: `readiness:view`, `readiness:check`, `readiness:override`
-- `admin`: 全部 `readiness:*`
+- `planner`: `readiness:view`
+- `engineer`: `readiness:view`, `readiness:config`
+- `operator`: `readiness:view`
 
 ---
 

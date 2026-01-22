@@ -49,6 +49,8 @@ task:
 - Updated preset roles: removed leader, added material/trace, planner gains run authorize/close, operator gains exec data collect, admin drops business config perms.
 - Updated role label map in web constants.
 - Updated seed/test/demo scripts and login examples to use material/operator/planner/quality instead of leader.
+- Updated MES RBAC/permission docs, config samples, and user role guides to align with new roles.
 
 ## Errors
 - apply_patch failed updating `apps/server/scripts/test-mes-flow.ts` (context mismatch around readiness/authorize block). Next: patch in smaller hunks after re-reading exact lines.
+- Found leader references across domain/user docs: rbac design, permission audit, config waive templates, role overview and leader user guide.

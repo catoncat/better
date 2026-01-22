@@ -248,7 +248,7 @@
 
 #### 3.2.4 操作演示：豁免（Waive）流程
 
-**前置条件**：当前用户具有 READINESS_WAIVE 权限（leader / quality 角色）
+**前置条件**：当前用户具有 READINESS_WAIVE 权限（quality 角色）
 
 1. 找到失败的检查项（如 STENCIL）
 2. 点击该项右侧“豁免”按钮
@@ -345,7 +345,7 @@
 
 #### 3.3.5 解锁站位
 
-**前置条件**：站位锁定，用户具备解锁权限（leader/admin）
+**前置条件**：站位锁定，用户具备解锁权限（engineer）
 
 1. 在锁定站位行点击“解锁”
 2. 在弹窗中填写解锁原因
@@ -812,11 +812,12 @@ FAIL → Run ON_HOLD → MRB 决策
 | 角色 | 账号 | 密码 | 主要功能 |
 |------|------|------|----------|
 | 管理员 | admin@example.com | ChangeMe123! | 系统配置、用户管理 |
-| 计划员 | planner@example.com | Test123! | 工单管理、批次派发 |
+| 计划员 | planner@example.com | Test123! | 工单管理、批次创建/授权/收尾 |
 | 工艺工程师 | engineer@example.com | Test123! | 路由配置、数据采集规格 |
-| 质量员 | quality@example.com | Test123! | FAI/OQC/MRB、缺陷管理 |
-| 组长 | leader@example.com | Test123! | 批次管理、就绪检查、授权、收尾 |
+| 质量员 | quality@example.com | Test123! | FAI/OQC/MRB、准备检查/豁免 |
+| 物料员 | material@example.com | Test123! | 上料验证、物料装载 |
 | 操作员 | operator@example.com | Test123! | 工位执行、进站/出站 |
+| 追溯 | trace@example.com | Test123! | 追溯查询、报告导出 |
 
 ### B. 推荐演示数据（扩展）
 
