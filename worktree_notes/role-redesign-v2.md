@@ -44,3 +44,7 @@ task:
 
 ## Open Questions
 - None.
+
+## Progress
+- Updated preset roles: removed leader, added material/trace, planner gains run authorize/close, operator gains exec data collect, admin drops business config perms.
+- Updated role label map in web constants.

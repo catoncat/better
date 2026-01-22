@@ -19,8 +19,6 @@ export const PRESET_ROLES: PresetRole[] = [
 			Permission.SYSTEM_ROLE_MANAGE,
 			Permission.SYSTEM_CONFIG,
 			Permission.SYSTEM_INTEGRATION,
-			Permission.DATA_SPEC_CONFIG,
-			Permission.LINE_CONFIG,
 			// Admin can also view everything
 			Permission.WO_READ,
 			Permission.RUN_READ,
@@ -45,6 +43,9 @@ export const PRESET_ROLES: PresetRole[] = [
 			Permission.WO_CLOSE,
 			Permission.RUN_READ,
 			Permission.RUN_CREATE,
+			Permission.RUN_AUTHORIZE,
+			Permission.RUN_REVOKE,
+			Permission.RUN_CLOSE,
 			Permission.ROUTE_READ,
 			Permission.TRACE_READ,
 			Permission.READINESS_VIEW,
@@ -95,26 +96,11 @@ export const PRESET_ROLES: PresetRole[] = [
 		isSystem: true,
 	},
 	{
-		code: "leader",
-		name: "产线组长",
-		description: "批次授权、产线监控、工位执行",
+		code: "material",
+		name: "物料员",
+		description: "上料验证、物料装载与换料",
 		permissions: [
 			Permission.RUN_READ,
-			Permission.RUN_CREATE,
-			Permission.RUN_AUTHORIZE,
-			Permission.RUN_REVOKE,
-			Permission.RUN_CLOSE,
-			Permission.EXEC_READ,
-			Permission.EXEC_TRACK_IN,
-			Permission.EXEC_TRACK_OUT,
-			Permission.EXEC_DATA_COLLECT,
-			Permission.WO_READ,
-			Permission.WO_CLOSE,
-			Permission.TRACE_READ,
-			Permission.ROUTE_READ,
-			Permission.READINESS_VIEW,
-			Permission.READINESS_CHECK,
-			Permission.READINESS_OVERRIDE,
 			Permission.LOADING_VIEW,
 			Permission.LOADING_VERIFY,
 		],
@@ -128,6 +114,7 @@ export const PRESET_ROLES: PresetRole[] = [
 		permissions: [
 			Permission.EXEC_TRACK_IN,
 			Permission.EXEC_TRACK_OUT,
+			Permission.EXEC_DATA_COLLECT,
 			Permission.TRACE_READ,
 			Permission.READINESS_VIEW,
 			Permission.LOADING_VIEW,
@@ -136,13 +123,21 @@ export const PRESET_ROLES: PresetRole[] = [
 		dataScope: "ASSIGNED_STATIONS" as DataScope,
 		isSystem: true,
 	},
+	{
+		code: "trace",
+		name: "追溯审计员",
+		description: "追溯查询与报告导出",
+		permissions: [Permission.TRACE_READ, Permission.TRACE_EXPORT],
+		dataScope: "ALL" as DataScope,
+		isSystem: true,
+	},
 ];
 
 /**
  * Role priority for determining default home page
  * Lower index = higher priority
  */
-export const ROLE_PRIORITY = ["admin", "planner", "leader", "engineer", "quality", "operator"];
+export const ROLE_PRIORITY = ["admin", "planner", "engineer", "quality", "material", "operator", "trace"];
 
 /**
  * Default home page for each role
@@ -150,10 +145,11 @@ export const ROLE_PRIORITY = ["admin", "planner", "leader", "engineer", "quality
 export const ROLE_HOME_PAGES: Record<string, string> = {
 	admin: "/system/user-management",
 	planner: "/mes/work-orders",
-	leader: "/mes/runs",
 	engineer: "/mes/routes",
 	quality: "/mes/trace",
+	material: "/mes/loading",
 	operator: "/mes/execution",
+	trace: "/mes/trace",
 };
 
 /**

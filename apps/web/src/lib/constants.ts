@@ -5,8 +5,9 @@ export const USER_ROLE_MAP: Record<string, string> = {
 	planner: "生产计划员",
 	engineer: "工艺工程师",
 	quality: "质量工程师",
-	leader: "产线组长",
+	material: "物料员",
 	operator: "操作员",
+	trace: "追溯审计员",
 };
 
 export const NOTIFICATION_STATUS_MAP: Record<string, string> = {
