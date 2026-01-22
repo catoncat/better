@@ -244,12 +244,7 @@ export const createUser = async (
 
 		const lineIds = body.lineIds ?? [];
 		const stationIds = body.stationIds ?? [];
-		const bindingResult = await validateRoleBindings(
-			db,
-			roleIdsResult.data,
-			lineIds,
-			stationIds,
-		);
+		const bindingResult = await validateRoleBindings(db, roleIdsResult.data, lineIds, stationIds);
 		if (!bindingResult.success) return bindingResult;
 
 		const createdUser = await db.$transaction(async (tx) => {
