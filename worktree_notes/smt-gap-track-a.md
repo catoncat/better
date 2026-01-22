@@ -21,8 +21,8 @@ touchPoints:
 
 ## Slices
 - [x] T1.1 - Extend ReadinessCheckType enum with PREP_* check types ✅ (577d1e2)
-- [ ] T1.2 - Waiver API for controlled bypass of non-gate prep items
-- [ ] T1.3 - Prep Dashboard UI for new prep checks
+- [x] T1.2 - Waiver API for controlled bypass of non-gate prep items ✅ (已存在，使用 READINESS_OVERRIDE 权限)
+- [x] T1.3 - Prep Dashboard UI for new prep checks ✅ (943611d)
 
 <!-- AUTO:BEGIN status -->
 
