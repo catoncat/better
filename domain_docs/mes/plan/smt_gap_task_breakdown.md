@@ -158,17 +158,17 @@
 | **T2.6** | 程式一致性校验 | 1) Routing 定义 expectedProfile<br>2) 生产前校验实际程式与期望一致<br>3) 不一致 → BLOCK | T2.5 | Service + API |
 
 **T2.5 子任务**：
-- [ ] 2.5.1 设计 ReflowProfile 模型
-- [ ] 2.5.2 设计 ReflowProfileUsage 模型
-- [ ] 2.5.3 编写迁移脚本
-- [ ] 2.5.4 创建程式 CRUD API
-- [ ] 2.5.5 程式使用记录 API
+- [x] 2.5.1 设计 ReflowProfile 模型
+- [x] 2.5.2 设计 ReflowProfileUsage 模型
+- [x] 2.5.3 编写迁移脚本
+- [x] 2.5.4 创建程式 CRUD API
+- [x] 2.5.5 程式使用记录 API
 
 **T2.6 子任务**：
-- [ ] 2.6.1 修改 RoutingStep，增加 expectedProfileId
-- [ ] 2.6.2 实现一致性校验 service
-- [ ] 2.6.3 在 Readiness 中增加 PROGRAM 检查项
-- [ ] 2.6.4 前端校验结果展示
+- [x] 2.6.1 修改 RoutingStep，增加 expectedProfileId
+- [x] 2.6.2 实现一致性校验 service
+- [x] 2.6.3 在 Readiness 中增加 PROGRAM 检查项
+- [x] 2.6.4 前端校验结果展示
 
 ---
 
