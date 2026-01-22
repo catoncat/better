@@ -288,7 +288,7 @@ export function UserDialog({ open, onOpenChange, user, roles, onSubmit }: UserDi
 							<Field
 								form={form}
 								name="isActive"
-								validators={{ onChange: formSchema.shape.isActive }}
+								validators={{ onChange: baseFormSchema.shape.isActive }}
 							>
 								{(field) => (
 									<div className="flex items-center justify-between rounded-lg border p-4">
@@ -304,7 +304,7 @@ export function UserDialog({ open, onOpenChange, user, roles, onSubmit }: UserDi
 							<Field
 								form={form}
 								name="enableWecomNotification"
-								validators={{ onChange: formSchema.shape.enableWecomNotification }}
+								validators={{ onChange: baseFormSchema.shape.enableWecomNotification }}
 							>
 								{(field) => (
 									<div className="flex items-center justify-between rounded-lg border p-4">
