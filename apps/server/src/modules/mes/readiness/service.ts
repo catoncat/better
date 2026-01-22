@@ -458,6 +458,158 @@ export async function checkSolderPaste(db: PrismaClient, run: Run): Promise<Chec
 }
 
 /**
+ * Check stencil cleaning record for the run's current stencil.
+ * Queries LineStencil → StencilCleaningRecord, verifies at least one record exists.
+ */
+export async function checkPrepStencilClean(
+	db: PrismaClient,
+	run: Run,
+): Promise<CheckItemResult[]> {
+	if (!run.lineId) {
+		return [];
+	}
+
+	const currentBinding = await db.lineStencil.findFirst({
+		where: { lineId: run.lineId, isCurrent: true },
+	});
+
+	if (!currentBinding) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_STENCIL_CLEAN,
+				itemKey: run.lineId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: "产线未绑定钢网，无法检查清洗记录",
+				evidenceJson: { lineId: run.lineId },
+			},
+		];
+	}
+
+	const latestCleaning = await db.stencilCleaningRecord.findFirst({
+		where: { stencilId: currentBinding.stencilId },
+		orderBy: [{ cleanedAt: "desc" }, { createdAt: "desc" }],
+	});
+
+	if (!latestCleaning) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_STENCIL_CLEAN,
+				itemKey: currentBinding.stencilId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: `钢网 ${currentBinding.stencilId} 无清洗记录`,
+				evidenceJson: {
+					stencilId: currentBinding.stencilId,
+					lineId: run.lineId,
+				},
+			},
+		];
+	}
+
+	return [
+		{
+			itemType: ReadinessItemType.PREP_STENCIL_CLEAN,
+			itemKey: currentBinding.stencilId,
+			status: ReadinessItemStatus.PASSED,
+			evidenceJson: {
+				stencilId: currentBinding.stencilId,
+				cleaningRecordId: latestCleaning.id,
+				cleanedAt: latestCleaning.cleanedAt.toISOString(),
+				cleanedBy: latestCleaning.cleanedBy,
+				recordLineId: latestCleaning.lineId,
+			},
+		},
+	];
+}
+
+/**
+ * Check squeegee inspection record for the run's line.
+ * Queries latest SqueegeeUsageRecord for the line, verifies record exists and check fields are present and passing.
+ */
+export async function checkPrepScraper(db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
+	if (!run.lineId) {
+		return [];
+	}
+
+	const latestUsage = await db.squeegeeUsageRecord.findFirst({
+		where: { lineId: run.lineId },
+		orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
+	});
+
+	if (!latestUsage) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_SCRAPER,
+				itemKey: run.lineId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: "产线无刮刀点检记录",
+				evidenceJson: { lineId: run.lineId },
+			},
+		];
+	}
+
+	const failures: string[] = [];
+	if (latestUsage.checkSurface === null) failures.push("表面检查未填写");
+	else if (latestUsage.checkSurface === false) failures.push("表面检查不通过");
+
+	if (latestUsage.checkEdge === null) failures.push("刀口检查未填写");
+	else if (latestUsage.checkEdge === false) failures.push("刀口检查不通过");
+
+	if (latestUsage.checkFlatness === null) failures.push("平整度检查未填写");
+	else if (latestUsage.checkFlatness === false) failures.push("平整度检查不通过");
+
+	if (
+		typeof latestUsage.lifeLimit === "number" &&
+		typeof latestUsage.totalPrintCount === "number" &&
+		latestUsage.totalPrintCount > latestUsage.lifeLimit
+	) {
+		failures.push(
+			`超过寿命上限: totalPrintCount=${latestUsage.totalPrintCount} > lifeLimit=${latestUsage.lifeLimit}`,
+		);
+	}
+
+	if (failures.length > 0) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_SCRAPER,
+				itemKey: latestUsage.squeegeeId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: failures.join("；"),
+				evidenceJson: {
+					squeegeeId: latestUsage.squeegeeId,
+					usageRecordId: latestUsage.id,
+					recordDate: latestUsage.recordDate.toISOString(),
+					lineId: run.lineId,
+					checkSurface: latestUsage.checkSurface,
+					checkEdge: latestUsage.checkEdge,
+					checkFlatness: latestUsage.checkFlatness,
+					totalPrintCount: latestUsage.totalPrintCount,
+					lifeLimit: latestUsage.lifeLimit,
+				},
+			},
+		];
+	}
+
+	return [
+		{
+			itemType: ReadinessItemType.PREP_SCRAPER,
+			itemKey: latestUsage.squeegeeId,
+			status: ReadinessItemStatus.PASSED,
+			evidenceJson: {
+				squeegeeId: latestUsage.squeegeeId,
+				usageRecordId: latestUsage.id,
+				recordDate: latestUsage.recordDate.toISOString(),
+				lineId: run.lineId,
+				checkSurface: latestUsage.checkSurface,
+				checkEdge: latestUsage.checkEdge,
+				checkFlatness: latestUsage.checkFlatness,
+				totalPrintCount: latestUsage.totalPrintCount,
+				lifeLimit: latestUsage.lifeLimit,
+			},
+		},
+	];
+}
+
+/**
  * Check loading status for the run.
  * Queries RunSlotExpectation, verifies all slots are LOADED.
  */
@@ -979,6 +1131,8 @@ export async function performCheck(
 		routeResults,
 		stencilResults,
 		solderPasteResults,
+		stencilCleanResults,
+		scraperResults,
 		loadingResults,
 		prepBakeResults,
 		prepPasteResults,
@@ -994,6 +1148,12 @@ export async function performCheck(
 		shouldRunCheck(ReadinessItemType.STENCIL) ? checkStencil(db, run) : Promise.resolve([]),
 		shouldRunCheck(ReadinessItemType.SOLDER_PASTE)
 			? checkSolderPaste(db, run)
+			: Promise.resolve([]),
+		shouldRunCheck(ReadinessItemType.PREP_STENCIL_CLEAN)
+			? checkPrepStencilClean(db, run)
+			: Promise.resolve([]),
+		shouldRunCheck(ReadinessItemType.PREP_SCRAPER)
+			? checkPrepScraper(db, run)
 			: Promise.resolve([]),
 		shouldRunCheck(ReadinessItemType.LOADING) ? checkLoading(db, run) : Promise.resolve([]),
 		shouldRunCheck(ReadinessItemType.PREP_BAKE) ? checkPrepBake(db, run) : Promise.resolve([]),
@@ -1019,6 +1179,8 @@ export async function performCheck(
 		...routeResults,
 		...stencilResults,
 		...solderPasteResults,
+		...stencilCleanResults,
+		...scraperResults,
 		...loadingResults,
 		...prepBakeResults,
 		...prepPasteResults,

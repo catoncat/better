@@ -14,23 +14,27 @@
 - 设备准备：贴片程序加载、设备参数设置、吸嘴准备
 
 ## 4. 系统就绪检查项
-系统支持的 Readiness 项（Run.meta.readinessChecks.enabled）：
+系统支持的 Readiness 项（Line.meta.readinessChecks.enabled，通过 `/api/lines/:lineId/readiness-config` 配置）：
 - STENCIL（钢网）
+- PREP_STENCIL_CLEAN（钢网清洗）
 - SOLDER_PASTE（锡膏）
 - EQUIPMENT（设备）
 - MATERIAL（物料齐套）
 - ROUTE（路由版本可用）
 - LOADING（上料完成）
+- PREP_SCRAPER（刮刀准备）
 
 ## 5. 数据如何产生
 | 检查项 | 数据来源 | 产生方式 | 备注 |
 |---|---|---|---|
 | STENCIL | 线体钢网绑定 + 状态记录 | 配置/接口写入 | 需与产线绑定 |
+| PREP_STENCIL_CLEAN | 钢网清洗记录 | 手工录入 | 用于门禁：要求存在清洗记录 |
 | SOLDER_PASTE | 锡膏状态记录 | 扫码/接口写入 | 可关联批次 |
 | EQUIPMENT | 设备状态记录 | TPM/接口同步 | 设备状态正常 |
 | MATERIAL | 物料齐套检查 | 物料主数据 + BOM | 规则需配置 |
 | ROUTE | 路由版本 | 路由编译 | READY 才可用 |
 | LOADING | 上料期望 + 上料记录 | 加载站位表 + 扫码 | 全部 LOADED 才通过 |
+| PREP_SCRAPER | 刮刀点检记录 | 手工录入 | 用于门禁：要求存在点检记录，且表面/刀口/平整度必须填写并通过 |
 
 ## 6. 数据如何管理
 - Readiness 检查结果记录在系统历史表中，可追溯。
