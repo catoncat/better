@@ -23,7 +23,7 @@ import type { client } from "@/lib/eden";
 
 type UserCreateInput = Parameters<typeof client.api.users.post>[0];
 
-export const formSchema = z.object({
+const baseFormSchema = z.object({
 	name: z.string().min(1, "请输入姓名"),
 	email: z.string().email("请输入正确的邮箱格式"),
 	department: z.string(),
@@ -35,7 +35,7 @@ export const formSchema = z.object({
 	stationIds: z.array(z.string()),
 }) satisfies z.ZodType<UserCreateInput>;
 
-export type UserFormValues = z.infer<typeof formSchema>;
+export type UserFormValues = z.infer<typeof baseFormSchema>;
 
 interface UserDialogProps {
 	open: boolean;
@@ -49,6 +49,7 @@ interface UserDialogProps {
 export function UserDialog({ open, onOpenChange, user, roles, onSubmit }: UserDialogProps) {
 	const { data: lines } = useLines();
 	const { data: stations } = useStations();
+	const roleCodeById = useMemo(() => new Map(roles.map((role) => [role.id, role.code])), [roles]);
 	const roleOptions = useMemo(
 		() => roles.map((role) => ({ value: role.id, label: role.name })),
 		[roles],
@@ -70,6 +71,32 @@ export function UserDialog({ open, onOpenChange, user, roles, onSubmit }: UserDi
 		[stations?.items],
 	);
 
+	const validationSchema = useMemo(
+		() =>
+			baseFormSchema.superRefine((values, ctx) => {
+				const roleCodes = values.roleIds
+					.map((roleId) => roleCodeById.get(roleId))
+					.filter((roleCode): roleCode is string => Boolean(roleCode));
+
+				if (roleCodes.includes("material") && values.lineIds.length === 0) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						path: ["lineIds"],
+						message: "物料员必须绑定产线",
+					});
+				}
+
+				if (roleCodes.includes("operator") && values.stationIds.length === 0) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						path: ["stationIds"],
+						message: "操作员必须绑定工位",
+					});
+				}
+			}),
+		[roleCodeById],
+	);
+
 	const form = useForm({
 		defaultValues: {
 			name: user?.name ?? "",
@@ -83,7 +110,7 @@ export function UserDialog({ open, onOpenChange, user, roles, onSubmit }: UserDi
 			stationIds: user?.stationIds ?? [],
 		} satisfies UserFormValues,
 		validators: {
-			onSubmit: formSchema,
+			onSubmit: validationSchema,
 		},
 		onSubmit: async ({ value }) => {
 			await onSubmit(value);
@@ -141,7 +168,7 @@ export function UserDialog({ open, onOpenChange, user, roles, onSubmit }: UserDi
 								form={form}
 								name="name"
 								label="姓名"
-								validators={{ onChange: formSchema.shape.name }}
+								validators={{ onChange: baseFormSchema.shape.name }}
 							>
 								{(field) => (
 									<Input
@@ -157,7 +184,7 @@ export function UserDialog({ open, onOpenChange, user, roles, onSubmit }: UserDi
 								form={form}
 								name="email"
 								label="邮箱"
-								validators={{ onChange: formSchema.shape.email }}
+								validators={{ onChange: baseFormSchema.shape.email }}
 							>
 								{(field) => (
 									<Input
@@ -173,7 +200,7 @@ export function UserDialog({ open, onOpenChange, user, roles, onSubmit }: UserDi
 								form={form}
 								name="roleIds"
 								label="角色"
-								validators={{ onChange: formSchema.shape.roleIds }}
+								validators={{ onChange: baseFormSchema.shape.roleIds }}
 							>
 								{(field) => (
 									<MultiSelect
@@ -190,7 +217,7 @@ export function UserDialog({ open, onOpenChange, user, roles, onSubmit }: UserDi
 								form={form}
 								name="department"
 								label="部门/车间"
-								validators={{ onChange: formSchema.shape.department }}
+								validators={{ onChange: baseFormSchema.shape.department }}
 							>
 								{(field) => (
 									<Input
@@ -206,7 +233,7 @@ export function UserDialog({ open, onOpenChange, user, roles, onSubmit }: UserDi
 								form={form}
 								name="phone"
 								label="联系电话"
-								validators={{ onChange: formSchema.shape.phone }}
+								validators={{ onChange: baseFormSchema.shape.phone }}
 							>
 								{(field) => (
 									<Input
@@ -224,8 +251,8 @@ export function UserDialog({ open, onOpenChange, user, roles, onSubmit }: UserDi
 								form={form}
 								name="lineIds"
 								label="产线绑定"
-								tooltip="仅对产线组长/操作员的数据范围生效"
-								validators={{ onChange: formSchema.shape.lineIds }}
+								tooltip="物料员必须绑定产线"
+								validators={{ onChange: baseFormSchema.shape.lineIds }}
 							>
 								{(field) => (
 									<MultiSelect
@@ -243,7 +270,7 @@ export function UserDialog({ open, onOpenChange, user, roles, onSubmit }: UserDi
 								name="stationIds"
 								label="工位绑定"
 								tooltip="仅对操作员的数据范围生效"
-								validators={{ onChange: formSchema.shape.stationIds }}
+								validators={{ onChange: baseFormSchema.shape.stationIds }}
 							>
 								{(field) => (
 									<MultiSelect

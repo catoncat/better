@@ -53,9 +53,31 @@ function RoleManagementPage() {
 	const isReadOnlyDialog = Boolean(editingRole?.isSystem);
 
 	const roles = data?.items ?? [];
+	const systemRoleOrder = useMemo(
+		() =>
+			new Map([
+				["admin", 0],
+				["planner", 1],
+				["engineer", 2],
+				["quality", 3],
+				["material", 4],
+				["operator", 5],
+				["trace", 6],
+			]),
+		[],
+	);
 	const sortedRoles = useMemo(
-		() => [...roles].sort((a, b) => Number(b.isSystem) - Number(a.isSystem)),
-		[roles],
+		() =>
+			[...roles].sort((a, b) => {
+				if (a.isSystem !== b.isSystem) {
+					return Number(b.isSystem) - Number(a.isSystem);
+				}
+				if (a.isSystem && b.isSystem) {
+					return (systemRoleOrder.get(a.code) ?? 999) - (systemRoleOrder.get(b.code) ?? 999);
+				}
+				return a.name.localeCompare(b.name);
+			}),
+		[roles, systemRoleOrder],
 	);
 
 	const permissionLabelMap = useMemo(() => {

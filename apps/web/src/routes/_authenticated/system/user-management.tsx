@@ -148,30 +148,26 @@ function SystemUserManagementPage() {
 	// System presets (removed "all" per global rule)
 	const systemPresets = useMemo((): SystemPreset<UserFilters>[] => {
 		const presets: SystemPreset<UserFilters>[] = [];
-		const adminRoleId = roleIdByCode.get("admin");
-		const plannerRoleId = roleIdByCode.get("planner");
-		const operatorRoleId = roleIdByCode.get("operator");
-		if (adminRoleId) {
+		const presetRoleCodes = [
+			"admin",
+			"planner",
+			"engineer",
+			"quality",
+			"material",
+			"operator",
+			"trace",
+		] as const;
+
+		for (const code of presetRoleCodes) {
+			const roleId = roleIdByCode.get(code);
+			if (!roleId) continue;
 			presets.push({
-				id: "admin",
-				name: USER_ROLE_MAP.admin,
-				filters: { roleId: [adminRoleId] },
+				id: code,
+				name: USER_ROLE_MAP[code] ?? code,
+				filters: { roleId: [roleId] },
 			});
 		}
-		if (plannerRoleId) {
-			presets.push({
-				id: "planner",
-				name: USER_ROLE_MAP.planner,
-				filters: { roleId: [plannerRoleId] },
-			});
-		}
-		if (operatorRoleId) {
-			presets.push({
-				id: "operator",
-				name: USER_ROLE_MAP.operator,
-				filters: { roleId: [operatorRoleId] },
-			});
-		}
+
 		return presets;
 	}, [roleIdByCode]);
 
