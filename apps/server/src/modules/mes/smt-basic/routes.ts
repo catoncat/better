@@ -13,6 +13,10 @@ import {
 	equipmentInspectionListQuerySchema,
 	equipmentInspectionListResponseSchema,
 	equipmentInspectionResponseSchema,
+	fixtureUsageCreateSchema,
+	fixtureUsageListQuerySchema,
+	fixtureUsageListResponseSchema,
+	fixtureUsageResponseSchema,
 	ovenProgramCreateSchema,
 	ovenProgramListQuerySchema,
 	ovenProgramListResponseSchema,
@@ -37,6 +41,7 @@ import {
 import {
 	createDailyQcRecord,
 	createEquipmentInspectionRecord,
+	createFixtureUsageRecord,
 	createOvenProgramRecord,
 	createProductionExceptionRecord,
 	createSqueegeeUsageRecord,
@@ -44,6 +49,7 @@ import {
 	createStencilUsageRecord,
 	listDailyQcRecords,
 	listEquipmentInspectionRecords,
+	listFixtureUsageRecords,
 	listOvenProgramRecords,
 	listProductionExceptionRecords,
 	listSqueegeeUsageRecords,
@@ -246,6 +252,72 @@ export const squeegeeUsageRoutes = new Elysia({ prefix: "/squeegee-usage-records
 			body: squeegeeUsageCreateSchema,
 			response: { 201: squeegeeUsageResponseSchema },
 			detail: { tags: ["MES - Squeegee"], summary: "Create squeegee usage record" },
+		},
+	);
+
+export const fixtureUsageRoutes = new Elysia({ prefix: "/fixture-usage-records" })
+	.use(prismaPlugin)
+	.use(authPlugin)
+	.use(permissionPlugin)
+	.get(
+		"/",
+		async ({ db, query }) => {
+			const result = await listFixtureUsageRecords(db, query);
+			return { ok: true, data: result };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.READINESS_VIEW,
+			query: fixtureUsageListQuerySchema,
+			response: { 200: fixtureUsageListResponseSchema },
+			detail: { tags: ["MES - Fixture"], summary: "List fixture usage records" },
+		},
+	)
+	.post(
+		"/",
+		async ({ db, body, set, user, request }) => {
+			const actor = buildAuditActor(user);
+			const meta = buildAuditRequestMeta(request);
+			const result = await createFixtureUsageRecord(db, body);
+
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.FIXTURE_USAGE,
+					entityId: body.fixtureId,
+					entityDisplay: `Fixture usage for ${body.fixtureId}`,
+					action: "FIXTURE_USAGE_CREATE",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					payload: body,
+					request: meta,
+				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.FIXTURE_USAGE,
+				entityId: result.data.id,
+				entityDisplay: `Fixture usage for ${result.data.fixtureId}`,
+				action: "FIXTURE_USAGE_CREATE",
+				actor,
+				status: "SUCCESS",
+				after: result.data,
+				payload: body,
+				request: meta,
+			});
+
+			set.status = 201;
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.READINESS_CHECK,
+			body: fixtureUsageCreateSchema,
+			response: { 201: fixtureUsageResponseSchema },
+			detail: { tags: ["MES - Fixture"], summary: "Create fixture usage record" },
 		},
 	);
 
@@ -517,6 +589,7 @@ export const smtBasicRoutes = new Elysia()
 	.use(stencilUsageRoutes)
 	.use(stencilCleaningRoutes)
 	.use(squeegeeUsageRoutes)
+	.use(fixtureUsageRoutes)
 	.use(equipmentInspectionRoutes)
 	.use(ovenProgramRoutes)
 	.use(dailyQcRoutes)

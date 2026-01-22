@@ -188,6 +188,60 @@ export const squeegeeUsageResponseSchema = t.Object({
 	data: squeegeeUsageRecordSchema,
 });
 
+export const fixtureUsageRecordSchema = t.Object({
+	id: t.String(),
+	fixtureId: t.String(),
+	lineId: t.Union([t.String(), t.Null()]),
+	lineCode: t.Union([t.String(), t.Null()]),
+	lineName: t.Union([t.String(), t.Null()]),
+	recordDate: t.String({ format: "date-time" }),
+	usageCount: t.Union([t.Number(), t.Null()]),
+	totalUsageCount: t.Union([t.Number(), t.Null()]),
+	usedBy: t.Union([t.String(), t.Null()]),
+	confirmedBy: t.Union([t.String(), t.Null()]),
+	remark: t.Union([t.String(), t.Null()]),
+	lifeLimit: t.Union([t.Number(), t.Null()]),
+	createdAt: t.String({ format: "date-time" }),
+	updatedAt: t.String({ format: "date-time" }),
+});
+
+export const fixtureUsageCreateSchema = t.Object({
+	fixtureId: t.String({ minLength: 1 }),
+	lineCode: t.Optional(t.String()),
+	recordDate: t.String({ format: "date-time" }),
+	usageCount: t.Optional(t.Number()),
+	totalUsageCount: t.Optional(t.Number()),
+	usedBy: t.Optional(t.String()),
+	confirmedBy: t.Optional(t.String()),
+	remark: t.Optional(t.String()),
+	lifeLimit: t.Optional(t.Number()),
+	meta: t.Optional(t.Any()),
+});
+
+export const fixtureUsageListQuerySchema = t.Object({
+	fixtureId: t.Optional(t.String()),
+	lineCode: t.Optional(t.String()),
+	recordFrom: t.Optional(t.String({ format: "date-time" })),
+	recordTo: t.Optional(t.String({ format: "date-time" })),
+	page: t.Optional(t.Numeric({ minimum: 1, default: 1 })),
+	pageSize: t.Optional(t.Numeric({ minimum: 1, maximum: 100, default: 30 })),
+});
+
+export const fixtureUsageListResponseSchema = t.Object({
+	ok: t.Boolean(),
+	data: t.Object({
+		items: t.Array(fixtureUsageRecordSchema),
+		total: t.Number(),
+		page: t.Number(),
+		pageSize: t.Number(),
+	}),
+});
+
+export const fixtureUsageResponseSchema = t.Object({
+	ok: t.Boolean(),
+	data: fixtureUsageRecordSchema,
+});
+
 export const equipmentInspectionRecordSchema = t.Object({
 	id: t.String(),
 	lineId: t.Union([t.String(), t.Null()]),

@@ -879,12 +879,61 @@ async function checkPrepFixture(_db: PrismaClient, run: Run): Promise<CheckItemR
 		return [];
 	}
 
+	const latestUsage = await _db.fixtureUsageRecord.findFirst({
+		where: {
+			OR: [{ lineId: run.lineId }, { lineId: null }],
+		},
+		orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
+	});
+
+	if (!latestUsage) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_FIXTURE,
+				itemKey: run.lineId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: "产线无夹具使用记录",
+				evidenceJson: { lineId: run.lineId },
+			},
+		];
+	}
+
+	if (
+		typeof latestUsage.lifeLimit === "number" &&
+		typeof latestUsage.totalUsageCount === "number" &&
+		latestUsage.totalUsageCount > latestUsage.lifeLimit
+	) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_FIXTURE,
+				itemKey: latestUsage.fixtureId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: `夹具寿命超限: ${latestUsage.totalUsageCount}/${latestUsage.lifeLimit}`,
+				evidenceJson: {
+					fixtureId: latestUsage.fixtureId,
+					usageRecordId: latestUsage.id,
+					recordDate: latestUsage.recordDate.toISOString(),
+					lineId: run.lineId,
+					totalUsageCount: latestUsage.totalUsageCount,
+					lifeLimit: latestUsage.lifeLimit,
+				},
+			},
+		];
+	}
+
 	return [
 		{
 			itemType: ReadinessItemType.PREP_FIXTURE,
-			itemKey: run.lineId,
-			status: ReadinessItemStatus.FAILED,
-			failReason: "夹具寿命检查暂未实现",
+			itemKey: latestUsage.fixtureId,
+			status: ReadinessItemStatus.PASSED,
+			evidenceJson: {
+				fixtureId: latestUsage.fixtureId,
+				usageRecordId: latestUsage.id,
+				recordDate: latestUsage.recordDate.toISOString(),
+				lineId: run.lineId,
+				totalUsageCount: latestUsage.totalUsageCount ?? undefined,
+				lifeLimit: latestUsage.lifeLimit ?? undefined,
+			},
 		},
 	];
 }

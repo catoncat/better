@@ -1,6 +1,7 @@
 import type {
 	DailyQcRecord,
 	EquipmentInspectionRecord,
+	FixtureUsageRecord,
 	InspectionResultStatus,
 	InspectionResultType,
 	OvenProgramRecord,
@@ -260,6 +261,28 @@ type SqueegeeUsageCreateInput = {
 	meta?: Prisma.JsonValue;
 };
 
+type FixtureUsageListQuery = {
+	fixtureId?: string;
+	lineCode?: string;
+	recordFrom?: string;
+	recordTo?: string;
+	page?: number;
+	pageSize?: number;
+};
+
+type FixtureUsageCreateInput = {
+	fixtureId: string;
+	lineCode?: string;
+	recordDate: string;
+	usageCount?: number;
+	totalUsageCount?: number;
+	usedBy?: string;
+	confirmedBy?: string;
+	remark?: string;
+	lifeLimit?: number;
+	meta?: Prisma.JsonValue;
+};
+
 type EquipmentInspectionListQuery = {
 	lineCode?: string;
 	equipmentType?: InspectionResultType;
@@ -437,6 +460,23 @@ const mapSqueegeeUsageRecord = (
 	checkSurface: record.checkSurface ?? null,
 	checkEdge: record.checkEdge ?? null,
 	checkFlatness: record.checkFlatness ?? null,
+	usedBy: record.usedBy ?? null,
+	confirmedBy: record.confirmedBy ?? null,
+	remark: record.remark ?? null,
+	lifeLimit: record.lifeLimit ?? null,
+	createdAt: record.createdAt.toISOString(),
+	updatedAt: record.updatedAt.toISOString(),
+});
+
+const mapFixtureUsageRecord = (
+	record: FixtureUsageRecord & { line: { id: string; code: string; name: string } | null },
+): FixtureUsageRecordDetail => ({
+	id: record.id,
+	fixtureId: record.fixtureId,
+	...mapLine(record),
+	recordDate: record.recordDate.toISOString(),
+	usageCount: record.usageCount ?? null,
+	totalUsageCount: record.totalUsageCount ?? null,
 	usedBy: record.usedBy ?? null,
 	confirmedBy: record.confirmedBy ?? null,
 	remark: record.remark ?? null,
@@ -962,6 +1002,118 @@ export async function createSqueegeeUsageRecord(
 	});
 
 	return { success: true, data: mapSqueegeeUsageRecord(record) };
+}
+
+export async function listFixtureUsageRecords(
+	db: PrismaClient,
+	query: FixtureUsageListQuery,
+): Promise<{ items: FixtureUsageRecordDetail[]; total: number; page: number; pageSize: number }> {
+	const page = query.page ?? 1;
+	const pageSize = Math.min(query.pageSize ?? 30, 100);
+	const where: Prisma.FixtureUsageRecordWhereInput = {};
+
+	const fixtureId = query.fixtureId?.trim();
+	if (fixtureId) {
+		where.fixtureId = { contains: fixtureId };
+	}
+
+	const lineCode = query.lineCode?.trim();
+	if (lineCode) {
+		const lineIds = await resolveLineIdsForSearch(db, lineCode);
+		if (!lineIds) {
+			return { items: [], total: 0, page, pageSize };
+		}
+		where.lineId = { in: lineIds };
+	}
+
+	const recordFrom = query.recordFrom ? parseDate(query.recordFrom) : null;
+	const recordTo = query.recordTo ? parseDate(query.recordTo) : null;
+	if (recordFrom || recordTo) {
+		where.recordDate = {
+			...(recordFrom ? { gte: recordFrom } : {}),
+			...(recordTo ? { lte: recordTo } : {}),
+		};
+	}
+
+	const [items, total] = await Promise.all([
+		db.fixtureUsageRecord.findMany({
+			where,
+			orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
+			skip: (page - 1) * pageSize,
+			take: pageSize,
+			include: { line: { select: { id: true, code: true, name: true } } },
+		}),
+		db.fixtureUsageRecord.count({ where }),
+	]);
+
+	return { items: items.map(mapFixtureUsageRecord), total, page, pageSize };
+}
+
+export async function createFixtureUsageRecord(
+	db: PrismaClient,
+	input: FixtureUsageCreateInput,
+): Promise<ServiceResult<FixtureUsageRecordDetail>> {
+	const fixtureId = input.fixtureId.trim();
+	if (!fixtureId) {
+		return {
+			success: false,
+			code: "FIXTURE_ID_REQUIRED",
+			message: "fixtureId is required",
+			status: 400,
+		};
+	}
+
+	const recordDate = parseDate(input.recordDate);
+	if (!recordDate) {
+		return {
+			success: false,
+			code: "INVALID_RECORD_DATE",
+			message: "Invalid recordDate timestamp",
+			status: 400,
+		};
+	}
+
+	const usageCountError = validateNonNegative(
+		input.usageCount,
+		"INVALID_USAGE_COUNT",
+		"usageCount must be greater than or equal to 0",
+	);
+	if (usageCountError) return usageCountError;
+
+	const totalUsageCountError = validateNonNegative(
+		input.totalUsageCount,
+		"INVALID_TOTAL_USAGE_COUNT",
+		"totalUsageCount must be greater than or equal to 0",
+	);
+	if (totalUsageCountError) return totalUsageCountError;
+
+	const lifeLimitError = validateNonNegative(
+		input.lifeLimit,
+		"INVALID_LIFE_LIMIT",
+		"lifeLimit must be greater than or equal to 0",
+	);
+	if (lifeLimitError) return lifeLimitError;
+
+	const lineResult = await resolveLineId(db, input.lineCode);
+	if (!lineResult.success) return lineResult;
+
+	const record = await db.fixtureUsageRecord.create({
+		data: {
+			fixtureId,
+			lineId: lineResult.data,
+			recordDate,
+			usageCount: input.usageCount ?? null,
+			totalUsageCount: input.totalUsageCount ?? null,
+			usedBy: input.usedBy?.trim() || null,
+			confirmedBy: input.confirmedBy?.trim() || null,
+			remark: input.remark?.trim() || null,
+			lifeLimit: input.lifeLimit ?? null,
+			meta: input.meta ?? undefined,
+		},
+		include: { line: { select: { id: true, code: true, name: true } } },
+	});
+
+	return { success: true, data: mapFixtureUsageRecord(record) };
 }
 
 export async function listEquipmentInspectionRecords(
