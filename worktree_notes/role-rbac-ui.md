@@ -65,8 +65,9 @@ task:
 
 ## Progress
 - Worktree created; ready to audit role-based logic and UI updates.
- - Added server-side binding validation for line/station requirements.
- - Expanded system role presets and added role binding validation in user dialog.
+- Added server-side binding validation for line/station requirements.
+- Expanded system role presets and added role binding validation in user dialog.
+- smart-verify passed (biome check, db:generate, check-types).
 
 ## Findings
 - Role management UI only sorts by isSystem; no role-specific ordering or hints.
@@ -74,3 +75,7 @@ task:
 - Meta roles API returns only id/code/name, so binding rules must map by role code.
 - User management presets only include admin/planner/operator (missing quality/material/trace).
 - No remaining leader references in apps/packages after updates.
+
+## Errors
+- Biome formatting failure in `apps/server/src/modules/users/service.ts` (binding validation call needs single-line format).
+- web check-types failed: `formSchema` reference left in `user-dialog.tsx` (fixed to baseFormSchema).
