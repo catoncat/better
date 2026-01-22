@@ -9,10 +9,12 @@
 ## 0. 实施约束（已确认）
 
 - 非门禁项**记录必须存在**；有可靠自动数据源可自动确认，否则必须人工确认
-- 豁免权限优先复用现有角色并显式授权（线长/生产主管/质量负责人等）；必要时可启用双人豁免
+- 豁免权限归属**厂长角色**，明确授予 `prep:waive`/`time_rule:override` 权限
 - 回流焊/AOI → 水洗 4h 规则**仅适用于配置水洗工序的路由/产品**；无水洗节点不触发
 - 时间规则为提醒 + 可豁免（软门禁），不作为强阻断
 - 配置落地采用**混合策略**：仓库内模板 + 落库覆盖（需审计）
+- 准备项记录必须绑定产线；门禁证据以 **Run 级别关联** 为目标（需补 runId/routeStepId 等字段）
+- `PREP_FIXTURE` 暂只做寿命检查，TPM 相关字段（维护项/维护人）后续对接
 
 ---
 
@@ -51,12 +53,11 @@
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      Phase 3（过程完善）                             │
-│  P2 优先级 · 预估 2-3 周                                             │
+│  P2 优先级 · 预估 1-2 周                                             │
 ├─────────────────────────────────────────────────────────────────────┤
-│  Track F: 设备点检与异常          Track G: 设备数采（可选）          │
-│  ├─ T3.1 AOI 点检记录             ├─ T3.4 数采网关设计               │
-│  ├─ T3.2 异常报告模块             └─ T3.5 自动数据源接入             │
-│  └─ T3.3 维修表单                                                    │
+│  Track F: 维修表单               Track G: 设备数采（可选）          │
+│  └─ T3.1 维修表单                ├─ T3.2 数采网关设计               │
+│                                  └─ T3.3 自动数据源接入             │
 │                                                                      │
 │  NOTE: Track F/G 可并行开发                                          │
 │  NOTE: Track G 为可选项，视现场设备情况决定                          │
@@ -73,25 +74,26 @@
 
 | 任务编号 | 任务名称 | 描述 | 依赖 | 交付物 |
 |---------|---------|------|------|--------|
-| **T1.1** | 扩展 ReadinessCheckType | 新增 `PREP_BAKE`、`PREP_PASTE`、`PREP_TEMP`、`PREP_STENCIL_USAGE`、`PREP_STENCIL_CLEAN`、`PREP_SCRAPER`、`PREP_FIXTURE` | 无 | Schema + Enum |
+| **T1.1** | 扩展 ReadinessCheckType | 新增 `PREP_BAKE`、`PREP_PASTE`、`PREP_STENCIL_USAGE`、`PREP_STENCIL_CLEAN`、`PREP_SCRAPER`、`PREP_FIXTURE`（寿命部分） | 无 | Schema + Enum |
 | **T1.2** | 豁免机制 API | 1) 新增 `waive` API（POST `/readiness-items/:id/waive`）<br>2) 记录 `waivedBy/waiveReason`<br>3) 复用现有角色授权 `prep:waive` 权限 | T1.1 | API + Service |
 | **T1.3** | 准备项看板 UI | 1) Run PREP 阶段展示所有准备项<br>2) 状态：PASS/FAIL/WAIVED<br>3) 支持录入/补录/豁免申请 | T1.1, T1.2 | 前端页面 |
 
 **T1.1 子任务**：
-- [ ] 1.1.1 修改 `ReadinessCheckType` 枚举，新增 7 个 PREP_* 值
+- [ ] 1.1.1 修改 `ReadinessCheckType` 枚举，新增 6 个 PREP_* 值
 - [ ] 1.1.2 更新 `ReadinessCheckItem` 模型，支持新的 itemType
 - [ ] 1.1.3 编写迁移脚本
 - [ ] 1.1.4 定义 PrepItemPolicy 配置模板（recordRequired/confirmMode/dataSource）
 - [ ] 1.1.5 在 Readiness 评估中强制 recordRequired（缺记录视为 FAIL）
 - [ ] 1.1.6 配置覆盖策略（DB override + 审计 + 回滚）
 - [ ] 1.1.7 PREP_* 启用策略（按产线/路由默认值 + 配置入口/seed）
+- [ ] 1.1.8 准备项记录 Run 级别关联字段与写入规则（runId/runNo/routeStepId）
 
 **T1.2 子任务**：
 - [ ] 1.2.1 设计 waive API 请求/响应结构
 - [ ] 1.2.2 实现 waive service 逻辑
 - [ ] 1.2.3 添加 `prep:waive` 权限点
 - [ ] 1.2.4 编写审计日志
-- [ ] 1.2.5 明确角色授权矩阵（`prep:waive`/`time_rule:override`）
+- [ ] 1.2.5 明确角色授权矩阵（厂长角色授予 `prep:waive`/`time_rule:override`）
 
 **T1.3 子任务**：
 - [ ] 1.3.1 设计准备项看板 UI（Figma/草图）
@@ -195,13 +197,11 @@
 
 ### Phase 3：过程完善（P2）
 
-#### Track F：设备点检与异常
+#### Track F：维修表单
 
 | 任务编号 | 任务名称 | 描述 | 依赖 | 交付物 |
 |---------|---------|------|------|--------|
-| **T3.1** | AOI 点检记录 | 1) AOICheckRecord 模型<br>2) 每日开机点检 API<br>3) 与 TPM 集成 | Phase 2 完成 | Schema + API |
-| **T3.2** | 异常报告模块 | 1) 生产异常报告模型<br>2) 异常上报/处理流程<br>3) 与 TPM 集成 | Phase 2 完成 | Schema + API |
-| **T3.3** | 维修表单 | 1) 维修记录模型<br>2) 设备/夹具维修 API<br>3) 维修后 Readiness 自动刷新 | Phase 2 完成 | Schema + API |
+| **T3.1** | 维修表单 | 1) 维修记录模型<br>2) 设备/夹具维修 API<br>3) 维修后 Readiness 自动刷新 | Phase 2 完成 | Schema + API |
 
 ---
 
@@ -209,14 +209,14 @@
 
 | 任务编号 | 任务名称 | 描述 | 依赖 | 交付物 |
 |---------|---------|------|------|--------|
-| **T3.4** | 数采网关设计 | 1) 网关架构设计<br>2) 贴片机数据协议对接<br>3) 温度监控设备对接 | Phase 2 完成 | 架构文档 + POC |
-| **T3.5** | 自动数据源接入 | 1) 设备数据写入 DataValue/Readiness 证据（含幂等/去重）<br>2) dataSource=DEVICE 自动确认<br>3) 替换人工采集 | T3.4 | Service |
+| **T3.2** | 数采网关设计 | 1) 网关架构设计<br>2) 贴片机数据协议对接<br>3) 温度监控设备对接 | Phase 2 完成 | 架构文档 + POC |
+| **T3.3** | 自动数据源接入 | 1) 设备数据写入 DataValue/Readiness 证据（含幂等/去重）<br>2) dataSource=DEVICE 自动确认<br>3) 替换人工采集 | T3.2 | Service |
 
-**T3.5 子任务**：
-- [ ] 3.5.1 定义设备事件去重键与幂等策略
-- [ ] 3.5.2 设备数据写入 DataValue/Readiness 证据
-- [ ] 3.5.3 自动确认规则（dataSource=DEVICE）
-- [ ] 3.5.4 重复数据告警与审计记录
+**T3.3 子任务**：
+- [ ] 3.3.1 定义设备事件去重键与幂等策略
+- [ ] 3.3.2 设备数据写入 DataValue/Readiness 证据
+- [ ] 3.3.3 自动确认规则（dataSource=DEVICE）
+- [ ] 3.3.4 重复数据告警与审计记录
 
 ---
 
@@ -239,12 +239,11 @@ Week 3-5 (Phase 2)
 │  → T2.3 → T2.4     │                    │                   │
 └────────────────────────────────────────────────────────────┘
                               ↓
-Week 6-8 (Phase 3)
+Week 6-7 (Phase 3)
 ┌────────────────────────────────────────────────────────────┐
 │  开发者 A          │  开发者 B          │  开发者 C         │
 │  Track F           │  Track G (可选)    │  集成测试 + 文档  │
-│  T3.1 → T3.2       │  T3.4 → T3.5       │                   │
-│  → T3.3            │                    │                   │
+│  T3.1              │  T3.2 → T3.3       │                   │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -280,12 +279,12 @@ Phase 2 (依赖 Phase 1 完成)
 └─────────┘     └─────────┘
 
 Phase 3 (依赖 Phase 2 完成)
-┌─────────┐     ┌─────────┐     ┌─────────┐
-│  T3.1   │     │  T3.2   │     │  T3.3   │  (可并行)
-└─────────┘     └─────────┘     └─────────┘
+┌─────────┐
+│  T3.1   │  维修表单
+└─────────┘
 
 ┌─────────┐     ┌─────────┐
-│  T3.4   │----->│  T3.5   │
+│  T3.2   │----->│  T3.3   │  (可选：设备数采)
 └─────────┘     └─────────┘
 ```
 
@@ -300,8 +299,8 @@ Phase 3 (依赖 Phase 2 完成)
 | **P0** | Phase 1 全部 | 门禁基础能力，其他规则依赖此框架 |
 | **P1** | Phase 2 T2.1-T2.6 | 核心追溯规则，质量合规必需 |
 | **P1-** | Phase 2 T2.7-T2.8 | 寿命管理，可延后但建议同 Phase 2 |
-| **P2** | Phase 3 T3.1-T3.3 | 过程完善，非阻塞性 |
-| **P3** | Phase 3 T3.4-T3.5 | 设备数采，视现场条件决定 |
+| **P2** | Phase 3 T3.1 | 维修表单，过程完善 |
+| **P3** | Phase 3 T3.2-T3.3 | 设备数采，视现场条件决定（可选） |
 
 ### 风险点
 
@@ -330,8 +329,6 @@ Phase 3 (依赖 Phase 2 完成)
 - [ ] 钢网清洗/刮刀点检记录可录入
 
 ### Phase 3 验收
-- [ ] AOI 点检记录可录入
-- [ ] 异常报告可上报/闭环
 - [ ] 维修记录与 Readiness 联动
 - [ ] （可选）设备数据自动写入
 
@@ -343,7 +340,7 @@ Phase 3 (依赖 Phase 2 完成)
 |-------|------------|---------|---------|
 | Phase 1 | Readiness 扩展<br>Inspection 扩展 | readiness/<br>fai/ | prep-dashboard/<br>fai-sign/ |
 | Phase 2 | TimeRule*<br>ReflowProfile*<br>StencilClean*<br>ScraperCheck* | time-rule/ (新)<br>reflow-profile/ (新)<br>stencil/<br>scraper/ (新) | time-rule-ui/<br>profile-ui/<br>stencil-clean/<br>scraper-check/ |
-| Phase 3 | AOICheck*<br>AnomalyReport*<br>RepairRecord* | aoi-check/ (新)<br>anomaly/ (新)<br>repair/ (新) | aoi-check/<br>anomaly/<br>repair/ |
+| Phase 3 | RepairRecord* | repair/ (新) | repair/ |
 
 ---
 
