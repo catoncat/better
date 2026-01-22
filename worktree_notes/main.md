@@ -1,5 +1,55 @@
 # Worktree Notes - main
 
+## Context (2026-01-22)
+- Task: Track A readiness extension — implement PREP_* checks in readiness, enforce waiver runNo integrity, and gate auto-precheck in UI; update MES align docs accordingly.
+- Constraints: stay on `main` unless user requests worktree; keep alignment docs in sync.
+
+## Slices (2026-01-22)
+- [x] Slice 1: Implement PREP_* readiness check evaluation and integrate into performCheck.
+- [x] Slice 2: Enforce waiver runNo consistency (service + route/audit) and add test coverage if feasible.
+- [x] Slice 3: Gate auto-precheck by permission and update MES impl align docs.
+
+## Findings (2026-01-22)
+- PREP_* readiness item types exist in schema/config/UI, but readiness service does not execute PREP checks.
+- Waive endpoint uses runNo in route but service only validates itemId; risk of mismatched auditing.
+- Run detail auto-precheck runs for PREP without permission gating; can produce 403 noise.
+- Plan references `smt_gap_task_breakdown.md` Track A with PREP readiness checks + waiver; current implementation appears incomplete for PREP evaluation.
+- Impl align `01_e2e_align.md` maps readiness check + exceptions/waive; will need update once PREP checks and waive behavior are adjusted.
+- Prisma schema includes BakeRecord, SolderPasteUsageRecord, StencilCleaningRecord, SqueegeeUsageRecord, PrepCheck models to support PREP_* checks.
+- PREP-related records store lineId and key timestamps (e.g., BakeRecord.runId/materialLotId, SolderPasteUsageRecord.lineId/issuedAt, StencilCleaningRecord.lineId/cleanedAt, SqueegeeUsageRecord.lineId/recordDate), which can be used to validate per-run readiness by line association.
+- BakeRecord supports optional runNo and material lot linkage; create API enforces in/out timestamps and can associate runId/materialLotId.
+- SolderPasteUsageRecord has lineId + issuedAt/thawedAt/receivedAt; create API maps by lineCode and validates timestamps.
+- SMT basic service exposes StencilCleaningRecord/SqueegeeUsageRecord with lineId + cleanedAt/recordDate fields suitable for readiness checks.
+- SMT basic service list/create flows for stencil usage/cleaning/squeegee require lineCode resolution and store recordDate/cleanedAt with lineId for filtering.
+- Existing readiness checkStencil uses LineStencil binding + latest StencilStatusRecord READY gate; PREP_STENCIL_* should avoid duplicating this check.
+- Existing readiness checkSolderPaste uses LineSolderPaste binding + latest SolderPasteStatusRecord COMPLIANT gate; PREP_PASTE should focus on usage/records rather than status.
+- No fixture model or server module found for SMT prep; fixture-related docs exist mostly in DIP playbook and gap reports, implying PREP_FIXTURE will need placeholder logic.
+- Solder paste usage UI only requires lotId; other timestamps are optional, so prep check should not require thaw/issue timestamps to avoid false failures.
+- Run detail auto-precheck now gated by READINESS_CHECK (prevent permission-related precheck attempts).
+- Waive service now validates runNo against item check runId to prevent mismatched waive requests.
+- Plan doc references updated to Line.meta.readinessChecks (no smtPrepChecks).
+- Bake record UI treats runNo/materialCode/lotNo as optional, so PREP_BAKE check should not assume run linkage only.
+- Current diff set includes FAI route tweaks, test script additions, and doc updates beyond readiness changes; will need commit grouping.
+- Prep item policy sample indicates PREP_* should be SOFT gates with recordRequired and evidenceRefType; PREP_FIXTURE expected from TPM maintenance (FIXTURE_MAINT).
+- Architecture doc sketches future ResourceType including SQUEEGEE/FIXTURE and unified resource status log (not implemented).
+- Bake, stencil usage/cleaning, and squeegee usage APIs require READINESS_CHECK permission for record creation (used by readiness PREP checks).
+- Solder paste usage + cold storage temperature record APIs also require READINESS_CHECK (align with prep record entry).
+- test-mes-flow includes "readiness-waive" scenario that can be extended for PREP_* coverage.
+- Docs updates shift FAI requirements from multi-sign to single-sign across plan/architecture/analysis docs.
+
+## Progress (2026-01-22)
+- Added PREP_* readiness checks based on bake/paste/stencil usage/cleaning/squeegee records and fixture placeholder.
+- Waive API now validates runNo ownership; auto-precheck gated by READINESS_CHECK.
+- Updated E2E impl align row for readiness precheck/formal endpoints and plan doc references.
+- Ran `bun scripts/smart-verify.ts` (biome + typecheck) successfully.
+- Extended readiness-waive test scenario to expect PREP_* item types and waive all failed items.
+- Readiness-waive verification now checks per-item waiver by id instead of per-type, avoiding false negatives when some types pass.
+- Re-ran `bun scripts/smart-verify.ts` after test updates (biome + typecheck) successfully.
+
+## Errors (2026-01-22)
+- `domain_docs/mes/plan/phase3_tasks.md` not found. Next: use `domain_docs/mes/plan/tasks.md` or `smt_gap_task_breakdown.md`.
+- `git add ... apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` failed because `$runNo` expanded in shell. Next: quote the path.
+
 ## Context
 - Task: address two items in `todo.md` for work order list UX (table layout and filters).
 - Constraints: stay on `main`, no worktree, ignore existing dirty changes (user will handle).
