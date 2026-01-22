@@ -81,3 +81,4 @@ task:
 - web check-types failed: `formSchema` reference left in `user-dialog.tsx` (fixed to baseFormSchema).
 - Audited role-based logic: no remaining leader references; backend role service uses isSystem guard only.
 - Generalized binding validation messages/tooltips to cover custom roles with scoped data.
+- smart-verify passed after binding message updates.
