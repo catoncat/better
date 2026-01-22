@@ -15,6 +15,7 @@
 - This is a greenfield system; do not assume legacy/transition behavior.
 - If unsure whether something is legacy-related, check existing implementation or database data first; ask only if still unclear.
 - Ask clarifying questions before coding if anything is unclear.
+- When asking for user decisions or open questions, always include: brief context, options, impact/trade-offs, and a recommended choice.
 
 ## Quick Start (Local Dev)
 - Read `agent_docs/00_onboarding/setup.md` and follow the steps.

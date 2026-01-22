@@ -91,6 +91,31 @@ export const navMain: NavItem[] = [
 				permissions: [Permission.READINESS_VIEW],
 			},
 			{
+				title: "钢网使用记录",
+				url: "/mes/stencil-usage",
+				permissions: [Permission.READINESS_VIEW],
+			},
+			{
+				title: "钢网清洗记录",
+				url: "/mes/stencil-cleaning",
+				permissions: [Permission.READINESS_VIEW],
+			},
+			{
+				title: "刮刀使用记录",
+				url: "/mes/squeegee-usage",
+				permissions: [Permission.READINESS_VIEW],
+			},
+			{
+				title: "设备点检记录",
+				url: "/mes/equipment-inspections",
+				permissions: [Permission.READINESS_VIEW],
+			},
+			{
+				title: "炉温程式记录",
+				url: "/mes/oven-program-records",
+				permissions: [Permission.READINESS_VIEW],
+			},
+			{
 				title: "站位表配置",
 				url: "/mes/loading/slot-config",
 				permissions: [Permission.LOADING_CONFIG],
@@ -115,6 +140,16 @@ export const navMain: NavItem[] = [
 			{
 				title: "OQC 规则",
 				url: "/mes/oqc/rules",
+				permissions: [Permission.QUALITY_OQC],
+			},
+			{
+				title: "日常QC记录",
+				url: "/mes/daily-qc-records",
+				permissions: [Permission.QUALITY_OQC],
+			},
+			{
+				title: "生产异常记录",
+				url: "/mes/production-exception-records",
 				permissions: [Permission.QUALITY_OQC],
 			},
 			{

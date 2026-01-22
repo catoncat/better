@@ -49,7 +49,6 @@
 | --- | --- | --- | --- | --- |
 | QR-Pro-057 烘烤记录 | BakeRecord 校验 | SOFT | BakeRecord API | 与准备项绑定规则 |
 | QR-Pro-013 锡膏使用 | SolderPasteUsage 校验 | SOFT | SolderPasteUsageRecord | 暴露时间规则 |
-| QR-Pro-073 冷藏温度 | ColdStorageTemp 校验 | SOFT | ColdStorageTemperatureRecord | 规则阈值 |
 | QR-Pro-089 钢网次数 | StencilUsage 校验 | SOFT | LineStencil + StencilStatusRecord | 使用次数/张力字段 |
 | QR-Pro-130 钢网清洗 | StencilClean 校验 | SOFT | 无 | 新记录表 |
 | QR-Mac-144 刮刀点检 | ScraperUsage 校验 | SOFT | 无 | 新记录表 |
@@ -77,8 +76,7 @@
 ### 4.2 豁免机制
 
 建议：
-- **优先复用现有角色**（如线长/生产主管/质量负责人），明确授予 `prep:waive`/`time_rule:override` 权限
-- 若职责边界仍不清晰，再考虑新增 `factory_manager` 或启用双人豁免（生产+质量）
+- **豁免权限归属厂长角色**，明确授予 `prep:waive`/`time_rule:override` 权限
 - 统一 `waive` API：写入 `waivedBy/waiveReason` 并保留原 FAIL 证据
 
 ---
@@ -121,8 +119,8 @@
 - 钢网/刮刀寿命、炉温程式一致性  
 
 ### Phase 3（过程完善）
-- AOI 点检、异常报告、维修表单  
-- 设备数采接入与日报类报表
+- 维修表单
+- 设备数采接入（可选）
 
 ---
 
@@ -152,16 +150,15 @@
 
 ### 9.2 豁免权限归属
 
-**背景**：软门禁要求“提醒+豁免+留痕”，谁有豁免权决定合规强度与现场效率。  
+**背景**：软门禁要求"提醒+豁免+留痕"，谁有豁免权决定合规强度与现场效率。
 **选项与影响**：
 
 | 选项 | 影响 |
 | --- | --- |
-| A) 复用现有角色并赋权 | 成本低、落地快，但需明确权限边界 |
-| B) 新增 `factory_manager` | 权责清晰，但引入 RBAC 维护成本 |
-| C) 双人豁免（生产+质量） | 合规性强，但流程更慢 |
+| A) 厂长角色专属授权 | 权责清晰，符合实际管理层级 |
+| B) 双人豁免（生产+质量） | 合规性强，但流程更慢 |
 
-**结论**：**优先复用现有角色并显式授权**；若职责仍不清晰，再考虑新增角色或双人豁免。
+**结论**：**豁免权限归属厂长角色**，明确授予 `prep:waive`/`time_rule:override` 权限。
 
 ### 9.3 水洗时间规则适用范围
 
@@ -199,6 +196,7 @@
 - `recordRequired` 恒为 **true**
 - `confirmMode=AUTO` 仅在 `dataSource` 可靠时启用，否则必须 `MANUAL`
 - 门禁=No 仍需记录，只是不阻塞流程
+- 门禁证据优先 **Run 级别关联**（runId/routeStepId），产线级记录仅作为过渡
 
 ### 10.3 TimeRuleConfig（时间规则清单）
 

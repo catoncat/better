@@ -583,3 +583,36 @@
 ## smt-basic review notes (web)
 - Navigation adds new SMT record pages; permissions align with server routes (READINESS_VIEW / QUALITY_OQC).
 - Hook endpoints use /stencil-cleaning-records consistent with server routes.
+
+## Form alignment spot-check
+- Stencil cleaning form fields align with schema (stencilId/model, cleanedAt, cleanedBy, confirmedBy, remark).
+- Squeegee form fields align with schema (usage counts + surface/edge/flatness checks + usedBy/confirmedBy).
+
+## Line refs captured
+- Prisma models with optional lineId at schema.prisma lines 710-879; resolveLineId allows null when lineCode absent (service.ts lines 527-534).
+
+## AGENTS update plan
+- Add rule: when asking user decisions/open questions, include context, options, impacts, and recommendation.
+
+## Rule update applied
+- Added decision-question guidance to AGENTS.md and logged conversation note.
+
+## Decisions applied
+- Added constraints: prep records must bind line and target run-level evidence; updated smt_gap_task_breakdown + design suggestions accordingly.
+
+## Update 2026-01-22
+- Noted user clarified roles: 工艺工程师=路由管理；管理员不参与业务。
+- Pending decision: 生产异常记录创建/审批角色需调整（无班组长）。
+- Repo status dirty with doc-only changes and new conversation notes.
+- Read conv note: open question remains for production exception record creator role.
+- User clarification: 工艺工程师负责路由管理；管理员不参与业务决策。
+- Checked preset roles: admin/planner/engineer/quality/leader/operator in `packages/db/src/permissions/preset-roles.ts`.
+- User clarification removes leader/admin/engineer from exception-creator candidates; likely quality or operator+quality flow.
+- Error: failed to overwrite conversation note due to shell noclobber ("file exists"). Next: use redirection >| to overwrite.
+- Dev skill reminder: must call out dirty git status and ask whether to use worktree; log findings after ~2 reads; use conversation notes for decisions/plans.
+- Read permissions list in `packages/db/src/permissions/permissions.ts`: domain permissions for WO/RUN/EXEC/ROUTE/QUALITY/READINESS/LOADING/TRACE/SYSTEM etc. Needed for new role design mapping.
+- Found many references to `leader` in docs and scripts (seed/demo/test scripts, permission audit, rbac spec, config samples).
+- Role redesign will need doc updates + script updates if leader removed/renamed.
+- Found loading routes: /mes/loading and /mes/loading/slot-config in web route tree/navigation; can use /mes/loading as material role home page.
+- Seed scripts: `apps/server/scripts/seed-roles.ts` seeds PRESET_ROLES; `apps/server/scripts/seed.ts` creates test users incl leader user, assigns line bindings for leader, station bindings for operator.
+- Seed test users currently: planner/engineer/quality/leader/operator; leader uses line bindings.

@@ -33,14 +33,21 @@ import { Route as AuthenticatedMesFaiRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedMesExecutionRouteImport } from './routes/_authenticated/mes/execution'
 import { Route as AuthenticatedMesDefectsRouteImport } from './routes/_authenticated/mes/defects'
 import { Route as AuthenticatedMesWorkCentersIndexRouteImport } from './routes/_authenticated/mes/work-centers/index'
+import { Route as AuthenticatedMesStencilUsageIndexRouteImport } from './routes/_authenticated/mes/stencil-usage/index'
+import { Route as AuthenticatedMesStencilCleaningIndexRouteImport } from './routes/_authenticated/mes/stencil-cleaning/index'
+import { Route as AuthenticatedMesSqueegeeUsageIndexRouteImport } from './routes/_authenticated/mes/squeegee-usage/index'
 import { Route as AuthenticatedMesSolderPasteUsageIndexRouteImport } from './routes/_authenticated/mes/solder-paste-usage/index'
 import { Route as AuthenticatedMesRunsIndexRouteImport } from './routes/_authenticated/mes/runs/index'
 import { Route as AuthenticatedMesRoutesIndexRouteImport } from './routes/_authenticated/mes/routes/index'
+import { Route as AuthenticatedMesProductionExceptionRecordsIndexRouteImport } from './routes/_authenticated/mes/production-exception-records/index'
+import { Route as AuthenticatedMesOvenProgramRecordsIndexRouteImport } from './routes/_authenticated/mes/oven-program-records/index'
 import { Route as AuthenticatedMesOqcIndexRouteImport } from './routes/_authenticated/mes/oqc/index'
 import { Route as AuthenticatedMesMaterialsIndexRouteImport } from './routes/_authenticated/mes/materials/index'
 import { Route as AuthenticatedMesLoadingIndexRouteImport } from './routes/_authenticated/mes/loading/index'
 import { Route as AuthenticatedMesLinesIndexRouteImport } from './routes/_authenticated/mes/lines/index'
+import { Route as AuthenticatedMesEquipmentInspectionsIndexRouteImport } from './routes/_authenticated/mes/equipment-inspections/index'
 import { Route as AuthenticatedMesDataCollectionSpecsIndexRouteImport } from './routes/_authenticated/mes/data-collection-specs/index'
+import { Route as AuthenticatedMesDailyQcRecordsIndexRouteImport } from './routes/_authenticated/mes/daily-qc-records/index'
 import { Route as AuthenticatedMesColdStorageTemperaturesIndexRouteImport } from './routes/_authenticated/mes/cold-storage-temperatures/index'
 import { Route as AuthenticatedMesBomsIndexRouteImport } from './routes/_authenticated/mes/boms/index'
 import { Route as AuthenticatedMesBakeRecordsIndexRouteImport } from './routes/_authenticated/mes/bake-records/index'
@@ -185,6 +192,24 @@ const AuthenticatedMesWorkCentersIndexRoute =
     path: '/mes/work-centers/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedMesStencilUsageIndexRoute =
+  AuthenticatedMesStencilUsageIndexRouteImport.update({
+    id: '/mes/stencil-usage/',
+    path: '/mes/stencil-usage/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMesStencilCleaningIndexRoute =
+  AuthenticatedMesStencilCleaningIndexRouteImport.update({
+    id: '/mes/stencil-cleaning/',
+    path: '/mes/stencil-cleaning/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMesSqueegeeUsageIndexRoute =
+  AuthenticatedMesSqueegeeUsageIndexRouteImport.update({
+    id: '/mes/squeegee-usage/',
+    path: '/mes/squeegee-usage/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMesSolderPasteUsageIndexRoute =
   AuthenticatedMesSolderPasteUsageIndexRouteImport.update({
     id: '/mes/solder-paste-usage/',
@@ -202,6 +227,18 @@ const AuthenticatedMesRoutesIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => AuthenticatedMesRoutesRoute,
+  } as any)
+const AuthenticatedMesProductionExceptionRecordsIndexRoute =
+  AuthenticatedMesProductionExceptionRecordsIndexRouteImport.update({
+    id: '/mes/production-exception-records/',
+    path: '/mes/production-exception-records/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMesOvenProgramRecordsIndexRoute =
+  AuthenticatedMesOvenProgramRecordsIndexRouteImport.update({
+    id: '/mes/oven-program-records/',
+    path: '/mes/oven-program-records/',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedMesOqcIndexRoute =
   AuthenticatedMesOqcIndexRouteImport.update({
@@ -227,10 +264,22 @@ const AuthenticatedMesLinesIndexRoute =
     path: '/mes/lines/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedMesEquipmentInspectionsIndexRoute =
+  AuthenticatedMesEquipmentInspectionsIndexRouteImport.update({
+    id: '/mes/equipment-inspections/',
+    path: '/mes/equipment-inspections/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMesDataCollectionSpecsIndexRoute =
   AuthenticatedMesDataCollectionSpecsIndexRouteImport.update({
     id: '/mes/data-collection-specs/',
     path: '/mes/data-collection-specs/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMesDailyQcRecordsIndexRoute =
+  AuthenticatedMesDailyQcRecordsIndexRouteImport.update({
+    id: '/mes/daily-qc-records/',
+    path: '/mes/daily-qc-records/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedMesColdStorageTemperaturesIndexRoute =
@@ -320,14 +369,21 @@ export interface FileRoutesByFullPath {
   '/mes/bake-records': typeof AuthenticatedMesBakeRecordsIndexRoute
   '/mes/boms': typeof AuthenticatedMesBomsIndexRoute
   '/mes/cold-storage-temperatures': typeof AuthenticatedMesColdStorageTemperaturesIndexRoute
+  '/mes/daily-qc-records': typeof AuthenticatedMesDailyQcRecordsIndexRoute
   '/mes/data-collection-specs': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
+  '/mes/equipment-inspections': typeof AuthenticatedMesEquipmentInspectionsIndexRoute
   '/mes/lines': typeof AuthenticatedMesLinesIndexRoute
   '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
   '/mes/materials': typeof AuthenticatedMesMaterialsIndexRoute
   '/mes/oqc': typeof AuthenticatedMesOqcIndexRoute
+  '/mes/oven-program-records': typeof AuthenticatedMesOvenProgramRecordsIndexRoute
+  '/mes/production-exception-records': typeof AuthenticatedMesProductionExceptionRecordsIndexRoute
   '/mes/routes/': typeof AuthenticatedMesRoutesIndexRoute
   '/mes/runs': typeof AuthenticatedMesRunsIndexRoute
   '/mes/solder-paste-usage': typeof AuthenticatedMesSolderPasteUsageIndexRoute
+  '/mes/squeegee-usage': typeof AuthenticatedMesSqueegeeUsageIndexRoute
+  '/mes/stencil-cleaning': typeof AuthenticatedMesStencilCleaningIndexRoute
+  '/mes/stencil-usage': typeof AuthenticatedMesStencilUsageIndexRoute
   '/mes/work-centers': typeof AuthenticatedMesWorkCentersIndexRoute
 }
 export interface FileRoutesByTo {
@@ -361,14 +417,21 @@ export interface FileRoutesByTo {
   '/mes/bake-records': typeof AuthenticatedMesBakeRecordsIndexRoute
   '/mes/boms': typeof AuthenticatedMesBomsIndexRoute
   '/mes/cold-storage-temperatures': typeof AuthenticatedMesColdStorageTemperaturesIndexRoute
+  '/mes/daily-qc-records': typeof AuthenticatedMesDailyQcRecordsIndexRoute
   '/mes/data-collection-specs': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
+  '/mes/equipment-inspections': typeof AuthenticatedMesEquipmentInspectionsIndexRoute
   '/mes/lines': typeof AuthenticatedMesLinesIndexRoute
   '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
   '/mes/materials': typeof AuthenticatedMesMaterialsIndexRoute
   '/mes/oqc': typeof AuthenticatedMesOqcIndexRoute
+  '/mes/oven-program-records': typeof AuthenticatedMesOvenProgramRecordsIndexRoute
+  '/mes/production-exception-records': typeof AuthenticatedMesProductionExceptionRecordsIndexRoute
   '/mes/routes': typeof AuthenticatedMesRoutesIndexRoute
   '/mes/runs': typeof AuthenticatedMesRunsIndexRoute
   '/mes/solder-paste-usage': typeof AuthenticatedMesSolderPasteUsageIndexRoute
+  '/mes/squeegee-usage': typeof AuthenticatedMesSqueegeeUsageIndexRoute
+  '/mes/stencil-cleaning': typeof AuthenticatedMesStencilCleaningIndexRoute
+  '/mes/stencil-usage': typeof AuthenticatedMesStencilUsageIndexRoute
   '/mes/work-centers': typeof AuthenticatedMesWorkCentersIndexRoute
 }
 export interface FileRoutesById {
@@ -405,14 +468,21 @@ export interface FileRoutesById {
   '/_authenticated/mes/bake-records/': typeof AuthenticatedMesBakeRecordsIndexRoute
   '/_authenticated/mes/boms/': typeof AuthenticatedMesBomsIndexRoute
   '/_authenticated/mes/cold-storage-temperatures/': typeof AuthenticatedMesColdStorageTemperaturesIndexRoute
+  '/_authenticated/mes/daily-qc-records/': typeof AuthenticatedMesDailyQcRecordsIndexRoute
   '/_authenticated/mes/data-collection-specs/': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
+  '/_authenticated/mes/equipment-inspections/': typeof AuthenticatedMesEquipmentInspectionsIndexRoute
   '/_authenticated/mes/lines/': typeof AuthenticatedMesLinesIndexRoute
   '/_authenticated/mes/loading/': typeof AuthenticatedMesLoadingIndexRoute
   '/_authenticated/mes/materials/': typeof AuthenticatedMesMaterialsIndexRoute
   '/_authenticated/mes/oqc/': typeof AuthenticatedMesOqcIndexRoute
+  '/_authenticated/mes/oven-program-records/': typeof AuthenticatedMesOvenProgramRecordsIndexRoute
+  '/_authenticated/mes/production-exception-records/': typeof AuthenticatedMesProductionExceptionRecordsIndexRoute
   '/_authenticated/mes/routes/': typeof AuthenticatedMesRoutesIndexRoute
   '/_authenticated/mes/runs/': typeof AuthenticatedMesRunsIndexRoute
   '/_authenticated/mes/solder-paste-usage/': typeof AuthenticatedMesSolderPasteUsageIndexRoute
+  '/_authenticated/mes/squeegee-usage/': typeof AuthenticatedMesSqueegeeUsageIndexRoute
+  '/_authenticated/mes/stencil-cleaning/': typeof AuthenticatedMesStencilCleaningIndexRoute
+  '/_authenticated/mes/stencil-usage/': typeof AuthenticatedMesStencilUsageIndexRoute
   '/_authenticated/mes/work-centers/': typeof AuthenticatedMesWorkCentersIndexRoute
 }
 export interface FileRouteTypes {
@@ -449,14 +519,21 @@ export interface FileRouteTypes {
     | '/mes/bake-records'
     | '/mes/boms'
     | '/mes/cold-storage-temperatures'
+    | '/mes/daily-qc-records'
     | '/mes/data-collection-specs'
+    | '/mes/equipment-inspections'
     | '/mes/lines'
     | '/mes/loading'
     | '/mes/materials'
     | '/mes/oqc'
+    | '/mes/oven-program-records'
+    | '/mes/production-exception-records'
     | '/mes/routes/'
     | '/mes/runs'
     | '/mes/solder-paste-usage'
+    | '/mes/squeegee-usage'
+    | '/mes/stencil-cleaning'
+    | '/mes/stencil-usage'
     | '/mes/work-centers'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -490,14 +567,21 @@ export interface FileRouteTypes {
     | '/mes/bake-records'
     | '/mes/boms'
     | '/mes/cold-storage-temperatures'
+    | '/mes/daily-qc-records'
     | '/mes/data-collection-specs'
+    | '/mes/equipment-inspections'
     | '/mes/lines'
     | '/mes/loading'
     | '/mes/materials'
     | '/mes/oqc'
+    | '/mes/oven-program-records'
+    | '/mes/production-exception-records'
     | '/mes/routes'
     | '/mes/runs'
     | '/mes/solder-paste-usage'
+    | '/mes/squeegee-usage'
+    | '/mes/stencil-cleaning'
+    | '/mes/stencil-usage'
     | '/mes/work-centers'
   id:
     | '__root__'
@@ -533,14 +617,21 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/bake-records/'
     | '/_authenticated/mes/boms/'
     | '/_authenticated/mes/cold-storage-temperatures/'
+    | '/_authenticated/mes/daily-qc-records/'
     | '/_authenticated/mes/data-collection-specs/'
+    | '/_authenticated/mes/equipment-inspections/'
     | '/_authenticated/mes/lines/'
     | '/_authenticated/mes/loading/'
     | '/_authenticated/mes/materials/'
     | '/_authenticated/mes/oqc/'
+    | '/_authenticated/mes/oven-program-records/'
+    | '/_authenticated/mes/production-exception-records/'
     | '/_authenticated/mes/routes/'
     | '/_authenticated/mes/runs/'
     | '/_authenticated/mes/solder-paste-usage/'
+    | '/_authenticated/mes/squeegee-usage/'
+    | '/_authenticated/mes/stencil-cleaning/'
+    | '/_authenticated/mes/stencil-usage/'
     | '/_authenticated/mes/work-centers/'
   fileRoutesById: FileRoutesById
 }
@@ -719,6 +810,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesWorkCentersIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/mes/stencil-usage/': {
+      id: '/_authenticated/mes/stencil-usage/'
+      path: '/mes/stencil-usage'
+      fullPath: '/mes/stencil-usage'
+      preLoaderRoute: typeof AuthenticatedMesStencilUsageIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/mes/stencil-cleaning/': {
+      id: '/_authenticated/mes/stencil-cleaning/'
+      path: '/mes/stencil-cleaning'
+      fullPath: '/mes/stencil-cleaning'
+      preLoaderRoute: typeof AuthenticatedMesStencilCleaningIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/mes/squeegee-usage/': {
+      id: '/_authenticated/mes/squeegee-usage/'
+      path: '/mes/squeegee-usage'
+      fullPath: '/mes/squeegee-usage'
+      preLoaderRoute: typeof AuthenticatedMesSqueegeeUsageIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/mes/solder-paste-usage/': {
       id: '/_authenticated/mes/solder-paste-usage/'
       path: '/mes/solder-paste-usage'
@@ -739,6 +851,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/mes/routes/'
       preLoaderRoute: typeof AuthenticatedMesRoutesIndexRouteImport
       parentRoute: typeof AuthenticatedMesRoutesRoute
+    }
+    '/_authenticated/mes/production-exception-records/': {
+      id: '/_authenticated/mes/production-exception-records/'
+      path: '/mes/production-exception-records'
+      fullPath: '/mes/production-exception-records'
+      preLoaderRoute: typeof AuthenticatedMesProductionExceptionRecordsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/mes/oven-program-records/': {
+      id: '/_authenticated/mes/oven-program-records/'
+      path: '/mes/oven-program-records'
+      fullPath: '/mes/oven-program-records'
+      preLoaderRoute: typeof AuthenticatedMesOvenProgramRecordsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/oqc/': {
       id: '/_authenticated/mes/oqc/'
@@ -768,11 +894,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesLinesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/mes/equipment-inspections/': {
+      id: '/_authenticated/mes/equipment-inspections/'
+      path: '/mes/equipment-inspections'
+      fullPath: '/mes/equipment-inspections'
+      preLoaderRoute: typeof AuthenticatedMesEquipmentInspectionsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/mes/data-collection-specs/': {
       id: '/_authenticated/mes/data-collection-specs/'
       path: '/mes/data-collection-specs'
       fullPath: '/mes/data-collection-specs'
       preLoaderRoute: typeof AuthenticatedMesDataCollectionSpecsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/mes/daily-qc-records/': {
+      id: '/_authenticated/mes/daily-qc-records/'
+      path: '/mes/daily-qc-records'
+      fullPath: '/mes/daily-qc-records'
+      preLoaderRoute: typeof AuthenticatedMesDailyQcRecordsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/cold-storage-temperatures/': {
@@ -888,13 +1028,20 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesBakeRecordsIndexRoute: typeof AuthenticatedMesBakeRecordsIndexRoute
   AuthenticatedMesBomsIndexRoute: typeof AuthenticatedMesBomsIndexRoute
   AuthenticatedMesColdStorageTemperaturesIndexRoute: typeof AuthenticatedMesColdStorageTemperaturesIndexRoute
+  AuthenticatedMesDailyQcRecordsIndexRoute: typeof AuthenticatedMesDailyQcRecordsIndexRoute
   AuthenticatedMesDataCollectionSpecsIndexRoute: typeof AuthenticatedMesDataCollectionSpecsIndexRoute
+  AuthenticatedMesEquipmentInspectionsIndexRoute: typeof AuthenticatedMesEquipmentInspectionsIndexRoute
   AuthenticatedMesLinesIndexRoute: typeof AuthenticatedMesLinesIndexRoute
   AuthenticatedMesLoadingIndexRoute: typeof AuthenticatedMesLoadingIndexRoute
   AuthenticatedMesMaterialsIndexRoute: typeof AuthenticatedMesMaterialsIndexRoute
   AuthenticatedMesOqcIndexRoute: typeof AuthenticatedMesOqcIndexRoute
+  AuthenticatedMesOvenProgramRecordsIndexRoute: typeof AuthenticatedMesOvenProgramRecordsIndexRoute
+  AuthenticatedMesProductionExceptionRecordsIndexRoute: typeof AuthenticatedMesProductionExceptionRecordsIndexRoute
   AuthenticatedMesRunsIndexRoute: typeof AuthenticatedMesRunsIndexRoute
   AuthenticatedMesSolderPasteUsageIndexRoute: typeof AuthenticatedMesSolderPasteUsageIndexRoute
+  AuthenticatedMesSqueegeeUsageIndexRoute: typeof AuthenticatedMesSqueegeeUsageIndexRoute
+  AuthenticatedMesStencilCleaningIndexRoute: typeof AuthenticatedMesStencilCleaningIndexRoute
+  AuthenticatedMesStencilUsageIndexRoute: typeof AuthenticatedMesStencilUsageIndexRoute
   AuthenticatedMesWorkCentersIndexRoute: typeof AuthenticatedMesWorkCentersIndexRoute
 }
 
@@ -935,15 +1082,29 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMesBomsIndexRoute: AuthenticatedMesBomsIndexRoute,
   AuthenticatedMesColdStorageTemperaturesIndexRoute:
     AuthenticatedMesColdStorageTemperaturesIndexRoute,
+  AuthenticatedMesDailyQcRecordsIndexRoute:
+    AuthenticatedMesDailyQcRecordsIndexRoute,
   AuthenticatedMesDataCollectionSpecsIndexRoute:
     AuthenticatedMesDataCollectionSpecsIndexRoute,
+  AuthenticatedMesEquipmentInspectionsIndexRoute:
+    AuthenticatedMesEquipmentInspectionsIndexRoute,
   AuthenticatedMesLinesIndexRoute: AuthenticatedMesLinesIndexRoute,
   AuthenticatedMesLoadingIndexRoute: AuthenticatedMesLoadingIndexRoute,
   AuthenticatedMesMaterialsIndexRoute: AuthenticatedMesMaterialsIndexRoute,
   AuthenticatedMesOqcIndexRoute: AuthenticatedMesOqcIndexRoute,
+  AuthenticatedMesOvenProgramRecordsIndexRoute:
+    AuthenticatedMesOvenProgramRecordsIndexRoute,
+  AuthenticatedMesProductionExceptionRecordsIndexRoute:
+    AuthenticatedMesProductionExceptionRecordsIndexRoute,
   AuthenticatedMesRunsIndexRoute: AuthenticatedMesRunsIndexRoute,
   AuthenticatedMesSolderPasteUsageIndexRoute:
     AuthenticatedMesSolderPasteUsageIndexRoute,
+  AuthenticatedMesSqueegeeUsageIndexRoute:
+    AuthenticatedMesSqueegeeUsageIndexRoute,
+  AuthenticatedMesStencilCleaningIndexRoute:
+    AuthenticatedMesStencilCleaningIndexRoute,
+  AuthenticatedMesStencilUsageIndexRoute:
+    AuthenticatedMesStencilUsageIndexRoute,
   AuthenticatedMesWorkCentersIndexRoute: AuthenticatedMesWorkCentersIndexRoute,
 }
 

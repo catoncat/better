@@ -25,6 +25,11 @@
 | 烘烤记录 | `GET /api/bake-records`, `POST /api/bake-records` | `apps/server/src/modules/mes/bake/service.ts` | `apps/web/src/routes/_authenticated/mes/bake-records/index.tsx` |
 | 锡膏使用记录 | `GET /api/solder-paste-usage-records`, `POST /api/solder-paste-usage-records` | `apps/server/src/modules/mes/solder-paste/service.ts` | `apps/web/src/routes/_authenticated/mes/solder-paste-usage/index.tsx` |
 | 冷藏温度记录 | `GET /api/cold-storage-temperature-records`, `POST /api/cold-storage-temperature-records` | `apps/server/src/modules/mes/solder-paste/service.ts` | `apps/web/src/routes/_authenticated/mes/cold-storage-temperatures/index.tsx` |
+| 钢网使用记录 | `GET /api/stencil-usage-records`, `POST /api/stencil-usage-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/stencil-usage/index.tsx` |
+| 钢网清洗记录 | `GET /api/stencil-cleaning-records`, `POST /api/stencil-cleaning-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/stencil-cleaning/index.tsx` |
+| 刮刀使用记录 | `GET /api/squeegee-usage-records`, `POST /api/squeegee-usage-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/squeegee-usage/index.tsx` |
+| 设备点检记录 | `GET /api/equipment-inspection-records`, `POST /api/equipment-inspection-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/equipment-inspections/index.tsx` |
+| 炉温程式记录 | `GET /api/oven-program-records`, `POST /api/oven-program-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/oven-program-records/index.tsx` |
 | 异常记录/处理 | `GET /api/readiness/exceptions`, `POST /api/runs/:runNo/readiness/items/:itemId/waive` | `apps/server/src/modules/mes/readiness/service.ts` | `apps/web/src/routes/_authenticated/mes/readiness-exceptions.tsx` |
 | 上料防错 | `GET /api/runs/:runNo/loading/expectations`, `POST /api/runs/:runNo/loading/load-table`, `POST /api/loading/verify` | `apps/server/src/modules/mes/loading/service.ts` | `apps/web/src/routes/_authenticated/mes/loading/index.tsx` |
 | 加载站位表 | `POST /api/runs/:runNo/loading/load-table` | `apps/server/src/modules/mes/loading/service.ts` | `apps/web/src/routes/_authenticated/mes/loading/index.tsx` |
@@ -54,6 +59,8 @@
 | 报废确认 (Unit=SCRAPPED) | `POST /api/defects/:defectId/disposition` | `apps/server/src/modules/mes/defect/service.ts` | `apps/web/src/routes/_authenticated/mes/defects.tsx` |
 | 隔离 (Unit=ON_HOLD) | `POST /api/defects/:defectId/disposition`, `POST /api/defects/:defectId/release` | `apps/server/src/modules/mes/defect/service.ts` | `apps/web/src/routes/_authenticated/mes/defects.tsx` |
 | 处置评审 | `POST /api/defects/:defectId/disposition` | `apps/server/src/modules/mes/defect/service.ts` | `apps/web/src/routes/_authenticated/mes/defects.tsx` |
+| 日常 QC 记录 | `GET /api/daily-qc-records`, `POST /api/daily-qc-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/daily-qc-records/index.tsx` |
+| 生产异常记录 | `GET /api/production-exception-records`, `POST /api/production-exception-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/production-exception-records/index.tsx` |
 | OQC 抽检任务 | `POST /api/oqc/run/:runNo`, `GET /api/oqc` | `apps/server/src/modules/mes/oqc/service.ts` | `apps/web/src/routes/_authenticated/mes/oqc.tsx` |
 | Run=COMPLETED | `POST /api/oqc/:oqcId/complete` | `apps/server/src/modules/mes/oqc/service.ts` | `apps/web/src/routes/_authenticated/mes/oqc.tsx` |
 | Run=ON_HOLD | `POST /api/oqc/:oqcId/complete` | `apps/server/src/modules/mes/oqc/service.ts` | `apps/web/src/routes/_authenticated/mes/oqc.tsx` |

@@ -283,6 +283,13 @@ enum ReadinessItemType {
   STENCIL   // 钢网状态
   SOLDER_PASTE // 锡膏状态
   LOADING   // 上料防错
+  // PREP_* 准备项检查（SMT Gap Phase 1）
+  PREP_BAKE          // 烘烤准备（需烘烤记录）
+  PREP_PASTE         // 锡膏准备（开封/回温/暴露时间）
+  PREP_STENCIL_USAGE // 钢网使用准备（使用记录+寿命检查）
+  PREP_STENCIL_CLEAN // 钢网清洗准备（清洗记录）
+  PREP_SCRAPER       // 刮刀准备（点检记录）
+  PREP_FIXTURE       // 夹具准备（寿命检查）
 }
 
 enum ReadinessItemStatus {
@@ -353,6 +360,13 @@ enum AuditEntityType {
   BAKE_RECORD // SMT bake record
   SOLDER_PASTE_USAGE // SMT solder paste usage
   COLD_STORAGE_TEMP // SMT cold storage temperature
+  STENCIL_USAGE // SMT stencil usage
+  STENCIL_CLEANING // SMT stencil cleaning
+  SQUEEGEE_USAGE // SMT squeegee usage
+  EQUIPMENT_INSPECTION // SMT equipment inspection
+  OVEN_PROGRAM_RECORD // SMT oven program record
+  DAILY_QC_RECORD // SMT daily QC record
+  PRODUCTION_EXCEPTION // SMT production exception
 }
 
 model WorkOrder {
@@ -437,6 +451,13 @@ model Line {
   lineStencils     LineStencil[]
   lineSolderPastes LineSolderPaste[]
   solderPasteUsageRecords SolderPasteUsageRecord[]
+  stencilUsageRecords StencilUsageRecord[]
+  stencilCleaningRecords StencilCleaningRecord[]
+  squeegeeUsageRecords SqueegeeUsageRecord[]
+  equipmentInspectionRecords EquipmentInspectionRecord[]
+  ovenProgramRecords OvenProgramRecord[]
+  dailyQcRecords DailyQcRecord[]
+  productionExceptionRecords ProductionExceptionRecord[]
 }
 
 // ==========================================
@@ -691,6 +712,193 @@ model ColdStorageTemperatureRecord {
   updatedAt   DateTime @updatedAt
 
   @@index([measuredAt])
+}
+
+model StencilUsageRecord {
+  id               String   @id @default(cuid())
+  stencilId        String
+  lineId           String?
+  recordDate       DateTime
+  stencilThickness Float?
+  productModel     String?
+  printCount       Int?
+  totalPrintCount  Int?
+  replacedAt       DateTime?
+  checkDeform      Boolean?
+  checkHoleDamage  Boolean?
+  checkSealIntact  Boolean?
+  tensionValues    Json?
+  usedBy           String?
+  confirmedBy      String?
+  remark           String?
+  lifeLimit        Int?
+  meta             Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  line Line? @relation(fields: [lineId], references: [id])
+
+  @@index([stencilId])
+  @@index([lineId])
+  @@index([recordDate])
+}
+
+model StencilCleaningRecord {
+  id          String   @id @default(cuid())
+  stencilId   String
+  lineId      String?
+  cleanedAt   DateTime
+  cleanedBy   String
+  confirmedBy String?
+  remark      String?
+  meta        Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  line Line? @relation(fields: [lineId], references: [id])
+
+  @@index([stencilId])
+  @@index([lineId])
+  @@index([cleanedAt])
+}
+
+model SqueegeeUsageRecord {
+  id              String   @id @default(cuid())
+  squeegeeId      String
+  lineId          String?
+  recordDate      DateTime
+  productModel    String?
+  squeegeeSpec    String?
+  printCount      Int?
+  totalPrintCount Int?
+  replacedAt      DateTime?
+  checkSurface    Boolean?
+  checkEdge       Boolean?
+  checkFlatness   Boolean?
+  usedBy          String?
+  confirmedBy     String?
+  remark          String?
+  lifeLimit       Int?
+  meta            Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  line Line? @relation(fields: [lineId], references: [id])
+
+  @@index([squeegeeId])
+  @@index([lineId])
+  @@index([recordDate])
+}
+
+model EquipmentInspectionRecord {
+  id            String   @id @default(cuid())
+  lineId        String?
+  equipmentType InspectionResultType?
+  inspectedAt   DateTime
+  machineName   String
+  sampleModel   String?
+  version       String?
+  programName   String?
+  result        InspectionResultStatus?
+  inspector     String
+  remark        String?
+  meta          Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  line Line? @relation(fields: [lineId], references: [id])
+
+  @@index([lineId])
+  @@index([inspectedAt])
+  @@index([machineName])
+}
+
+model OvenProgramRecord {
+  id          String   @id @default(cuid())
+  lineId      String?
+  equipmentId String?
+  recordDate  DateTime
+  productName String
+  programName String
+  usedBy      String
+  confirmedBy String?
+  remark      String?
+  meta        Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  line Line? @relation(fields: [lineId], references: [id])
+
+  @@index([lineId])
+  @@index([recordDate])
+  @@index([equipmentId])
+  @@index([programName])
+}
+
+model DailyQcRecord {
+  id              String   @id @default(cuid())
+  lineId          String?
+  customer        String?
+  station         String?
+  assemblyNumber  String?
+  jobNo           String?
+  jobQty          Int?
+  shiftCode       String?
+  timeWindow      String?
+  defectSummary   Json?
+  yellowCardNo    String?
+  totalParts      Int?
+  inspectedQty    Int?
+  defectBoardQty  Int?
+  defectBoardRate Float?
+  defectQty       Int?
+  defectRate      Float?
+  correctiveAction String?
+  inspectedBy     String
+  inspectedAt     DateTime
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  remark          String?
+  meta            Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  line Line? @relation(fields: [lineId], references: [id])
+
+  @@index([lineId])
+  @@index([inspectedAt])
+  @@index([jobNo])
+}
+
+model ProductionExceptionRecord {
+  id             String   @id @default(cuid())
+  lineId         String?
+  jobNo          String?
+  assemblyNumber String?
+  revision       String?
+  shipDate       DateTime?
+  customer       String?
+  qty            Int?
+  lineNo         String?
+  downtimeMinutes Int?
+  downtimeRange  String?
+  impact         String?
+  description    String
+  issuedBy       String
+  issuedAt       DateTime
+  correctiveAction String?
+  confirmedBy    String?
+  confirmedAt    DateTime?
+  remark         String?
+  meta           Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  line Line? @relation(fields: [lineId], references: [id])
+
+  @@index([lineId])
+  @@index([issuedAt])
+  @@index([jobNo])
 }
 
 model StationGroup {
@@ -1114,6 +1322,12 @@ model Inspection {
   decidedBy   String?
   decidedAt   DateTime?
   remark      String?
+
+  // FAI Signature fields (for run authorization gate)
+  signedBy        String?   // User ID who signed off
+  signedAt        DateTime? // When signed
+  signatureRemark String?   // Optional remark
+
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
