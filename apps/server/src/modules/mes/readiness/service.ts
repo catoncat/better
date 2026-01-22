@@ -458,6 +458,70 @@ export async function checkSolderPaste(db: PrismaClient, run: Run): Promise<Chec
 }
 
 /**
+ * Check stencil cleaning record for the run's current stencil.
+ * Queries LineStencil → StencilCleaningRecord, verifies at least one record exists.
+ */
+export async function checkPrepStencilClean(
+	db: PrismaClient,
+	run: Run,
+): Promise<CheckItemResult[]> {
+	if (!run.lineId) {
+		return [];
+	}
+
+	const currentBinding = await db.lineStencil.findFirst({
+		where: { lineId: run.lineId, isCurrent: true },
+	});
+
+	if (!currentBinding) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_STENCIL_CLEAN,
+				itemKey: run.lineId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: "产线未绑定钢网，无法检查清洗记录",
+				evidenceJson: { lineId: run.lineId },
+			},
+		];
+	}
+
+	const latestCleaning = await db.stencilCleaningRecord.findFirst({
+		where: { stencilId: currentBinding.stencilId },
+		orderBy: [{ cleanedAt: "desc" }, { createdAt: "desc" }],
+	});
+
+	if (!latestCleaning) {
+		return [
+			{
+				itemType: ReadinessItemType.PREP_STENCIL_CLEAN,
+				itemKey: currentBinding.stencilId,
+				status: ReadinessItemStatus.FAILED,
+				failReason: `钢网 ${currentBinding.stencilId} 无清洗记录`,
+				evidenceJson: {
+					stencilId: currentBinding.stencilId,
+					lineId: run.lineId,
+				},
+			},
+		];
+	}
+
+	return [
+		{
+			itemType: ReadinessItemType.PREP_STENCIL_CLEAN,
+			itemKey: currentBinding.stencilId,
+			status: ReadinessItemStatus.PASSED,
+			evidenceJson: {
+				stencilId: currentBinding.stencilId,
+				cleaningRecordId: latestCleaning.id,
+				cleanedAt: latestCleaning.cleanedAt.toISOString(),
+				cleanedBy: latestCleaning.cleanedBy,
+				recordLineId: latestCleaning.lineId,
+			},
+		},
+	];
+}
+
+/**
  * Check loading status for the run.
  * Queries RunSlotExpectation, verifies all slots are LOADED.
  */
@@ -590,6 +654,7 @@ export async function performCheck(
 		routeResults,
 		stencilResults,
 		solderPasteResults,
+		stencilCleanResults,
 		loadingResults,
 	] = await Promise.all([
 		shouldRunCheck(ReadinessItemType.EQUIPMENT) ? checkEquipment(db, run) : Promise.resolve([]),
@@ -598,6 +663,9 @@ export async function performCheck(
 		shouldRunCheck(ReadinessItemType.STENCIL) ? checkStencil(db, run) : Promise.resolve([]),
 		shouldRunCheck(ReadinessItemType.SOLDER_PASTE)
 			? checkSolderPaste(db, run)
+			: Promise.resolve([]),
+		shouldRunCheck(ReadinessItemType.PREP_STENCIL_CLEAN)
+			? checkPrepStencilClean(db, run)
 			: Promise.resolve([]),
 		shouldRunCheck(ReadinessItemType.LOADING) ? checkLoading(db, run) : Promise.resolve([]),
 	]);
@@ -608,6 +676,7 @@ export async function performCheck(
 		...routeResults,
 		...stencilResults,
 		...solderPasteResults,
+		...stencilCleanResults,
 		...loadingResults,
 	];
 	const summary = calculateSummary(allResults);
