@@ -531,7 +531,9 @@ export async function checkPrepScraper(db: PrismaClient, run: Run): Promise<Chec
 	}
 
 	const latestUsage = await db.squeegeeUsageRecord.findFirst({
-		where: { lineId: run.lineId },
+		where: {
+			OR: [{ lineId: run.lineId }, { lineId: null }],
+		},
 		orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
 	});
 
@@ -872,117 +874,6 @@ async function checkPrepStencilUsage(db: PrismaClient, run: Run): Promise<CheckI
 	];
 }
 
-async function checkPrepStencilClean(db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
-	if (!run.lineId) {
-		return [];
-	}
-
-	const currentBinding = await db.lineStencil.findFirst({
-		where: { lineId: run.lineId, isCurrent: true },
-	});
-
-	if (!currentBinding) {
-		return [
-			{
-				itemType: ReadinessItemType.PREP_STENCIL_CLEAN,
-				itemKey: run.lineId,
-				status: ReadinessItemStatus.FAILED,
-				failReason: "产线未绑定钢网，无法验证清洗记录",
-			},
-		];
-	}
-
-	const latestRecord = await db.stencilCleaningRecord.findFirst({
-		where: {
-			stencilId: currentBinding.stencilId,
-			OR: [{ lineId: run.lineId }, { lineId: null }],
-		},
-		orderBy: [{ cleanedAt: "desc" }, { createdAt: "desc" }],
-	});
-
-	if (!latestRecord) {
-		return [
-			{
-				itemType: ReadinessItemType.PREP_STENCIL_CLEAN,
-				itemKey: currentBinding.stencilId,
-				status: ReadinessItemStatus.FAILED,
-				failReason: "未找到钢网清洗记录",
-			},
-		];
-	}
-
-	return [
-		{
-			itemType: ReadinessItemType.PREP_STENCIL_CLEAN,
-			itemKey: currentBinding.stencilId,
-			status: ReadinessItemStatus.PASSED,
-			evidenceJson: {
-				recordId: latestRecord.id,
-				cleanedAt: latestRecord.cleanedAt.toISOString(),
-				cleanedBy: latestRecord.cleanedBy,
-			},
-		},
-	];
-}
-
-async function checkPrepScraper(db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
-	if (!run.lineId) {
-		return [];
-	}
-
-	const latestRecord = await db.squeegeeUsageRecord.findFirst({
-		where: {
-			OR: [{ lineId: run.lineId }, { lineId: null }],
-		},
-		orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
-	});
-
-	if (!latestRecord) {
-		return [
-			{
-				itemType: ReadinessItemType.PREP_SCRAPER,
-				itemKey: run.lineId,
-				status: ReadinessItemStatus.FAILED,
-				failReason: "未找到刮刀点检记录",
-			},
-		];
-	}
-
-	if (
-		latestRecord.lifeLimit !== null &&
-		latestRecord.totalPrintCount !== null &&
-		latestRecord.totalPrintCount > latestRecord.lifeLimit
-	) {
-		return [
-			{
-				itemType: ReadinessItemType.PREP_SCRAPER,
-				itemKey: latestRecord.squeegeeId,
-				status: ReadinessItemStatus.FAILED,
-				failReason: `刮刀使用寿命超限: ${latestRecord.totalPrintCount}/${latestRecord.lifeLimit}`,
-				evidenceJson: {
-					recordId: latestRecord.id,
-					totalPrintCount: latestRecord.totalPrintCount,
-					lifeLimit: latestRecord.lifeLimit,
-				},
-			},
-		];
-	}
-
-	return [
-		{
-			itemType: ReadinessItemType.PREP_SCRAPER,
-			itemKey: latestRecord.squeegeeId,
-			status: ReadinessItemStatus.PASSED,
-			evidenceJson: {
-				recordId: latestRecord.id,
-				recordDate: latestRecord.recordDate.toISOString(),
-				totalPrintCount: latestRecord.totalPrintCount ?? undefined,
-				lifeLimit: latestRecord.lifeLimit ?? undefined,
-			},
-		},
-	];
-}
-
 async function checkPrepFixture(_db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
 	if (!run.lineId) {
 		return [];
@@ -1131,8 +1022,6 @@ export async function performCheck(
 		routeResults,
 		stencilResults,
 		solderPasteResults,
-		stencilCleanResults,
-		scraperResults,
 		loadingResults,
 		prepBakeResults,
 		prepPasteResults,
@@ -1148,12 +1037,6 @@ export async function performCheck(
 		shouldRunCheck(ReadinessItemType.STENCIL) ? checkStencil(db, run) : Promise.resolve([]),
 		shouldRunCheck(ReadinessItemType.SOLDER_PASTE)
 			? checkSolderPaste(db, run)
-			: Promise.resolve([]),
-		shouldRunCheck(ReadinessItemType.PREP_STENCIL_CLEAN)
-			? checkPrepStencilClean(db, run)
-			: Promise.resolve([]),
-		shouldRunCheck(ReadinessItemType.PREP_SCRAPER)
-			? checkPrepScraper(db, run)
 			: Promise.resolve([]),
 		shouldRunCheck(ReadinessItemType.LOADING) ? checkLoading(db, run) : Promise.resolve([]),
 		shouldRunCheck(ReadinessItemType.PREP_BAKE) ? checkPrepBake(db, run) : Promise.resolve([]),
@@ -1179,8 +1062,6 @@ export async function performCheck(
 		...routeResults,
 		...stencilResults,
 		...solderPasteResults,
-		...stencilCleanResults,
-		...scraperResults,
 		...loadingResults,
 		...prepBakeResults,
 		...prepPasteResults,
