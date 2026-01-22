@@ -79,27 +79,27 @@
 | **T1.3** | 准备项看板 UI | 1) Run PREP 阶段展示所有准备项<br>2) 状态：PASS/FAIL/WAIVED<br>3) 支持录入/补录/豁免申请 | T1.1, T1.2 | 前端页面 |
 
 **T1.1 子任务**：
-- [x] 1.1.1 修改 `ReadinessCheckType` 枚举，新增 6 个 PREP_* 值 ✅
-- [x] 1.1.2 更新 `ReadinessCheckItem` 模型，支持新的 itemType ✅ (itemType 使用 ReadinessItemType，已扩展)
-- [x] 1.1.3 编写迁移脚本 ✅ (使用 db:push 同步)
+- [x] 1.1.1 修改 `ReadinessCheckType` 枚举，新增 6 个 PREP_* 值
+- [x] 1.1.2 更新 `ReadinessCheckItem` 模型，支持新的 itemType (itemType 使用 ReadinessItemType，已扩展)
+- [x] 1.1.3 编写迁移脚本 (使用 db:push 同步)
 - [ ] 1.1.4 定义 PrepItemPolicy 配置模板（recordRequired/confirmMode/dataSource）
-- [x] 1.1.5 在 Readiness 评估中强制 recordRequired（缺记录视为 FAIL）✅ (通过 Line.meta.smtPrepChecks.enabled 控制)
+- [x] 1.1.5 在 Readiness 评估中强制 recordRequired（缺记录视为 FAIL）(通过 Line.meta.smtPrepChecks.enabled 控制)
 - [ ] 1.1.6 配置覆盖策略（DB override + 审计 + 回滚）
-- [x] 1.1.7 PREP_* 启用策略（按产线/路由默认值 + 配置入口/seed）✅ (Line.meta.smtPrepChecks 配置)
+- [x] 1.1.7 PREP_* 启用策略（按产线/路由默认值 + 配置入口/seed）(Line.meta.smtPrepChecks 配置)
 - [ ] 1.1.8 准备项记录 Run 级别关联字段与写入规则（runId/runNo/routeStepId）
 
 **T1.2 子任务**：
-- [x] 1.2.1 设计 waive API 请求/响应结构 ✅ (已存在)
-- [x] 1.2.2 实现 waive service 逻辑 ✅ (已存在)
-- [x] 1.2.3 添加 `prep:waive` 权限点 ✅ (复用 READINESS_OVERRIDE)
-- [x] 1.2.4 编写审计日志 ✅ (已存在 READINESS_WAIVE)
-- [x] 1.2.5 明确角色授权矩阵（厂长角色授予 `prep:waive`/`time_rule:override`）✅ (quality/leader 角色已有 READINESS_OVERRIDE)
+- [x] 1.2.1 设计 waive API 请求/响应结构 (已存在)
+- [x] 1.2.2 实现 waive service 逻辑 (已存在)
+- [x] 1.2.3 添加 `prep:waive` 权限点 (复用 READINESS_OVERRIDE)
+- [x] 1.2.4 编写审计日志 (已存在 READINESS_WAIVE)
+- [x] 1.2.5 明确角色授权矩阵（厂长角色授予 `prep:waive`/`time_rule:override`）(quality/leader 角色已有 READINESS_OVERRIDE)
 
 **T1.3 子任务**：
-- [x] 1.3.1 设计准备项看板 UI（Figma/草图）✅ (复用现有 Run 详情页 Readiness 卡片)
-- [x] 1.3.2 实现准备项列表组件 ✅ (已存在)
-- [x] 1.3.3 实现豁免申请弹窗 ✅ (已存在)
-- [x] 1.3.4 集成 Run PREP 阶段 ✅ (已存在)
+- [x] 1.3.1 设计准备项看板 UI（Figma/草图）(复用现有 Run 详情页 Readiness 卡片)
+- [x] 1.3.2 实现准备项列表组件 (已存在)
+- [x] 1.3.3 实现豁免申请弹窗 (已存在)
+- [x] 1.3.4 集成 Run PREP 阶段 (已存在)
 
 ---
 
@@ -111,15 +111,15 @@
 | **T1.5** | 签字门禁逻辑 | 1) Run 授权前必须检查首件签字<br>2) 签字后触发 Readiness 项更新 | T1.4 | Service |
 
 **T1.4 子任务**：
-- [x] 1.4.1 修改 Inspection 模型，增加签字字段 ✅
-- [x] 1.4.2 编写迁移脚本 ✅
-- [x] 1.4.3 实现 sign API ✅
-- [x] 1.4.4 前端签字确认弹窗 ✅
+- [x] 1.4.1 修改 Inspection 模型，增加签字字段
+- [x] 1.4.2 编写迁移脚本
+- [x] 1.4.3 实现 sign API
+- [x] 1.4.4 前端签字确认弹窗
 
 **T1.5 子任务**：
-- [x] 1.5.1 修改 Run authorize 流程，增加首件签字检查 ✅
-- [x] 1.5.2 签字成功后更新 Readiness 状态 ✅ (通过 checkFaiGate 返回 faiSigned)
-- [x] 1.5.3 编写单元测试 ✅ (通过 smart-verify 验证)
+- [x] 1.5.1 修改 Run authorize 流程，增加首件签字检查
+- [x] 1.5.2 签字成功后更新 Readiness 状态 (通过 checkFaiGate 返回 faiSigned)
+- [x] 1.5.3 编写单元测试 (通过 smart-verify 验证)
 
 ---
 
