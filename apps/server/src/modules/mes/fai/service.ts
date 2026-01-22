@@ -10,11 +10,12 @@ import {
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
 import { getLatestCheck } from "../readiness/service";
-import type { completeFaiSchema, createFaiSchema, recordFaiItemSchema } from "./schema";
+import type { completeFaiSchema, createFaiSchema, recordFaiItemSchema, signFaiSchema } from "./schema";
 
 type CreateFaiInput = Static<typeof createFaiSchema>;
 type RecordFaiItemInput = Static<typeof recordFaiItemSchema>;
 type CompleteFaiInput = Static<typeof completeFaiSchema>;
+type SignFaiInput = Static<typeof signFaiSchema>;
 
 type InspectionRecord = Prisma.InspectionGetPayload<{
 	include: { items: true };
@@ -592,6 +593,69 @@ export async function completeFai(
 			decidedBy,
 			decidedAt: new Date(),
 			remark: data.remark ?? fai.remark,
+		},
+		include: { items: true },
+	});
+
+	return { success: true as const, data: updated };
+}
+
+/**
+ * Sign FAI - add signature to a PASS FAI before run authorization.
+ */
+export async function signFai(
+	db: PrismaClient,
+	faiId: string,
+	data: SignFaiInput,
+	signedBy: string,
+): Promise<ServiceResult<InspectionRecord>> {
+	const fai = await db.inspection.findUnique({
+		where: { id: faiId },
+		include: { items: true },
+	});
+
+	if (!fai) {
+		return {
+			success: false as const,
+			code: "FAI_NOT_FOUND",
+			message: "FAI task not found",
+			status: 404,
+		};
+	}
+
+	if (fai.type !== InspectionType.FAI) {
+		return {
+			success: false as const,
+			code: "NOT_FAI_INSPECTION",
+			message: "This is not a FAI inspection",
+			status: 400,
+		};
+	}
+
+	if (fai.status !== InspectionStatus.PASS) {
+		return {
+			success: false as const,
+			code: "FAI_NOT_PASSED",
+			message: "Only PASS FAI can be signed",
+			status: 400,
+		};
+	}
+
+	if (fai.signedBy && fai.signedAt) {
+		return {
+			success: false as const,
+			code: "FAI_ALREADY_SIGNED",
+			message: "FAI has already been signed",
+			status: 400,
+		};
+	}
+
+	const updated = await db.inspection.update({
+		where: { id: faiId },
+		data: {
+			signedBy,
+			signedAt: new Date(),
+			signatureRemark: data.remark,
 		},
 		include: { items: true },
 	});
