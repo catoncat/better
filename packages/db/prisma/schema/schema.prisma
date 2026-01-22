@@ -364,6 +364,7 @@ enum AuditEntityType {
   STENCIL_USAGE // SMT stencil usage
   STENCIL_CLEANING // SMT stencil cleaning
   SQUEEGEE_USAGE // SMT squeegee usage
+  FIXTURE_USAGE // SMT fixture usage
   EQUIPMENT_INSPECTION // SMT equipment inspection
   OVEN_PROGRAM_RECORD // SMT oven program record
   DAILY_QC_RECORD // SMT daily QC record
@@ -455,6 +456,7 @@ model Line {
   stencilUsageRecords StencilUsageRecord[]
   stencilCleaningRecords StencilCleaningRecord[]
   squeegeeUsageRecords SqueegeeUsageRecord[]
+  fixtureUsageRecords FixtureUsageRecord[]
   equipmentInspectionRecords EquipmentInspectionRecord[]
   ovenProgramRecords OvenProgramRecord[]
   dailyQcRecords DailyQcRecord[]
@@ -787,6 +789,28 @@ model SqueegeeUsageRecord {
   line Line? @relation(fields: [lineId], references: [id])
 
   @@index([squeegeeId])
+  @@index([lineId])
+  @@index([recordDate])
+}
+
+model FixtureUsageRecord {
+  id              String   @id @default(cuid())
+  fixtureId       String
+  lineId          String?
+  recordDate      DateTime
+  usageCount      Int?
+  totalUsageCount Int?
+  usedBy          String?
+  confirmedBy     String?
+  remark          String?
+  lifeLimit       Int?
+  meta            Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  line Line? @relation(fields: [lineId], references: [id])
+
+  @@index([fixtureId])
   @@index([lineId])
   @@index([recordDate])
 }
