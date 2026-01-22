@@ -19,7 +19,7 @@ task:
 ## Slices
 - [x] Slice 0: worktree note context
 - [x] Slice 1: server schema/service require roleIds on create (remove default fallback)
-- [ ] Slice 2: UI binding validation based on role dataScope
+- [x] Slice 2: UI binding validation based on role dataScope
 
 <!-- AUTO:BEGIN status -->
 
@@ -94,3 +94,4 @@ task:
 - Updated user create schema to require `roleIds` (minItems: 1); update schema forbids empty list when provided.
 - Removed default role fallback in create; returns `ROLE_REQUIRED` when roles missing.
 - Meta roles endpoint now includes `dataScope` for UI validation.
+- User dialog validation now derives line/station requirements from role dataScope (no hardcoded role codes).

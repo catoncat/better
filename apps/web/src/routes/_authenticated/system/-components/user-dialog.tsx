@@ -49,7 +49,10 @@ interface UserDialogProps {
 export function UserDialog({ open, onOpenChange, user, roles, onSubmit }: UserDialogProps) {
 	const { data: lines } = useLines();
 	const { data: stations } = useStations();
-	const roleCodeById = useMemo(() => new Map(roles.map((role) => [role.id, role.code])), [roles]);
+	const roleScopeById = useMemo(
+		() => new Map(roles.map((role) => [role.id, role.dataScope])),
+		[roles],
+	);
 	const roleOptions = useMemo(
 		() => roles.map((role) => ({ value: role.id, label: role.name })),
 		[roles],
@@ -74,27 +77,29 @@ export function UserDialog({ open, onOpenChange, user, roles, onSubmit }: UserDi
 	const validationSchema = useMemo(
 		() =>
 			baseFormSchema.superRefine((values, ctx) => {
-				const roleCodes = values.roleIds
-					.map((roleId) => roleCodeById.get(roleId))
-					.filter((roleCode): roleCode is string => Boolean(roleCode));
+				const scopes = values.roleIds
+					.map((roleId) => roleScopeById.get(roleId))
+					.filter((scope): scope is NonNullable<typeof scope> => Boolean(scope));
+				const requiresLines = scopes.some((scope) => scope === "ASSIGNED_LINES");
+				const requiresStations = scopes.some((scope) => scope === "ASSIGNED_STATIONS");
 
-				if (roleCodes.includes("material") && values.lineIds.length === 0) {
+				if (requiresLines && values.lineIds.length === 0) {
 					ctx.addIssue({
 						code: z.ZodIssueCode.custom,
 						path: ["lineIds"],
-						message: "物料员必须绑定产线",
+						message: "存在需绑定产线的数据范围角色，请先绑定产线",
 					});
 				}
 
-				if (roleCodes.includes("operator") && values.stationIds.length === 0) {
+				if (requiresStations && values.stationIds.length === 0) {
 					ctx.addIssue({
 						code: z.ZodIssueCode.custom,
 						path: ["stationIds"],
-						message: "操作员必须绑定工位",
+						message: "存在需绑定工位的数据范围角色，请先绑定工位",
 					});
 				}
 			}),
-		[roleCodeById],
+		[roleScopeById],
 	);
 
 	const form = useForm({
