@@ -4,7 +4,13 @@ import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
-import { completeFaiSchema, createFaiSchema, faiQuerySchema, recordFaiItemSchema, signFaiSchema } from "./schema";
+import {
+	completeFaiSchema,
+	createFaiSchema,
+	faiQuerySchema,
+	recordFaiItemSchema,
+	signFaiSchema,
+} from "./schema";
 import {
 	checkFaiGate,
 	completeFai,

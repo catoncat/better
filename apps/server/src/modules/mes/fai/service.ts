@@ -10,7 +10,12 @@ import {
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
 import { getLatestCheck } from "../readiness/service";
-import type { completeFaiSchema, createFaiSchema, recordFaiItemSchema, signFaiSchema } from "./schema";
+import type {
+	completeFaiSchema,
+	createFaiSchema,
+	recordFaiItemSchema,
+	signFaiSchema,
+} from "./schema";
 
 type CreateFaiInput = Static<typeof createFaiSchema>;
 type RecordFaiItemInput = Static<typeof recordFaiItemSchema>;
@@ -784,7 +789,9 @@ export async function listFai(
 export async function checkFaiGate(
 	db: PrismaClient,
 	runNo: string,
-): Promise<ServiceResult<{ requiresFai: boolean; faiPassed: boolean; faiSigned: boolean; faiId?: string }>> {
+): Promise<
+	ServiceResult<{ requiresFai: boolean; faiPassed: boolean; faiSigned: boolean; faiId?: string }>
+> {
 	const run = await db.run.findUnique({
 		where: { runNo },
 		include: {
