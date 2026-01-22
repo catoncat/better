@@ -36,6 +36,7 @@ export const ALL_READINESS_ITEM_TYPES: ReadinessItemType[] = [
 	"PREP_STENCIL_CLEAN",
 	"PREP_SCRAPER",
 	"PREP_FIXTURE",
+	"PREP_PROGRAM",
 ];
 
 export const READINESS_ITEM_TYPE_LABELS: Record<ReadinessItemType, string> = {
@@ -52,6 +53,7 @@ export const READINESS_ITEM_TYPE_LABELS: Record<ReadinessItemType, string> = {
 	PREP_STENCIL_CLEAN: "钢网清洗",
 	PREP_SCRAPER: "刮刀准备",
 	PREP_FIXTURE: "夹具准备",
+	PREP_PROGRAM: "炉温程式",
 };
 
 export function useReadinessConfig(lineId: string | undefined, options?: { enabled?: boolean }) {

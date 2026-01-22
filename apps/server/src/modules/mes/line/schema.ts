@@ -84,6 +84,7 @@ export const readinessConfigSchema = t.Object({
 			t.Literal("PREP_STENCIL_CLEAN"),
 			t.Literal("PREP_SCRAPER"),
 			t.Literal("PREP_FIXTURE"),
+			t.Literal("PREP_PROGRAM"),
 		]),
 		{
 			description: "Enabled readiness check types for this line",
