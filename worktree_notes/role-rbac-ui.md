@@ -65,3 +65,12 @@ task:
 
 ## Progress
 - Worktree created; ready to audit role-based logic and UI updates.
+ - Added server-side binding validation for line/station requirements.
+ - Expanded system role presets and added role binding validation in user dialog.
+
+## Findings
+- Role management UI only sorts by isSystem; no role-specific ordering or hints.
+- User dialog tooltips still reference leader; no validation for material/operator bindings.
+- Meta roles API returns only id/code/name, so binding rules must map by role code.
+- User management presets only include admin/planner/operator (missing quality/material/trace).
+- No remaining leader references in apps/packages after updates.
