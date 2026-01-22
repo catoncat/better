@@ -19,6 +19,7 @@ import { mrbRoutes } from "./oqc/mrb-routes";
 import { oqcRoutes } from "./oqc/routes";
 import { samplingRuleRoutes } from "./oqc/sampling-rule-routes";
 import { readinessExceptionsModule, readinessModule } from "./readiness/routes";
+import { reflowProfileModuleRoutes } from "./reflow-profile/routes";
 import { routingModule } from "./routing/routes";
 import { runModule } from "./run/routes";
 import { smtBasicRoutes } from "./smt-basic/routes";
@@ -53,6 +54,7 @@ export const mesModule = new Elysia()
 	.use(solderPasteUsageRoutes)
 	.use(coldStorageTemperatureRoutes)
 	.use(smtBasicRoutes)
+	.use(reflowProfileModuleRoutes)
 	.use(faiRoutes)
 	.use(defectRoutes)
 	.use(reworkRoutes)

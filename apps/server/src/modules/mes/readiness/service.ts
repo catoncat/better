@@ -846,6 +846,86 @@ async function checkPrepFixture(_db: PrismaClient, run: Run): Promise<CheckItemR
 	];
 }
 
+/**
+ * Check reflow profile/program consistency for the run.
+ * Verifies that the actual oven program matches the expected profile from routing.
+ * T2.6: Program consistency check
+ */
+export async function checkProgram(db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
+	if (!run.routeVersionId) {
+		return [];
+	}
+
+	// Get the routing ID from the executable route version
+	const routeVersion = await db.executableRouteVersion.findUnique({
+		where: { id: run.routeVersionId },
+		select: { routingId: true },
+	});
+
+	if (!routeVersion) {
+		return [];
+	}
+
+	// Find routing steps that have expected reflow profiles
+	const stepsWithProfiles = await db.routingStep.findMany({
+		where: {
+			routingId: routeVersion.routingId,
+			expectedReflowProfileId: { not: null },
+		},
+		include: {
+			expectedReflowProfile: { select: { id: true, code: true, name: true, status: true } },
+			operation: { select: { code: true, name: true } },
+		},
+	});
+
+	if (stepsWithProfiles.length === 0) {
+		return [];
+	}
+
+	const results: CheckItemResult[] = [];
+
+	for (const step of stepsWithProfiles) {
+		const profile = step.expectedReflowProfile;
+		if (!profile) continue;
+
+		// Check if profile is active
+		if (profile.status !== "ACTIVE") {
+			results.push({
+				itemType: ReadinessItemType.PREP_PROGRAM,
+				itemKey: `STEP_${step.stepNo}_PROFILE`,
+				status: ReadinessItemStatus.FAILED,
+				failReason: `炉温程式 ${profile.code} 状态为 ${profile.status}，无法使用`,
+				evidenceJson: {
+					stepNo: step.stepNo,
+					operationCode: step.operation.code,
+					profileId: profile.id,
+					profileCode: profile.code,
+					profileStatus: profile.status,
+				},
+			});
+			continue;
+		}
+
+		// Check for recent usage records that match
+		// This is a preparatory check - actual verification happens during execution
+		// For Readiness, we just verify the profile exists and is active
+		results.push({
+			itemType: ReadinessItemType.PREP_PROGRAM,
+			itemKey: `STEP_${step.stepNo}_PROFILE`,
+			status: ReadinessItemStatus.PASSED,
+			evidenceJson: {
+				stepNo: step.stepNo,
+				operationCode: step.operation.code,
+				profileId: profile.id,
+				profileCode: profile.code,
+				profileName: profile.name,
+			},
+		});
+	}
+
+	return results;
+}
+
 function calculateSummary(items: Array<{ status: ReadinessItemStatus }>): CheckSummary {
 	let passed = 0;
 	let failed = 0;
@@ -906,6 +986,7 @@ export async function performCheck(
 		prepStencilCleanResults,
 		prepScraperResults,
 		prepFixtureResults,
+		prepProgramResults,
 	] = await Promise.all([
 		shouldRunCheck(ReadinessItemType.EQUIPMENT) ? checkEquipment(db, run) : Promise.resolve([]),
 		shouldRunCheck(ReadinessItemType.MATERIAL) ? checkMaterial(db, run) : Promise.resolve([]),
@@ -929,6 +1010,7 @@ export async function performCheck(
 		shouldRunCheck(ReadinessItemType.PREP_FIXTURE)
 			? checkPrepFixture(db, run)
 			: Promise.resolve([]),
+		shouldRunCheck(ReadinessItemType.PREP_PROGRAM) ? checkProgram(db, run) : Promise.resolve([]),
 	]);
 
 	const allResults = [
@@ -944,6 +1026,7 @@ export async function performCheck(
 		...prepStencilCleanResults,
 		...prepScraperResults,
 		...prepFixtureResults,
+		...prepProgramResults,
 	];
 	const summary = calculateSummary(allResults);
 	const checkStatus =

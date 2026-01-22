@@ -74,6 +74,23 @@ export type SqueegeeUsageRecordDetail = {
 	updatedAt: string;
 };
 
+export type FixtureUsageRecordDetail = {
+	id: string;
+	fixtureId: string;
+	lineId: string | null;
+	lineCode: string | null;
+	lineName: string | null;
+	recordDate: string;
+	usageCount: number | null;
+	totalUsageCount: number | null;
+	usedBy: string | null;
+	confirmedBy: string | null;
+	remark: string | null;
+	lifeLimit: number | null;
+	createdAt: string;
+	updatedAt: string;
+};
+
 export type EquipmentInspectionRecordDetail = {
 	id: string;
 	lineId: string | null;

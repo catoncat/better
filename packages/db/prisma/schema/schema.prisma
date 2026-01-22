@@ -290,6 +290,7 @@ enum ReadinessItemType {
   PREP_STENCIL_CLEAN // 钢网清洗准备（清洗记录）
   PREP_SCRAPER       // 刮刀准备（点检记录）
   PREP_FIXTURE       // 夹具准备（寿命检查）
+  PREP_PROGRAM       // 炉温程式准备（程式一致性检查）
 }
 
 enum ReadinessItemStatus {
@@ -835,6 +836,81 @@ model OvenProgramRecord {
   @@index([programName])
 }
 
+// ==========================================
+// Reflow Profile Models (Track D - T2.5/T2.6)
+// ==========================================
+
+/// Reflow oven temperature profile definition
+/// Represents a standard program with zone temperatures and timing
+model ReflowProfile {
+  id          String              @id @default(cuid())
+  code        String              @unique // Program code/name for matching
+  name        String              // Display name
+  version     String              @default("1.0") // Version for tracking changes
+  description String?
+  status      ReflowProfileStatus @default(ACTIVE)
+
+  // Temperature zone configuration (stored as JSON for flexibility)
+  // Example: { "zones": [{ "name": "Preheat", "temp": 150, "time": 60 }, ...] }
+  zoneConfig Json?
+
+  // Constraints
+  peakTempMin   Float? // Minimum peak temperature (°C)
+  peakTempMax   Float? // Maximum peak temperature (°C)
+  totalTimeMin  Int?   // Minimum total time (seconds)
+  totalTimeMax  Int?   // Maximum total time (seconds)
+
+  meta      Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  usageRecords ReflowProfileUsage[]
+  routingSteps RoutingStep[] // Steps expecting this profile
+
+  @@index([status])
+}
+
+enum ReflowProfileStatus {
+  ACTIVE      // Available for use
+  DEPRECATED  // No longer recommended, but allowed
+  ARCHIVED    // Not available for new assignments
+}
+
+/// Records actual reflow profile usage during production
+/// Links a Run to the profile used at the reflow station
+model ReflowProfileUsage {
+  id        String   @id @default(cuid())
+  profileId String
+  runId     String?  // Optional: link to Run for traceability
+  lineId    String?  // Which line was used
+  equipmentId String? // Specific oven equipment ID
+
+  // Actual values recorded (may differ from profile definition)
+  actualProgramName String   // Program name as read from equipment
+  actualPeakTemp    Float?   // Measured peak temperature
+  actualTotalTime   Int?     // Actual cycle time in seconds
+
+  // Verification result
+  isMatched Boolean @default(false) // true if actualProgramName matches profile.code
+  mismatchReason String? // Reason if not matched
+
+  usedAt    DateTime @default(now())
+  usedBy    String?  // Operator ID
+  verifiedBy String? // Verifier ID (if manual verification)
+  verifiedAt DateTime?
+
+  meta      Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile ReflowProfile @relation(fields: [profileId], references: [id])
+
+  @@index([profileId])
+  @@index([runId])
+  @@index([lineId])
+  @@index([usedAt])
+}
+
 model DailyQcRecord {
   id              String   @id @default(cuid())
   lineId          String?
@@ -1008,23 +1084,25 @@ model Routing {
 }
 
 model RoutingStep {
-  id             String      @id @default(cuid())
-  routingId      String
-  stepNo         Int
-  sourceStepKey  String?
-  operationId    String
-  stationGroupId String?
-  stationType    StationType // 推荐执行方式
-  isLast         Boolean     @default(false)
-  requiresFAI    Boolean     @default(false)
-  meta           Json?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id                      String      @id @default(cuid())
+  routingId               String
+  stepNo                  Int
+  sourceStepKey           String?
+  operationId             String
+  stationGroupId          String?
+  stationType             StationType // 推荐执行方式
+  isLast                  Boolean     @default(false)
+  requiresFAI             Boolean     @default(false)
+  expectedReflowProfileId String?     // T2.6: 期望的炉温程式
+  meta                    Json?
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
 
-  routing      Routing       @relation(fields: [routingId], references: [id])
-  operation    Operation     @relation(fields: [operationId], references: [id])
-  stationGroup StationGroup? @relation(fields: [stationGroupId], references: [id])
-  executionConfigs RouteExecutionConfig[]
+  routing               Routing        @relation(fields: [routingId], references: [id])
+  operation             Operation      @relation(fields: [operationId], references: [id])
+  stationGroup          StationGroup?  @relation(fields: [stationGroupId], references: [id])
+  expectedReflowProfile ReflowProfile? @relation(fields: [expectedReflowProfileId], references: [id])
+  executionConfigs      RouteExecutionConfig[]
 
   @@unique([routingId, stepNo])
   @@index([routingId])
