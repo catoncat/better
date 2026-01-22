@@ -381,3 +381,150 @@
 ## Progress (2026-01-21)
 - Ran bun apps/server/scripts/seed.ts (DB reset + roles/users + MES seed).
 - Ran smt-demo-dataset.ts against API on port 3100; created run RUN-WO-20250526-001-1768978028478 with FAI/OQC IDs in output.
+
+## Findings (2026-01-21 compair docs)
+- smt_flow_comparison_report.md outlines gaps: our system is state-machine driven vs customer’s form-driven SMT flow; highlights missing lifecycle tracking for solder paste/stencil/temperature/fixture maintenance, and suggests phased roadmap.
+- smt_form_collection_matrix.md is a blank capture matrix for each form’s data source, gate type, signature, and backfill policy; includes global gate/signature/time rules to confirm.
+
+## Findings (2026-01-21 smt form confirmation)
+- SMT 表单采集确认表.md is a completed matrix: each form has data source (terminal/PDA/TPM/设备), gate behavior, signature policy, and backfill rules; many items are non-gating but require system judgment; FAI form requires signature.
+- Confirmation section clarifies: forms are integrated into process steps (not standalone), time rules are alerts (not hard blocks), waiver authority is Factory Manager, barcode coverage is full, and data strategy is manual-first then automation.
+
+## Findings (2026-01-21 solder/bake modules)
+- Server has solder-paste module with list/create APIs for SolderPasteUsageRecord and ColdStorageTemperatureRecord; not linked to readiness or gating rules yet.
+- Server has bake module with list/create APIs for BakeRecord (PCB/parts baking) but not referenced in readiness checks.
+- Stencil integration endpoints exist (stencil status receive; line stencil bind/unbind) and readiness check uses LineStencil + StencilStatusRecord.
+
+## Findings (2026-01-21 bake/solder routes)
+- Solder paste usage and cold storage temperature routes exist (list/create) gated by READINESS_VIEW/READINESS_CHECK permissions; no link to readiness gate logic.
+- Bake record routes exist (list/create) gated by READINESS_VIEW/READINESS_CHECK; also not referenced in readiness or run authorize.
+
+## Findings (2026-01-21 mes routes)
+- mes routes include bakeRecordRoutes and solderPasteUsageRoutes/coldStorageTemperatureRoutes, so APIs exist but are not wired into readiness gating or form-level workflow.
+
+## Findings (2026-01-21 bake/solder schema)
+- Bake record schema captures itemCode, process, qty, temperature, duration, in/out times and operators; aligns with QR-Pro-057 but is not used as readiness gate.
+- Solder paste usage schema tracks received/expires/thawed/issued/returned timestamps; cold storage temperature schema logs measuredAt/temp/reviewedBy.
+
+## Findings (2026-01-21 defects/rework)
+- Defect + rework APIs exist (create defect, assign disposition, complete rework), but not a specific repair form workflow; can partially map to QR-Pro-012 repair records.
+
+## Findings (2026-01-21 data collection)
+- Data collection spec module provides CRUD for specs, but no direct linkage to specific SMT forms; usage depends on configuring RouteExecutionConfig dataSpecIds (not present for confirmed forms).
+
+## Progress (2026-01-21)
+- Wrote gap analysis report for SMT form confirmation vs implementation: domain_docs/mes/spec/process/compair/smt_form_confirmation_gap_report.md.
+
+## Findings (2026-01-22 prep gating)
+- User confirmed prep completion requires all items meet criteria; items marked 门禁=No still require records and allow continue with alert/waiver.
+
+## Findings (2026-01-22 design suggestions)
+- Confirmation table defines prep completion as all items meet criteria; non-gate items still require record with alert/waiver allowed.
+- Gap report highlights missing soft-gate engine, time-rule alerts, waiver role, and several form-specific data captures.
+
+## Progress (2026-01-22)
+- Added design suggestions doc for SMT gap closure: smt_gap_design_suggestions.md.
+
+## SMT gap design suggestions review (quick)
+- Possible conflict: "仅记录(RECORD)" says "提示(可选)"; user clarified non-gating still must be recorded and should be confirmed/recorded, not optional. (domain_docs/mes/spec/process/compair/smt_gap_design_suggestions.md:15)
+- Potential overreach: assumes water-wash timing rule applies universally; should be route/product-specific or optional if no wash step exists. (domain_docs/mes/spec/process/compair/smt_gap_design_suggestions.md:65-67)
+- Role design risk: introduces "Factory Manager" without mapping to existing RBAC/permissions; may conflict with current role model. (domain_docs/mes/spec/process/compair/smt_gap_design_suggestions.md:75-77)
+- Duplication risk: new PrepCheck/PrepItemRecord vs existing Readiness and audit/waive flows; clarify single source of truth to avoid split logic. (domain_docs/mes/spec/process/compair/smt_gap_design_suggestions.md:19-39)
+
+## Error log
+- Attempt: write conversation note with `cat >` failed due to noclobber ("file exists"). Next: overwrite using `cat >|`.
+
+## SMT docs alignment (decision supplements)
+- Confirm table still mentions Factory Manager and global wash rule; needs update to route/step-specific + reuse roles.
+- Gap report global rules section needs same decision supplements (record must exist; auto vs manual; role mapping).
+
+## Plan files lookup
+- phase3_tasks.md not found; plan files include tasks.md, phase4_tasks.md, smt_gap_task_breakdown.md, 01_milestones.md.
+
+## SMT plan doc review
+- smt_gap_task_breakdown.md already has risk/acceptance notes matching decisions; may need explicit updates for record-required & role mapping details; confirm where to track status in plan docs.
+
+## SMT plan doc updates
+- Added confirmed implementation constraints and Phase 1 acceptance note in smt_gap_task_breakdown.md; aligned phase4_tasks time-window items to route/step scope + alert/waive.
+
+## SMT config design confirmed
+- Documented config list strategy in smt_gap_design_suggestions.md; updated smt_gap_task_breakdown.md to add config template tasks and hybrid storage note.
+
+## Review notes: smt_gap_task_breakdown
+- Found references to PrepItemRecord in T2.2 and T3.5, which may conflict with decision to use Readiness as single source of truth.
+
+## Review notes: prep record references
+- T2.2/T3.5 explicitly write PrepItemRecord, which conflicts with the decision to keep Readiness as the single source of truth.
+
+## Review notes: line refs
+- T2.4 assumes trigger event exists (回流焊完成) but no explicit task to capture event/scan point; may need a task in Track C. Line 130.
+- PrepItemRecord references confirmed at lines 128/209.
+
+## Patch prep
+- Need to insert 1.1.5 recordRequired enforcement, replace T2.2 PrepItemRecord with Readiness update, add 2.2.5 event capture, and update T3.5 to DataValue/Readiness evidence.
+
+## Review line refs updated
+- Updated line refs for T2.2 (129), T2.4 (131), T2.2.5 (145), T3.5 (211).
+
+## Emoji cleanup needed
+- smt_gap_task_breakdown.md contains ⚠️ and ▶ (extended pictographic); replace with ASCII to satisfy doc contract.
+
+## Emoji cleanup done
+- Extended pictographic check now returns no matches for smt_gap_task_breakdown.md.
+
+## Plan updates applied (review fixes)
+- Added config override + PREP enable strategy tasks under T1.1.
+- Added idempotency/duplication handling for device ingest (T3.5 + subtasks).
+
+## Decision confirmed (config design)
+- User reconfirmed config strategy (hybrid config, route/step scope, reuse roles). Updated conversation note.
+
+## Config template placement
+- No existing spec/config folder under domain_docs/mes/spec; will introduce new config docs and reference from smt_gap_design_suggestions.md.
+
+## Findings: demo guide overhaul
+- user_docs/demo/guide.md is still a compact demo flow; needs expansion into detailed front-end validation manual with new core concepts section, SMT deep dives, failure branch chapter, and appendices per plan.
+
+## Findings: readiness playbook
+- Readiness items: STENCIL, SOLDER_PASTE, EQUIPMENT, MATERIAL, ROUTE, LOADING; LOADING passes only when all slots LOADED; ROUTE requires READY.
+- Readiness data sources: bindings/status records (stencil/solder), TPM/接口 (equipment), BOM + material master (material), route compile (route), loading expectations + scan records (loading).
+- Run authorization forces a formal readiness check if not already done; failures keep Run in PREP.
+
+## Findings: loading flow
+- Preconditions: Run PREP + line bound + FeederSlot configured + SlotMaterialMapping present; load-table fails if any mapping missing or loading already started.
+- Load-table generates RunSlotExpectation per slot with expectedMaterialCode + alternates; status starts PENDING.
+- Verify rules: barcode format materialCode|lotNo; PASS=expected, WARNING=alternate, FAIL=mismatch; FAIL increments failedAttempts; 3 fails locks slot.
+- Idempotent: already LOADED + same material returns existing record; different material requires replace; replace requires reason and marks old record REPLACED.
+
+## Findings: FAI + execution
+- FAI preconditions: Run PREP, readiness formal passed, sampleQty units pre-generated; create/start/complete endpoints; FAI gate requires PASS when route requires FAI.
+- FAI complete rules: PASS needs failedQty=0; FAIL requires failedQty>0; PASS blocked if SPI/AOI inspection FAIL exists.
+- Execution: Unit lifecycle QUEUED -> IN_STATION -> DONE/OUT_FAILED; OUT_FAILED must be dispositioned before rework/continue.
+- TrackIn/Out requires authorized run + route/station match + required data values; trace output includes routeVersion snapshot, tracks, dataValues, inspections, loadingRecords.
+
+## Findings: OQC + exceptions
+- OQC triggers after all units reach terminal states; sampling rules (PERCENTAGE/FIXED) by product/line/routing with priority; sampleValue 0 or no rule => direct COMPLETED.
+- OQC status: PENDING -> INSPECTING -> PASS/FAIL; PASS completes Run, FAIL moves Run to ON_HOLD then MRB decision (RELEASE/REWORK/SCRAP).
+- Exceptions catalog includes loading failures (mapping missing, already started), barcode errors, lock/unlock flow, readiness waiver via /readiness/items/:id/waive with READINESS_WAIVE, FAI creation errors, authorize errors, track-in/out errors, cancel run (PREP only).
+
+## Findings: validation checklists
+- Loading validation covers load-table happy path + missing mapping + already started, verify PASS/WARNING/FAIL, idempotent scans, slot lock/unlock, replace with reason, and expected error codes (MATERIAL_LOT_NOT_FOUND, MATERIAL_LOT_AMBIGUOUS).
+- Run/execution validation covers run creation -> unit generation (QUEUED/currentStepNo), readiness check behavior, FAI lifecycle, authorize action, TrackIn/Out payloads, OQC rule matching and sample size, OQC start/items/complete.
+
+## Findings: trace + demo data
+- Trace validation checks unit/routeVersion freeze, tracks/dataValues, inspections summary, and loadingRecords; supports material lot reverse lookup.
+- Demo dataset blueprint suggests coverage for loading PASS/WARNING/FAIL, replace, FAI PASS/FAIL, execution PASS/FAIL, OQC trigger/no-trigger; naming conventions for WO/RUN/SN/lot.
+
+## Guide overhaul plan (user_docs/demo/guide.md)
+- [x] Restructure outline with new core concepts + renumbered SMT/DIP/failure chapters.
+- [x] Expand SMT sections with readiness/loading/FAI/authorize/execution/OQC detail + checkpoints.
+- [x] Expand DIP walkthrough + appendices (demo data, error codes, checkpoints).
+
+## SMT config sample context
+- Confirmed demo codes: line SMT-A, route SMT-BOT-标准路由, stations SMT-A-REFLOW/AOI, etc., from smt_playbook and smt-demo-dataset.
+
+## RBAC role keys
+- Confirmed role codes: admin, planner, engineer, quality, leader, operator in rbac spec.
+
+## Config sample + DB override docs
+- Added config README updates, SMT-A sample configs, and DB override schema doc under domain_docs/mes/spec/config/.

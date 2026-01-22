@@ -187,6 +187,9 @@
 - **默认模板在仓库内维护**（便于版本追踪与评审）
 - **允许落库覆盖默认值**（便于现场调参）
 - 变更需要审计记录，支持回滚到模板默认值
+- 模板位置：`domain_docs/mes/spec/config/templates/`（说明见 `domain_docs/mes/spec/config/README.md`）
+- 样例配置：`domain_docs/mes/spec/config/samples/`
+- 覆盖落库设计：`domain_docs/mes/spec/config/02_db_override_schema.md`
 
 ### 10.2 PrepItemPolicy（准备项策略清单）
 

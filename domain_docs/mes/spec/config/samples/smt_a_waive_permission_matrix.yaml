@@ -1,0 +1,20 @@
+version: 1
+sample: SMT-A
+roles:
+  - roleKey: leader
+    permissions:
+      - prep:waive
+  - roleKey: quality
+    permissions:
+      - prep:waive
+      - time_rule:override
+  - roleKey: admin
+    permissions:
+      - prep:waive
+      - time_rule:override
+
+dualApproval:
+  enabled: false
+  rolesRequired:
+    - leader
+    - quality

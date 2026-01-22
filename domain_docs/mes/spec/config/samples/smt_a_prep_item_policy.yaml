@@ -1,0 +1,61 @@
+version: 1
+sample: SMT-A
+lineCode: SMT-A
+routeCode: SMT-BOT-标准路由
+items:
+  - itemCode: PREP_BAKE
+    gateType: SOFT
+    recordRequired: true
+    confirmMode: MANUAL
+    dataSource: MANUAL
+    waivePermission: prep:waive
+    evidenceRefType: BAKE_RECORD
+    notes: "Manual bake record required"
+  - itemCode: PREP_PASTE
+    gateType: SOFT
+    recordRequired: true
+    confirmMode: AUTO
+    dataSource: SYSTEM
+    waivePermission: prep:waive
+    evidenceRefType: SOLDER_PASTE_USAGE
+    notes: "Auto confirm when paste lifecycle data is available"
+  - itemCode: PREP_TEMP
+    gateType: SOFT
+    recordRequired: true
+    confirmMode: AUTO
+    dataSource: DEVICE
+    waivePermission: prep:waive
+    evidenceRefType: COLD_STORAGE_TEMP
+    notes: "Auto confirm when device temperature data exists"
+  - itemCode: PREP_STENCIL_USAGE
+    gateType: SOFT
+    recordRequired: true
+    confirmMode: AUTO
+    dataSource: DEVICE
+    waivePermission: prep:waive
+    evidenceRefType: STENCIL_STATUS
+    notes: "Usage count and tension in range"
+  - itemCode: PREP_STENCIL_CLEAN
+    gateType: SOFT
+    recordRequired: true
+    confirmMode: MANUAL
+    dataSource: MANUAL
+    waivePermission: prep:waive
+    evidenceRefType: STENCIL_CLEAN
+    notes: "Manual clean record until device integration exists"
+  - itemCode: PREP_SCRAPER
+    gateType: SOFT
+    recordRequired: true
+    confirmMode: MANUAL
+    dataSource: MANUAL
+    waivePermission: prep:waive
+    evidenceRefType: SCRAPER_CHECK
+    notes: "Manual inspection for scraper condition"
+  - itemCode: PREP_FIXTURE
+    gateType: SOFT
+    recordRequired: true
+    confirmMode: AUTO
+    dataSource: SYSTEM
+    waivePermission: prep:waive
+    evidenceRefType: FIXTURE_MAINT
+    notes: "Auto confirm from TPM maintenance records"

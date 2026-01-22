@@ -22,6 +22,8 @@
 ## Progress
 - Documented the configuration design in `domain_docs/mes/spec/process/compair/smt_gap_design_suggestions.md`.
 - Updated `domain_docs/mes/plan/smt_gap_task_breakdown.md` to reflect the confirmed config strategy.
+- Added template location and example config templates under `domain_docs/mes/spec/config/`.
+- Added SMT-A sample configs and DB override schema doc under `domain_docs/mes/spec/config/`.
 
 ## Errors
 - None.
