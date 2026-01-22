@@ -549,3 +549,37 @@
 
 ## Triage note updated
 - Updated mes-next triage to mark acceptance paused, SMT gap as primary, config spec done, and merge smt-basic first.
+
+## Review attempt - smt-basic worktree
+- Error: git -C /Users/envvar/lzb/better-wt-smt-basic status failed (path not found). Next: use `git worktree list` to locate actual path.
+
+## Review prep
+- Only main worktree exists; smt-basic-wp4-10 branch exists locally. Next approach: review via `git diff` between main and smt-basic-wp4-10 without checkout.
+
+## smt-basic review notes (schema)
+- Branch adds models: StencilUsageRecord, StencilCleaningRecord, SqueegeeUsageRecord, EquipmentInspectionRecord, OvenProgramRecord, DailyQcRecord, ProductionExceptionRecord; lineId optional for all and no run/route linkage. Consider readiness evidence linkage later.
+- AuditEntityType extended with new record types.
+
+## Error log
+- Attempted to read smt-basic schema file from main workspace; file not found. Next: use `git show smt-basic-wp4-10:...` for branch files.
+
+## smt-basic review notes (schema API)
+- Create schemas allow optional lineCode for all records; line scoping not required -> records can be unscoped, which may weaken readiness/trace linkage.
+- SqueegeeUsage includes checkSurface/checkEdge/checkFlatness fields (point-inspection aligned), so likely OK.
+- EquipmentInspection result limited to PASS/FAIL; no additional status; acceptable but might be coarse vs TPM.
+
+## smt-basic review notes (service)
+- Services accept optional lineCode and allow records with null lineId; no enforcement of per-line scoping.
+- Validation checks timestamps and non-negative counts but does not require product/job context; suitable for free-form records but weak for readiness evidence.
+- No run/route linkage in record creation; only line-based lookup.
+
+## smt-basic review notes (routes)
+- Endpoints use READINESS_VIEW/READINESS_CHECK permissions for prep records, QUALITY_OQC for daily QC and production exception; no line-based access scoping in handlers.
+- Auditing is present for create operations.
+
+## smt-basic review notes (routes/FAI)
+- mes routes include smtBasicRoutes; no additional changes besides import order in FAI service.
+
+## smt-basic review notes (web)
+- Navigation adds new SMT record pages; permissions align with server routes (READINESS_VIEW / QUALITY_OQC).
+- Hook endpoints use /stencil-cleaning-records consistent with server routes.
