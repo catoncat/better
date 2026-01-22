@@ -30,6 +30,8 @@
 | 钢网清洗记录 | `GET /api/stencil-cleaning-records`, `POST /api/stencil-cleaning-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/stencil-cleaning/index.tsx` |
 | 刮刀使用记录 | `GET /api/squeegee-usage-records`, `POST /api/squeegee-usage-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/squeegee-usage/index.tsx` |
 | 刮刀准备 | `POST /api/squeegee-usage-records`, `POST /api/runs/:runNo/readiness/check` | `apps/server/src/modules/mes/smt-basic/service.ts`, `apps/server/src/modules/mes/readiness/service.ts` | `apps/web/src/routes/_authenticated/mes/squeegee-usage/index.tsx`, `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` |
+| 夹具使用记录 | `GET /api/fixture-usage-records`, `POST /api/fixture-usage-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | - |
+| 夹具准备 | `POST /api/fixture-usage-records`, `POST /api/runs/:runNo/readiness/check` | `apps/server/src/modules/mes/smt-basic/service.ts`, `apps/server/src/modules/mes/readiness/service.ts` | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` |
 | 设备点检记录 | `GET /api/equipment-inspection-records`, `POST /api/equipment-inspection-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/equipment-inspections/index.tsx` |
 | 炉温程式记录 | `GET /api/oven-program-records`, `POST /api/oven-program-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/oven-program-records/index.tsx` |
 | 异常记录/处理 | `GET /api/readiness/exceptions`, `POST /api/runs/:runNo/readiness/items/:itemId/waive` | `apps/server/src/modules/mes/readiness/service.ts` | `apps/web/src/routes/_authenticated/mes/readiness-exceptions.tsx` |

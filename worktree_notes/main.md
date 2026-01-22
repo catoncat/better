@@ -666,3 +666,12 @@
 - Found loading routes: /mes/loading and /mes/loading/slot-config in web route tree/navigation; can use /mes/loading as material role home page.
 - Seed scripts: `apps/server/scripts/seed-roles.ts` seeds PRESET_ROLES; `apps/server/scripts/seed.ts` creates test users incl leader user, assigns line bindings for leader, station bindings for operator.
 - Seed test users currently: planner/engineer/quality/leader/operator; leader uses line bindings.
+
+## 2026-01-22 (fixture usage)
+- Findings: stash@{0} applied, modified files are smt-basic/service.ts and schema.prisma.
+- Plan: finish minimal fixture usage model + API + readiness PREP_FIXTURE, add migration, update docs/align, commit in slices.
+- Findings: Fixture usage model exists in schema.prisma; smt-basic service only defines FixtureUsageRecordDetail type; readiness PREP_FIXTURE is stubbed to fail.
+- Findings: SMT align file lists other SMT records; no fixture usage entry yet.
+- Error: bun run db:migrate -- --name add_fixture_usage_record failed due to drift (ReflowProfile tables). Need alternate migration approach without resetting DB.
+- Next: try create-only migration or use db:migrate with --create-only and expect drift handling.
+- Progress: generated migration using temp DATABASE_URL=file:/tmp/better_fixture_migration.db to avoid drift.
