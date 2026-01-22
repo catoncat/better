@@ -93,7 +93,12 @@ export function useFaiByRun(runNo: string | undefined, options?: { enabled?: boo
  * Check FAI gate for run authorization
  */
 export function useFaiGate(runNo: string | undefined, options?: { enabled?: boolean }) {
-	return useQuery<{ requiresFai: boolean; faiPassed: boolean; faiId?: string } | null>({
+	return useQuery<{
+		requiresFai: boolean;
+		faiPassed: boolean;
+		faiSigned: boolean;
+		faiId?: string;
+	} | null>({
 		queryKey: ["mes", "fai", "gate", runNo],
 		enabled: Boolean(runNo) && (options?.enabled ?? true),
 		queryFn: async () => {
@@ -216,5 +221,26 @@ export function useCompleteFai() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
 		},
 		onError: (error: unknown) => showError("完成 FAI 失败", error),
+	});
+}
+
+/**
+ * Sign FAI (required before run authorization)
+ */
+export function useSignFai() {
+	const queryClient = useQueryClient();
+	const showError = useApiError();
+
+	return useMutation({
+		mutationFn: async ({ faiId, remark }: { faiId: string; remark?: string }) => {
+			const response = await client.api.fai({ faiId }).sign.post({ remark });
+			return unwrap(response);
+		},
+		onSuccess: () => {
+			toast.success("FAI 已签字确认");
+			queryClient.invalidateQueries({ queryKey: ["mes", "fai"] });
+			queryClient.invalidateQueries({ queryKey: ["mes", "runs"] });
+		},
+		onError: (error: unknown) => showError("FAI 签字失败", error),
 	});
 }
