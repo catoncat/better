@@ -1315,6 +1315,12 @@ model Inspection {
   decidedBy   String?
   decidedAt   DateTime?
   remark      String?
+
+  // FAI Signature fields (for run authorization gate)
+  signedBy        String?   // User ID who signed off
+  signedAt        DateTime? // When signed
+  signatureRemark String?   // Optional remark
+
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 

@@ -618,6 +618,16 @@ export const authorizeRun = async (
 			};
 		}
 
+		// Check FAI signature
+		if (faiResult.data.requiresFai && !faiResult.data.faiSigned) {
+			return {
+				success: false,
+				code: "FAI_NOT_SIGNED",
+				message: "FAI inspection passed but not signed. Sign FAI before authorization.",
+				status: 400,
+			};
+		}
+
 		const updated = await db.run.update({
 			where: { runNo },
 			data: {
