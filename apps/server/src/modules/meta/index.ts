@@ -15,6 +15,7 @@ export const metaModule = new Elysia({
 					id: true,
 					code: true,
 					name: true,
+					dataScope: true,
 				},
 				orderBy: [{ isSystem: "desc" }, { code: "asc" }],
 			});
@@ -36,6 +37,11 @@ export const metaModule = new Elysia({
 							id: t.String(),
 							code: t.String(),
 							name: t.String(),
+							dataScope: t.Union([
+								t.Literal("ALL"),
+								t.Literal("ASSIGNED_LINES"),
+								t.Literal("ASSIGNED_STATIONS"),
+							]),
 						}),
 					),
 				}),

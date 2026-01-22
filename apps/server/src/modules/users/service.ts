@@ -239,8 +239,16 @@ export const createUser = async (
 			};
 		}
 
-		const roleIdsResult = await resolveRoleIds(db, body.roleIds, { fallbackToDefault: true });
+		const roleIdsResult = await resolveRoleIds(db, body.roleIds, { fallbackToDefault: false });
 		if (!roleIdsResult.success) return roleIdsResult;
+		if (roleIdsResult.data.length === 0) {
+			return {
+				success: false,
+				code: "ROLE_REQUIRED",
+				message: "至少选择一个角色",
+				status: 400,
+			};
+		}
 
 		const lineIds = body.lineIds ?? [];
 		const stationIds = body.stationIds ?? [];

@@ -31,7 +31,7 @@ export const userCreateSchema = t.Object({
 	isActive: t.Boolean(),
 	username: t.Optional(t.String()),
 	enableWecomNotification: t.Optional(t.Boolean()),
-	roleIds: t.Optional(t.Array(t.String())),
+	roleIds: t.Array(t.String(), { minItems: 1 }),
 	lineIds: t.Optional(t.Array(t.String())),
 	stationIds: t.Optional(t.Array(t.String())),
 });
@@ -43,7 +43,7 @@ export const userUpdateSchema = t.Object({
 	phone: t.Optional(t.String()),
 	isActive: t.Optional(t.Boolean()),
 	enableWecomNotification: t.Optional(t.Boolean()),
-	roleIds: t.Optional(t.Array(t.String())),
+	roleIds: t.Optional(t.Array(t.String(), { minItems: 1 })),
 	lineIds: t.Optional(t.Array(t.String())),
 	stationIds: t.Optional(t.Array(t.String())),
 });
