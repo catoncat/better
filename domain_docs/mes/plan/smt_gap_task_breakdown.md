@@ -180,18 +180,18 @@
 | **T2.8** | 刮刀点检记录 | 1) ScraperCheckRecord 模型<br>2) 点检 API（规格、刀口状态、平整度）<br>3) 接入 Readiness PREP_SCRAPER | Phase 1 完成 | Schema + API |
 
 **T2.7 子任务**：
-- [x] 2.7.1 设计 StencilCleanRecord 模型 ✅ (StencilCleaningRecord in smt-basic)
-- [x] 2.7.2 编写迁移脚本 ✅
-- [x] 2.7.3 创建清洗记录 API ✅ (POST /stencil-cleaning-records)
-- [ ] 2.7.4 修改 Readiness，增加清洗检查逻辑
-- [x] 2.7.5 前端清洗录入表单 ✅ (/mes/stencil-cleaning)
+- [x] 2.7.1 设计 StencilCleanRecord 模型 (StencilCleaningRecord in smt-basic)
+- [x] 2.7.2 编写迁移脚本
+- [x] 2.7.3 创建清洗记录 API (POST /stencil-cleaning-records)
+- [x] 2.7.4 修改 Readiness，增加清洗检查逻辑
+- [x] 2.7.5 前端清洗录入表单 (/mes/stencil-cleaning)
 
 **T2.8 子任务**：
-- [x] 2.8.1 设计 ScraperCheckRecord 模型 ✅ (SqueegeeUsageRecord in smt-basic - 刮刀使用记录)
-- [x] 2.8.2 编写迁移脚本 ✅
-- [x] 2.8.3 创建点检记录 API ✅ (POST /squeegee-usage-records)
-- [ ] 2.8.4 修改 Readiness，增加刮刀检查逻辑
-- [x] 2.8.5 前端点检录入表单 ✅ (/mes/squeegee-usage)
+- [x] 2.8.1 设计 ScraperCheckRecord 模型 (SqueegeeUsageRecord in smt-basic - 刮刀使用记录)
+- [x] 2.8.2 编写迁移脚本
+- [x] 2.8.3 创建点检记录 API (POST /squeegee-usage-records)
+- [x] 2.8.4 修改 Readiness，增加刮刀检查逻辑
+- [x] 2.8.5 前端点检录入表单 (/mes/squeegee-usage)
 
 ---
 

@@ -20,8 +20,8 @@ touchPoints:
 - Risks:
 
 ## Slices
-- [ ] PREP_STENCIL_CLEAN readiness
-- [ ] PREP_SCRAPER readiness
+- [x] PREP_STENCIL_CLEAN readiness
+- [x] PREP_SCRAPER readiness
 
 <!-- AUTO:BEGIN status -->
 
