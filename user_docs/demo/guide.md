@@ -39,7 +39,7 @@
 | 5 | 创建/启动 FAI | FAI=INSPECTING | 3.4 |
 | 6 | 首件试产 + 记录检验项 | FAI=PASS | 3.4 |
 | 7 | 授权生产 | Run=AUTHORIZED | 3.5 |
-| 8 | 批量执行 TrackIn/Out | Unit DONE/OUT_FAILED | 3.6 |
+| 8 | 批量执行 TrackIn/TrackOut | Unit DONE/OUT_FAILED | 3.6 |
 | 9 | Run 收尾 + OQC/MRB | Run COMPLETED/ON_HOLD | 3.7 |
 | 10 | 工单收尾 + 追溯 | Trace 数据完整 | 3.8 |
 
@@ -435,6 +435,9 @@
 2. 进入 `/mes/execution`，选择首工位
 3. 对 sampleQty 个 SN 完成 TrackIn/TrackOut（PASS）
 
+**注意**
+- Run=PREP 时仅允许首工序试产，非首工序会阻断
+
 #### 3.4.5 记录检验项（字段详解）
 
 | 字段 | 必填 | 说明 | 示例值 |
@@ -511,6 +514,9 @@ FAI FAIL → [是否可修复?]
 - Unit 状态为 QUEUED
 - SN 连续可追溯
 
+**限制**
+- 仅允许 Run 状态为 PREP 或 AUTHORIZED 时生成
+
 #### 3.6.3 TrackIn/TrackOut 前置条件
 
 **TrackIn 前置条件**
@@ -536,6 +542,9 @@ FAI FAIL → [是否可修复?]
 3. TrackOut 选择 PASS → Unit 状态 DONE
 
 **SMT 示例工位**：`ST-SPI-01` → `ST-MOUNT-01` → `ST-REFLOW-01` → `ST-AOI-01`
+
+**提示**
+- 首次 TrackIn 后 Run 会进入 IN_PROGRESS
 
 #### 3.6.5 数据采集项填写
 
@@ -912,3 +921,24 @@ FAIL → Run ON_HOLD → MRB 决策
 - routeVersion 冻结一致
 - tracks/dataValues/inspections/loadingRecords 可见
 - 物料批次反查返回正确 SN 列表
+
+### F. 演示脚本（主持人用）
+
+**目标**：30-35 分钟内完整演示 SMT 闭环，必要时插入 1-2 个失败分支。
+
+| 时间 | 演示段 | 操作要点 | 讲解要点 |
+|------|--------|----------|----------|
+| 0-3 min | 启动与准备 | 登录，确认 READY 路由 | 说明流程范围与角色权限 |
+| 3-6 min | 工单与 Run | 下发工单、创建 Run | 解释 PREP 状态与 Readiness |
+| 6-10 min | Readiness | Formal Check + 可选 Waive | 说明 6 项检查与门禁逻辑 |
+| 10-15 min | 上料防错 | load-table + PASS/WARNING/FAIL | 展示锁定/解锁/换料 |
+| 15-20 min | FAI | 创建/启动/试产/判定 | 强调 FAI gate 阻断 |
+| 20-23 min | 授权 | 授权成功 | 说明授权前自动 Readiness |
+| 23-28 min | 执行 | TrackIn/TrackOut + FAIL | 展示缺陷处置与返修 |
+| 28-32 min | 收尾与 OQC | OQC PASS/FAIL + MRB | 展示三种 MRB 决策 |
+| 32-35 min | 追溯 | Trace 查询 SN | 展示路由版本与记录 |
+
+**可插入失败分支**
+- 上料 FAIL → SLOT_LOCKED → 解锁后重试
+- FAI FAIL → 新建 FAI 再判定
+- OQC FAIL → MRB 返修 Run
