@@ -525,10 +525,7 @@ export async function checkPrepStencilClean(
  * Check squeegee inspection record for the run's line.
  * Queries latest SqueegeeUsageRecord for the line, verifies record exists and has no explicit failures.
  */
-export async function checkPrepScraper(
-	db: PrismaClient,
-	run: Run,
-): Promise<CheckItemResult[]> {
+export async function checkPrepScraper(db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
 	if (!run.lineId) {
 		return [];
 	}
