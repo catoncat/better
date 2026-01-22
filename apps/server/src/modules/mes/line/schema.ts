@@ -77,6 +77,13 @@ export const readinessConfigSchema = t.Object({
 			t.Literal("STENCIL"),
 			t.Literal("SOLDER_PASTE"),
 			t.Literal("LOADING"),
+			// PREP_* 准备项检查（SMT Gap Phase 1）
+			t.Literal("PREP_BAKE"),
+			t.Literal("PREP_PASTE"),
+			t.Literal("PREP_STENCIL_USAGE"),
+			t.Literal("PREP_STENCIL_CLEAN"),
+			t.Literal("PREP_SCRAPER"),
+			t.Literal("PREP_FIXTURE"),
 		]),
 		{
 			description: "Enabled readiness check types for this line",
