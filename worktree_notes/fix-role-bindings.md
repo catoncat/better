@@ -95,3 +95,4 @@ task:
 - Removed default role fallback in create; returns `ROLE_REQUIRED` when roles missing.
 - Meta roles endpoint now includes `dataScope` for UI validation.
 - User dialog validation now derives line/station requirements from role dataScope (no hardcoded role codes).
+- Ran `bun scripts/smart-verify.ts` (pass).
