@@ -540,3 +540,12 @@
 - Stale state in Context and Worktree Scan lines 5-16; acceptance plan path note lines 22-25.
 - Config spec work in Track D lines 64-68 now complete; should mark done or remove.
 - Potential overlap between Phase4 Track F and SMT gap plan (lines 29-41) needs clarification.
+
+## CONTEXT update needed
+- Acceptance is currently paused; update triage and reading path to not default to acceptance. Add SMT gap plan as active entry. Fix plan/tasks.md.md typo if present.
+
+## CONTEXT updated
+- Marked acceptance plans as paused, set SMT gap plan as primary execution entry, fixed plan references.
+
+## Triage note updated
+- Updated mes-next triage to mark acceptance paused, SMT gap as primary, config spec done, and merge smt-basic first.
