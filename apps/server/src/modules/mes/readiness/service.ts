@@ -485,10 +485,25 @@ export async function checkPrepStencilClean(
 		];
 	}
 
-	const latestCleaning = await db.stencilCleaningRecord.findFirst({
-		where: { stencilId: currentBinding.stencilId },
+	let latestCleaning = await db.stencilCleaningRecord.findFirst({
+		where: { runId: run.id, stencilId: currentBinding.stencilId },
 		orderBy: [{ cleanedAt: "desc" }, { createdAt: "desc" }],
 	});
+	let recordSource: "runId" | "lineId" | "global" | null = latestCleaning ? "runId" : null;
+
+	if (!latestCleaning) {
+		latestCleaning = await db.stencilCleaningRecord.findFirst({
+			where: {
+				runId: null,
+				stencilId: currentBinding.stencilId,
+				OR: [{ lineId: run.lineId }, { lineId: null }],
+			},
+			orderBy: [{ cleanedAt: "desc" }, { createdAt: "desc" }],
+		});
+		if (latestCleaning) {
+			recordSource = latestCleaning.lineId ? "lineId" : "global";
+		}
+	}
 
 	if (!latestCleaning) {
 		return [
@@ -500,6 +515,7 @@ export async function checkPrepStencilClean(
 				evidenceJson: {
 					stencilId: currentBinding.stencilId,
 					lineId: run.lineId,
+					runId: run.id,
 				},
 			},
 		];
@@ -513,6 +529,9 @@ export async function checkPrepStencilClean(
 			evidenceJson: {
 				stencilId: currentBinding.stencilId,
 				cleaningRecordId: latestCleaning.id,
+				source: recordSource ?? "unknown",
+				runId: latestCleaning.runId ?? undefined,
+				routingStepId: latestCleaning.routingStepId ?? undefined,
 				cleanedAt: latestCleaning.cleanedAt.toISOString(),
 				cleanedBy: latestCleaning.cleanedBy,
 				recordLineId: latestCleaning.lineId,
