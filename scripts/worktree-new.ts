@@ -470,6 +470,12 @@ function buildNoteTemplate(params: {
 	yaml.push(`branch: ${yamlString(params.branch)}`);
 	if (params.baseRef) yaml.push(`baseRef: ${yamlString(params.baseRef)}`);
 
+	// Explicit dependencies (borrowing from Claude Code Tasks)
+	yaml.push("dependencies:");
+	yaml.push("  blockedBy: []");
+	yaml.push("  blocks: []");
+	yaml.push("status: pending  # pending | in_progress | completed");
+
 	if (
 		params.task ||
 		params.planPath ||
