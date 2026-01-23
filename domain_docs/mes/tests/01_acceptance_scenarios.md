@@ -4,10 +4,16 @@
 
 此文件列出用于验证 MES 系统功能的验收测试场景，确保各个业务闭环与 API 实现的正确性。
 
-**自动化验收脚本**：`bun apps/server/scripts/test-mes-flow.ts`
+**自动化验收脚本（Flow runner）**：`bun apps/server/scripts/test-mes-flow.ts`
 - `--scenario happy`：OQC PASS → Run COMPLETED
 - `--scenario oqc-fail-mrb-release`：OQC FAIL → ON_HOLD → MRB RELEASE → COMPLETED
 - `--scenario oqc-fail-mrb-scrap`：OQC FAIL → ON_HOLD → MRB SCRAP → SCRAPPED
+
+**推荐运行方式（Acceptance harness，独立 DB）**：`bun run mes:acceptance`
+- 默认使用 `file:./data/acceptance.db`，执行 `db:deploy` + `db:seed` 后启动 server，再运行 flow runner。
+- 可选输出：
+  - `--json-file <path>`：写入 JSON 总结
+  - `--junit-file <path>`：写入 JUnit XML（每个 step 作为 testcase）
 
 ## 0. 手工验收准备数据（db:seed）
 

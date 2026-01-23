@@ -28,6 +28,7 @@ type CliOptions = {
 	sn?: string;
 	json: boolean;
 	jsonFile?: string;
+	junitFile?: string;
 	scenario: Scenario;
 };
 
@@ -180,6 +181,7 @@ const parseCliOptions = (): CliOptions => {
 				"                         - readiness-waive: Readiness FAIL (Loading + External gates) → Waive → Authorize PASS",
 				"  --json                 Print JSON summary to stdout",
 				"  --json-file <path>     Write JSON summary to file",
+				"  --junit-file <path>    Write JUnit XML report to file",
 			].join("\n"),
 		);
 		process.exit(0);
@@ -236,11 +238,62 @@ const parseCliOptions = (): CliOptions => {
 		sn: getArgValue("--sn"),
 		json: args.includes("--json"),
 		jsonFile: getArgValue("--json-file"),
+		junitFile: getArgValue("--junit-file"),
 		scenario: scenarioArg as Scenario,
 	};
 };
 
 const isoNow = () => new Date().toISOString();
+
+const escapeXml = (value: string) =>
+	value
+		.replaceAll("&", "&amp;")
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;")
+		.replaceAll('"', "&quot;")
+		.replaceAll("'", "&apos;");
+
+const msToSeconds = (ms: number | undefined) => {
+	if (!ms) return "0";
+	return (ms / 1000).toFixed(3);
+};
+
+const toJunitXml = (options: CliOptions, summary: FlowSummary) => {
+	const failures = summary.steps.filter((s) => !s.ok).length;
+	const suiteName = `MES Flow (${options.track}/${options.scenario})`;
+	const timestamp = summary.startedAt;
+	const duration = msToSeconds(summary.durationMs);
+
+	const testcases = summary.steps
+		.map((step) => {
+			const caseName = escapeXml(step.name);
+			const time = msToSeconds(step.durationMs);
+			const meta = step.meta ? ` meta=${escapeXml(JSON.stringify(step.meta))}` : "";
+
+			if (step.ok) {
+				return `  <testcase classname="mes-flow" name="${caseName}" time="${time}"><system-out>${escapeXml(meta)}</system-out></testcase>`;
+			}
+
+			const code = step.error?.code ?? "";
+			const message = step.error?.message ?? "Step failed";
+			const failureMessage = escapeXml(code ? `${code}: ${message}` : message);
+			return [
+				`  <testcase classname="mes-flow" name="${caseName}" time="${time}">`,
+				`    <failure message="${failureMessage}">${failureMessage}</failure>`,
+				`    <system-out>${escapeXml(meta)}</system-out>`,
+				"  </testcase>",
+			].join("\n");
+		})
+		.join("\n");
+
+	return [
+		'<?xml version="1.0" encoding="UTF-8"?>',
+		`<testsuite name="${escapeXml(suiteName)}" tests="${summary.steps.length}" failures="${failures}" time="${duration}" timestamp="${escapeXml(timestamp)}">`,
+		testcases,
+		"</testsuite>",
+		"",
+	].join("\n");
+};
 
 const runStep = async <T>(summary: FlowSummary, name: string, fn: () => Promise<T>, meta?: StepResult["meta"]) => {
 	const startedAtMs = Date.now();
@@ -1034,6 +1087,10 @@ async function main() {
 
 	if (options.jsonFile) {
 		await Bun.write(options.jsonFile, JSON.stringify(summary, null, 2));
+	}
+
+	if (options.junitFile) {
+		await Bun.write(options.junitFile, toJunitXml(options, summary));
 	}
 
 	if (!summary.ok) {

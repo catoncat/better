@@ -12,6 +12,8 @@ type Options = {
 	dataset: string;
 	withLoading: boolean;
 	json: boolean;
+	jsonFile?: string;
+	junitFile?: string;
 };
 
 const parseArgs = (argv: string[]): Options => {
@@ -41,6 +43,8 @@ const parseArgs = (argv: string[]): Options => {
 				"  --with-loading          Force loading steps",
 				"  --skip-loading          Skip loading steps",
 				"  --json                  Print JSON summary",
+				"  --json-file <path>      Write JSON summary to file",
+				"  --junit-file <path>     Write JUnit XML report to file",
 			].join("\n"),
 		);
 		process.exit(0);
@@ -87,6 +91,8 @@ const parseArgs = (argv: string[]): Options => {
 		dataset,
 		withLoading,
 		json: argv.includes("--json"),
+		jsonFile: getArgValue("--json-file"),
+		junitFile: getArgValue("--junit-file"),
 	};
 };
 
@@ -167,6 +173,8 @@ const main = async () => {
 		if (options.withLoading) flowArgs.push("--with-loading");
 		else flowArgs.push("--skip-loading");
 		if (options.json) flowArgs.push("--json");
+		if (options.jsonFile) flowArgs.push("--json-file", options.jsonFile);
+		if (options.junitFile) flowArgs.push("--junit-file", options.junitFile);
 
 		await runCommand(["bun", ...flowArgs], { env: { MES_API_URL: apiUrl } });
 	} finally {
@@ -179,4 +187,3 @@ await main().catch((error) => {
 	console.error(error);
 	process.exit(1);
 });
-
