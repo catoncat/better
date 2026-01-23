@@ -71,7 +71,9 @@ Lower priority - maintenance forms and optional device data collection.
 
 ## Decisions
 
-(Awaiting user selection)
+- Selected sequence: **A → commit → B**
+  - A: 先对齐 `domain_docs/mes/plan/smt_gap_task_breakdown.md`（补齐已完成的 1.1.4 / 1.1.6 的记录）
+  - B: 再实现 `1.1.8`（准备项来源记录补 runId/runNo/routeStepId 关联与写入规则）
 
 ## Plan
 
@@ -88,7 +90,7 @@ Lower priority - maintenance forms and optional device data collection.
 - [x] Worktree scan complete
 - [x] Doc review complete
 - [x] Triage output generated
-- [ ] User selection pending
+- [x] User selection confirmed
 
 ## Errors
 

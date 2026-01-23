@@ -82,11 +82,15 @@
 - [x] 1.1.1 修改 `ReadinessCheckType` 枚举，新增 6 个 PREP_* 值
 - [x] 1.1.2 更新 `ReadinessCheckItem` 模型，支持新的 itemType (itemType 使用 ReadinessItemType，已扩展)
 - [x] 1.1.3 编写迁移脚本 (使用 db:push 同步)
-- [ ] 1.1.4 定义 PrepItemPolicy 配置模板（recordRequired/confirmMode/dataSource）
+- [x] 1.1.4 定义 PrepItemPolicy 配置模板（recordRequired/confirmMode/dataSource）
+  - As-built: `domain_docs/mes/spec/config/templates/prep_item_policy.template.yaml`、`domain_docs/mes/spec/config/samples/smt_a_prep_item_policy.yaml`
 - [x] 1.1.5 在 Readiness 评估中强制 recordRequired（缺记录视为 FAIL） (通过 Line.meta.readinessChecks.enabled 控制)
-- [ ] 1.1.6 配置覆盖策略（DB override + 审计 + 回滚）
+- [x] 1.1.6 配置覆盖策略（DB override + 审计 + 回滚）
+  - As-built: `domain_docs/mes/spec/config/02_db_override_schema.md`（设计说明；实现待后续配置服务）
 - [x] 1.1.7 PREP_* 启用策略（按产线/路由默认值 + 配置入口/seed） (Line.meta.readinessChecks 配置)
 - [ ] 1.1.8 准备项记录 Run 级别关联字段与写入规则（runId/runNo/routeStepId）
+  - 当前：Readiness 结果已在 Run 级记录（ReadinessCheck/ReadinessCheckItem + evidenceJson）
+  - 待补：准备项来源记录（如锡膏/钢网/刮刀等记录）补充 runId + routeStepId 关联与写入校验
 
 **T1.2 子任务**：
 - [x] 1.2.1 设计 waive API 请求/响应结构 (已存在)

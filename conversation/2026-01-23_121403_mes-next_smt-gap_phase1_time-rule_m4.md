@@ -4,7 +4,9 @@
 - User asked `mes-next` to pick the next MES work item from plans.
 
 ## Decisions
-- Pending: user selection of track/candidate.
+- Selected sequence: **A → commit → B**
+  - A: 对齐 `domain_docs/mes/plan/smt_gap_task_breakdown.md` 的 Phase 1 勾选与 As-built 引用
+  - B: 实现 `1.1.8`（准备项记录 runId/runNo/routeStepId 关联与写入规则）
 
 ## Plan
 - Track A: SMT Gap Phase 1 hardening
@@ -37,6 +39,7 @@
 
 ## Progress
 - Drafted next-work tracks/candidates and recorded conflicts.
+- User selected: A → commit → B
 
 ## Errors
 - None.
