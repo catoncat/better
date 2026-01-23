@@ -12,6 +12,7 @@ export type SolderPasteUsageRecord = SolderPasteUsageRecordListData["items"][num
 
 export type SolderPasteUsageRecordQuery = {
 	lotId?: string;
+	runNo?: string;
 	lineCode?: string;
 	receivedFrom?: string;
 	receivedTo?: string;

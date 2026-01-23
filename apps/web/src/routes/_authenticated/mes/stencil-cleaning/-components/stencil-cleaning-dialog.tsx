@@ -23,6 +23,7 @@ type StencilCleaningCreateInput = Parameters<
 
 const formSchema = z.object({
 	stencilId: z.string().min(1, "请输入钢网编号"),
+	runNo: z.string().optional(),
 	lineCode: z.string().optional(),
 	cleanedAt: z.string().min(1, "请选择清洗时间"),
 	cleanedBy: z.string().min(1, "请输入清洗人"),
@@ -37,11 +38,17 @@ interface StencilCleaningDialogProps {
 	onOpenChange: (open: boolean) => void;
 	onSubmit: (values: StencilCleaningFormValues) => Promise<void>;
 	isSubmitting?: boolean;
+	defaultRunNo?: string;
+	defaultLineCode?: string;
 }
 
-const buildDefaultValues = (): StencilCleaningFormValues => ({
+const buildDefaultValues = (defaults?: {
+	runNo?: string;
+	lineCode?: string;
+}): StencilCleaningFormValues => ({
 	stencilId: "",
-	lineCode: "",
+	runNo: defaults?.runNo ?? "",
+	lineCode: defaults?.lineCode ?? "",
 	cleanedAt: "",
 	cleanedBy: "",
 	confirmedBy: "",
@@ -53,15 +60,18 @@ export function StencilCleaningDialog({
 	onOpenChange,
 	onSubmit,
 	isSubmitting,
+	defaultRunNo,
+	defaultLineCode,
 }: StencilCleaningDialogProps) {
 	const form = useForm({
-		defaultValues: buildDefaultValues(),
+		defaultValues: buildDefaultValues({ runNo: defaultRunNo, lineCode: defaultLineCode }),
 		validators: {
 			onSubmit: formSchema,
 		},
 		onSubmit: async ({ value }) => {
 			const normalized: StencilCleaningCreateInput = {
 				stencilId: value.stencilId.trim(),
+				runNo: value.runNo?.trim() || undefined,
 				lineCode: value.lineCode?.trim() || undefined,
 				cleanedAt: value.cleanedAt,
 				cleanedBy: value.cleanedBy.trim(),
@@ -70,16 +80,16 @@ export function StencilCleaningDialog({
 			};
 
 			await onSubmit(normalized);
-			form.reset(buildDefaultValues());
+			form.reset(buildDefaultValues({ runNo: defaultRunNo, lineCode: defaultLineCode }));
 			onOpenChange(false);
 		},
 	});
 
 	useEffect(() => {
 		if (!open) {
-			form.reset(buildDefaultValues());
+			form.reset(buildDefaultValues({ runNo: defaultRunNo, lineCode: defaultLineCode }));
 		}
-	}, [open, form]);
+	}, [defaultLineCode, defaultRunNo, form, open]);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -96,11 +106,21 @@ export function StencilCleaningDialog({
 					}}
 					className="space-y-6"
 				>
-					<div className="grid gap-4 md:grid-cols-2">
+					<div className="grid gap-4 md:grid-cols-3">
 						<Field form={form} name="stencilId" label="钢网编号">
 							{(field) => (
 								<Input
 									placeholder="例如: ST-001"
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+								/>
+							)}
+						</Field>
+						<Field form={form} name="runNo" label="关联批次号 (可选)">
+							{(field) => (
+								<Input
+									placeholder="例如: RUN-2025-001"
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}

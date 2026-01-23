@@ -20,6 +20,7 @@ import { stencilCleaningColumns } from "./-components/stencil-cleaning-columns";
 
 interface StencilCleaningFilters {
 	stencilId: string;
+	runNo: string;
 	lineCode: string;
 	cleanedBy: string;
 	cleanedFrom?: string;
@@ -30,6 +31,7 @@ const STENCIL_CLEANING_SYSTEM_PRESETS: SystemPreset<StencilCleaningFilters>[] = 
 
 interface StencilCleaningSearchParams {
 	stencilId?: string;
+	runNo?: string;
 	lineCode?: string;
 	cleanedBy?: string;
 	cleanedFrom?: string;
@@ -41,6 +43,7 @@ interface StencilCleaningSearchParams {
 export const Route = createFileRoute("/_authenticated/mes/stencil-cleaning/")({
 	validateSearch: (search: Record<string, unknown>): StencilCleaningSearchParams => ({
 		stencilId: (search.stencilId as string) || undefined,
+		runNo: (search.runNo as string) || undefined,
 		lineCode: (search.lineCode as string) || undefined,
 		cleanedBy: (search.cleanedBy as string) || undefined,
 		cleanedFrom: (search.cleanedFrom as string) || undefined,
@@ -63,6 +66,7 @@ function StencilCleaningPage() {
 	const filters: StencilCleaningFilters = useMemo(
 		() => ({
 			stencilId: searchParams.stencilId || "",
+			runNo: searchParams.runNo || "",
 			lineCode: searchParams.lineCode || "",
 			cleanedBy: searchParams.cleanedBy || "",
 			cleanedFrom: searchParams.cleanedFrom || undefined,
@@ -74,6 +78,7 @@ function StencilCleaningPage() {
 	const isFiltered = useMemo(() => {
 		return (
 			filters.stencilId !== "" ||
+			filters.runNo !== "" ||
 			filters.lineCode !== "" ||
 			filters.cleanedBy !== "" ||
 			Boolean(filters.cleanedFrom) ||
@@ -167,6 +172,7 @@ function StencilCleaningPage() {
 		(presetId: string, presetFilters: Partial<StencilCleaningFilters>) => {
 			const newFilters: Partial<StencilCleaningFilters> = {
 				stencilId: "",
+				runNo: "",
 				lineCode: "",
 				cleanedBy: "",
 				cleanedFrom: undefined,
@@ -183,6 +189,7 @@ function StencilCleaningPage() {
 		page: pageIndex + 1,
 		pageSize,
 		stencilId: filters.stencilId || undefined,
+		runNo: filters.runNo || undefined,
 		lineCode: filters.lineCode || undefined,
 		cleanedBy: filters.cleanedBy || undefined,
 		cleanedFrom: filters.cleanedFrom,
@@ -260,6 +267,7 @@ function StencilCleaningPage() {
 				filterToolbarProps={{
 					fields: [
 						{ key: "stencilId", type: "search", placeholder: "搜索钢网编号..." },
+						{ key: "runNo", type: "search", placeholder: "搜索生产批次号..." },
 						{ key: "lineCode", type: "search", placeholder: "搜索产线..." },
 						{ key: "cleanedBy", type: "search", placeholder: "搜索清洗人..." },
 						{
@@ -288,6 +296,8 @@ function StencilCleaningPage() {
 				onOpenChange={setDialogOpen}
 				onSubmit={handleCreate}
 				isSubmitting={createRecord.isPending}
+				defaultRunNo={filters.runNo || undefined}
+				defaultLineCode={filters.lineCode || undefined}
 			/>
 		</div>
 	);

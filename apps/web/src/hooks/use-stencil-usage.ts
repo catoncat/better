@@ -11,6 +11,7 @@ export type StencilUsageRecord = StencilUsageRecordListData["items"][number];
 
 export type StencilUsageRecordQuery = {
 	stencilId?: string;
+	runNo?: string;
 	lineCode?: string;
 	productModel?: string;
 	recordFrom?: string;

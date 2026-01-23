@@ -1,4 +1,6 @@
+import { Link } from "@tanstack/react-router";
 import type { DataListFieldMeta } from "@/components/data-list/field-meta";
+import { Badge } from "@/components/ui/badge";
 import type { StencilCleaningRecord } from "@/hooks/use-stencil-cleaning";
 import { formatDateTime } from "@/lib/utils";
 
@@ -11,12 +13,36 @@ const formatLine = (record: StencilCleaningRecord) => {
 	return record.lineCode || record.lineName || "-";
 };
 
+const renderRunBadge = (runNo: string | null) => {
+	if (!runNo) return <Badge variant="outline">无批次</Badge>;
+	return <Badge variant="secondary">{runNo}</Badge>;
+};
+
 export const stencilCleaningFieldMeta: DataListFieldMeta<StencilCleaningRecord>[] = [
 	{
 		key: "stencilId",
 		label: "钢网编号",
 		cardPrimary: true,
 		cardValue: (record) => record.stencilId,
+	},
+	{
+		key: "runNo",
+		label: "批次号",
+		cardBadge: true,
+		accessorFn: (record) => record.runNo,
+		tableCell: (record) =>
+			record.runNo ? (
+				<Link
+					to="/mes/runs/$runNo"
+					params={{ runNo: record.runNo }}
+					className="font-medium text-primary hover:underline"
+				>
+					{record.runNo}
+				</Link>
+			) : (
+				"-"
+			),
+		cardValue: (record) => renderRunBadge(record.runNo),
 	},
 	{
 		key: "lineCode",

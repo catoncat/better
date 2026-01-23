@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import type { DataListFieldMeta } from "@/components/data-list/field-meta";
 import { Badge } from "@/components/ui/badge";
 import type { SolderPasteUsageRecord } from "@/hooks/use-solder-paste-usage";
@@ -29,6 +30,25 @@ export const solderPasteUsageFieldMeta: DataListFieldMeta<SolderPasteUsageRecord
 		label: "锡膏批次",
 		cardPrimary: true,
 		cardValue: (record) => record.lotId,
+	},
+	{
+		key: "runNo",
+		label: "批次号",
+		cardDetail: true,
+		accessorFn: (record) => record.runNo,
+		tableCell: (record) =>
+			record.runNo ? (
+				<Link
+					to="/mes/runs/$runNo"
+					params={{ runNo: record.runNo }}
+					className="font-medium text-primary hover:underline"
+				>
+					{record.runNo}
+				</Link>
+			) : (
+				"-"
+			),
+		cardValue: (record) => record.runNo || "-",
 	},
 	{
 		key: "lineCode",

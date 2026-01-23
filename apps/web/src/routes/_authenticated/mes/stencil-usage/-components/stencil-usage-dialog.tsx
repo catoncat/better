@@ -28,6 +28,7 @@ type StencilUsageCreateInput = Parameters<(typeof client.api)["stencil-usage-rec
 
 const formSchema = z.object({
 	stencilId: z.string().min(1, "请输入钢网编号"),
+	runNo: z.string().optional(),
 	lineCode: z.string().optional(),
 	recordDate: z.string().min(1, "请选择记录时间"),
 	stencilThickness: z.number().optional(),
@@ -52,11 +53,17 @@ interface StencilUsageDialogProps {
 	onOpenChange: (open: boolean) => void;
 	onSubmit: (values: StencilUsageFormValues) => Promise<void>;
 	isSubmitting?: boolean;
+	defaultRunNo?: string;
+	defaultLineCode?: string;
 }
 
-const buildDefaultValues = (): StencilUsageFormValues => ({
+const buildDefaultValues = (defaults?: {
+	runNo?: string;
+	lineCode?: string;
+}): StencilUsageFormValues => ({
 	stencilId: "",
-	lineCode: "",
+	runNo: defaults?.runNo ?? "",
+	lineCode: defaults?.lineCode ?? "",
 	recordDate: "",
 	stencilThickness: undefined,
 	productModel: "",
@@ -84,15 +91,18 @@ export function StencilUsageDialog({
 	onOpenChange,
 	onSubmit,
 	isSubmitting,
+	defaultRunNo,
+	defaultLineCode,
 }: StencilUsageDialogProps) {
 	const form = useForm({
-		defaultValues: buildDefaultValues(),
+		defaultValues: buildDefaultValues({ runNo: defaultRunNo, lineCode: defaultLineCode }),
 		validators: {
 			onSubmit: formSchema,
 		},
 		onSubmit: async ({ value }) => {
 			const normalized: StencilUsageCreateInput = {
 				stencilId: value.stencilId.trim(),
+				runNo: value.runNo?.trim() || undefined,
 				lineCode: value.lineCode?.trim() || undefined,
 				recordDate: value.recordDate,
 				stencilThickness: value.stencilThickness ?? undefined,
@@ -111,16 +121,16 @@ export function StencilUsageDialog({
 			};
 
 			await onSubmit(normalized);
-			form.reset(buildDefaultValues());
+			form.reset(buildDefaultValues({ runNo: defaultRunNo, lineCode: defaultLineCode }));
 			onOpenChange(false);
 		},
 	});
 
 	useEffect(() => {
 		if (!open) {
-			form.reset(buildDefaultValues());
+			form.reset(buildDefaultValues({ runNo: defaultRunNo, lineCode: defaultLineCode }));
 		}
-	}, [open, form]);
+	}, [defaultLineCode, defaultRunNo, form, open]);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -137,11 +147,21 @@ export function StencilUsageDialog({
 					}}
 					className="space-y-6"
 				>
-					<div className="grid gap-4 md:grid-cols-2">
+					<div className="grid gap-4 md:grid-cols-3">
 						<Field form={form} name="stencilId" label="钢网编号">
 							{(field) => (
 								<Input
 									placeholder="例如: ST-001"
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+								/>
+							)}
+						</Field>
+						<Field form={form} name="runNo" label="关联批次号 (可选)">
+							{(field) => (
+								<Input
+									placeholder="例如: RUN-2025-001"
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}

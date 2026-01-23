@@ -30,6 +30,7 @@ type SqueegeeUsageCreateInput = Parameters<
 
 const formSchema = z.object({
 	squeegeeId: z.string().min(1, "请输入刮刀编号"),
+	runNo: z.string().optional(),
 	lineCode: z.string().optional(),
 	recordDate: z.string().min(1, "请选择记录时间"),
 	productModel: z.string().optional(),
@@ -62,11 +63,17 @@ interface SqueegeeUsageDialogProps {
 	onOpenChange: (open: boolean) => void;
 	onSubmit: (values: SqueegeeUsageFormValues) => Promise<void>;
 	isSubmitting?: boolean;
+	defaultRunNo?: string;
+	defaultLineCode?: string;
 }
 
-const buildDefaultValues = (): SqueegeeUsageFormState => ({
+const buildDefaultValues = (defaults?: {
+	runNo?: string;
+	lineCode?: string;
+}): SqueegeeUsageFormState => ({
 	squeegeeId: "",
-	lineCode: "",
+	runNo: defaults?.runNo ?? "",
+	lineCode: defaults?.lineCode ?? "",
 	recordDate: "",
 	productModel: "",
 	squeegeeSpec: "",
@@ -92,9 +99,11 @@ export function SqueegeeUsageDialog({
 	onOpenChange,
 	onSubmit,
 	isSubmitting,
+	defaultRunNo,
+	defaultLineCode,
 }: SqueegeeUsageDialogProps) {
 	const form = useForm({
-		defaultValues: buildDefaultValues(),
+		defaultValues: buildDefaultValues({ runNo: defaultRunNo, lineCode: defaultLineCode }),
 		validators: {
 			onSubmit: formSchema,
 		},
@@ -102,6 +111,7 @@ export function SqueegeeUsageDialog({
 			const parsed = formSchema.parse(value);
 			const normalized: SqueegeeUsageCreateInput = {
 				squeegeeId: parsed.squeegeeId.trim(),
+				runNo: parsed.runNo?.trim() || undefined,
 				lineCode: parsed.lineCode?.trim() || undefined,
 				recordDate: parsed.recordDate,
 				productModel: parsed.productModel?.trim() || undefined,
@@ -119,16 +129,16 @@ export function SqueegeeUsageDialog({
 			};
 
 			await onSubmit(normalized);
-			form.reset(buildDefaultValues());
+			form.reset(buildDefaultValues({ runNo: defaultRunNo, lineCode: defaultLineCode }));
 			onOpenChange(false);
 		},
 	});
 
 	useEffect(() => {
 		if (!open) {
-			form.reset(buildDefaultValues());
+			form.reset(buildDefaultValues({ runNo: defaultRunNo, lineCode: defaultLineCode }));
 		}
-	}, [open, form]);
+	}, [defaultLineCode, defaultRunNo, form, open]);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -145,11 +155,21 @@ export function SqueegeeUsageDialog({
 					}}
 					className="space-y-6"
 				>
-					<div className="grid gap-4 md:grid-cols-2">
+					<div className="grid gap-4 md:grid-cols-3">
 						<Field form={form} name="squeegeeId" label="刮刀编号">
 							{(field) => (
 								<Input
 									placeholder="例如: SQ-001"
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+								/>
+							)}
+						</Field>
+						<Field form={form} name="runNo" label="关联批次号 (可选)">
+							{(field) => (
+								<Input
+									placeholder="例如: RUN-2025-001"
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}

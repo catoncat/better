@@ -1101,10 +1101,28 @@ function RunDetailPage() {
 																		<Button variant="ghost" size="sm" asChild>
 																			<Link
 																				to="/mes/stencil-cleaning"
-																				search={{ lineCode: data.line?.code }}
+																				search={{
+																					lineCode: data.line?.code,
+																					runNo: data.run.runNo,
+																				}}
 																			>
 																				<ExternalLink className="mr-1 h-3 w-3" />
 																				清洗记录
+																			</Link>
+																		</Button>
+																	)}
+																	{/* PREP_STENCIL_USAGE: 使用记录缺失/异常 → 前往使用记录 */}
+																	{item.itemType === "PREP_STENCIL_USAGE" && (
+																		<Button variant="ghost" size="sm" asChild>
+																			<Link
+																				to="/mes/stencil-usage"
+																				search={{
+																					lineCode: data.line?.code,
+																					runNo: data.run.runNo,
+																				}}
+																			>
+																				<ExternalLink className="mr-1 h-3 w-3" />
+																				钢网使用
 																			</Link>
 																		</Button>
 																	)}
@@ -1117,15 +1135,45 @@ function RunDetailPage() {
 																			</Link>
 																		</Button>
 																	)}
+																	{/* PREP_PASTE: 锡膏准备项缺失/异常 → 前往使用记录 */}
+																	{item.itemType === "PREP_PASTE" && (
+																		<Button variant="ghost" size="sm" asChild>
+																			<Link
+																				to="/mes/solder-paste-usage"
+																				search={{
+																					lineCode: data.line?.code,
+																					runNo: data.run.runNo,
+																				}}
+																			>
+																				<ExternalLink className="mr-1 h-3 w-3" />
+																				锡膏记录
+																			</Link>
+																		</Button>
+																	)}
 																	{/* PREP_SCRAPER: 刮刀点检缺失/异常 → 前往点检记录 */}
 																	{item.itemType === "PREP_SCRAPER" && (
 																		<Button variant="ghost" size="sm" asChild>
 																			<Link
 																				to="/mes/squeegee-usage"
-																				search={{ lineCode: data.line?.code }}
+																				search={{
+																					lineCode: data.line?.code,
+																					runNo: data.run.runNo,
+																				}}
 																			>
 																				<ExternalLink className="mr-1 h-3 w-3" />
 																				刮刀点检
+																			</Link>
+																		</Button>
+																	)}
+																	{/* PREP_BAKE: 烘烤记录缺失/异常 → 前往烘烤记录 */}
+																	{item.itemType === "PREP_BAKE" && (
+																		<Button variant="ghost" size="sm" asChild>
+																			<Link
+																				to="/mes/bake-records"
+																				search={{ runNo: data.run.runNo }}
+																			>
+																				<ExternalLink className="mr-1 h-3 w-3" />
+																				烘烤记录
 																			</Link>
 																		</Button>
 																	)}

@@ -20,6 +20,7 @@ import { squeegeeUsageColumns } from "./-components/squeegee-usage-columns";
 
 interface SqueegeeUsageFilters {
 	squeegeeId: string;
+	runNo: string;
 	lineCode: string;
 	productModel: string;
 	recordFrom?: string;
@@ -30,6 +31,7 @@ const SQUEEGEE_USAGE_SYSTEM_PRESETS: SystemPreset<SqueegeeUsageFilters>[] = [];
 
 interface SqueegeeUsageSearchParams {
 	squeegeeId?: string;
+	runNo?: string;
 	lineCode?: string;
 	productModel?: string;
 	recordFrom?: string;
@@ -41,6 +43,7 @@ interface SqueegeeUsageSearchParams {
 export const Route = createFileRoute("/_authenticated/mes/squeegee-usage/")({
 	validateSearch: (search: Record<string, unknown>): SqueegeeUsageSearchParams => ({
 		squeegeeId: (search.squeegeeId as string) || undefined,
+		runNo: (search.runNo as string) || undefined,
 		lineCode: (search.lineCode as string) || undefined,
 		productModel: (search.productModel as string) || undefined,
 		recordFrom: (search.recordFrom as string) || undefined,
@@ -63,6 +66,7 @@ function SqueegeeUsagePage() {
 	const filters: SqueegeeUsageFilters = useMemo(
 		() => ({
 			squeegeeId: searchParams.squeegeeId || "",
+			runNo: searchParams.runNo || "",
 			lineCode: searchParams.lineCode || "",
 			productModel: searchParams.productModel || "",
 			recordFrom: searchParams.recordFrom || undefined,
@@ -74,6 +78,7 @@ function SqueegeeUsagePage() {
 	const isFiltered = useMemo(() => {
 		return (
 			filters.squeegeeId !== "" ||
+			filters.runNo !== "" ||
 			filters.lineCode !== "" ||
 			filters.productModel !== "" ||
 			Boolean(filters.recordFrom) ||
@@ -167,6 +172,7 @@ function SqueegeeUsagePage() {
 		(presetId: string, presetFilters: Partial<SqueegeeUsageFilters>) => {
 			const newFilters: Partial<SqueegeeUsageFilters> = {
 				squeegeeId: "",
+				runNo: "",
 				lineCode: "",
 				productModel: "",
 				recordFrom: undefined,
@@ -183,6 +189,7 @@ function SqueegeeUsagePage() {
 		page: pageIndex + 1,
 		pageSize,
 		squeegeeId: filters.squeegeeId || undefined,
+		runNo: filters.runNo || undefined,
 		lineCode: filters.lineCode || undefined,
 		productModel: filters.productModel || undefined,
 		recordFrom: filters.recordFrom,
@@ -260,6 +267,7 @@ function SqueegeeUsagePage() {
 				filterToolbarProps={{
 					fields: [
 						{ key: "squeegeeId", type: "search", placeholder: "搜索刮刀编号..." },
+						{ key: "runNo", type: "search", placeholder: "搜索生产批次号..." },
 						{ key: "lineCode", type: "search", placeholder: "搜索产线..." },
 						{ key: "productModel", type: "search", placeholder: "搜索产品型号..." },
 						{
@@ -288,6 +296,8 @@ function SqueegeeUsagePage() {
 				onOpenChange={setDialogOpen}
 				onSubmit={handleCreate}
 				isSubmitting={createRecord.isPending}
+				defaultRunNo={filters.runNo || undefined}
+				defaultLineCode={filters.lineCode || undefined}
 			/>
 		</div>
 	);

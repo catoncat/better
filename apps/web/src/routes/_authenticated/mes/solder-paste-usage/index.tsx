@@ -22,6 +22,7 @@ import { solderPasteUsageColumns } from "./-components/solder-paste-usage-column
 
 interface SolderPasteUsageFilters {
 	lotId: string;
+	runNo: string;
 	lineCode: string;
 	receivedFrom?: string;
 	receivedTo?: string;
@@ -33,6 +34,7 @@ const SOLDER_PASTE_SYSTEM_PRESETS: SystemPreset<SolderPasteUsageFilters>[] = [];
 
 interface SolderPasteUsageSearchParams {
 	lotId?: string;
+	runNo?: string;
 	lineCode?: string;
 	receivedFrom?: string;
 	receivedTo?: string;
@@ -45,6 +47,7 @@ interface SolderPasteUsageSearchParams {
 export const Route = createFileRoute("/_authenticated/mes/solder-paste-usage/")({
 	validateSearch: (search: Record<string, unknown>): SolderPasteUsageSearchParams => ({
 		lotId: (search.lotId as string) || undefined,
+		runNo: (search.runNo as string) || undefined,
 		lineCode: (search.lineCode as string) || undefined,
 		receivedFrom: (search.receivedFrom as string) || undefined,
 		receivedTo: (search.receivedTo as string) || undefined,
@@ -70,6 +73,7 @@ function SolderPasteUsagePage() {
 	const filters: SolderPasteUsageFilters = useMemo(
 		() => ({
 			lotId: searchParams.lotId || "",
+			runNo: searchParams.runNo || "",
 			lineCode: searchParams.lineCode || "",
 			receivedFrom: searchParams.receivedFrom || undefined,
 			receivedTo: searchParams.receivedTo || undefined,
@@ -82,6 +86,7 @@ function SolderPasteUsagePage() {
 	const isFiltered = useMemo(() => {
 		return (
 			filters.lotId !== "" ||
+			filters.runNo !== "" ||
 			filters.lineCode !== "" ||
 			Boolean(filters.receivedFrom) ||
 			Boolean(filters.receivedTo) ||
@@ -173,6 +178,7 @@ function SolderPasteUsagePage() {
 		(presetId: string, presetFilters: Partial<SolderPasteUsageFilters>) => {
 			const newFilters: Partial<SolderPasteUsageFilters> = {
 				lotId: "",
+				runNo: "",
 				lineCode: "",
 				receivedFrom: undefined,
 				receivedTo: undefined,
@@ -191,6 +197,7 @@ function SolderPasteUsagePage() {
 			page: pageIndex + 1,
 			pageSize,
 			lotId: filters.lotId || undefined,
+			runNo: filters.runNo || undefined,
 			lineCode: filters.lineCode || undefined,
 			receivedFrom: filters.receivedFrom,
 			receivedTo: filters.receivedTo,
@@ -286,7 +293,12 @@ function SolderPasteUsagePage() {
 						{
 							key: "lotId",
 							type: "search",
-							placeholder: "搜索批次号...",
+							placeholder: "搜索锡膏批次...",
+						},
+						{
+							key: "runNo",
+							type: "search",
+							placeholder: "搜索生产批次号...",
 						},
 						{
 							key: "lineCode",
@@ -326,6 +338,8 @@ function SolderPasteUsagePage() {
 				onOpenChange={setDialogOpen}
 				onSubmit={handleCreate}
 				isSubmitting={createRecord.isPending}
+				defaultRunNo={filters.runNo || undefined}
+				defaultLineCode={filters.lineCode || undefined}
 			/>
 		</div>
 	);

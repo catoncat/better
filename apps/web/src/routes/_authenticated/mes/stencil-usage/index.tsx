@@ -20,6 +20,7 @@ import { stencilUsageColumns } from "./-components/stencil-usage-columns";
 
 interface StencilUsageFilters {
 	stencilId: string;
+	runNo: string;
 	lineCode: string;
 	productModel: string;
 	recordFrom?: string;
@@ -30,6 +31,7 @@ const STENCIL_USAGE_SYSTEM_PRESETS: SystemPreset<StencilUsageFilters>[] = [];
 
 interface StencilUsageSearchParams {
 	stencilId?: string;
+	runNo?: string;
 	lineCode?: string;
 	productModel?: string;
 	recordFrom?: string;
@@ -41,6 +43,7 @@ interface StencilUsageSearchParams {
 export const Route = createFileRoute("/_authenticated/mes/stencil-usage/")({
 	validateSearch: (search: Record<string, unknown>): StencilUsageSearchParams => ({
 		stencilId: (search.stencilId as string) || undefined,
+		runNo: (search.runNo as string) || undefined,
 		lineCode: (search.lineCode as string) || undefined,
 		productModel: (search.productModel as string) || undefined,
 		recordFrom: (search.recordFrom as string) || undefined,
@@ -63,6 +66,7 @@ function StencilUsagePage() {
 	const filters: StencilUsageFilters = useMemo(
 		() => ({
 			stencilId: searchParams.stencilId || "",
+			runNo: searchParams.runNo || "",
 			lineCode: searchParams.lineCode || "",
 			productModel: searchParams.productModel || "",
 			recordFrom: searchParams.recordFrom || undefined,
@@ -74,6 +78,7 @@ function StencilUsagePage() {
 	const isFiltered = useMemo(() => {
 		return (
 			filters.stencilId !== "" ||
+			filters.runNo !== "" ||
 			filters.lineCode !== "" ||
 			filters.productModel !== "" ||
 			Boolean(filters.recordFrom) ||
@@ -167,6 +172,7 @@ function StencilUsagePage() {
 		(presetId: string, presetFilters: Partial<StencilUsageFilters>) => {
 			const newFilters: Partial<StencilUsageFilters> = {
 				stencilId: "",
+				runNo: "",
 				lineCode: "",
 				productModel: "",
 				recordFrom: undefined,
@@ -183,6 +189,7 @@ function StencilUsagePage() {
 		page: pageIndex + 1,
 		pageSize,
 		stencilId: filters.stencilId || undefined,
+		runNo: filters.runNo || undefined,
 		lineCode: filters.lineCode || undefined,
 		productModel: filters.productModel || undefined,
 		recordFrom: filters.recordFrom,
@@ -260,6 +267,7 @@ function StencilUsagePage() {
 				filterToolbarProps={{
 					fields: [
 						{ key: "stencilId", type: "search", placeholder: "搜索钢网编号..." },
+						{ key: "runNo", type: "search", placeholder: "搜索生产批次号..." },
 						{ key: "lineCode", type: "search", placeholder: "搜索产线..." },
 						{ key: "productModel", type: "search", placeholder: "搜索产品型号..." },
 						{
@@ -288,6 +296,8 @@ function StencilUsagePage() {
 				onOpenChange={setDialogOpen}
 				onSubmit={handleCreate}
 				isSubmitting={createRecord.isPending}
+				defaultRunNo={filters.runNo || undefined}
+				defaultLineCode={filters.lineCode || undefined}
 			/>
 		</div>
 	);

@@ -11,6 +11,7 @@ export type SqueegeeUsageRecord = SqueegeeUsageRecordListData["items"][number];
 
 export type SqueegeeUsageRecordQuery = {
 	squeegeeId?: string;
+	runNo?: string;
 	lineCode?: string;
 	productModel?: string;
 	recordFrom?: string;

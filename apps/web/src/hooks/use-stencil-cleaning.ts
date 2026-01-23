@@ -11,6 +11,7 @@ export type StencilCleaningRecord = StencilCleaningRecordListData["items"][numbe
 
 export type StencilCleaningRecordQuery = {
 	stencilId?: string;
+	runNo?: string;
 	lineCode?: string;
 	cleanedBy?: string;
 	cleanedFrom?: string;

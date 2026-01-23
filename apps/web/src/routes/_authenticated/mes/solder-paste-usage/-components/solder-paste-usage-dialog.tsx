@@ -29,6 +29,7 @@ type SolderPasteUsageCreateInput = Parameters<
 
 const formSchema = z.object({
 	lotId: z.string().min(1, "请输入锡膏批次"),
+	runNo: z.string().optional(),
 	lineCode: z.string().optional(),
 	receivedAt: z.string().optional(),
 	expiresAt: z.string().optional(),
@@ -48,11 +49,17 @@ interface SolderPasteUsageDialogProps {
 	onOpenChange: (open: boolean) => void;
 	onSubmit: (values: SolderPasteUsageFormValues) => Promise<void>;
 	isSubmitting?: boolean;
+	defaultRunNo?: string;
+	defaultLineCode?: string;
 }
 
-const buildDefaultValues = (): SolderPasteUsageFormValues => ({
+const buildDefaultValues = (defaults?: {
+	runNo?: string;
+	lineCode?: string;
+}): SolderPasteUsageFormValues => ({
 	lotId: "",
-	lineCode: "",
+	runNo: defaults?.runNo ?? "",
+	lineCode: defaults?.lineCode ?? "",
 	receivedAt: "",
 	expiresAt: "",
 	receivedQty: undefined,
@@ -69,15 +76,18 @@ export function SolderPasteUsageDialog({
 	onOpenChange,
 	onSubmit,
 	isSubmitting,
+	defaultRunNo,
+	defaultLineCode,
 }: SolderPasteUsageDialogProps) {
 	const form = useForm({
-		defaultValues: buildDefaultValues(),
+		defaultValues: buildDefaultValues({ runNo: defaultRunNo, lineCode: defaultLineCode }),
 		validators: {
 			onSubmit: formSchema,
 		},
 		onSubmit: async ({ value }) => {
 			const normalized: SolderPasteUsageCreateInput = {
 				lotId: value.lotId.trim(),
+				runNo: value.runNo?.trim() || undefined,
 				lineCode: value.lineCode?.trim() || undefined,
 				receivedAt: value.receivedAt || undefined,
 				expiresAt: value.expiresAt || undefined,
@@ -91,16 +101,16 @@ export function SolderPasteUsageDialog({
 			};
 
 			await onSubmit(normalized);
-			form.reset(buildDefaultValues());
+			form.reset(buildDefaultValues({ runNo: defaultRunNo, lineCode: defaultLineCode }));
 			onOpenChange(false);
 		},
 	});
 
 	useEffect(() => {
 		if (!open) {
-			form.reset(buildDefaultValues());
+			form.reset(buildDefaultValues({ runNo: defaultRunNo, lineCode: defaultLineCode }));
 		}
-	}, [open, form]);
+	}, [open, form, defaultLineCode, defaultRunNo]);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -117,11 +127,21 @@ export function SolderPasteUsageDialog({
 					}}
 					className="space-y-6"
 				>
-					<div className="grid gap-4 md:grid-cols-2">
+					<div className="grid gap-4 md:grid-cols-3">
 						<Field form={form} name="lotId" label="锡膏批次">
 							{(field) => (
 								<Input
 									placeholder="例如: SP-2025-001"
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+								/>
+							)}
+						</Field>
+						<Field form={form} name="runNo" label="关联批次号 (可选)">
+							{(field) => (
+								<Input
+									placeholder="例如: RUN-2025-001"
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
