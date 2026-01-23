@@ -47,3 +47,21 @@ import { Link } from "@tanstack/react-router";
 
 ## Project Path
 - Routes live in `apps/web/src/routes/`.
+
+## Navigation Entry (Important!)
+
+When adding a new feature page, **you must also add a navigation entry** in `apps/web/src/config/navigation.ts`. Otherwise, users won't be able to find the new page in the sidebar menu.
+
+```typescript
+// apps/web/src/config/navigation.ts
+{
+  title: "维修记录",
+  url: "/mes/maintenance-records",
+  permissions: [Permission.READINESS_VIEW],
+},
+```
+
+**Checklist for new pages:**
+1. ✅ Create route file (`apps/web/src/routes/_authenticated/...`)
+2. ✅ Add navigation entry (`apps/web/src/config/navigation.ts`)
+3. ✅ Regenerate route tree (run dev server or `bunx @tanstack/router-cli generate`)
