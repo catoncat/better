@@ -6,7 +6,7 @@ baseRef: "origin/main"
 dependencies:
   blockedBy: []
   blocks: []
-status: pending  # pending | in_progress | completed
+status: completed  # pending | in_progress | completed
 task:
   title: "SMT Gap Phase1 T1.1.8 follow-up (UI + readiness)"
   planPath: "domain_docs/mes/plan/smt_gap_task_breakdown.md"
@@ -25,9 +25,9 @@ touchPoints:
 - Risks: If users enter both `runNo` and `lineCode`, backend enforces consistency; UI should guide to avoid mismatches.
 
 ## Slices
-- [ ] Slice 0: worktree note context
-- [ ] Slice 1: Web dialogs + list filters for run linkage
-- [ ] Slice 2: Verify (smart-verify) + commit
+- [x] Slice 0: worktree note context
+- [x] Slice 1: Web dialogs + list filters for run linkage
+- [x] Slice 2: Verify (smart-verify) + commit
 
 <!-- AUTO:BEGIN status -->
 
