@@ -47,3 +47,33 @@ Isolate changes so parallel work does not interfere with lint/typecheck and redu
    - Run `bun run dev` (or `bun run dev:web` / `bun run dev:server`)
 3. Verify in the merge target:
    - Run `bun scripts/smart-verify.ts` inside the worktree you plan to merge (doc-only skips; `--force` overrides).
+
+## Worktree Note Format
+
+The generated `worktree_notes/<branchSlug>.md` includes:
+
+```yaml
+---
+type: worktree_note
+createdAt: "2026-01-23T12:00:00.000Z"
+branch: "feat/xxx"
+baseRef: "origin/main"
+dependencies:
+  blockedBy: []           # Other branches/tasks this depends on
+  blocks: []              # Other branches/tasks waiting on this
+status: pending           # pending | in_progress | completed
+task:
+  title: "Implement XXX"
+  planPath: "domain_docs/mes/plan/xxx.md"
+  planItem: "3.2"
+touchPoints:
+  - "apps/server/src/modules/xxx"
+---
+```
+
+### Dependencies Field
+
+Borrowed from Claude Code Tasks for explicit dependency tracking:
+- `blockedBy`: List of branches/tasks that must complete before this one can start
+- `blocks`: List of branches/tasks that are waiting on this one
+- `status`: Task lifecycle state (`pending` → `in_progress` → `completed`)
