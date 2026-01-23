@@ -48,16 +48,21 @@ Select the next MES development target from the plan, then ask the user to choos
    - Track = a set of tasks that do not block each other (avoid shared touch points like Prisma schema, `execution/service.ts`, routing engine).
    - Explicitly list conflicts (what cannot be done in parallel).
 4. Produce the triage output (tracks + conflicts) in the Output Format below.
-5. Sync triage output to a conversation note BEFORE asking the user to pick:
+5. **Write task queue for multi-AI coordination**:
+   - Write to `.scratch/task-queue.md` using the Task Queue Format below.
+   - This allows other AI sessions to claim pending tasks.
+6. Sync triage output to a conversation note BEFORE asking the user to pick:
    - Create a note: `bun scripts/conversation-new.ts "mes-next_<topic>"`
    - Paste the full triage output into the note (include Worktree Scan, Tracks, Candidates, Conflicts, and the selection prompt).
    - Do not save only the chosen track; the note must preserve all options for parallel agents.
-6. Output the tracks + candidates to the user, then ask the user to pick one track or one candidate.
+7. Output the tracks + candidates to the user, then ask the user to pick one track or one candidate.
    - Also ask whether they want a dedicated worktree for the chosen item (recommended if they will run another track in parallel or run full lint/typecheck).
    - If yes, propose using `bun scripts/worktree-new.ts <branch> <path> --task ... --plan ... --plan-item ... --triage ...` so the new worktree carries context into `worktree_notes/`.
-7. After the user picks:
+   - **Mention**: "Task queue written to `.scratch/task-queue.md`. Other AI sessions can run `/claim-task` to pick up remaining tasks."
+8. After the user picks:
    - Update the SAME triage note (append a short "Selected" section with the chosen track/task and any worktree decision).
-8. After the user picks, switch to the implementation workflow (use `mes-implement`).
+   - Update `.scratch/task-queue.md` to mark the selected slice as `in_progress` and set `Claimed By` to the branch name.
+9. After the user picks, switch to the implementation workflow (use `mes-implement`).
 
 ## Output Format
 
@@ -75,7 +80,48 @@ End with: "Pick one; I will confirm scope and start plan-first implementation."
 
 ## Guardrails
 
-- Only write/update the conversation note; do not modify code/docs/plan during triage unless the user explicitly asks.
+- Only write/update the conversation note and task queue; do not modify code/docs/plan during triage unless the user explicitly asks.
 - Do not create worktrees or switch branches unless the user explicitly asks.
 - Do not invent new tasks outside `domain_docs/mes/plan/` without proposing them as plan additions first.
 - If the user is asking about "progress/status" of the current branch/worktree, use `worktree-status` instead of re-triaging.
+
+## Task Queue Format
+
+Write to `.scratch/task-queue.md` with this structure:
+
+```markdown
+# Task Queue
+Created: 2026-01-23T12:00:00
+Source: mes-next triage
+
+## Slices
+
+### Slice 1: <task name>
+- **Status**: pending
+- **Claimed By**: -
+- **Branch**: -
+- **Started At**: -
+- **Depends On**: -
+- **Touch Points**: <list key files/areas>
+
+### Slice 2: <task name>
+- **Status**: pending
+- **Claimed By**: -
+- **Branch**: -
+- **Started At**: -
+- **Depends On**: Slice 1 (if applicable)
+- **Touch Points**: <list key files/areas>
+
+---
+
+## Progress Summary
+- Total: 2
+- pending: 2
+- in_progress: 0
+- completed: 0
+```
+
+When a task is claimed:
+- Set `Status` to `in_progress`
+- Set `Claimed By` to the branch name (e.g., `feat/smt-inspection`)
+- Set `Started At` to ISO timestamp
