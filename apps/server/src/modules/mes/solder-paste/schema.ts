@@ -6,6 +6,9 @@ export const solderPasteUsageRecordSchema = t.Object({
 	lineId: t.Union([t.String(), t.Null()]),
 	lineCode: t.Union([t.String(), t.Null()]),
 	lineName: t.Union([t.String(), t.Null()]),
+	runId: t.Union([t.String(), t.Null()]),
+	runNo: t.Union([t.String(), t.Null()]),
+	routingStepId: t.Union([t.String(), t.Null()]),
 	receivedAt: t.Union([t.String({ format: "date-time" }), t.Null()]),
 	expiresAt: t.Union([t.String({ format: "date-time" }), t.Null()]),
 	receivedQty: t.Union([t.Number(), t.Null()]),
@@ -21,6 +24,8 @@ export const solderPasteUsageRecordSchema = t.Object({
 
 export const solderPasteUsageCreateSchema = t.Object({
 	lotId: t.String({ minLength: 1 }),
+	runNo: t.Optional(t.String()),
+	routingStepId: t.Optional(t.String()),
 	lineCode: t.Optional(t.String()),
 	receivedAt: t.Optional(t.String({ format: "date-time" })),
 	expiresAt: t.Optional(t.String({ format: "date-time" })),
@@ -36,6 +41,7 @@ export const solderPasteUsageCreateSchema = t.Object({
 
 export const solderPasteUsageListQuerySchema = t.Object({
 	lotId: t.Optional(t.String()),
+	runNo: t.Optional(t.String()),
 	lineCode: t.Optional(t.String()),
 	receivedFrom: t.Optional(t.String({ format: "date-time" })),
 	receivedTo: t.Optional(t.String({ format: "date-time" })),

@@ -4,6 +4,7 @@ export const bakeRecordSchema = t.Object({
 	id: t.String(),
 	runId: t.Union([t.String(), t.Null()]),
 	runNo: t.Union([t.String(), t.Null()]),
+	routingStepId: t.Union([t.String(), t.Null()]),
 	materialLotId: t.Union([t.String(), t.Null()]),
 	materialCode: t.Union([t.String(), t.Null()]),
 	lotNo: t.Union([t.String(), t.Null()]),
@@ -23,6 +24,7 @@ export const bakeRecordSchema = t.Object({
 
 export const bakeRecordCreateSchema = t.Object({
 	runNo: t.Optional(t.String()),
+	routingStepId: t.Optional(t.String()),
 	materialCode: t.Optional(t.String()),
 	lotNo: t.Optional(t.String()),
 	itemCode: t.String({ minLength: 1 }),

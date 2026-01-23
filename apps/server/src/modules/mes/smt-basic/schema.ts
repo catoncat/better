@@ -9,6 +9,9 @@ export const stencilUsageRecordSchema = t.Object({
 	lineId: t.Union([t.String(), t.Null()]),
 	lineCode: t.Union([t.String(), t.Null()]),
 	lineName: t.Union([t.String(), t.Null()]),
+	runId: t.Union([t.String(), t.Null()]),
+	runNo: t.Union([t.String(), t.Null()]),
+	routingStepId: t.Union([t.String(), t.Null()]),
 	recordDate: t.String({ format: "date-time" }),
 	stencilThickness: t.Union([t.Number(), t.Null()]),
 	productModel: t.Union([t.String(), t.Null()]),
@@ -29,6 +32,8 @@ export const stencilUsageRecordSchema = t.Object({
 
 export const stencilUsageCreateSchema = t.Object({
 	stencilId: t.String({ minLength: 1 }),
+	runNo: t.Optional(t.String()),
+	routingStepId: t.Optional(t.String()),
 	lineCode: t.Optional(t.String()),
 	recordDate: t.String({ format: "date-time" }),
 	stencilThickness: t.Optional(t.Number()),
@@ -49,6 +54,7 @@ export const stencilUsageCreateSchema = t.Object({
 
 export const stencilUsageListQuerySchema = t.Object({
 	stencilId: t.Optional(t.String()),
+	runNo: t.Optional(t.String()),
 	lineCode: t.Optional(t.String()),
 	productModel: t.Optional(t.String()),
 	recordFrom: t.Optional(t.String({ format: "date-time" })),
@@ -78,6 +84,9 @@ export const stencilCleaningRecordSchema = t.Object({
 	lineId: t.Union([t.String(), t.Null()]),
 	lineCode: t.Union([t.String(), t.Null()]),
 	lineName: t.Union([t.String(), t.Null()]),
+	runId: t.Union([t.String(), t.Null()]),
+	runNo: t.Union([t.String(), t.Null()]),
+	routingStepId: t.Union([t.String(), t.Null()]),
 	cleanedAt: t.String({ format: "date-time" }),
 	cleanedBy: t.String(),
 	confirmedBy: t.Union([t.String(), t.Null()]),
@@ -88,6 +97,8 @@ export const stencilCleaningRecordSchema = t.Object({
 
 export const stencilCleaningCreateSchema = t.Object({
 	stencilId: t.String({ minLength: 1 }),
+	runNo: t.Optional(t.String()),
+	routingStepId: t.Optional(t.String()),
 	lineCode: t.Optional(t.String()),
 	cleanedAt: t.String({ format: "date-time" }),
 	cleanedBy: t.String({ minLength: 1 }),
@@ -98,6 +109,7 @@ export const stencilCleaningCreateSchema = t.Object({
 
 export const stencilCleaningListQuerySchema = t.Object({
 	stencilId: t.Optional(t.String()),
+	runNo: t.Optional(t.String()),
 	lineCode: t.Optional(t.String()),
 	cleanedBy: t.Optional(t.String()),
 	cleanedFrom: t.Optional(t.String({ format: "date-time" })),
@@ -127,6 +139,9 @@ export const squeegeeUsageRecordSchema = t.Object({
 	lineId: t.Union([t.String(), t.Null()]),
 	lineCode: t.Union([t.String(), t.Null()]),
 	lineName: t.Union([t.String(), t.Null()]),
+	runId: t.Union([t.String(), t.Null()]),
+	runNo: t.Union([t.String(), t.Null()]),
+	routingStepId: t.Union([t.String(), t.Null()]),
 	recordDate: t.String({ format: "date-time" }),
 	productModel: t.Union([t.String(), t.Null()]),
 	squeegeeSpec: t.Union([t.String(), t.Null()]),
@@ -146,6 +161,8 @@ export const squeegeeUsageRecordSchema = t.Object({
 
 export const squeegeeUsageCreateSchema = t.Object({
 	squeegeeId: t.String({ minLength: 1 }),
+	runNo: t.Optional(t.String()),
+	routingStepId: t.Optional(t.String()),
 	lineCode: t.Optional(t.String()),
 	recordDate: t.String({ format: "date-time" }),
 	productModel: t.Optional(t.String()),
@@ -165,6 +182,7 @@ export const squeegeeUsageCreateSchema = t.Object({
 
 export const squeegeeUsageListQuerySchema = t.Object({
 	squeegeeId: t.Optional(t.String()),
+	runNo: t.Optional(t.String()),
 	lineCode: t.Optional(t.String()),
 	productModel: t.Optional(t.String()),
 	recordFrom: t.Optional(t.String({ format: "date-time" })),
@@ -194,6 +212,9 @@ export const fixtureUsageRecordSchema = t.Object({
 	lineId: t.Union([t.String(), t.Null()]),
 	lineCode: t.Union([t.String(), t.Null()]),
 	lineName: t.Union([t.String(), t.Null()]),
+	runId: t.Union([t.String(), t.Null()]),
+	runNo: t.Union([t.String(), t.Null()]),
+	routingStepId: t.Union([t.String(), t.Null()]),
 	recordDate: t.String({ format: "date-time" }),
 	usageCount: t.Union([t.Number(), t.Null()]),
 	totalUsageCount: t.Union([t.Number(), t.Null()]),
@@ -207,6 +228,8 @@ export const fixtureUsageRecordSchema = t.Object({
 
 export const fixtureUsageCreateSchema = t.Object({
 	fixtureId: t.String({ minLength: 1 }),
+	runNo: t.Optional(t.String()),
+	routingStepId: t.Optional(t.String()),
 	lineCode: t.Optional(t.String()),
 	recordDate: t.String({ format: "date-time" }),
 	usageCount: t.Optional(t.Number()),
@@ -220,6 +243,7 @@ export const fixtureUsageCreateSchema = t.Object({
 
 export const fixtureUsageListQuerySchema = t.Object({
 	fixtureId: t.Optional(t.String()),
+	runNo: t.Optional(t.String()),
 	lineCode: t.Optional(t.String()),
 	recordFrom: t.Optional(t.String({ format: "date-time" })),
 	recordTo: t.Optional(t.String({ format: "date-time" })),

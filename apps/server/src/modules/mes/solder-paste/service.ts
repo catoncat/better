@@ -13,6 +13,9 @@ export type SolderPasteUsageRecordDetail = {
 	lineId: string | null;
 	lineCode: string | null;
 	lineName: string | null;
+	runId: string | null;
+	runNo: string | null;
+	routingStepId: string | null;
 	receivedAt: string | null;
 	expiresAt: string | null;
 	receivedQty: number | null;
@@ -39,6 +42,7 @@ export type ColdStorageTemperatureRecordDetail = {
 
 type SolderPasteUsageRecordListQuery = {
 	lotId?: string;
+	runNo?: string;
 	lineCode?: string;
 	receivedFrom?: string;
 	receivedTo?: string;
@@ -50,6 +54,8 @@ type SolderPasteUsageRecordListQuery = {
 
 type SolderPasteUsageRecordCreateInput = {
 	lotId: string;
+	runNo?: string;
+	routingStepId?: string;
 	lineCode?: string;
 	receivedAt?: string;
 	expiresAt?: string;
@@ -82,6 +88,7 @@ type ColdStorageTemperatureCreateInput = {
 const mapSolderPasteUsageRecord = (
 	record: SolderPasteUsageRecord & {
 		line: { id: string; code: string; name: string } | null;
+		run: { id: string; runNo: string } | null;
 	},
 ): SolderPasteUsageRecordDetail => ({
 	id: record.id,
@@ -89,6 +96,9 @@ const mapSolderPasteUsageRecord = (
 	lineId: record.lineId ?? null,
 	lineCode: record.line?.code ?? null,
 	lineName: record.line?.name ?? null,
+	runId: record.runId ?? null,
+	runNo: record.run?.runNo ?? null,
+	routingStepId: record.routingStepId ?? null,
 	receivedAt: record.receivedAt ? record.receivedAt.toISOString() : null,
 	expiresAt: record.expiresAt ? record.expiresAt.toISOString() : null,
 	receivedQty: record.receivedQty ?? null,
@@ -139,6 +149,15 @@ export async function listSolderPasteUsageRecords(
 		where.lotId = { contains: lotId };
 	}
 
+	const runNo = query.runNo?.trim();
+	if (runNo) {
+		const run = await db.run.findUnique({ where: { runNo }, select: { id: true } });
+		if (!run) {
+			return { items: [], total: 0, page, pageSize };
+		}
+		where.runId = run.id;
+	}
+
 	const lineCode = query.lineCode?.trim();
 	if (lineCode) {
 		const lines = await db.line.findMany({
@@ -175,7 +194,10 @@ export async function listSolderPasteUsageRecords(
 			orderBy: [{ receivedAt: "desc" }, { createdAt: "desc" }],
 			skip: (page - 1) * pageSize,
 			take: pageSize,
-			include: { line: { select: { id: true, code: true, name: true } } },
+			include: {
+				line: { select: { id: true, code: true, name: true } },
+				run: { select: { id: true, runNo: true } },
+			},
 		}),
 		db.solderPasteUsageRecord.count({ where }),
 	]);
@@ -271,10 +293,83 @@ export async function createSolderPasteUsageRecord(
 		lineId = line.id;
 	}
 
+	const runNo = input.runNo?.trim();
+	let run: { id: string; lineId: string | null; routeVersionId: string | null } | null = null;
+	if (runNo) {
+		run = await db.run.findUnique({
+			where: { runNo },
+			select: { id: true, lineId: true, routeVersionId: true },
+		});
+		if (!run) {
+			return {
+				success: false,
+				code: "RUN_NOT_FOUND",
+				message: "Run not found",
+				status: 404,
+			};
+		}
+
+		if (!run.lineId) {
+			return {
+				success: false,
+				code: "RUN_LINE_NOT_SET",
+				message: "Run has no line binding",
+				status: 400,
+			};
+		}
+
+		if (lineId && lineId !== run.lineId) {
+			return {
+				success: false,
+				code: "LINE_MISMATCH",
+				message: "lineCode does not match run.line",
+				status: 400,
+			};
+		}
+
+		lineId = run.lineId;
+	}
+
+	const runId = run?.id ?? null;
+
+	const routingStepIdRaw = input.routingStepId?.trim();
+	const routingStepId = routingStepIdRaw ? routingStepIdRaw : null;
+	if (routingStepId) {
+		const step = await db.routingStep.findUnique({
+			where: { id: routingStepId },
+			select: { id: true, routingId: true },
+		});
+		if (!step) {
+			return {
+				success: false,
+				code: "ROUTING_STEP_NOT_FOUND",
+				message: "Routing step not found",
+				status: 404,
+			};
+		}
+
+		if (run?.routeVersionId) {
+			const version = await db.executableRouteVersion.findUnique({
+				where: { id: run.routeVersionId },
+				select: { routingId: true },
+			});
+			if (version && version.routingId !== step.routingId) {
+				return {
+					success: false,
+					code: "ROUTING_STEP_MISMATCH",
+					message: "routingStepId does not belong to the run routing",
+					status: 400,
+				};
+			}
+		}
+	}
+
 	const record = await db.solderPasteUsageRecord.create({
 		data: {
 			lotId,
 			lineId,
+			runId,
+			routingStepId,
 			receivedAt,
 			expiresAt,
 			receivedQty: input.receivedQty ?? null,
@@ -286,13 +381,17 @@ export async function createSolderPasteUsageRecord(
 			remark: input.remark?.trim() || null,
 			meta: input.meta ?? undefined,
 		},
-		include: { line: { select: { id: true, code: true, name: true } } },
+		include: {
+			line: { select: { id: true, code: true, name: true } },
+			run: { select: { id: true, runNo: true } },
+		},
 	});
 
 	// T2.3: 锡膏发出后创建 24h 暴露时间规则实例
 	if (issuedAt) {
 		await createTimeRuleInstance(db, {
 			definitionCode: "SOLDER_PASTE_24H",
+			runId: record.runId ?? undefined,
 			entityType: "SOLDER_PASTE_LOT",
 			entityId: record.id,
 			entityDisplay: `锡膏批次 ${lotId}`,

@@ -20,6 +20,9 @@ export type StencilUsageRecordDetail = {
 	lineId: string | null;
 	lineCode: string | null;
 	lineName: string | null;
+	runId: string | null;
+	runNo: string | null;
+	routingStepId: string | null;
 	recordDate: string;
 	stencilThickness: number | null;
 	productModel: string | null;
@@ -44,6 +47,9 @@ export type StencilCleaningRecordDetail = {
 	lineId: string | null;
 	lineCode: string | null;
 	lineName: string | null;
+	runId: string | null;
+	runNo: string | null;
+	routingStepId: string | null;
 	cleanedAt: string;
 	cleanedBy: string;
 	confirmedBy: string | null;
@@ -58,6 +64,9 @@ export type SqueegeeUsageRecordDetail = {
 	lineId: string | null;
 	lineCode: string | null;
 	lineName: string | null;
+	runId: string | null;
+	runNo: string | null;
+	routingStepId: string | null;
 	recordDate: string;
 	productModel: string | null;
 	squeegeeSpec: string | null;
@@ -81,6 +90,9 @@ export type FixtureUsageRecordDetail = {
 	lineId: string | null;
 	lineCode: string | null;
 	lineName: string | null;
+	runId: string | null;
+	runNo: string | null;
+	routingStepId: string | null;
 	recordDate: string;
 	usageCount: number | null;
 	totalUsageCount: number | null;
@@ -184,6 +196,7 @@ export type ProductionExceptionRecordDetail = {
 
 type StencilUsageListQuery = {
 	stencilId?: string;
+	runNo?: string;
 	lineCode?: string;
 	productModel?: string;
 	recordFrom?: string;
@@ -194,6 +207,8 @@ type StencilUsageListQuery = {
 
 type StencilUsageCreateInput = {
 	stencilId: string;
+	runNo?: string;
+	routingStepId?: string;
 	lineCode?: string;
 	recordDate: string;
 	stencilThickness?: number;
@@ -214,6 +229,7 @@ type StencilUsageCreateInput = {
 
 type StencilCleaningListQuery = {
 	stencilId?: string;
+	runNo?: string;
 	lineCode?: string;
 	cleanedBy?: string;
 	cleanedFrom?: string;
@@ -224,6 +240,8 @@ type StencilCleaningListQuery = {
 
 type StencilCleaningCreateInput = {
 	stencilId: string;
+	runNo?: string;
+	routingStepId?: string;
 	lineCode?: string;
 	cleanedAt: string;
 	cleanedBy: string;
@@ -234,6 +252,7 @@ type StencilCleaningCreateInput = {
 
 type SqueegeeUsageListQuery = {
 	squeegeeId?: string;
+	runNo?: string;
 	lineCode?: string;
 	productModel?: string;
 	recordFrom?: string;
@@ -244,6 +263,8 @@ type SqueegeeUsageListQuery = {
 
 type SqueegeeUsageCreateInput = {
 	squeegeeId: string;
+	runNo?: string;
+	routingStepId?: string;
 	lineCode?: string;
 	recordDate: string;
 	productModel?: string;
@@ -263,6 +284,7 @@ type SqueegeeUsageCreateInput = {
 
 type FixtureUsageListQuery = {
 	fixtureId?: string;
+	runNo?: string;
 	lineCode?: string;
 	recordFrom?: string;
 	recordTo?: string;
@@ -272,6 +294,8 @@ type FixtureUsageListQuery = {
 
 type FixtureUsageCreateInput = {
 	fixtureId: string;
+	runNo?: string;
+	routingStepId?: string;
 	lineCode?: string;
 	recordDate: string;
 	usageCount?: number;
@@ -407,12 +431,26 @@ const mapLine = (record: { line?: { id: string; code: string; name: string } | n
 	lineName: record.line?.name ?? null,
 });
 
+const mapRun = (record: {
+	runId?: string | null;
+	run?: { id: string; runNo: string } | null;
+	routingStepId?: string | null;
+}) => ({
+	runId: record.runId ?? null,
+	runNo: record.run?.runNo ?? null,
+	routingStepId: record.routingStepId ?? null,
+});
+
 const mapStencilUsageRecord = (
-	record: StencilUsageRecord & { line: { id: string; code: string; name: string } | null },
+	record: StencilUsageRecord & {
+		line: { id: string; code: string; name: string } | null;
+		run: { id: string; runNo: string } | null;
+	},
 ): StencilUsageRecordDetail => ({
 	id: record.id,
 	stencilId: record.stencilId,
 	...mapLine(record),
+	...mapRun(record),
 	recordDate: record.recordDate.toISOString(),
 	stencilThickness: record.stencilThickness ?? null,
 	productModel: record.productModel ?? null,
@@ -432,11 +470,15 @@ const mapStencilUsageRecord = (
 });
 
 const mapStencilCleaningRecord = (
-	record: StencilCleaningRecord & { line: { id: string; code: string; name: string } | null },
+	record: StencilCleaningRecord & {
+		line: { id: string; code: string; name: string } | null;
+		run: { id: string; runNo: string } | null;
+	},
 ): StencilCleaningRecordDetail => ({
 	id: record.id,
 	stencilId: record.stencilId,
 	...mapLine(record),
+	...mapRun(record),
 	cleanedAt: record.cleanedAt.toISOString(),
 	cleanedBy: record.cleanedBy,
 	confirmedBy: record.confirmedBy ?? null,
@@ -446,11 +488,15 @@ const mapStencilCleaningRecord = (
 });
 
 const mapSqueegeeUsageRecord = (
-	record: SqueegeeUsageRecord & { line: { id: string; code: string; name: string } | null },
+	record: SqueegeeUsageRecord & {
+		line: { id: string; code: string; name: string } | null;
+		run: { id: string; runNo: string } | null;
+	},
 ): SqueegeeUsageRecordDetail => ({
 	id: record.id,
 	squeegeeId: record.squeegeeId,
 	...mapLine(record),
+	...mapRun(record),
 	recordDate: record.recordDate.toISOString(),
 	productModel: record.productModel ?? null,
 	squeegeeSpec: record.squeegeeSpec ?? null,
@@ -469,11 +515,15 @@ const mapSqueegeeUsageRecord = (
 });
 
 const mapFixtureUsageRecord = (
-	record: FixtureUsageRecord & { line: { id: string; code: string; name: string } | null },
+	record: FixtureUsageRecord & {
+		line: { id: string; code: string; name: string } | null;
+		run: { id: string; runNo: string } | null;
+	},
 ): FixtureUsageRecordDetail => ({
 	id: record.id,
 	fixtureId: record.fixtureId,
 	...mapLine(record),
+	...mapRun(record),
 	recordDate: record.recordDate.toISOString(),
 	usageCount: record.usageCount ?? null,
 	totalUsageCount: record.totalUsageCount ?? null,
@@ -603,6 +653,75 @@ const resolveLineId = async (
 	return { success: true, data: line.id };
 };
 
+const resolveRun = async (
+	db: PrismaClient,
+	runNo?: string,
+): Promise<
+	ServiceResult<{
+		id: string;
+		runNo: string;
+		lineId: string | null;
+		routeVersionId: string | null;
+	} | null>
+> => {
+	const normalized = runNo?.trim();
+	if (!normalized) {
+		return { success: true, data: null };
+	}
+
+	const run = await db.run.findUnique({
+		where: { runNo: normalized },
+		select: { id: true, runNo: true, lineId: true, routeVersionId: true },
+	});
+	if (!run) {
+		return {
+			success: false,
+			code: "RUN_NOT_FOUND",
+			message: "Run not found",
+			status: 404,
+		};
+	}
+
+	return { success: true, data: run };
+};
+
+const resolveRoutingStep = async (
+	db: PrismaClient,
+	routingStepId?: string,
+): Promise<ServiceResult<{ id: string; routingId: string } | null>> => {
+	const normalized = routingStepId?.trim();
+	if (!normalized) {
+		return { success: true, data: null };
+	}
+
+	const step = await db.routingStep.findUnique({
+		where: { id: normalized },
+		select: { id: true, routingId: true },
+	});
+	if (!step) {
+		return {
+			success: false,
+			code: "ROUTING_STEP_NOT_FOUND",
+			message: "Routing step not found",
+			status: 404,
+		};
+	}
+
+	return { success: true, data: step };
+};
+
+const resolveRunRoutingId = async (
+	db: PrismaClient,
+	routeVersionId: string | null,
+): Promise<string | null> => {
+	if (!routeVersionId) return null;
+	const version = await db.executableRouteVersion.findUnique({
+		where: { id: routeVersionId },
+		select: { routingId: true },
+	});
+	return version?.routingId ?? null;
+};
+
 const resolveLineIdsForSearch = async (
 	db: PrismaClient,
 	lineCode: string,
@@ -642,6 +761,15 @@ export async function listStencilUsageRecords(
 		where.stencilId = { contains: stencilId };
 	}
 
+	const runNo = query.runNo?.trim();
+	if (runNo) {
+		const run = await db.run.findUnique({ where: { runNo }, select: { id: true } });
+		if (!run) {
+			return { items: [], total: 0, page, pageSize };
+		}
+		where.runId = run.id;
+	}
+
 	const productModel = query.productModel?.trim();
 	if (productModel) {
 		where.productModel = { contains: productModel };
@@ -671,7 +799,10 @@ export async function listStencilUsageRecords(
 			orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
 			skip: (page - 1) * pageSize,
 			take: pageSize,
-			include: { line: { select: { id: true, code: true, name: true } } },
+			include: {
+				line: { select: { id: true, code: true, name: true } },
+				run: { select: { id: true, runNo: true } },
+			},
 		}),
 		db.stencilUsageRecord.count({ where }),
 	]);
@@ -734,13 +865,56 @@ export async function createStencilUsageRecord(
 	);
 	if (lifeLimitError) return lifeLimitError;
 
+	const runResult = await resolveRun(db, input.runNo);
+	if (!runResult.success) return runResult;
+	const run = runResult.data;
+
 	const lineResult = await resolveLineId(db, input.lineCode);
 	if (!lineResult.success) return lineResult;
+
+	let lineId = lineResult.data;
+	if (run) {
+		if (!run.lineId) {
+			return {
+				success: false,
+				code: "RUN_LINE_NOT_SET",
+				message: "Run has no line binding",
+				status: 400,
+			};
+		}
+		if (lineId && lineId !== run.lineId) {
+			return {
+				success: false,
+				code: "LINE_MISMATCH",
+				message: "lineCode does not match run.line",
+				status: 400,
+			};
+		}
+		lineId = run.lineId;
+	}
+
+	const stepResult = await resolveRoutingStep(db, input.routingStepId);
+	if (!stepResult.success) return stepResult;
+	const routingStep = stepResult.data;
+
+	if (routingStep && run) {
+		const runRoutingId = await resolveRunRoutingId(db, run.routeVersionId);
+		if (runRoutingId && runRoutingId !== routingStep.routingId) {
+			return {
+				success: false,
+				code: "ROUTING_STEP_MISMATCH",
+				message: "routingStepId does not belong to the run routing",
+				status: 400,
+			};
+		}
+	}
 
 	const record = await db.stencilUsageRecord.create({
 		data: {
 			stencilId,
-			lineId: lineResult.data,
+			lineId,
+			runId: run?.id ?? null,
+			routingStepId: routingStep?.id ?? null,
 			recordDate,
 			stencilThickness: input.stencilThickness ?? null,
 			productModel: input.productModel?.trim() || null,
@@ -757,7 +931,10 @@ export async function createStencilUsageRecord(
 			lifeLimit: input.lifeLimit ?? null,
 			meta: input.meta ?? undefined,
 		},
-		include: { line: { select: { id: true, code: true, name: true } } },
+		include: {
+			line: { select: { id: true, code: true, name: true } },
+			run: { select: { id: true, runNo: true } },
+		},
 	});
 
 	return { success: true, data: mapStencilUsageRecord(record) };
@@ -779,6 +956,15 @@ export async function listStencilCleaningRecords(
 	const stencilId = query.stencilId?.trim();
 	if (stencilId) {
 		where.stencilId = { contains: stencilId };
+	}
+
+	const runNo = query.runNo?.trim();
+	if (runNo) {
+		const run = await db.run.findUnique({ where: { runNo }, select: { id: true } });
+		if (!run) {
+			return { items: [], total: 0, page, pageSize };
+		}
+		where.runId = run.id;
 	}
 
 	const cleanedBy = query.cleanedBy?.trim();
@@ -810,7 +996,10 @@ export async function listStencilCleaningRecords(
 			orderBy: [{ cleanedAt: "desc" }, { createdAt: "desc" }],
 			skip: (page - 1) * pageSize,
 			take: pageSize,
-			include: { line: { select: { id: true, code: true, name: true } } },
+			include: {
+				line: { select: { id: true, code: true, name: true } },
+				run: { select: { id: true, runNo: true } },
+			},
 		}),
 		db.stencilCleaningRecord.count({ where }),
 	]);
@@ -852,20 +1041,66 @@ export async function createStencilCleaningRecord(
 		};
 	}
 
+	const runResult = await resolveRun(db, input.runNo);
+	if (!runResult.success) return runResult;
+	const run = runResult.data;
+
 	const lineResult = await resolveLineId(db, input.lineCode);
 	if (!lineResult.success) return lineResult;
+
+	let lineId = lineResult.data;
+	if (run) {
+		if (!run.lineId) {
+			return {
+				success: false,
+				code: "RUN_LINE_NOT_SET",
+				message: "Run has no line binding",
+				status: 400,
+			};
+		}
+		if (lineId && lineId !== run.lineId) {
+			return {
+				success: false,
+				code: "LINE_MISMATCH",
+				message: "lineCode does not match run.line",
+				status: 400,
+			};
+		}
+		lineId = run.lineId;
+	}
+
+	const stepResult = await resolveRoutingStep(db, input.routingStepId);
+	if (!stepResult.success) return stepResult;
+	const routingStep = stepResult.data;
+
+	if (routingStep && run) {
+		const runRoutingId = await resolveRunRoutingId(db, run.routeVersionId);
+		if (runRoutingId && runRoutingId !== routingStep.routingId) {
+			return {
+				success: false,
+				code: "ROUTING_STEP_MISMATCH",
+				message: "routingStepId does not belong to the run routing",
+				status: 400,
+			};
+		}
+	}
 
 	const record = await db.stencilCleaningRecord.create({
 		data: {
 			stencilId,
-			lineId: lineResult.data,
+			lineId,
+			runId: run?.id ?? null,
+			routingStepId: routingStep?.id ?? null,
 			cleanedAt,
 			cleanedBy,
 			confirmedBy: input.confirmedBy?.trim() || null,
 			remark: input.remark?.trim() || null,
 			meta: input.meta ?? undefined,
 		},
-		include: { line: { select: { id: true, code: true, name: true } } },
+		include: {
+			line: { select: { id: true, code: true, name: true } },
+			run: { select: { id: true, runNo: true } },
+		},
 	});
 
 	return { success: true, data: mapStencilCleaningRecord(record) };
@@ -882,6 +1117,15 @@ export async function listSqueegeeUsageRecords(
 	const squeegeeId = query.squeegeeId?.trim();
 	if (squeegeeId) {
 		where.squeegeeId = { contains: squeegeeId };
+	}
+
+	const runNo = query.runNo?.trim();
+	if (runNo) {
+		const run = await db.run.findUnique({ where: { runNo }, select: { id: true } });
+		if (!run) {
+			return { items: [], total: 0, page, pageSize };
+		}
+		where.runId = run.id;
 	}
 
 	const productModel = query.productModel?.trim();
@@ -913,7 +1157,10 @@ export async function listSqueegeeUsageRecords(
 			orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
 			skip: (page - 1) * pageSize,
 			take: pageSize,
-			include: { line: { select: { id: true, code: true, name: true } } },
+			include: {
+				line: { select: { id: true, code: true, name: true } },
+				run: { select: { id: true, runNo: true } },
+			},
 		}),
 		db.squeegeeUsageRecord.count({ where }),
 	]);
@@ -976,13 +1223,56 @@ export async function createSqueegeeUsageRecord(
 	);
 	if (lifeLimitError) return lifeLimitError;
 
+	const runResult = await resolveRun(db, input.runNo);
+	if (!runResult.success) return runResult;
+	const run = runResult.data;
+
 	const lineResult = await resolveLineId(db, input.lineCode);
 	if (!lineResult.success) return lineResult;
+
+	let lineId = lineResult.data;
+	if (run) {
+		if (!run.lineId) {
+			return {
+				success: false,
+				code: "RUN_LINE_NOT_SET",
+				message: "Run has no line binding",
+				status: 400,
+			};
+		}
+		if (lineId && lineId !== run.lineId) {
+			return {
+				success: false,
+				code: "LINE_MISMATCH",
+				message: "lineCode does not match run.line",
+				status: 400,
+			};
+		}
+		lineId = run.lineId;
+	}
+
+	const stepResult = await resolveRoutingStep(db, input.routingStepId);
+	if (!stepResult.success) return stepResult;
+	const routingStep = stepResult.data;
+
+	if (routingStep && run) {
+		const runRoutingId = await resolveRunRoutingId(db, run.routeVersionId);
+		if (runRoutingId && runRoutingId !== routingStep.routingId) {
+			return {
+				success: false,
+				code: "ROUTING_STEP_MISMATCH",
+				message: "routingStepId does not belong to the run routing",
+				status: 400,
+			};
+		}
+	}
 
 	const record = await db.squeegeeUsageRecord.create({
 		data: {
 			squeegeeId,
-			lineId: lineResult.data,
+			lineId,
+			runId: run?.id ?? null,
+			routingStepId: routingStep?.id ?? null,
 			recordDate,
 			productModel: input.productModel?.trim() || null,
 			squeegeeSpec: input.squeegeeSpec?.trim() || null,
@@ -998,7 +1288,10 @@ export async function createSqueegeeUsageRecord(
 			lifeLimit: input.lifeLimit ?? null,
 			meta: input.meta ?? undefined,
 		},
-		include: { line: { select: { id: true, code: true, name: true } } },
+		include: {
+			line: { select: { id: true, code: true, name: true } },
+			run: { select: { id: true, runNo: true } },
+		},
 	});
 
 	return { success: true, data: mapSqueegeeUsageRecord(record) };
@@ -1015,6 +1308,15 @@ export async function listFixtureUsageRecords(
 	const fixtureId = query.fixtureId?.trim();
 	if (fixtureId) {
 		where.fixtureId = { contains: fixtureId };
+	}
+
+	const runNo = query.runNo?.trim();
+	if (runNo) {
+		const run = await db.run.findUnique({ where: { runNo }, select: { id: true } });
+		if (!run) {
+			return { items: [], total: 0, page, pageSize };
+		}
+		where.runId = run.id;
 	}
 
 	const lineCode = query.lineCode?.trim();
@@ -1041,7 +1343,10 @@ export async function listFixtureUsageRecords(
 			orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
 			skip: (page - 1) * pageSize,
 			take: pageSize,
-			include: { line: { select: { id: true, code: true, name: true } } },
+			include: {
+				line: { select: { id: true, code: true, name: true } },
+				run: { select: { id: true, runNo: true } },
+			},
 		}),
 		db.fixtureUsageRecord.count({ where }),
 	]);
@@ -1094,13 +1399,56 @@ export async function createFixtureUsageRecord(
 	);
 	if (lifeLimitError) return lifeLimitError;
 
+	const runResult = await resolveRun(db, input.runNo);
+	if (!runResult.success) return runResult;
+	const run = runResult.data;
+
 	const lineResult = await resolveLineId(db, input.lineCode);
 	if (!lineResult.success) return lineResult;
+
+	let lineId = lineResult.data;
+	if (run) {
+		if (!run.lineId) {
+			return {
+				success: false,
+				code: "RUN_LINE_NOT_SET",
+				message: "Run has no line binding",
+				status: 400,
+			};
+		}
+		if (lineId && lineId !== run.lineId) {
+			return {
+				success: false,
+				code: "LINE_MISMATCH",
+				message: "lineCode does not match run.line",
+				status: 400,
+			};
+		}
+		lineId = run.lineId;
+	}
+
+	const stepResult = await resolveRoutingStep(db, input.routingStepId);
+	if (!stepResult.success) return stepResult;
+	const routingStep = stepResult.data;
+
+	if (routingStep && run) {
+		const runRoutingId = await resolveRunRoutingId(db, run.routeVersionId);
+		if (runRoutingId && runRoutingId !== routingStep.routingId) {
+			return {
+				success: false,
+				code: "ROUTING_STEP_MISMATCH",
+				message: "routingStepId does not belong to the run routing",
+				status: 400,
+			};
+		}
+	}
 
 	const record = await db.fixtureUsageRecord.create({
 		data: {
 			fixtureId,
-			lineId: lineResult.data,
+			lineId,
+			runId: run?.id ?? null,
+			routingStepId: routingStep?.id ?? null,
 			recordDate,
 			usageCount: input.usageCount ?? null,
 			totalUsageCount: input.totalUsageCount ?? null,
@@ -1110,7 +1458,10 @@ export async function createFixtureUsageRecord(
 			lifeLimit: input.lifeLimit ?? null,
 			meta: input.meta ?? undefined,
 		},
-		include: { line: { select: { id: true, code: true, name: true } } },
+		include: {
+			line: { select: { id: true, code: true, name: true } },
+			run: { select: { id: true, runNo: true } },
+		},
 	});
 
 	return { success: true, data: mapFixtureUsageRecord(record) };

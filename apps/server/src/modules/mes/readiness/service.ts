@@ -530,12 +530,24 @@ export async function checkPrepScraper(db: PrismaClient, run: Run): Promise<Chec
 		return [];
 	}
 
-	const latestUsage = await db.squeegeeUsageRecord.findFirst({
-		where: {
-			OR: [{ lineId: run.lineId }, { lineId: null }],
-		},
+	let latestUsage = await db.squeegeeUsageRecord.findFirst({
+		where: { runId: run.id },
 		orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
 	});
+	let recordSource: "runId" | "lineId" | "global" | null = latestUsage ? "runId" : null;
+
+	if (!latestUsage) {
+		latestUsage = await db.squeegeeUsageRecord.findFirst({
+			where: {
+				runId: null,
+				OR: [{ lineId: run.lineId }, { lineId: null }],
+			},
+			orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
+		});
+		if (latestUsage) {
+			recordSource = latestUsage.lineId ? "lineId" : "global";
+		}
+	}
 
 	if (!latestUsage) {
 		return [
@@ -579,6 +591,9 @@ export async function checkPrepScraper(db: PrismaClient, run: Run): Promise<Chec
 				evidenceJson: {
 					squeegeeId: latestUsage.squeegeeId,
 					usageRecordId: latestUsage.id,
+					source: recordSource ?? "unknown",
+					runId: latestUsage.runId ?? undefined,
+					routingStepId: latestUsage.routingStepId ?? undefined,
 					recordDate: latestUsage.recordDate.toISOString(),
 					lineId: run.lineId,
 					checkSurface: latestUsage.checkSurface,
@@ -599,6 +614,9 @@ export async function checkPrepScraper(db: PrismaClient, run: Run): Promise<Chec
 			evidenceJson: {
 				squeegeeId: latestUsage.squeegeeId,
 				usageRecordId: latestUsage.id,
+				source: recordSource ?? "unknown",
+				runId: latestUsage.runId ?? undefined,
+				routingStepId: latestUsage.routingStepId ?? undefined,
 				recordDate: latestUsage.recordDate.toISOString(),
 				lineId: run.lineId,
 				checkSurface: latestUsage.checkSurface,
@@ -762,15 +780,30 @@ async function checkPrepPaste(db: PrismaClient, run: Run): Promise<CheckItemResu
 		];
 	}
 
-	const latestRecord = await db.solderPasteUsageRecord.findFirst({
+	let latestRecord = await db.solderPasteUsageRecord.findFirst({
 		where: {
 			lotId: currentBinding.lotId,
-			...(run.lineId && {
-				OR: [{ lineId: run.lineId }, { lineId: null }],
-			}),
+			runId: run.id,
 		},
 		orderBy: [{ issuedAt: "desc" }, { createdAt: "desc" }],
 	});
+	let recordSource: "runId" | "lineId" | "global" | null = latestRecord ? "runId" : null;
+
+	if (!latestRecord) {
+		latestRecord = await db.solderPasteUsageRecord.findFirst({
+			where: {
+				lotId: currentBinding.lotId,
+				runId: null,
+				...(run.lineId && {
+					OR: [{ lineId: run.lineId }, { lineId: null }],
+				}),
+			},
+			orderBy: [{ issuedAt: "desc" }, { createdAt: "desc" }],
+		});
+		if (latestRecord) {
+			recordSource = latestRecord.lineId ? "lineId" : "global";
+		}
+	}
 
 	if (!latestRecord) {
 		return [
@@ -790,8 +823,11 @@ async function checkPrepPaste(db: PrismaClient, run: Run): Promise<CheckItemResu
 			status: ReadinessItemStatus.PASSED,
 			evidenceJson: {
 				recordId: latestRecord.id,
+				source: recordSource ?? "unknown",
 				lotId: latestRecord.lotId,
+				runId: latestRecord.runId ?? undefined,
 				lineId: latestRecord.lineId ?? undefined,
+				routingStepId: latestRecord.routingStepId ?? undefined,
 				receivedAt: latestRecord.receivedAt?.toISOString(),
 				thawedAt: latestRecord.thawedAt?.toISOString(),
 				issuedAt: latestRecord.issuedAt?.toISOString(),
@@ -820,13 +856,28 @@ async function checkPrepStencilUsage(db: PrismaClient, run: Run): Promise<CheckI
 		];
 	}
 
-	const latestRecord = await db.stencilUsageRecord.findFirst({
+	let latestRecord = await db.stencilUsageRecord.findFirst({
 		where: {
 			stencilId: currentBinding.stencilId,
-			OR: [{ lineId: run.lineId }, { lineId: null }],
+			runId: run.id,
 		},
 		orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
 	});
+	let recordSource: "runId" | "lineId" | "global" | null = latestRecord ? "runId" : null;
+
+	if (!latestRecord) {
+		latestRecord = await db.stencilUsageRecord.findFirst({
+			where: {
+				stencilId: currentBinding.stencilId,
+				runId: null,
+				OR: [{ lineId: run.lineId }, { lineId: null }],
+			},
+			orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
+		});
+		if (latestRecord) {
+			recordSource = latestRecord.lineId ? "lineId" : "global";
+		}
+	}
 
 	if (!latestRecord) {
 		return [
@@ -852,6 +903,9 @@ async function checkPrepStencilUsage(db: PrismaClient, run: Run): Promise<CheckI
 				failReason: `钢网使用寿命超限: ${latestRecord.totalPrintCount}/${latestRecord.lifeLimit}`,
 				evidenceJson: {
 					recordId: latestRecord.id,
+					source: recordSource ?? "unknown",
+					runId: latestRecord.runId ?? undefined,
+					routingStepId: latestRecord.routingStepId ?? undefined,
 					totalPrintCount: latestRecord.totalPrintCount,
 					lifeLimit: latestRecord.lifeLimit,
 				},
@@ -866,6 +920,9 @@ async function checkPrepStencilUsage(db: PrismaClient, run: Run): Promise<CheckI
 			status: ReadinessItemStatus.PASSED,
 			evidenceJson: {
 				recordId: latestRecord.id,
+				source: recordSource ?? "unknown",
+				runId: latestRecord.runId ?? undefined,
+				routingStepId: latestRecord.routingStepId ?? undefined,
 				recordDate: latestRecord.recordDate.toISOString(),
 				totalPrintCount: latestRecord.totalPrintCount ?? undefined,
 				lifeLimit: latestRecord.lifeLimit ?? undefined,
@@ -879,12 +936,24 @@ async function checkPrepFixture(_db: PrismaClient, run: Run): Promise<CheckItemR
 		return [];
 	}
 
-	const latestUsage = await _db.fixtureUsageRecord.findFirst({
-		where: {
-			OR: [{ lineId: run.lineId }, { lineId: null }],
-		},
+	let latestUsage = await _db.fixtureUsageRecord.findFirst({
+		where: { runId: run.id },
 		orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
 	});
+	let recordSource: "runId" | "lineId" | "global" | null = latestUsage ? "runId" : null;
+
+	if (!latestUsage) {
+		latestUsage = await _db.fixtureUsageRecord.findFirst({
+			where: {
+				runId: null,
+				OR: [{ lineId: run.lineId }, { lineId: null }],
+			},
+			orderBy: [{ recordDate: "desc" }, { createdAt: "desc" }],
+		});
+		if (latestUsage) {
+			recordSource = latestUsage.lineId ? "lineId" : "global";
+		}
+	}
 
 	if (!latestUsage) {
 		return [
@@ -912,6 +981,9 @@ async function checkPrepFixture(_db: PrismaClient, run: Run): Promise<CheckItemR
 				evidenceJson: {
 					fixtureId: latestUsage.fixtureId,
 					usageRecordId: latestUsage.id,
+					source: recordSource ?? "unknown",
+					runId: latestUsage.runId ?? undefined,
+					routingStepId: latestUsage.routingStepId ?? undefined,
 					recordDate: latestUsage.recordDate.toISOString(),
 					lineId: run.lineId,
 					totalUsageCount: latestUsage.totalUsageCount,
@@ -929,6 +1001,9 @@ async function checkPrepFixture(_db: PrismaClient, run: Run): Promise<CheckItemR
 			evidenceJson: {
 				fixtureId: latestUsage.fixtureId,
 				usageRecordId: latestUsage.id,
+				source: recordSource ?? "unknown",
+				runId: latestUsage.runId ?? undefined,
+				routingStepId: latestUsage.routingStepId ?? undefined,
 				recordDate: latestUsage.recordDate.toISOString(),
 				lineId: run.lineId,
 				totalUsageCount: latestUsage.totalUsageCount ?? undefined,

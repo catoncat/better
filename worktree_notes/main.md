@@ -1,5 +1,13 @@
 # Worktree Notes - main
 
+## Context (2026-01-23)
+- Task: SMT Gap Phase 1 (T1.1.8) — prep record run/step association (DB already landed) + backend write rules + readiness prefers run-level evidence.
+- Recent commits:
+  - `94f0ff9` docs(mes): align SMT gap plan with as-built
+  - `5f0c394` feat(db): add prep record run links
+- Current WIP (uncommitted): update MES prep record endpoints (bake/solder-paste/smt-basic) to accept `runNo` and/or `routingStepId`, resolve to `runId` and validate line/routing ownership; readiness service updated to prefer `runId=run.id` evidence with `runId=null` fallback.
+- Note: working tree also contains extra unrelated changes (server entry/test harness + scripts). Decide to revert or split into a separate commit before merging.
+
 ## Context (2026-01-22)
 - Task: Track A readiness extension — implement PREP_* checks in readiness, enforce waiver runNo integrity, and gate auto-precheck in UI; update MES align docs accordingly.
 - Constraints: stay on `main` unless user requests worktree; keep alignment docs in sync.

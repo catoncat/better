@@ -5,6 +5,7 @@ export type BakeRecordDetail = {
 	id: string;
 	runId: string | null;
 	runNo: string | null;
+	routingStepId: string | null;
 	materialLotId: string | null;
 	materialCode: string | null;
 	lotNo: string | null;
@@ -36,6 +37,7 @@ type BakeRecordListQuery = {
 
 type BakeRecordCreateInput = {
 	runNo?: string;
+	routingStepId?: string;
 	materialCode?: string;
 	lotNo?: string;
 	itemCode: string;
@@ -60,6 +62,7 @@ const mapBakeRecord = (
 	id: record.id,
 	runId: record.runId ?? null,
 	runNo: record.run?.runNo ?? null,
+	routingStepId: record.routingStepId ?? null,
 	materialLotId: record.materialLotId ?? null,
 	materialCode: record.materialLot?.materialCode ?? null,
 	lotNo: record.materialLot?.lotNo ?? null,
@@ -179,6 +182,7 @@ export async function createBakeRecord(
 	}
 
 	const runNo = input.runNo?.trim();
+	const routingStepId = input.routingStepId?.trim() || null;
 	const materialCode = input.materialCode?.trim();
 	const lotNo = input.lotNo?.trim();
 
@@ -206,6 +210,21 @@ export async function createBakeRecord(
 			runId = run.id;
 		}
 
+		if (routingStepId) {
+			const step = await tx.routingStep.findUnique({
+				where: { id: routingStepId },
+				select: { id: true },
+			});
+			if (!step) {
+				return {
+					success: false,
+					code: "ROUTING_STEP_NOT_FOUND",
+					message: "Routing step not found",
+					status: 404,
+				} satisfies ServiceResult<BakeRecordDetail>;
+			}
+		}
+
 		let materialLotId: string | null = null;
 		if (materialCode && lotNo) {
 			const materialLot = await tx.materialLot.upsert({
@@ -220,6 +239,7 @@ export async function createBakeRecord(
 		const record = await tx.bakeRecord.create({
 			data: {
 				runId,
+				routingStepId,
 				materialLotId,
 				itemCode: input.itemCode.trim(),
 				bakeProcess: input.bakeProcess.trim(),
