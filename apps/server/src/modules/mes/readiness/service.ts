@@ -1634,6 +1634,24 @@ export async function triggerPrecheckForAffectedRuns(
 	}
 }
 
+/**
+ * Trigger precheck for all PREP status runs on a given line.
+ * Used when maintenance is completed on equipment/fixtures that might affect readiness.
+ */
+export async function triggerPrecheckForLine(db: PrismaClient, lineId: string): Promise<void> {
+	const runs = await db.run.findMany({
+		where: {
+			status: "PREP",
+			lineId,
+		},
+		select: { runNo: true },
+	});
+
+	for (const run of runs) {
+		performCheck(db, run.runNo, "PRECHECK").catch(() => {});
+	}
+}
+
 export async function listRunsWithExceptions(
 	db: PrismaClient,
 	query: ExceptionsQuery,

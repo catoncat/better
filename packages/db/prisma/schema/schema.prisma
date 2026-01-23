@@ -394,6 +394,7 @@ enum AuditEntityType {
   OVEN_PROGRAM_RECORD // SMT oven program record
   DAILY_QC_RECORD // SMT daily QC record
   PRODUCTION_EXCEPTION // SMT production exception
+  MAINTENANCE_RECORD   // Equipment/Fixture maintenance
 }
 
 model WorkOrder {
@@ -492,6 +493,7 @@ model Line {
   ovenProgramRecords OvenProgramRecord[]
   dailyQcRecords DailyQcRecord[]
   productionExceptionRecords ProductionExceptionRecord[]
+  maintenanceRecords MaintenanceRecord[]
 }
 
 // ==========================================
@@ -1063,6 +1065,75 @@ model ProductionExceptionRecord {
   @@index([lineId])
   @@index([issuedAt])
   @@index([jobNo])
+}
+
+// ==========================================
+// Maintenance Records (Phase 3 - Track F)
+// ==========================================
+
+enum MaintenanceEntityType {
+  FIXTURE       // 夹具
+  STENCIL       // 钢网
+  SQUEEGEE      // 刮刀
+  EQUIPMENT     // 设备
+}
+
+enum MaintenanceType {
+  REPAIR        // 维修
+  CALIBRATION   // 校准
+  CLEANING      // 清洁
+  REPLACEMENT   // 更换部件
+  INSPECTION    // 检查
+}
+
+enum MaintenanceStatus {
+  PENDING       // 待处理
+  IN_PROGRESS   // 进行中
+  COMPLETED     // 已完成
+  CANCELLED     // 已取消
+}
+
+model MaintenanceRecord {
+  id              String              @id @default(cuid())
+  lineId          String?
+  entityType      MaintenanceEntityType
+  entityId        String              // fixtureId / stencilId / equipmentId
+  entityDisplay   String?             // 实体显示名称
+  maintenanceType MaintenanceType
+  status          MaintenanceStatus   @default(PENDING)
+
+  // 维修详情
+  description     String              // 问题描述
+  resolution      String?             // 解决方案
+  partsReplaced   String?             // 更换部件
+  cost            Float?              // 维修成本
+
+  // 时间记录
+  reportedAt      DateTime            // 报修时间
+  startedAt       DateTime?           // 开始维修时间
+  completedAt     DateTime?           // 完成时间
+
+  // 人员
+  reportedBy      String              // 报修人
+  assignedTo      String?             // 指派维修人员
+  completedBy     String?             // 完成维修人员
+
+  // 审核
+  verifiedBy      String?             // 验证人
+  verifiedAt      DateTime?           // 验证时间
+
+  remark          String?
+  meta            Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  line Line? @relation(fields: [lineId], references: [id])
+
+  @@index([lineId])
+  @@index([entityType, entityId])
+  @@index([status])
+  @@index([reportedAt])
+  @@index([completedAt])
 }
 
 model StationGroup {

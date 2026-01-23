@@ -116,6 +116,11 @@ export const navMain: NavItem[] = [
 				permissions: [Permission.READINESS_VIEW],
 			},
 			{
+				title: "维修记录",
+				url: "/mes/maintenance-records",
+				permissions: [Permission.READINESS_VIEW],
+			},
+			{
 				title: "站位表配置",
 				url: "/mes/loading/slot-config",
 				permissions: [Permission.LOADING_CONFIG],
