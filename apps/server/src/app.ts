@@ -116,15 +116,23 @@ export const createApi = (options?: CreateApiOptions) => {
 					console.error("Parse error:", error.message);
 					return;
 
-				case "UNAUTHORIZED":
-					set.status = 401;
-					return { code: "UNAUTHORIZED", message: "Unauthorized" };
+				default: {
+					// Handle plugin-registered error codes (UNAUTHORIZED, FORBIDDEN, etc.)
+					// These are registered by authPlugin and permissionPlugin after this handler
+					const codeStr = String(code);
 
-				case "FORBIDDEN":
-					set.status = 403;
-					return { code: "FORBIDDEN", message: error.message || "Forbidden" };
+					if (codeStr === "UNAUTHORIZED") {
+						set.status = 401;
+						return { code: "UNAUTHORIZED", message: "Unauthorized" };
+					}
 
-				default:
+					if (codeStr === "FORBIDDEN") {
+						set.status = 403;
+						const msg = error instanceof Error ? error.message : "Forbidden";
+						return { code: "FORBIDDEN", message: msg };
+					}
+
+					// Unknown error - log and optionally hide in production
 					console.error("Error:", error);
 					if (error instanceof Error && error.stack) {
 						console.error(error.stack);
@@ -133,6 +141,7 @@ export const createApi = (options?: CreateApiOptions) => {
 						set.status = 500;
 						return { code: "INTERNAL_ERROR", message: "服务器内部错误" };
 					}
+				}
 			}
 		})
 		.use(
@@ -177,7 +186,11 @@ export const createApi = (options?: CreateApiOptions) => {
 	return api;
 };
 
-export type App = ReturnType<typeof createApi>;
+// Create a reference instance purely for type inference.
+// Using typeof on a const avoids the deep ReturnType inference that triggers TS2589.
+// This instance is never actually used at runtime (tree-shaken away).
+const _apiForType = createApi({ enableCors: false, enableCrons: false });
+export type App = typeof _apiForType;
 
 export const createApp = (api: App) =>
 	new Elysia({ normalize: true }).use(api).get(
@@ -256,4 +269,3 @@ export const startServer = async () => {
 		console.log(`Server is running on ${scheme}://${listenOptions.hostname}:${listenOptions.port}`);
 	});
 };
-

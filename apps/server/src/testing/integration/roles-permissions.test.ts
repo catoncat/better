@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { setupTestDb, type TestDbHandle } from "../helpers/test-db";
 import { startTestServer, type TestAppHandle } from "../helpers/test-app";
+import { setupTestDb, type TestDbHandle } from "../helpers/test-db";
 
 /**
  * HTTP client for integration tests that hit a real server subprocess.

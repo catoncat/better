@@ -15,4 +15,3 @@ export const runCommand = async (cmd: string[], options?: RunCommandOptions) => 
 		throw new Error(`Command failed (${exitCode}): ${cmd.join(" ")}`);
 	}
 };
-

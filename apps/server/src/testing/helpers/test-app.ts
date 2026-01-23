@@ -1,5 +1,5 @@
-import { spawn } from "bun";
 import path from "node:path";
+import { spawn } from "bun";
 import type { TestDbHandle } from "./test-db";
 
 export type TestAppHandle = {

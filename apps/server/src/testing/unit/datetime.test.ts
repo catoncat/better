@@ -22,4 +22,3 @@ describe("unit: datetime helpers", () => {
 		expect(diffInCalendarDays(a, b, offsetMinutes)).toBe(1);
 	});
 });
-
