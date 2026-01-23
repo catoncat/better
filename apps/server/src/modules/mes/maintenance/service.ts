@@ -7,6 +7,7 @@ import {
 	type PrismaClient,
 } from "@better-app/db";
 import type { ServiceResult } from "../../../types/service-result";
+import { triggerPrecheckForLine } from "../readiness/service";
 
 // ==========================================
 // Types
@@ -228,6 +229,11 @@ export async function completeMaintenanceRecord(
 			remark: input.remark ?? existing.remark,
 		},
 	});
+
+	// Trigger precheck for affected runs on this line
+	if (record.lineId) {
+		triggerPrecheckForLine(db, record.lineId).catch(() => {});
+	}
 
 	return { success: true, data: toDetail(record) };
 }
