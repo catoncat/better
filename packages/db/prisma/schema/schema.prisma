@@ -457,6 +457,11 @@ model Run {
   slotExpectations RunSlotExpectation[]
   loadingRecords   LoadingRecord[]
   bakeRecords      BakeRecord[]
+  solderPasteUsageRecords SolderPasteUsageRecord[]
+  stencilUsageRecords StencilUsageRecord[]
+  stencilCleaningRecords StencilCleaningRecord[]
+  squeegeeUsageRecords SqueegeeUsageRecord[]
+  fixtureUsageRecords FixtureUsageRecord[]
   timeRuleInstances TimeRuleInstance[]  // SMT Gap Phase 2: Time Rule Instances
 
   @@index([parentRunId])
@@ -603,6 +608,7 @@ model LoadingRecord {
 model BakeRecord {
   id               String   @id @default(cuid())
   runId            String?
+  routingStepId    String?
   materialLotId    String?
   itemCode         String
   bakeProcess      String
@@ -619,9 +625,11 @@ model BakeRecord {
   updatedAt        DateTime @updatedAt
 
   run         Run?         @relation(fields: [runId], references: [id])
+  routingStep RoutingStep? @relation(fields: [routingStepId], references: [id])
   materialLot MaterialLot? @relation(fields: [materialLotId], references: [id])
 
   @@index([runId])
+  @@index([routingStepId])
   @@index([materialLotId])
   @@index([itemCode])
   @@index([inAt])
@@ -708,6 +716,8 @@ model SolderPasteUsageRecord {
   id          String   @id @default(cuid())
   lotId       String
   lineId      String?
+  runId       String?
+  routingStepId String?
   receivedAt  DateTime?
   expiresAt   DateTime?
   receivedQty Int?
@@ -722,9 +732,13 @@ model SolderPasteUsageRecord {
   updatedAt   DateTime @updatedAt
 
   line Line? @relation(fields: [lineId], references: [id])
+  run  Run?  @relation(fields: [runId], references: [id])
+  routingStep RoutingStep? @relation(fields: [routingStepId], references: [id])
 
   @@index([lotId])
   @@index([lineId])
+  @@index([runId])
+  @@index([routingStepId])
   @@index([receivedAt])
   @@index([issuedAt])
 }
@@ -747,6 +761,8 @@ model StencilUsageRecord {
   id               String   @id @default(cuid())
   stencilId        String
   lineId           String?
+  runId            String?
+  routingStepId    String?
   recordDate       DateTime
   stencilThickness Float?
   productModel     String?
@@ -766,9 +782,13 @@ model StencilUsageRecord {
   updatedAt        DateTime @updatedAt
 
   line Line? @relation(fields: [lineId], references: [id])
+  run  Run?  @relation(fields: [runId], references: [id])
+  routingStep RoutingStep? @relation(fields: [routingStepId], references: [id])
 
   @@index([stencilId])
   @@index([lineId])
+  @@index([runId])
+  @@index([routingStepId])
   @@index([recordDate])
 }
 
@@ -776,6 +796,8 @@ model StencilCleaningRecord {
   id          String   @id @default(cuid())
   stencilId   String
   lineId      String?
+  runId       String?
+  routingStepId String?
   cleanedAt   DateTime
   cleanedBy   String
   confirmedBy String?
@@ -785,9 +807,13 @@ model StencilCleaningRecord {
   updatedAt   DateTime @updatedAt
 
   line Line? @relation(fields: [lineId], references: [id])
+  run  Run?  @relation(fields: [runId], references: [id])
+  routingStep RoutingStep? @relation(fields: [routingStepId], references: [id])
 
   @@index([stencilId])
   @@index([lineId])
+  @@index([runId])
+  @@index([routingStepId])
   @@index([cleanedAt])
 }
 
@@ -795,6 +821,8 @@ model SqueegeeUsageRecord {
   id              String   @id @default(cuid())
   squeegeeId      String
   lineId          String?
+  runId           String?
+  routingStepId   String?
   recordDate      DateTime
   productModel    String?
   squeegeeSpec    String?
@@ -813,9 +841,13 @@ model SqueegeeUsageRecord {
   updatedAt       DateTime @updatedAt
 
   line Line? @relation(fields: [lineId], references: [id])
+  run  Run?  @relation(fields: [runId], references: [id])
+  routingStep RoutingStep? @relation(fields: [routingStepId], references: [id])
 
   @@index([squeegeeId])
   @@index([lineId])
+  @@index([runId])
+  @@index([routingStepId])
   @@index([recordDate])
 }
 
@@ -823,6 +855,8 @@ model FixtureUsageRecord {
   id              String   @id @default(cuid())
   fixtureId       String
   lineId          String?
+  runId           String?
+  routingStepId   String?
   recordDate      DateTime
   usageCount      Int?
   totalUsageCount Int?
@@ -835,9 +869,13 @@ model FixtureUsageRecord {
   updatedAt       DateTime @updatedAt
 
   line Line? @relation(fields: [lineId], references: [id])
+  run  Run?  @relation(fields: [runId], references: [id])
+  routingStep RoutingStep? @relation(fields: [routingStepId], references: [id])
 
   @@index([fixtureId])
   @@index([lineId])
+  @@index([runId])
+  @@index([routingStepId])
   @@index([recordDate])
 }
 
@@ -1153,6 +1191,12 @@ model RoutingStep {
   stationGroup          StationGroup?  @relation(fields: [stationGroupId], references: [id])
   expectedReflowProfile ReflowProfile? @relation(fields: [expectedReflowProfileId], references: [id])
   executionConfigs      RouteExecutionConfig[]
+  bakeRecords           BakeRecord[]
+  solderPasteUsageRecords SolderPasteUsageRecord[]
+  stencilUsageRecords   StencilUsageRecord[]
+  stencilCleaningRecords StencilCleaningRecord[]
+  squeegeeUsageRecords  SqueegeeUsageRecord[]
+  fixtureUsageRecords   FixtureUsageRecord[]
 
   @@unique([routingId, stepNo])
   @@index([routingId])
