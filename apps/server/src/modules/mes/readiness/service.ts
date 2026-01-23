@@ -1018,6 +1018,69 @@ export async function checkProgram(db: PrismaClient, run: Run): Promise<CheckIte
 	return results;
 }
 
+/**
+ * Check for expired or active time rule instances
+ * Returns FAILED items for expired instances, PASSED for active ones within limits
+ */
+export async function checkTimeRules(db: PrismaClient, run: Run): Promise<CheckItemResult[]> {
+	const instances = await db.timeRuleInstance.findMany({
+		where: { runId: run.id },
+		include: { definition: true },
+	});
+
+	const results: CheckItemResult[] = [];
+
+	for (const instance of instances) {
+		if (instance.status === "EXPIRED") {
+			results.push({
+				itemType: ReadinessItemType.TIME_RULE,
+				itemKey: `${instance.definition.code}:${instance.entityId}`,
+				status: ReadinessItemStatus.FAILED,
+				failReason: `时间规则超时: ${instance.definition.name} - ${instance.entityDisplay ?? instance.entityId}`,
+				evidenceJson: {
+					instanceId: instance.id,
+					definitionCode: instance.definition.code,
+					entityType: instance.entityType,
+					entityId: instance.entityId,
+					startedAt: instance.startedAt.toISOString(),
+					expiredAt: instance.expiredAt?.toISOString(),
+				},
+			});
+		} else if (instance.status === "WAIVED") {
+			results.push({
+				itemType: ReadinessItemType.TIME_RULE,
+				itemKey: `${instance.definition.code}:${instance.entityId}`,
+				status: ReadinessItemStatus.WAIVED,
+				evidenceJson: {
+					instanceId: instance.id,
+					definitionCode: instance.definition.code,
+					waivedAt: instance.waivedAt?.toISOString(),
+					waivedBy: instance.waivedBy,
+					waiveReason: instance.waiveReason,
+				},
+			});
+		} else if (instance.status === "ACTIVE") {
+			// Active instances are OK - they haven't expired yet
+			results.push({
+				itemType: ReadinessItemType.TIME_RULE,
+				itemKey: `${instance.definition.code}:${instance.entityId}`,
+				status: ReadinessItemStatus.PASSED,
+				evidenceJson: {
+					instanceId: instance.id,
+					definitionCode: instance.definition.code,
+					entityType: instance.entityType,
+					entityId: instance.entityId,
+					startedAt: instance.startedAt.toISOString(),
+					expiresAt: instance.expiresAt.toISOString(),
+				},
+			});
+		}
+		// COMPLETED instances are not included in readiness check results
+	}
+
+	return results;
+}
+
 function calculateSummary(items: Array<{ status: ReadinessItemStatus }>): CheckSummary {
 	let passed = 0;
 	let failed = 0;
@@ -1079,6 +1142,7 @@ export async function performCheck(
 		prepScraperResults,
 		prepFixtureResults,
 		prepProgramResults,
+		timeRuleResults,
 	] = await Promise.all([
 		shouldRunCheck(ReadinessItemType.EQUIPMENT) ? checkEquipment(db, run) : Promise.resolve([]),
 		shouldRunCheck(ReadinessItemType.MATERIAL) ? checkMaterial(db, run) : Promise.resolve([]),
@@ -1103,6 +1167,7 @@ export async function performCheck(
 			? checkPrepFixture(db, run)
 			: Promise.resolve([]),
 		shouldRunCheck(ReadinessItemType.PREP_PROGRAM) ? checkProgram(db, run) : Promise.resolve([]),
+		shouldRunCheck(ReadinessItemType.TIME_RULE) ? checkTimeRules(db, run) : Promise.resolve([]),
 	]);
 
 	const allResults = [
@@ -1119,6 +1184,7 @@ export async function performCheck(
 		...prepScraperResults,
 		...prepFixtureResults,
 		...prepProgramResults,
+		...timeRuleResults,
 	];
 	const summary = calculateSummary(allResults);
 	const checkStatus =

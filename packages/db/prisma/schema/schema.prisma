@@ -291,12 +291,37 @@ enum ReadinessItemType {
   PREP_SCRAPER       // 刮刀准备（点检记录）
   PREP_FIXTURE       // 夹具准备（寿命检查）
   PREP_PROGRAM       // 炉温程式准备（程式一致性检查）
+  // TIME_RULE 时间规则检查（SMT Gap Phase 2）
+  TIME_RULE          // 时间规则检查（锡膏暴露/水洗时间等）
 }
 
 enum ReadinessItemStatus {
   PASSED    // 通过
   FAILED    // 失败
   WAIVED    // 已豁免
+}
+
+// ==========================================
+// Time Rule Enums (SMT Gap Phase 2)
+// ==========================================
+
+enum TimeRuleType {
+  SOLDER_PASTE_EXPOSURE    // 锡膏暴露规则
+  WASH_TIME_LIMIT          // 水洗时间规则
+}
+
+enum TimeRuleInstanceStatus {
+  ACTIVE      // 倒计时中
+  COMPLETED   // 在时限内完成
+  EXPIRED     // 已超时
+  WAIVED      // 已豁免
+}
+
+enum TimeRuleScope {
+  GLOBAL      // 全局
+  LINE        // 产线级
+  ROUTING     // 路由级
+  PRODUCT     // 产品级
 }
 
 // ==========================================
@@ -432,6 +457,7 @@ model Run {
   slotExpectations RunSlotExpectation[]
   loadingRecords   LoadingRecord[]
   bakeRecords      BakeRecord[]
+  timeRuleInstances TimeRuleInstance[]  // SMT Gap Phase 2: Time Rule Instances
 
   @@index([parentRunId])
 }
@@ -1917,4 +1943,77 @@ model InspectionResultRecord {
   @@index([stationCode])
   @@index([eventTime])
   @@index([inspectionType, result])
+}
+
+// ==========================================
+// Time Rule Models (SMT Gap Phase 2)
+// ==========================================
+
+model TimeRuleDefinition {
+  id              String          @id @default(cuid())
+  code            String          @unique  // "SOLDER_PASTE_24H"
+  name            String                   // "锡膏暴露时间限制"
+  description     String?
+  ruleType        TimeRuleType
+
+  durationMinutes Int                      // 时限（分钟）
+  warningMinutes  Int?                     // 预警时间（提前多少分钟预警）
+
+  startEvent      String                   // "PASTE_ISSUED"
+  endEvent        String                   // "PASTE_CONSUMED"
+
+  scope           TimeRuleScope  @default(GLOBAL)
+  scopeValue      String?                  // 具体 ID（产线/路由/产品）
+
+  requiresWashStep Boolean      @default(false)  // 是否需要水洗工序才生效
+  isWaivable      Boolean       @default(true)   // 是否可豁免
+  isActive        Boolean       @default(true)   // 是否启用
+  priority        Int           @default(0)      // 优先级（用于冲突时选择）
+
+  meta            Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  instances       TimeRuleInstance[]
+
+  @@map("time_rule_definitions")
+}
+
+model TimeRuleInstance {
+  id              String                   @id @default(cuid())
+  definitionId    String
+
+  runId           String?                  // 关联的 Run（可选）
+  entityType      String                   // "SOLDER_PASTE_LOT" | "UNIT"
+  entityId        String                   // 实体 ID
+  entityDisplay   String?                  // 显示名称（如锡膏批号）
+
+  startedAt       DateTime                 // 计时开始时间
+  expiresAt       DateTime                 // 过期时间
+  warningAt       DateTime?                // 预警时间
+
+  status          TimeRuleInstanceStatus   @default(ACTIVE)
+  completedAt     DateTime?                // 完成时间
+  expiredAt       DateTime?                // 超时时间
+
+  waivedAt        DateTime?                // 豁免时间
+  waivedBy        String?                  // 豁免人
+  waiveReason     String?                  // 豁免原因
+
+  readinessItemId String?                  // 关联的 ReadinessCheckItem（超时时创建）
+  warningNotified Boolean       @default(false)  // 是否已发送预警通知
+  expiryNotified  Boolean       @default(false)  // 是否已发送超时通知
+
+  meta            Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  definition      TimeRuleDefinition @relation(fields: [definitionId], references: [id])
+  run             Run?          @relation(fields: [runId], references: [id])
+
+  @@index([status])
+  @@index([expiresAt])
+  @@index([runId])
+  @@index([entityType, entityId])
+  @@map("time_rule_instances")
 }

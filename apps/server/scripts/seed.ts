@@ -1,5 +1,6 @@
 import path from "node:path";
 import dotenv from "dotenv";
+import { seedTimeRules } from "./seed-time-rules";
 
 dotenv.config({ path: path.resolve(import.meta.dirname, "../.env") });
 
@@ -711,6 +712,7 @@ const run = async () => {
 
 	await resetAllTables(prisma);
 	await seedRoles(prisma, db);
+	await seedTimeRules();
 	const ids = await seedMesMasterData(prisma, db);
 
 	const adminId = await ensureAdminUser(prisma, authModule.auth, db);

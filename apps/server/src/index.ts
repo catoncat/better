@@ -17,6 +17,7 @@ import { authPlugin } from "./plugins/auth";
 import { erpSyncCronPlugin } from "./plugins/erp-sync-cron";
 import { permissionPlugin } from "./plugins/permission";
 import { prismaPlugin } from "./plugins/prisma";
+import { timeRuleCronPlugin } from "./plugins/time-rule-cron";
 import { serveWebRequest } from "./web/serve-web";
 
 const normalizeOrigin = (value: string | undefined) => {
@@ -154,7 +155,8 @@ const api = new Elysia({ prefix: "/api", normalize: true })
 	.use(usersModule)
 	.use(systemModule)
 	.use(erpSyncCronPlugin)
-	.use(auditArchiveCronPlugin);
+	.use(auditArchiveCronPlugin)
+	.use(timeRuleCronPlugin);
 
 const getListenOptions = async () => {
 	const portFromEnv = process.env.PORT ? Number(process.env.PORT) : null;
