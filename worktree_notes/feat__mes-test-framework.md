@@ -32,20 +32,21 @@ touchPoints:
 - [x] Slice 1: Server 入口重构（createApi/createApp/startServer）
 - [x] Slice 2: Integration helpers（test DB + subprocess server + API client）
 - [x] Slice 3: Unit/Integration 示例用例 + 根 scripts（test:*）
-- [ ] Slice 4: Acceptance runner 输出增强（JSON/junit 已完成）+ 文档映射文件
+- [x] Slice 4: Acceptance runner 输出增强（JSON/junit 已完成）+ 文档映射文件
 
 <!-- AUTO:BEGIN status -->
 ## Status (auto)
-- UpdatedAt: 2026-01-23T11:50:00Z
+- UpdatedAt: 2026-01-23T11:55:00Z
 - BaseRef: main
-- Status: **MERGED**
+- Status: **COMPLETED**
 - MergeCommit: 42a4356
+- FinalCommit: 65bcbd0
 - Summary:
   - Server refactored to createApi/createApp/startServer pattern
   - Integration tests use subprocess server to avoid Prisma singleton
   - Fixed TS2589 type depth error by using typeof on const instance
   - 5 tests passing (2 unit, 3 integration)
-- Remaining:
-  - Slice 4: Specs ↔ Tests mapping file (can be done in main branch)
+  - Created specs-to-tests mapping file (02_playbook_to_tests_map.md)
+  - Coverage: 53% fully covered, 24% partial, 23% pending
 <!-- AUTO:END status -->
 
