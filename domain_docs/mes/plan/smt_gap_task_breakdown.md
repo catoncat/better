@@ -207,6 +207,15 @@
 |---------|---------|------|------|--------|
 | **T3.1** | 维修表单 | 1) 维修记录模型<br>2) 设备/夹具维修 API<br>3) 维修后 Readiness 自动刷新 | Phase 2 完成 | Schema + API |
 
+**T3.1 子任务**：
+- [x] 3.1.1 设计 MaintenanceRecord 模型（entityType: FIXTURE/STENCIL/SQUEEGEE/EQUIPMENT）
+- [x] 3.1.2 编写迁移脚本（MaintenanceEntityType, MaintenanceType, MaintenanceStatus 枚举）
+- [x] 3.1.3 创建维修记录 CRUD API（list/get/create/update/complete/verify）
+- [x] 3.1.4 实现维修完成后触发 Readiness precheck（triggerPrecheckForLine）
+- [x] 3.1.5 前端维修记录列表页（/mes/maintenance-records）
+- [x] 3.1.6 前端新增维修记录对话框
+- [x] 3.1.7 添加导航入口（维修记录）
+
 ---
 
 #### Track G：设备数采（可选）
@@ -333,7 +342,7 @@ Phase 3 (依赖 Phase 2 完成)
 - [ ] 钢网清洗/刮刀点检记录可录入
 
 ### Phase 3 验收
-- [ ] 维修记录与 Readiness 联动
+- [x] 维修记录与 Readiness 联动
 - [ ] （可选）设备数据自动写入
 
 ---
