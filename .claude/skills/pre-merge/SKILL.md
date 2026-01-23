@@ -14,7 +14,7 @@ trigger_examples:
     - "final check"
   negative:
     - "进度怎么样" # → worktree-status
-    - "现在做什么" # → mes-next
+    - "现在做什么" # → next
 ---
 
 # Pre-Merge

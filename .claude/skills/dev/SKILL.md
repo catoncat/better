@@ -1,6 +1,6 @@
 ---
 name: dev
-description: 'Repo-wide development workflow. Use when the user asks to implement/build/fix/refactor/change code or docs (实现/开发/修复/重构/改代码/改文档). Enforces git-status preflight, worktree decision, task slicing, small-step commits, and bun-based verification. For MES features, also enforces MES doc contract.'
+description: 'Repo-wide development workflow. Use when the user asks to implement/build/fix/refactor/change code or docs (实现/开发/修复/重构/改代码/改文档). Enforces git-status preflight, worktree decision, task slicing, small-step commits, and bun-based verification. For domain-specific features, also enforces doc contracts defined in AGENTS.md.'
 context: fork
 trigger_examples:
   positive:
@@ -12,10 +12,8 @@ trigger_examples:
     - "implement"
     - "build this"
     - "fix this"
-    - "MES 上料"
-    - "MES OQC"
   negative:
-    - "现在做什么" # → mes-next
+    - "现在做什么" # → next
     - "进度怎么样" # → worktree-status
 ---
 
@@ -37,28 +35,24 @@ trigger_examples:
 
 - Branch-scoped plan/progress lives in `worktree_notes/<branchSlug>.md` (Slices + checkboxes + Decisions + Errors).
 - Cross-cutting decisions/research live in `conversation/*.md` (paste plans/checklists verbatim so another agent can resume).
-- For MES work, keep canonical progress/status in `domain_docs/mes/plan/*` (worktree notes are branch-local execution context, not the source of truth).
+- For domain work with custom plan directories (see `## Task Sources` in AGENTS.md), keep canonical progress/status in the domain plan directory (worktree notes are branch-local execution context, not the source of truth).
 - After every ~2 read/view/search operations, write the takeaway to `Findings` in the relevant note.
 - Before major decisions (or after context switches), re-read the relevant plan/note.
 - On failures: log error + attempts + next approach; do not retry the exact same action repeatedly.
 
-## MES-Specific Rules
+## Domain-Specific Rules
 
-When touching `apps/server/src/modules/mes`, `apps/web/src/routes/_authenticated/mes`, or `domain_docs/mes`:
+When working in a domain with custom rules (defined in AGENTS.md), follow the domain's doc contract and workflow additions.
 
-### Doc Contract (Do Not Violate)
+Check `AGENTS.md` for:
+- `## Domain Specs` sections (e.g., MES, Instruments, etc.)
+- Update rules for the domain (what to update when code changes)
+- Doc contracts (which files serve which purpose)
 
-- **Plan**: progress tracking lives only in `domain_docs/mes/plan/`
-- **Flow**: `domain_docs/mes/spec/process/*` is diagram + notes only. No status tables.
-- **Align**: `domain_docs/mes/spec/impl_align/*` is node-to-API mapping only. No status.
-- **No emoji** in `domain_docs/mes`
-
-### MES Workflow Additions
-
-1. Require a reference to `domain_docs/mes/plan/*`
-2. Confirm MES scope: states affected? failure branch? UI entry point?
-3. After code lands: update corresponding align file
-4. Sanity check: `rg -nP \"\p{Extended_Pictographic}\" domain_docs/mes` (must be empty)
+For this repo, see `AGENTS.md` > `## Domain Specs (MES)` for MES-specific rules including:
+- Doc contracts for plan/flow/align files
+- Workflow additions (align file updates, emoji checks)
+- PR guardrails
 
 ## Commit Checkpoints
 
@@ -71,5 +65,5 @@ Commit after each slice (don't wait until the end):
 
 ## Guardrails
 
-- For "what next" questions: use `mes-next` instead
+- For "what next" questions: use `next` instead
 - For "progress/status" questions: use `worktree-status` instead
