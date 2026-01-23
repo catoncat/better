@@ -36,20 +36,16 @@ touchPoints:
 
 <!-- AUTO:BEGIN status -->
 ## Status (auto)
-- UpdatedAt: 2026-01-23T09:36:00Z
-- BaseRef: main (rebased)
-- CommitsAheadOfBase: 2
-- Dirty: no
-- ChangedFiles:
-  - apps/server/src/app.ts (createApi/createApp/startServer)
-  - apps/server/src/index.ts (thin wrapper)
-  - apps/server/src/testing/** (helpers + tests)
-  - apps/server/scripts/test-mes-flow.ts (junit output)
-  - scripts/mes-acceptance.ts (junit passthrough)
-  - domain_docs/mes/tests/01_acceptance_scenarios.md
-  - package.json (test:* scripts)
-- Next:
-  - Add Specs ↔ Tests mapping file (02_playbook_to_tests_map.md)
-  - Consider adding more integration tests for MES-specific scenarios
+- UpdatedAt: 2026-01-23T11:50:00Z
+- BaseRef: main
+- Status: **MERGED**
+- MergeCommit: 42a4356
+- Summary:
+  - Server refactored to createApi/createApp/startServer pattern
+  - Integration tests use subprocess server to avoid Prisma singleton
+  - Fixed TS2589 type depth error by using typeof on const instance
+  - 5 tests passing (2 unit, 3 integration)
+- Remaining:
+  - Slice 4: Specs ↔ Tests mapping file (can be done in main branch)
 <!-- AUTO:END status -->
 
