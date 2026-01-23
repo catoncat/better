@@ -61,7 +61,18 @@ export class TestApiClient {
 
 		const res = await this.handler(req);
 		const text = await res.text();
-		const data = text.length > 0 ? (JSON.parse(text) as T) : null;
+
+		let data: T | null = null;
+		if (text.length > 0) {
+			const contentType = res.headers.get("Content-Type") || "";
+			if (contentType.includes("application/json")) {
+				data = JSON.parse(text) as T;
+			} else {
+				// Non-JSON response (e.g., plain text error messages)
+				// Wrap in an object with code and message for consistency
+				data = { code: res.statusText || "ERROR", message: text } as T;
+			}
+		}
 		return { res, data };
 	}
 }

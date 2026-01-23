@@ -116,6 +116,14 @@ export const createApi = (options?: CreateApiOptions) => {
 					console.error("Parse error:", error.message);
 					return;
 
+				case "UNAUTHORIZED":
+					set.status = 401;
+					return { code: "UNAUTHORIZED", message: "Unauthorized" };
+
+				case "FORBIDDEN":
+					set.status = 403;
+					return { code: "FORBIDDEN", message: error.message || "Forbidden" };
+
 				default:
 					console.error("Error:", error);
 					if (error instanceof Error && error.stack) {
