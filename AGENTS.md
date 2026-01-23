@@ -35,8 +35,17 @@
   - Template: Context, Decisions, Plan, Findings, Progress, Errors, Open Questions, References
 - **Worktree Notes**: Persist branch/worktree task context in `worktree_notes/<branchSlug>.md` (created by `scripts/worktree-new.ts`). Use it to answer progress/status questions without re-triage.
 - **Repo Skills**: Canonical skills live in `.claude/skills` (shared); `.codex/skills` and `.gemini/skills` are symlinks.
-  - User entry points: `mes-next` (what next), `dev` (implement), `worktree-status` (progress), `claim-task` (claim pending task), `task-queue-status` (view task queue)
+  - User entry points: `next` (what next), `dev` (implement), `worktree-status` (progress), `claim-task` (claim pending task), `task-queue-status` (view task queue)
   - Auto-invoked internally: `task-split`, `small-step-commits`, `note`, `worktree-new`, `pre-merge`, `worktree-cleanup`
+
+## Task Sources
+
+Configure where the `next` skill finds tasks. The `next` skill reads this section to determine which files to parse for triage.
+
+- **Context File**: `domain_docs/mes/CONTEXT.md` (optional, read first for domain context)
+- **Plan Directory**: `domain_docs/mes/plan/` (directory containing task/plan files)
+- **Milestones**: `domain_docs/mes/plan/01_milestones.md`
+- **Current Tasks**: `domain_docs/mes/plan/tasks.md`
 
 ## Runtime Documents (Not in Git)
 
@@ -61,7 +70,7 @@ The `.scratch/` directory stores ephemeral AI conversation notes and debug artif
 
 When multiple AI sessions work on the same codebase:
 
-1. **Task Queue**: `mes-next` automatically writes task breakdowns to `.scratch/task-queue.md`
+1. **Task Queue**: `next` automatically writes task breakdowns to `.scratch/task-queue.md`
 2. **Claim Tasks**: New sessions run `/claim-task` to claim a pending task
 3. **Track Progress**: Use `/task-queue-status` to view current queue state
 4. **Update Status**: Mark tasks as `completed` when done
