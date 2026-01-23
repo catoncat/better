@@ -81,6 +81,11 @@ deploy/.config
 
 others/
 
+# Runtime scratch (AI conversation, debug notes)
+# This directory is used for ephemeral communication and debugging during AI sessions.
+# Important conclusions should be promoted to conversation/ for commit.
+.scratch/
+
 # Agents
 .codex/*
 !.codex/skills

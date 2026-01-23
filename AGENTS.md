@@ -31,12 +31,61 @@
 - **What Next (Triage)**: Group candidates into 2-4 parallelizable tracks and call out conflicts (shared touch points) explicitly.
 - **Worktree**: If `git status` is not clean or the task is high-churn, recommend a dedicated `git worktree` + branch. When a user picks a task/track, ask whether to set up a worktree now.
 - **Small-Step Commits**: Commit after each coherent slice (plan/docs/schema/api/ui) or completed plan checkbox; do not wait for full task completion. If you must stop mid-way, make a `wip:` commit and continue in the next commit.
-- **Conversation Sync**: If a response includes discussion/plan/decision, create a note via `bun scripts/conversation-new.ts "<topic>"` and paste the output (include any plan/checklists verbatim).
+- **Conversation Sync**: If a response includes discussion/plan/decision, create a note via `bun scripts/conversation-new.ts "<topic>"` (writes to `.scratch/` by default; use `--persist` for `conversation/` and commit).
   - Template: Context, Decisions, Plan, Findings, Progress, Errors, Open Questions, References
 - **Worktree Notes**: Persist branch/worktree task context in `worktree_notes/<branchSlug>.md` (created by `scripts/worktree-new.ts`). Use it to answer progress/status questions without re-triage.
 - **Repo Skills**: Canonical skills live in `.claude/skills` (shared); `.codex/skills` and `.gemini/skills` are symlinks.
-  - User entry points: `mes-next` (what next), `dev` (implement), `worktree-status` (progress)
+  - User entry points: `mes-next` (what next), `dev` (implement), `worktree-status` (progress), `claim-task` (claim pending task), `task-queue-status` (view task queue)
   - Auto-invoked internally: `task-split`, `small-step-commits`, `note`, `worktree-new`, `pre-merge`, `worktree-cleanup`
+
+## Runtime Documents (Not in Git)
+
+The `.scratch/` directory stores ephemeral AI conversation notes and debug artifacts:
+- **NOT tracked in Git** (in `.gitignore`)
+- **YOU MUST read and use it** for current session context
+- Use for intermediate states that don't need permanent history
+- Important conclusions should be promoted to `conversation/` and committed
+
+### When to Use `.scratch/`
+- Temporary debugging notes
+- Mid-session planning and brainstorming
+- Task queue for multi-AI coordination (`.scratch/task-queue.md`)
+
+### When to Use `conversation/`
+- Important architecture decisions
+- Design discussion conclusions
+- Cross-team shared knowledge
+- Any content that should persist across sessions
+
+## Multi-AI Coordination
+
+When multiple AI sessions work on the same codebase:
+
+1. **Task Queue**: `mes-next` automatically writes task breakdowns to `.scratch/task-queue.md`
+2. **Claim Tasks**: New sessions run `/claim-task` to claim a pending task
+3. **Track Progress**: Use `/task-queue-status` to view current queue state
+4. **Update Status**: Mark tasks as `completed` when done
+
+Task queue file format:
+```markdown
+# Task Queue
+Created: 2026-01-23T12:00:00
+Source: mes-next triage
+
+## Slices
+
+### Slice 1: <task name>
+- **Status**: pending | in_progress | completed
+- **Claimed By**: <branch-name> | -
+- **Branch**: <feature-branch>
+- **Started At**: <timestamp>
+- **Depends On**: <other slice> (optional)
+```
+
+### Conflict Prevention
+- Each AI should work in its own worktree
+- Use branch name as claimer identifier (auto-detected via `git branch --show-current`)
+- Before claiming, check that the task is not already `in_progress`
 
 ## Worktree Bootstrap (Recommended)
 
