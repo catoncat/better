@@ -161,6 +161,7 @@ export function MaintenanceDialog({
 								<LineSelect
 									value={field.state.value || ""}
 									onValueChange={(value) => field.handleChange(value)}
+									valueKey="id"
 									placeholder="选择产线"
 								/>
 							)}

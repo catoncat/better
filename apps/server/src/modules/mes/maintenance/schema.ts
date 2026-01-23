@@ -88,14 +88,11 @@ export const maintenanceCreateSchema = t.Object({
 });
 
 export const maintenanceUpdateSchema = t.Object({
-	status: t.Optional(Prismabox.MaintenanceStatus),
 	assignedTo: t.Optional(t.String()),
 	resolution: t.Optional(t.String()),
 	partsReplaced: t.Optional(t.String()),
 	cost: t.Optional(t.Number()),
 	startedAt: t.Optional(t.String({ format: "date-time" })),
-	completedAt: t.Optional(t.String({ format: "date-time" })),
-	completedBy: t.Optional(t.String()),
 	remark: t.Optional(t.String()),
 });
 

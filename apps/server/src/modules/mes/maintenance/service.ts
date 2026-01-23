@@ -65,14 +65,11 @@ export type CreateMaintenanceInput = {
 };
 
 export type UpdateMaintenanceInput = {
-	status?: MaintenanceStatus;
 	assignedTo?: string;
 	resolution?: string;
 	partsReplaced?: string;
 	cost?: number;
 	startedAt?: string;
-	completedAt?: string;
-	completedBy?: string;
 	remark?: string;
 };
 
@@ -105,10 +102,23 @@ export async function listMaintenanceRecords(
 		if (query.to) where.reportedAt.lte = new Date(query.to);
 	}
 
+	// Parse sort parameter: "field.asc" or "field.desc"
+	const allowedSortFields = ["reportedAt", "completedAt", "status", "entityType", "createdAt"];
+	let orderBy: Prisma.MaintenanceRecordOrderByWithRelationInput[] = [
+		{ reportedAt: "desc" },
+		{ createdAt: "desc" },
+	];
+	if (query.sort) {
+		const [field, direction] = query.sort.split(".");
+		if (field && allowedSortFields.includes(field) && (direction === "asc" || direction === "desc")) {
+			orderBy = [{ [field]: direction }];
+		}
+	}
+
 	const [records, total] = await Promise.all([
 		db.maintenanceRecord.findMany({
 			where,
-			orderBy: [{ reportedAt: "desc" }, { createdAt: "desc" }],
+			orderBy,
 			skip: (page - 1) * pageSize,
 			take: pageSize,
 		}),
@@ -183,14 +193,11 @@ export async function updateMaintenanceRecord(
 	const record = await db.maintenanceRecord.update({
 		where: { id },
 		data: {
-			status: input.status,
 			assignedTo: input.assignedTo,
 			resolution: input.resolution,
 			partsReplaced: input.partsReplaced,
 			cost: input.cost,
 			startedAt: input.startedAt ? new Date(input.startedAt) : undefined,
-			completedAt: input.completedAt ? new Date(input.completedAt) : undefined,
-			completedBy: input.completedBy,
 			remark: input.remark,
 		},
 	});
