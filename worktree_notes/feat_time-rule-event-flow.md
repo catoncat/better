@@ -55,6 +55,7 @@ task:
 - 事件处理器修正 `entityDisplay` 类型后，`check-types` 通过
 - 已移除 TrackIn/TrackOut/锡膏使用中的 TimeRule 硬编码触发，改由事件处理器负责
 - 增加 MES 事件保留清理任务（按 `retentionUntil` 或 30 天阈值删除）
+- SMT 对齐文档新增时间规则事件流节点记录
 
 <!-- AUTO:BEGIN status -->
 

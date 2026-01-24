@@ -48,6 +48,13 @@
 | 首件判定 | `POST /api/fai/:faiId/complete` | `apps/server/src/modules/mes/fai/service.ts` | `apps/web/src/routes/_authenticated/mes/fai.tsx` |
 | Run 授权 (Run=AUTHORIZED) | `POST /api/runs/:runNo/authorize` | `apps/server/src/modules/mes/run/service.ts` | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` |
 
+## 时间规则/事件流
+
+| 节点 | API | Server | Web |
+|------|-----|--------|-----|
+| 时间规则事件处理 | - | `apps/server/src/modules/mes/event/processor.ts`, `apps/server/src/plugins/mes-event-cron.ts` | - |
+| 时间规则事件清理 | - | `apps/server/src/modules/mes/event/retention.ts`, `apps/server/src/plugins/mes-event-retention-cron.ts` | - |
+
 ## 批量执行与质量闭环
 
 | 节点 | API | Server | Web |
