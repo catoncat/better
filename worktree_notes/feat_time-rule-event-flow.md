@@ -56,6 +56,7 @@ task:
 - 已移除 TrackIn/TrackOut/锡膏使用中的 TimeRule 硬编码触发，改由事件处理器负责
 - 增加 MES 事件保留清理任务（按 `retentionUntil` 或 30 天阈值删除）
 - SMT 对齐文档新增时间规则事件流节点记录
+- 冒烟验证（acceptance.db）成功：TrackIn/TrackOut/锡膏使用生成 3 条事件并被处理；SOLDER_PASTE_24H 生成 ACTIVE 实例
 
 <!-- AUTO:BEGIN status -->
 
@@ -81,3 +82,6 @@ task:
 ## Errors
 - 2026-01-24: `bun run db:migrate -- --name mes_event_table` 失败，提示 SQLite DB drift（shared DB 含 ReflowProfile 等表，要求 reset）。下一步：使用独立临时 DB（`DATABASE_URL=file:/.../data/db-temp.db`）执行 migrate dev 生成迁移，避免重置共享 DB。
 - 2026-01-24: `bun run check-types` 失败，TS2322（`entityDisplay` 传入 `string | null`）。已改为 `?? undefined`，准备重跑。
+- 2026-01-24: `bun run db:seed:acceptance` 失败（seed 脚本在 apps/server cwd 解析为 `apps/server/data`，触发 safeDir 拒绝）。下一步：改用绝对 `DATABASE_URL=file:/.../data/acceptance.db` 直接执行 `bun run --filter server db:seed`。
+- 2026-01-24: `bun .scratch/mes-event-smoke.ts` 失败（无法解析 `@better-app/db`）。下一步：将脚本移到 `apps/server/scripts` 并在该目录执行。
+- 2026-01-24: `mes-event-smoke.ts` 失败（`db.RunStatus` 不存在）。下一步：改为从 `@better-app/db` 显式导入 `RunStatus`。
