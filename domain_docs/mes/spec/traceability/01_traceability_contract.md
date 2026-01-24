@@ -1,6 +1,6 @@
 # Traceability Contract & Strategies
 
-> **更新时间**: 2025-01-02
+> **更新时间**: 2026-01-24
 
 This document defines the traceability contract, with a specific requirement for routing:
 - Trace MUST reflect the **route source** and the **frozen executable route version** used at execution time.
@@ -58,6 +58,39 @@ Suggested response sections:
 - Loading summary (run-level loading records; include enough fields to locate slot/material/lot and time)
 - Materials (per-unit consumption, if implemented)
 - Optional snapshot cache
+
+### 3.2 Ingest Event Contract (M4 Planned)
+
+Ingest events represent AUTO/BATCH/TEST sources and are persisted for idempotency + trace.
+
+Core fields (persisted):
+- `id`
+- `dedupeKey` (idempotency key; unique within `sourceSystem`)
+- `sourceSystem` (e.g. equipment/test system identifier)
+- `eventType` (`AUTO` | `BATCH` | `TEST`)
+- `occurredAt` (event time from source)
+- `receivedAt` (server ingest time)
+- `payload` (raw JSON from source)
+- `normalized` (optional; extracted fields for routing/trace)
+- `meta` (optional JSON)
+
+Normalized fields (examples):
+- `sn` / `snList`
+- `carrierCode`
+- `stationCode` / `lineCode`
+- `runNo` (if provided by source)
+- `result` (`PASS`/`FAIL`)
+- `measurements[]` (name/value/unit/judge)
+- `testResultId` (TEST idempotency)
+
+Idempotency rule:
+- `(sourceSystem, dedupeKey)` MUST be unique.
+- Duplicate requests MUST return the existing event and produce no side effects.
+
+Trace representation (M4 planned):
+- `ingestEvents[]` includes: `id`, `dedupeKey`, `eventType`, `sourceSystem`,
+  `occurredAt`, `stationCode`, `sn`/`carrierCode`, `result`, `measurementSummary`,
+  and optional links to Track/CarrierTrack/DataValue ids when available.
 
 ---
 

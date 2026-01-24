@@ -51,9 +51,9 @@ P0（必须）：
 
 | ID | 任务 | 状态 | 依赖 | 备注 |
 |----|------|------|------|------|
-| T4.1.1 | 定义 IngestEvent 合约（字段、幂等键、来源系统、时间戳、payload 约束） | ⬜ | - | |
-| T4.1.2 | 定义/收敛 `ingestMapping` 结构（如何提取 sn/station/time/result/measurements） | ⬜ | T4.1.1 | |
-| T4.1.3 | 补充 M4 验收场景（AUTO/TEST 最小闭环；含回放/幂等/追溯断言） | ⬜ | T4.1.1 | |
+| T4.1.1 | 定义 IngestEvent 合约（字段、幂等键、来源系统、时间戳、payload 约束） | ✅ | - | |
+| T4.1.2 | 定义/收敛 `ingestMapping` 结构（如何提取 sn/station/time/result/measurements） | ✅ | T4.1.1 | |
+| T4.1.3 | 补充 M4 验收场景（AUTO/TEST 最小闭环；含回放/幂等/追溯断言） | ✅ | T4.1.1 | |
 
 ### 3.2 Ingest 存储与 API
 

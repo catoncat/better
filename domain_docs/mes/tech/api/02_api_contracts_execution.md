@@ -348,6 +348,63 @@ Note: if the step is the last step in the route, the unit status becomes `DONE`.
 
 ---
 
+## 4. Ingest Events (AUTO/BATCH/TEST) [M4 Planned]
+
+Ingest events are the entry point for AUTO/BATCH/TEST execution.
+They are idempotent and persisted for trace.
+
+### 4.1 Create Ingest Event
+
+**POST** `/api/ingest/events`
+
+Request (minimal):
+```json
+{
+  "dedupeKey": "EQP-123456",
+  "sourceSystem": "EQP-AOI-01",
+  "eventType": "AUTO",
+  "occurredAt": "2026-01-24T09:00:00Z",
+  "payload": {}
+}
+```
+
+Optional fields:
+- `runNo` (if source knows the run)
+- `meta` (JSON)
+
+Behavior:
+- Idempotent by `(sourceSystem, dedupeKey)`.
+- Persist raw event payload.
+- Normalize via `ingestMapping` from the route snapshot (AUTO/BATCH/TEST).
+- On duplicate, return the existing event and do not create duplicate side effects.
+
+Resolution (planned):
+- If `runNo` is provided, use that Run's frozen `routeVersion` snapshot.
+- If `runNo` is absent, require `sn` to be resolvable from the normalized payload (`snPath`).
+- For BATCH events, all `snList` units must resolve to the same Run (else `RUN_MISMATCH`).
+- If no Run can be resolved, return `RUN_NOT_FOUND` or `UNIT_RUN_NOT_FOUND`.
+
+Response example:
+```json
+{
+  "ok": true,
+  "data": {
+    "eventId": "ie_001",
+    "duplicate": false,
+    "status": "RECEIVED"
+  }
+}
+```
+
+Error examples (planned):
+- `INGEST_MAPPING_MISSING`
+- `INGEST_PAYLOAD_INVALID`
+- `RUN_NOT_FOUND`
+- `UNIT_RUN_NOT_FOUND`
+- `RUN_MISMATCH`
+
+---
+
 ## 5. ERP Routing Updates (Execution Contract Guarantee)
 
 * Runs use their frozen routeVersion; they must not be auto-upgraded.
