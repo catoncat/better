@@ -44,6 +44,20 @@ export const traceUnitResponseSchema = t.Object({
 				result: t.Union([t.String(), t.Null()]),
 			}),
 		),
+		ingestEvents: t.Array(
+			t.Object({
+				id: t.String(),
+				eventType: t.String(),
+				sourceSystem: t.String(),
+				dedupeKey: t.String(),
+				occurredAt: t.String(),
+				stationCode: t.Union([t.String(), t.Null()]),
+				lineCode: t.Union([t.String(), t.Null()]),
+				carrierCode: t.Union([t.String(), t.Null()]),
+				sn: t.Union([t.String(), t.Null()]),
+				result: t.Union([t.String(), t.Null()]),
+			}),
+		),
 		dataValues: t.Array(
 			t.Object({
 				stepNo: t.Union([t.Number(), t.Null()]),
