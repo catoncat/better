@@ -341,13 +341,29 @@ export const lineModule = new Elysia({
 	)
 	.put(
 		"/:lineId/readiness-config",
-		async ({ db, params, body, set }) => {
+		async ({ db, params, body, set, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
 			const line = await db.line.findUnique({
 				where: { id: params.lineId },
-				select: { meta: true },
+				select: { id: true, code: true, meta: true },
 			});
+			const beforeConfig = line ? parseReadinessConfig(line.meta) : null;
 
 			if (!line) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.SYSTEM_CONFIG,
+					entityId: params.lineId,
+					entityDisplay: params.lineId,
+					action: "LINE_READINESS_CONFIG_UPDATE",
+					actor,
+					status: "FAIL",
+					errorCode: "LINE_NOT_FOUND",
+					errorMessage: "Line not found",
+					before: beforeConfig ?? undefined,
+					request: requestMeta,
+					payload: body,
+				});
 				set.status = 404;
 				return {
 					ok: false as const,
@@ -373,7 +389,22 @@ export const lineModule = new Elysia({
 				data: { meta: newMeta },
 			});
 
-			return { ok: true, data: { enabled: body.enabled } };
+			const afterConfig = { enabled: body.enabled };
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.SYSTEM_CONFIG,
+				entityId: line.id,
+				entityDisplay: line.code,
+				action: "LINE_READINESS_CONFIG_UPDATE",
+				actor,
+				status: "SUCCESS",
+				before: beforeConfig ?? undefined,
+				after: afterConfig,
+				request: requestMeta,
+				payload: body,
+			});
+
+			return { ok: true, data: afterConfig };
 		},
 		{
 			isAuth: true,
