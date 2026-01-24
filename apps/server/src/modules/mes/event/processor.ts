@@ -1,14 +1,10 @@
 import {
-	MesEventStatus,
 	type MesEvent,
+	MesEventStatus,
 	type PrismaClient,
 	type TimeRuleDefinition,
 } from "@better-app/db";
-import {
-	completeInstanceByEntity,
-	createInstance,
-	routeHasWashStep,
-} from "../time-rule/service";
+import { completeInstanceByEntity, createInstance, routeHasWashStep } from "../time-rule/service";
 
 const BASE_BACKOFF_MS = 30_000;
 const DEFAULT_BATCH_SIZE = 50;
@@ -82,7 +78,8 @@ const matchesScope = async (
 	}
 
 	if (definition.scope === "PRODUCT") {
-		const productCode = asString(payload?.productCode) ?? runContext?.workOrder?.productCode ?? null;
+		const productCode =
+			asString(payload?.productCode) ?? runContext?.workOrder?.productCode ?? null;
 		return matchesValue(productCode, scopeValue);
 	}
 
@@ -136,7 +133,7 @@ const resolveEntityDisplay = (
 	const lotId = asString(payload?.lotId);
 
 	if (definition.ruleType === "WASH_TIME_LIMIT" && event.eventType === "TRACK_OUT") {
-		return unitSn ? `单元 ${unitSn} - 回流焊后水洗` : event.entityId ?? null;
+		return unitSn ? `单元 ${unitSn} - 回流焊后水洗` : (event.entityId ?? null);
 	}
 
 	if (unitSn) return `单元 ${unitSn}`;
@@ -208,7 +205,7 @@ const processEndEvents = async (
 };
 
 const computeNextAttempt = (attempts: number) => {
-	const delayMs = BASE_BACKOFF_MS * Math.pow(2, Math.max(0, attempts - 1));
+	const delayMs = BASE_BACKOFF_MS * 2 ** Math.max(0, attempts - 1);
 	return new Date(Date.now() + delayMs);
 };
 
@@ -232,7 +229,7 @@ export const processMesEvents = async (
 		new Set(
 			activeDefinitions
 				.flatMap((def) => [def.startEvent, def.endEvent])
-				.filter((value): value is string => Boolean(value && value.trim())),
+				.filter((value): value is string => Boolean(value?.trim())),
 		),
 	);
 	if (eventTypes.length === 0) {
