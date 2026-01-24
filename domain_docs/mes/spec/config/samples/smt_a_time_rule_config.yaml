@@ -10,7 +10,7 @@ rules:
     maxDurationHours: 4
     alertLevel: ALERT
     waivePermission: time_rule:override
-    notes: "Route must include wash step; alert + waive only"
+    notes: "REFLOW/AOI track-out → WASH track-in; route must include wash step; alert + waive only"
   - ruleCode: SOLDER_PASTE_24H
     scopeType: ROUTING
     scopeRef: SMT-BOT-标准路由
