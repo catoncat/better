@@ -64,7 +64,7 @@
 | ID | 任务 | 状态 | 依赖 | 备注 |
 |----|------|------|------|------|
 | T2.9 | 事件表（Event）模型 + 索引 | ✅ | T2.1 | 支持状态/重试/保留期 |
-| T2.10 | 事件发射（TrackIn/TrackOut/锡膏使用） | ✅ | T2.9 | 事件码：TRACK_IN/OUT、SOLDER_PASTE_USAGE_CREATE |
+| T2.10 | 事件发射（TrackIn/TrackOut/锡膏使用） | ✅ | T2.9 | 事件码：TRACK_IN/OUT、SOLDER_PASTE_USAGE_CREATE、SOLDER_PASTE_USAGE_UNBIND |
 | T2.11 | 事件处理器（30s 轮询） | ✅ | T2.9 | 幂等 + 重试（10 次，指数退避） |
 | T2.12 | TimeRule 触发改为事件驱动 | ✅ | T2.10, T2.11 | 取消业务硬编码创建/完成 |
 | T2.13 | 事件保留与清理任务（30 天） | ✅ | T2.11 | 过期清理 + 失败归档 |
