@@ -912,13 +912,9 @@ function RunDetailPage() {
 														className="flex items-center justify-between rounded-md border px-3 py-2"
 													>
 														<div>
-															<p className="text-sm font-medium">
-																{getItemTypeLabel(itemType)}
-															</p>
+															<p className="text-sm font-medium">{getItemTypeLabel(itemType)}</p>
 															{count > 1 && (
-																<p className="text-xs text-muted-foreground">
-																	{count} 项
-																</p>
+																<p className="text-xs text-muted-foreground">{count} 项</p>
 															)}
 														</div>
 														{getTemplateStatusBadge(status)}
