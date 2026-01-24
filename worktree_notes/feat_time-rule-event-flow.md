@@ -57,6 +57,9 @@ task:
 - 增加 MES 事件保留清理任务（按 `retentionUntil` 或 30 天阈值删除）
 - SMT 对齐文档新增时间规则事件流节点记录
 - 冒烟验证（acceptance.db）成功：TrackIn/TrackOut/锡膏使用生成 3 条事件并被处理；SOLDER_PASTE_24H 生成 ACTIVE 实例
+- API 冒烟验证成功（使用 operator + quality 账号）：TrackIn/TrackOut/锡膏使用均返回 ok；`mes_events` 处理完成；`SOLDER_PASTE_24H` 新增 ACTIVE 实例
+- API 冒烟前将 RUN-DEMO-SMT-001 设为 AUTHORIZED（绕过 readiness/FAI），事件处理 cron 临时设为 2s
+- WASH_4H 未验证（seed 路由无 WASH 工序，规则天然不触发）
 
 <!-- AUTO:BEGIN status -->
 
