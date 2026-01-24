@@ -105,7 +105,7 @@ export const seedMESMasterData = async () => {
 		{
 			code: "WASH_4H",
 			name: "Wash Time Window (4h)",
-			description: "Time from Reflow to Wash should not exceed 4 hours",
+			description: "Time from Reflow/AOI to Wash should not exceed 4 hours",
 			ruleType: "WASH_TIME_LIMIT",
 			durationMinutes: 4 * 60,
 			warningMinutes: 30,

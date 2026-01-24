@@ -23,7 +23,7 @@ const PRESET_TIME_RULES = [
 	{
 		code: "WASH_4H",
 		name: "水洗时间限制",
-		description: "回流焊完成后 4 小时内必须完成水洗（仅适用于配置了水洗工序的路由）",
+		description: "回流焊/AOI 完成后 4 小时内必须完成水洗（仅适用于配置了水洗工序的路由）",
 		ruleType: TimeRuleType.WASH_TIME_LIMIT,
 		durationMinutes: 240, // 4 hours
 		warningMinutes: 30, // 30 minutes before expiry
