@@ -9,6 +9,8 @@
 ### Query Params
 - `mode`: `run` (default) | `latest`
 
+> M4 计划：新增 `ingestEvents[]` 字段用于 AUTO/BATCH/TEST 来源追溯。
+
 ### 响应示例
 ```json
 {
@@ -31,6 +33,18 @@
     ],
     "tracks": [
       { "stepNo": 1, "operation": "PRINT_PASTE", "inAt": "...", "outAt": "...", "result": "PASS" }
+    ],
+    "ingestEvents": [
+      {
+        "id": "ie_001",
+        "eventType": "AUTO",
+        "sourceSystem": "EQP-AOI-01",
+        "dedupeKey": "EQP-123456",
+        "occurredAt": "2026-01-24T09:00:00Z",
+        "stationCode": "ST-AOI-01",
+        "sn": "SN0001",
+        "result": "PASS"
+      }
     ],
     "dataValues": [
       { "stepNo": 4, "name": "峰值温度", "value": 247.2, "judge": "PASS" }

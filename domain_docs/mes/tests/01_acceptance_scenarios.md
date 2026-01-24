@@ -107,6 +107,24 @@
 - 数据采集配置和采集操作能够正常记录数据。
 - 追溯查询能够返回完整的单件生产和质量追溯信息。
 
+### 场景 4.1：Ingest 事件闭环（AUTO/TEST）[M4]
+
+**描述**：验证 AUTO/TEST ingest 事件的幂等写入、数据采集与追溯输出。
+
+**步骤**：
+1. 配置 `RouteExecutionConfig`：为目标工序设置 `stationType=AUTO` 或 `TEST`，并配置 `ingestMapping`（见 `03_route_execution_config.md`）。
+2. 调用 `POST /api/ingest/events`，提交 `dedupeKey`、`eventType`、`sourceSystem`、`occurredAt` 与 `payload`。
+   - 确保 payload 可解析 `sn`（或显式提供 `runNo`），用于解析 Run 与 routeVersion。
+   - BATCH 事件需确保 `snList` 可解析且归属同一 Run。
+3. 使用同一 `dedupeKey` 重复提交一次，验证幂等。
+4. 调用 `GET /api/trace/units/{sn}`，验证 `ingestEvents` 出现在 trace 响应中。
+5. 若 `ingestMapping` 绑定了 `DataCollectionSpec`，验证 `DataValue` 被写入且无重复。
+
+**预期结果**：
+- 第二次 ingest 返回 `duplicate=true`（或语义等价），无重复副作用。
+- Trace 返回 `ingestEvents` 且包含 source/eventType/timestamp。
+- DataValue 写入成功且数量正确。
+
 ### 场景 5：OQC 抽检与 MRB 处置
 
 **描述**：验证 OQC 抽检失败后进入 MRB 处置闭环。

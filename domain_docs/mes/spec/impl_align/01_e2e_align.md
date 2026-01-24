@@ -54,6 +54,9 @@
 |------|-----|--------|-----|
 | 选择/确认下一工序 | `GET /api/runs/:runNo/units`, `GET /api/stations/:stationCode/queue` | `apps/server/src/modules/mes/run/service.ts`, `apps/server/src/modules/mes/run/routes.ts`, `apps/server/src/modules/mes/station/routes.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
 | 人工进站 | `POST /api/stations/:stationCode/track-in` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
+| 设备事件进出站 | `POST /api/ingest/events` | `apps/server/src/modules/mes/ingest/service.ts` | - |
+| 载具/批次进出站 | `POST /api/ingest/events` | `apps/server/src/modules/mes/ingest/service.ts` | - |
+| 测试结果接入 | `POST /api/ingest/events` | `apps/server/src/modules/mes/ingest/service.ts` | - |
 | 数据采集/校验 | `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
 | 出站判定 | `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
 | 推进路由 (Unit=QUEUED) | `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |

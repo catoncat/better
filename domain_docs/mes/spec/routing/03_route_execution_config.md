@@ -1,6 +1,6 @@
 # Route Execution Config (MES-owned Execution Semantics)
 
-> **更新时间**: 2025-01-02
+> **更新时间**: 2026-01-24
 
 This document defines how MES configures runtime execution semantics without changing the canonical step sequence from ERP (2B).
 Execution semantics are configured here for all routes, regardless of source system.
@@ -77,6 +77,79 @@ Minimum:
   - testResultId idempotency
   - measurements → DataCollectionSpec mapping
   - step PASS/FAIL extraction
+
+### 3.5 IngestMapping Schema (M4 Planned)
+
+`ingestMapping` is JSON stored on `RouteExecutionConfig` and compiled into the route snapshot.
+It defines how to extract normalized fields from the ingest payload.
+
+Path syntax:
+- Use dot-paths relative to the ingest event root (raw payload is under `payload.*`)
+- Arrays can use `[*]` to indicate list extraction (e.g. `payload.units[*].sn`)
+
+Common shape:
+```json
+{
+  "eventType": "AUTO",
+  "occurredAtPath": "payload.eventTime",
+  "stationCodePath": "payload.device.stationCode",
+  "lineCodePath": "payload.lineCode",
+  "snPath": "payload.sn",
+  "result": { "path": "payload.result", "passValues": ["PASS"], "failValues": ["FAIL"] },
+  "measurements": {
+    "itemsPath": "payload.measurements",
+    "namePath": "name",
+    "valuePath": "value",
+    "unitPath": "unit",
+    "judgePath": "judge"
+  },
+  "dataSpecMap": { "PeakTemp": "TEMP" }
+}
+```
+
+Notes:
+- `eventType` is optional; when present it MUST match the step `stationType` (AUTO/BATCH/TEST).
+- `dataSpecMap` values map to `DataCollectionSpec.name` (same as `specName` used by TrackOut).
+
+AUTO required fields:
+- `snPath`
+- `stationCodePath`
+- `occurredAtPath`
+- `result`
+- `measurements` (optional if no dataSpecIds)
+
+BATCH additions:
+- `carrierCodePath`
+- `snListPath` (list of units or `itemsPath` with `snPath`)
+- `batchPolicy`: `ALL_OR_NOTHING` | `PARTIAL`
+
+TEST additions:
+- `testResultIdPath` (source idempotency)
+- `measurements` should map to DataCollectionSpec (via `dataSpecMap`)
+
+Idempotency:
+- `dedupeKey` is required at ingest API level; for TEST, recommend using `testResultId` as `dedupeKey`.
+- For AUTO/BATCH, recommend using stable equipment event IDs (or carrier batch IDs) as `dedupeKey`.
+
+Example (TEST):
+```json
+{
+  "eventType": "TEST",
+  "testResultIdPath": "payload.testResultId",
+  "occurredAtPath": "payload.completedAt",
+  "stationCodePath": "payload.station",
+  "snPath": "payload.sn",
+  "result": { "path": "payload.judge", "passValues": ["PASS"], "failValues": ["FAIL"] },
+  "measurements": {
+    "itemsPath": "payload.items",
+    "namePath": "name",
+    "valuePath": "value",
+    "unitPath": "unit",
+    "judgePath": "judge"
+  },
+  "dataSpecMap": { "Voltage": "VOLTAGE", "Current": "CURRENT" }
+}
+```
 
 ---
 

@@ -229,6 +229,12 @@ enum TrackSource {
   TEST
 }
 
+enum IngestEventType {
+  AUTO
+  BATCH
+  TEST
+}
+
 enum InspectionType {
   FAI
   IPQC
@@ -455,6 +461,7 @@ model Run {
   inspections      Inspection[] // 用 Inspection 统一承载 FAI/IPQC/FQC/OQC
   authorizations   Authorization[]
   units            Unit[]
+  ingestEvents     IngestEvent[]
   slotExpectations RunSlotExpectation[]
   loadingRecords   LoadingRecord[]
   bakeRecords      BakeRecord[]
@@ -1408,6 +1415,7 @@ model Unit {
   workOrder     WorkOrder      @relation(fields: [woId], references: [id])
   run           Run?           @relation(fields: [runId], references: [id])
   tracks        Track[]
+  ingestEvents  IngestEvent[]
   defects       Defect[]
   materialUses  MaterialUse[]
   traceSnapshot TraceSnapshot?
@@ -1958,6 +1966,44 @@ model IntegrationSyncCursor {
   @@unique([sourceSystem, entityType])
 }
 
+model IngestEvent {
+  id          String          @id @default(cuid())
+  sourceSystem String
+  dedupeKey   String
+  eventType   IngestEventType
+  occurredAt  DateTime
+  receivedAt  DateTime        @default(now())
+
+  runId       String?
+  runNo       String?
+  unitId      String?
+  stationCode String?
+  lineCode    String?
+  carrierCode String?
+  sn          String?
+  snList      Json?
+  result      String?
+  testResultId String?
+
+  payload     Json
+  normalized  Json?
+  meta        Json?
+
+  run         Run?            @relation(fields: [runId], references: [id])
+  unit        Unit?           @relation(fields: [unitId], references: [id])
+
+  @@unique([sourceSystem, dedupeKey])
+  @@index([eventType, occurredAt])
+  @@index([runId])
+  @@index([runNo])
+  @@index([unitId])
+  @@index([sn])
+  @@index([stationCode])
+  @@index([lineCode])
+  @@index([carrierCode])
+  @@map("ingest_events")
+}
+
 // ==========================================
 // RBAC (Role-Based Access Control) Models
 // ==========================================
@@ -2136,6 +2182,7 @@ model TimeRuleInstance {
   definitionId    String
 
   runId           String?                  // 关联的 Run（可选）
+  activeKey       String?          @unique // 幂等/单活 key（可选）
   entityType      String                   // "SOLDER_PASTE_LOT" | "UNIT"
   entityId        String                   // 实体 ID
   entityDisplay   String?                  // 显示名称（如锡膏批号）

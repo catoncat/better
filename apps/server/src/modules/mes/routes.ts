@@ -4,6 +4,7 @@ import { dataCollectionSpecModule } from "./data-collection-spec/routes";
 import { defectRoutes, reworkRoutes } from "./defect/routes";
 import { executionModule } from "./execution/routes";
 import { faiRoutes } from "./fai/routes";
+import { ingestModule } from "./ingest/routes";
 import { integrationModule } from "./integration/routes";
 import { lineModule } from "./line/routes";
 import {
@@ -35,6 +36,7 @@ export const mesModule = new Elysia()
 		detail: { tags: ["MES - Health"] },
 	})
 	.use(integrationModule)
+	.use(ingestModule)
 	.use(masterDataModule)
 	.use(loadingModule)
 	.use(runLoadingModule)

@@ -89,6 +89,18 @@ export const getUnitTrace = async (
 			outAt: string | null;
 			result: string | null;
 		}>;
+		ingestEvents: Array<{
+			id: string;
+			eventType: string;
+			sourceSystem: string;
+			dedupeKey: string;
+			occurredAt: string;
+			stationCode: string | null;
+			lineCode: string | null;
+			carrierCode: string | null;
+			sn: string | null;
+			result: string | null;
+		}>;
 		dataValues: Array<{
 			stepNo: number | null;
 			name: string;
@@ -236,6 +248,28 @@ export const getUnitTrace = async (
 				include: { spec: true },
 			})
 		: [];
+
+	const ingestEventFilters: Prisma.IngestEventWhereInput[] = [{ unitId: unit.id }, { sn: unit.sn }];
+	if (unit.runId) {
+		ingestEventFilters.push({ runId: unit.runId });
+	}
+
+	const ingestEvents = await db.ingestEvent.findMany({
+		where: { OR: ingestEventFilters },
+		orderBy: { occurredAt: "asc" },
+		select: {
+			id: true,
+			eventType: true,
+			sourceSystem: true,
+			dedupeKey: true,
+			occurredAt: true,
+			stationCode: true,
+			lineCode: true,
+			carrierCode: true,
+			sn: true,
+			result: true,
+		},
+	});
 
 	const defects = await db.defect.findMany({
 		where: { unitId: unit.id },
@@ -390,6 +424,18 @@ export const getUnitTrace = async (
 					result: track.result ?? null,
 				};
 			}),
+			ingestEvents: ingestEvents.map((event) => ({
+				id: event.id,
+				eventType: event.eventType,
+				sourceSystem: event.sourceSystem,
+				dedupeKey: event.dedupeKey,
+				occurredAt: event.occurredAt.toISOString(),
+				stationCode: event.stationCode ?? null,
+				lineCode: event.lineCode ?? null,
+				carrierCode: event.carrierCode ?? null,
+				sn: event.sn ?? null,
+				result: event.result ?? null,
+			})),
 			dataValues: dataValues.map((value) => ({
 				stepNo: value.trackId ? (trackById.get(value.trackId)?.stepNo ?? null) : null,
 				name: value.spec.name,
