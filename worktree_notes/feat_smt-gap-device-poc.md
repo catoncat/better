@@ -56,6 +56,7 @@ touchPoints:
 - `getSnapshotSteps` is used across MES services (execution, trace, station) for route snapshot step resolution.
 - No existing usage of `TrackSource.AUTO`; auto device ingestion would be new.
 - MES API overview lists integration endpoints; device-data endpoint needs to be added for POC.
+- Rebase onto `main` required to avoid Phase 2.1 checklist regression.
 
 ## Slices
 - [x] Slice 2.1 - Device gateway design doc + plan/align updates
@@ -83,4 +84,5 @@ touchPoints:
 ## Progress
 - Added device data gateway doc + updated SMT gap plan, SMT align, and API overview.
 - Implemented `/api/integration/device-data` ingestion with idempotency + audit logging.
+- Clarified device gateway doc: trackId vs carrierTrackId exclusivity, carrierTrackId + specName requires operationId, and MANUAL source requires operatorId.
 - Verification: `bun scripts/smart-verify.ts`.

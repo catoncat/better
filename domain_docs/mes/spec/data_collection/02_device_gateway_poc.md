@@ -46,12 +46,15 @@
 - **Idempotency**: `dedupeKey = device-data:{eventId}`. 同一事件返回 `isDuplicate=true`。
 - **Track 解析**：
   - 优先 `trackId`；其次 `carrierTrackId`。
+  - `trackId` 与 `carrierTrackId` 不能同时提供。
   - 若未提供，需 `runNo + unitSn + stationCode + stepNo` 用于解析 Track。
 - **Spec 解析**：
   - 优先 `specId`。
   - 使用 `specName` 时需 `operationId`，或通过 Run 路由快照解析 `stepNo` → `operationId`。
   - 若步骤绑定了 `dataSpecIds`，仅允许写入绑定范围内的 Spec。
+  - 仅提供 `carrierTrackId` 时无法解析 Run 路由快照，若使用 `specName` 必须提供 `operationId`（或改用 `specId`）。
 - **Source 校验**：`source=AUTO` 时仅允许写入 `method=AUTO` 的 Spec。
+  `source=MANUAL` 时必须提供 `operatorId`。
 
 ### 2.3 Output
 
