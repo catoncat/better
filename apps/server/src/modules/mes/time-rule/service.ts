@@ -636,17 +636,17 @@ export async function routeHasWashStep(db: PrismaClient, routeVersionId: string)
 	});
 	if (!version) return false;
 
-	// Check if routing has any step with operation code containing "WASH"
-	const washStep = await db.routingStep.findFirst({
+	// Check if routing has any step with operation code containing "WASH" (case-insensitive)
+	const steps = await db.routingStep.findMany({
 		where: {
 			routingId: version.routingId,
-			operation: {
-				code: { contains: "WASH", mode: "insensitive" },
-			},
+		},
+		select: {
+			operation: { select: { code: true } },
 		},
 	});
 
-	return washStep !== null;
+	return steps.some((step) => (step.operation?.code ?? "").toUpperCase().includes("WASH"));
 }
 
 /**
