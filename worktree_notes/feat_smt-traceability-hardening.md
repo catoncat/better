@@ -6,7 +6,7 @@ baseRef: "origin/main"
 dependencies:
   blockedBy: []
   blocks: []
-status: in_progress  # pending | in_progress | completed
+status: completed  # pending | in_progress | completed
 task:
   title: "SMT traceability hardening (WP-1 time rules + readiness templateization)"
   planPath: "domain_docs/mes/plan/phase4_tasks.md"
@@ -23,8 +23,8 @@ task:
 
 ## Slices
 - [x] Slice 0: worktree note context + confirm open questions
-- [ ] Slice 1: WP-1 time window rule alignment (event handling + docs/plan)
-- [ ] Slice 2: Readiness checklist template view (static UI + docs/plan)
+- [x] Slice 1: WP-1 time window rule alignment (event handling + docs/plan)
+- [x] Slice 2: Readiness checklist template view (static UI + docs/plan)
 
 <!-- AUTO:BEGIN status -->
 
