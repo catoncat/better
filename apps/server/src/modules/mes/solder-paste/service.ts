@@ -6,7 +6,6 @@ import type {
 } from "@better-app/db";
 import type { ServiceResult } from "../../../types/service-result";
 import { buildMesEventIdempotencyKey, createMesEvent, MES_EVENT_TYPES } from "../event/service";
-import { createInstance as createTimeRuleInstance } from "../time-rule/service";
 
 export type SolderPasteUsageRecordDetail = {
 	id: string;
@@ -412,18 +411,6 @@ export async function createSolderPasteUsageRecord(
 		} catch (error) {
 			console.error(`[SolderPaste] Event emit failed for lot ${lotId}:`, error);
 		}
-	}
-
-	// T2.3: 锡膏发出后创建 24h 暴露时间规则实例
-	if (issuedAt) {
-		await createTimeRuleInstance(db, {
-			definitionCode: "SOLDER_PASTE_24H",
-			runId: record.runId ?? undefined,
-			entityType: "SOLDER_PASTE_LOT",
-			entityId: record.id,
-			entityDisplay: `锡膏批次 ${lotId}`,
-			startedAt: issuedAt,
-		});
 	}
 
 	return { success: true, data: mapSolderPasteUsageRecord(record) };

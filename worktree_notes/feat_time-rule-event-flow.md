@@ -25,7 +25,7 @@ task:
 - [x] Slice 1: 事件表模型 + 索引 + 迁移（T2.9）
 - [x] Slice 2: 事件发射（TrackIn/TrackOut/锡膏使用）（T2.10）
 - [x] Slice 3: 事件处理器（30s 轮询、幂等、重试 10 次指数退避）（T2.11）
-- [ ] Slice 4: TimeRule 触发改为事件驱动（T2.12）
+- [x] Slice 4: TimeRule 触发改为事件驱动（T2.12）
 - [ ] Slice 5: 事件保留与清理任务（30 天）（T2.13）
 
 ## Findings
@@ -53,6 +53,7 @@ task:
 - `scopeValue` 可能对齐 `Line.code` / `Routing.code` / `WorkOrder.productCode`（需在事件处理器里支持 ID 或 code）
 - Cron 插件注册在 `apps/server/src/app.ts`（`createApi` enableCrons 分支）
 - 事件处理器修正 `entityDisplay` 类型后，`check-types` 通过
+- 已移除 TrackIn/TrackOut/锡膏使用中的 TimeRule 硬编码触发，改由事件处理器负责
 
 <!-- AUTO:BEGIN status -->
 
