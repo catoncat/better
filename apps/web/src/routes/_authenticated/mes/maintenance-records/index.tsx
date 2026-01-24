@@ -5,18 +5,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Can } from "@/components/ability/can";
 import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
-import { useQueryPresets } from "@/hooks/use-query-presets";
 import {
 	type MaintenanceRecord,
 	useCreateMaintenanceRecord,
 	useMaintenanceRecordList,
 } from "@/hooks/use-maintenance";
+import { useQueryPresets } from "@/hooks/use-query-presets";
 import { MaintenanceCard } from "./-components/maintenance-card";
 import { maintenanceColumns } from "./-components/maintenance-columns";
-import {
-	MaintenanceDialog,
-	type MaintenanceFormValues,
-} from "./-components/maintenance-dialog";
+import { MaintenanceDialog, type MaintenanceFormValues } from "./-components/maintenance-dialog";
 import {
 	MAINTENANCE_ENTITY_TYPE_LABELS,
 	MAINTENANCE_STATUS_LABELS,
@@ -58,20 +55,18 @@ interface MaintenanceSearchParams {
 	pageSize?: number;
 }
 
-export const Route = createFileRoute("/_authenticated/mes/maintenance-records/")(
-	{
-		validateSearch: (search: Record<string, unknown>): MaintenanceSearchParams => ({
-			lineId: (search.lineId as string) || undefined,
-			entityType: (search.entityType as string) || undefined,
-			status: (search.status as string) || undefined,
-			from: (search.from as string) || undefined,
-			to: (search.to as string) || undefined,
-			page: Number(search.page) || 1,
-			pageSize: Number(search.pageSize) || 30,
-		}),
-		component: MaintenanceRecordsPage,
-	},
-);
+export const Route = createFileRoute("/_authenticated/mes/maintenance-records/")({
+	validateSearch: (search: Record<string, unknown>): MaintenanceSearchParams => ({
+		lineId: (search.lineId as string) || undefined,
+		entityType: (search.entityType as string) || undefined,
+		status: (search.status as string) || undefined,
+		from: (search.from as string) || undefined,
+		to: (search.to as string) || undefined,
+		page: Number(search.page) || 1,
+		pageSize: Number(search.pageSize) || 30,
+	}),
+	component: MaintenanceRecordsPage,
+});
 
 function MaintenanceRecordsPage() {
 	const viewPreferencesKey = "maintenance-records";
@@ -176,10 +171,7 @@ function MaintenanceRecordsPage() {
 		storageKey: "maintenance-records",
 	});
 
-	const allPresets = useMemo(
-		() => [...MAINTENANCE_SYSTEM_PRESETS, ...userPresets],
-		[userPresets],
-	);
+	const allPresets = useMemo(() => [...MAINTENANCE_SYSTEM_PRESETS, ...userPresets], [userPresets]);
 
 	const currentActivePresetId = useMemo(() => {
 		return matchPreset(filters, allPresets);

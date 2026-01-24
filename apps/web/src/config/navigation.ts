@@ -70,6 +70,11 @@ export const navMain: NavItem[] = [
 				permissions: [Permission.READINESS_CONFIG],
 			},
 			{
+				title: "时间规则管理",
+				url: "/mes/time-rules",
+				permissions: [Permission.READINESS_CONFIG],
+			},
+			{
 				title: "上料防错",
 				url: "/mes/loading",
 				permissions: [Permission.LOADING_VERIFY, Permission.LOADING_VIEW],

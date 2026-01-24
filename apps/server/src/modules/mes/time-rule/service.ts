@@ -18,12 +18,12 @@ export type TimeRuleDefinitionDetail = {
 	code: string;
 	name: string;
 	description: string | null;
-	ruleType: TimeRuleType;
+	ruleType: "SOLDER_PASTE_EXPOSURE" | "WASH_TIME_LIMIT";
 	durationMinutes: number;
 	warningMinutes: number | null;
 	startEvent: string;
 	endEvent: string;
-	scope: string;
+	scope: "GLOBAL" | "LINE" | "ROUTING" | "PRODUCT";
 	scopeValue: string | null;
 	requiresWashStep: boolean;
 	isWaivable: boolean;
@@ -143,17 +143,61 @@ const mapInstance = (inst: InstanceWithRelations): TimeRuleInstanceDetail => {
 
 export async function listDefinitions(
 	db: PrismaClient,
-	options?: { activeOnly?: boolean },
-): Promise<TimeRuleDefinitionDetail[]> {
+	options?: {
+		page?: number;
+		pageSize?: number;
+		code?: string;
+		name?: string;
+		ruleType?: TimeRuleType;
+		isActive?: boolean;
+		sortBy?: string;
+		sortDir?: "asc" | "desc";
+	},
+): Promise<{ items: TimeRuleDefinitionDetail[]; total: number }> {
 	const where: Prisma.TimeRuleDefinitionWhereInput = {};
-	if (options?.activeOnly) {
-		where.isActive = true;
+
+	if (options?.code) {
+		where.code = { contains: options.code };
 	}
-	const definitions = await db.timeRuleDefinition.findMany({
-		where,
-		orderBy: [{ priority: "desc" }, { code: "asc" }],
+	if (options?.name) {
+		where.name = { contains: options.name };
+	}
+	if (options?.ruleType) {
+		where.ruleType = options.ruleType;
+	}
+	if (options?.isActive !== undefined) {
+		where.isActive = options.isActive;
+	}
+
+	const skip = ((options?.page ?? 1) - 1) * (options?.pageSize ?? 30);
+	const take = options?.pageSize ?? 30;
+
+	const [items, total] = await Promise.all([
+		db.timeRuleDefinition.findMany({
+			where,
+			skip,
+			take,
+			orderBy: options?.sortBy
+				? { [options.sortBy]: options.sortDir ?? "asc" }
+				: [{ priority: "desc" }, { code: "asc" }],
+		}),
+		db.timeRuleDefinition.count({ where }),
+	]);
+
+	return {
+		items: items.map(mapDefinition),
+		total,
+	};
+}
+
+export async function getDefinitionById(
+	db: PrismaClient,
+	id: string,
+): Promise<TimeRuleDefinitionDetail | null> {
+	const definition = await db.timeRuleDefinition.findUnique({
+		where: { id },
 	});
-	return definitions.map(mapDefinition);
+	return definition ? mapDefinition(definition) : null;
 }
 
 export async function getDefinitionByCode(
@@ -169,19 +213,21 @@ export async function getDefinitionByCode(
 export type CreateDefinitionInput = {
 	code: string;
 	name: string;
-	description?: string;
+	description?: string | null;
 	ruleType: TimeRuleType;
 	durationMinutes: number;
-	warningMinutes?: number;
+	warningMinutes?: number | null;
 	startEvent: string;
 	endEvent: string;
 	scope?: TimeRuleScope;
-	scopeValue?: string;
+	scopeValue?: string | null;
 	requiresWashStep?: boolean;
 	isWaivable?: boolean;
 	isActive?: boolean;
 	priority?: number;
 };
+
+export type UpdateDefinitionInput = Partial<Omit<CreateDefinitionInput, "code">>;
 
 export async function createDefinition(
 	db: PrismaClient,
@@ -219,6 +265,84 @@ export async function createDefinition(
 	});
 
 	return { success: true, data: mapDefinition(definition) };
+}
+
+export async function updateDefinition(
+	db: PrismaClient,
+	id: string,
+	input: UpdateDefinitionInput,
+): Promise<ServiceResult<TimeRuleDefinitionDetail>> {
+	const existing = await db.timeRuleDefinition.findUnique({
+		where: { id },
+	});
+	if (!existing) {
+		return {
+			success: false,
+			code: "DEFINITION_NOT_FOUND",
+			message: `Time rule definition with id "${id}" not found`,
+			status: 404,
+		};
+	}
+
+	const definition = await db.timeRuleDefinition.update({
+		where: { id },
+		data: {
+			name: input.name,
+			description: input.description,
+			ruleType: input.ruleType,
+			durationMinutes: input.durationMinutes,
+			warningMinutes: input.warningMinutes,
+			startEvent: input.startEvent,
+			endEvent: input.endEvent,
+			scope: input.scope,
+			scopeValue: input.scopeValue,
+			requiresWashStep: input.requiresWashStep,
+			isWaivable: input.isWaivable,
+			isActive: input.isActive,
+			priority: input.priority,
+		},
+	});
+
+	return { success: true, data: mapDefinition(definition) };
+}
+
+export async function deleteDefinition(
+	db: PrismaClient,
+	id: string,
+): Promise<ServiceResult<{ id: string }>> {
+	const existing = await db.timeRuleDefinition.findUnique({
+		where: { id },
+	});
+	if (!existing) {
+		return {
+			success: false,
+			code: "DEFINITION_NOT_FOUND",
+			message: "Time rule definition not found",
+			status: 404,
+		};
+	}
+
+	// Check for active instances
+	const activeInstances = await db.timeRuleInstance.count({
+		where: {
+			definitionId: id,
+			status: "ACTIVE",
+		},
+	});
+	if (activeInstances > 0) {
+		return {
+			success: false,
+			code: "HAS_ACTIVE_INSTANCES",
+			message: "Cannot delete definition with active instances",
+			status: 400,
+		};
+	}
+
+	await db.timeRuleDefinition.delete({
+		where: { id },
+	});
+
+	return { success: true, data: { id } };
 }
 
 // ==========================================

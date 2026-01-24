@@ -110,7 +110,11 @@ export async function listMaintenanceRecords(
 	];
 	if (query.sort) {
 		const [field, direction] = query.sort.split(".");
-		if (field && allowedSortFields.includes(field) && (direction === "asc" || direction === "desc")) {
+		if (
+			field &&
+			allowedSortFields.includes(field) &&
+			(direction === "asc" || direction === "desc")
+		) {
 			orderBy = [{ [field]: direction }];
 		}
 	}

@@ -118,7 +118,11 @@ export const maintenanceRoutes = new Elysia({ prefix: "/maintenance-records" })
 			requirePermission: Permission.READINESS_CHECK,
 			params: maintenanceIdParamSchema,
 			body: maintenanceUpdateSchema,
-			response: { 200: maintenanceResponseSchema, 400: errorResponseSchema, 404: errorResponseSchema },
+			response: {
+				200: maintenanceResponseSchema,
+				400: errorResponseSchema,
+				404: errorResponseSchema,
+			},
 			detail: { tags: ["MES - Maintenance"], summary: "Update maintenance record" },
 		},
 	)
@@ -149,7 +153,11 @@ export const maintenanceRoutes = new Elysia({ prefix: "/maintenance-records" })
 			requirePermission: Permission.READINESS_CHECK,
 			params: maintenanceIdParamSchema,
 			body: maintenanceCompleteSchema,
-			response: { 200: maintenanceResponseSchema, 400: errorResponseSchema, 404: errorResponseSchema },
+			response: {
+				200: maintenanceResponseSchema,
+				400: errorResponseSchema,
+				404: errorResponseSchema,
+			},
 			detail: { tags: ["MES - Maintenance"], summary: "Complete maintenance record" },
 		},
 	)
@@ -180,7 +188,11 @@ export const maintenanceRoutes = new Elysia({ prefix: "/maintenance-records" })
 			requirePermission: Permission.READINESS_OVERRIDE,
 			params: maintenanceIdParamSchema,
 			body: maintenanceVerifySchema,
-			response: { 200: maintenanceResponseSchema, 400: errorResponseSchema, 404: errorResponseSchema },
+			response: {
+				200: maintenanceResponseSchema,
+				400: errorResponseSchema,
+				404: errorResponseSchema,
+			},
 			detail: { tags: ["MES - Maintenance"], summary: "Verify completed maintenance record" },
 		},
 	);

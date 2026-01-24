@@ -13,6 +13,7 @@ import {
 	runLoadingModule,
 	slotMappingModule,
 } from "./loading/routes";
+import { maintenanceRoutes } from "./maintenance/routes";
 import { masterDataModule } from "./master-data/routes";
 import { operationModule } from "./operation/routes";
 import { mrbRoutes } from "./oqc/mrb-routes";
@@ -26,7 +27,6 @@ import { smtBasicRoutes } from "./smt-basic/routes";
 import { coldStorageTemperatureRoutes, solderPasteUsageRoutes } from "./solder-paste/routes";
 import { stationModule } from "./station/routes";
 import { timeRuleRoutes } from "./time-rule/routes";
-import { maintenanceRoutes } from "./maintenance/routes";
 import { traceModule } from "./trace/routes";
 import { workOrderModule } from "./work-order/routes";
 

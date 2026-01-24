@@ -1,7 +1,7 @@
 import type { DataListFieldMeta } from "@/components/data-list/field-meta";
+import { Badge } from "@/components/ui/badge";
 import type { MaintenanceRecord } from "@/hooks/use-maintenance";
 import { formatDateTime } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 
 // 实体类型标签
 export const MAINTENANCE_ENTITY_TYPE_LABELS: Record<string, string> = {
@@ -29,7 +29,10 @@ export const MAINTENANCE_STATUS_LABELS: Record<string, string> = {
 };
 
 // 状态颜色
-export const MAINTENANCE_STATUS_COLORS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+export const MAINTENANCE_STATUS_COLORS: Record<
+	string,
+	"default" | "secondary" | "destructive" | "outline"
+> = {
 	PENDING: "outline",
 	IN_PROGRESS: "secondary",
 	COMPLETED: "default",
@@ -57,8 +60,10 @@ export const maintenanceFieldMeta: DataListFieldMeta<MaintenanceRecord>[] = [
 		key: "maintenanceType",
 		label: "维修类型",
 		cardDetail: true,
-		cardValue: (record) => MAINTENANCE_TYPE_LABELS[record.maintenanceType] || record.maintenanceType,
-		tableCell: (record) => MAINTENANCE_TYPE_LABELS[record.maintenanceType] || record.maintenanceType,
+		cardValue: (record) =>
+			MAINTENANCE_TYPE_LABELS[record.maintenanceType] || record.maintenanceType,
+		tableCell: (record) =>
+			MAINTENANCE_TYPE_LABELS[record.maintenanceType] || record.maintenanceType,
 	},
 	{
 		key: "status",

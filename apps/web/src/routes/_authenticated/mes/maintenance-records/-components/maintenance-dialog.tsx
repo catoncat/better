@@ -22,10 +22,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-	MAINTENANCE_ENTITY_TYPE_LABELS,
-	MAINTENANCE_TYPE_LABELS,
-} from "./maintenance-field-meta";
+import { MAINTENANCE_ENTITY_TYPE_LABELS, MAINTENANCE_TYPE_LABELS } from "./maintenance-field-meta";
 
 const formSchema = z.object({
 	lineId: z.string().optional(),

@@ -1,4 +1,4 @@
-import Elysia from "elysia";
+import Elysia, { t } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
@@ -7,12 +7,21 @@ import {
 	timeRuleDefinitionListQuerySchema,
 	timeRuleDefinitionListResponseSchema,
 	timeRuleDefinitionResponseSchema,
+	timeRuleDefinitionUpdateSchema,
 	timeRuleErrorResponseSchema,
 	timeRuleInstanceListResponseSchema,
 	timeRuleInstanceResponseSchema,
 	timeRuleInstanceWaiveSchema,
 } from "./schema";
-import { createDefinition, listDefinitions, listInstancesByRun, waiveInstance } from "./service";
+import {
+	createDefinition,
+	deleteDefinition,
+	getDefinitionById,
+	listDefinitions,
+	listInstancesByRun,
+	updateDefinition,
+	waiveInstance,
+} from "./service";
 
 export const timeRuleRoutes = new Elysia({ prefix: "/time-rules" })
 	.use(prismaPlugin)
@@ -22,16 +31,23 @@ export const timeRuleRoutes = new Elysia({ prefix: "/time-rules" })
 	// Definition Routes
 	// ==========================================
 	.get(
-		"/definitions",
+		"/",
 		async ({ db, query }) => {
 			const result = await listDefinitions(db, {
-				activeOnly: query.activeOnly === true,
+				page: query.page,
+				pageSize: query.pageSize,
+				code: query.code,
+				name: query.name,
+				ruleType: query.ruleType as any,
+				isActive: query.isActive === "true" ? true : query.isActive === "false" ? false : undefined,
+				sortBy: query.sortBy,
+				sortDir: query.sortDir,
 			});
 			return { ok: true, data: result };
 		},
 		{
 			isAuth: true,
-			requirePermission: Permission.READINESS_VIEW,
+			requirePermission: Permission.READINESS_CONFIG,
 			query: timeRuleDefinitionListQuerySchema,
 			response: {
 				200: timeRuleDefinitionListResponseSchema,
@@ -40,9 +56,9 @@ export const timeRuleRoutes = new Elysia({ prefix: "/time-rules" })
 		},
 	)
 	.post(
-		"/definitions",
+		"/",
 		async ({ db, body, set }) => {
-			const result = await createDefinition(db, body);
+			const result = await createDefinition(db, body as any);
 
 			if (!result.success) {
 				set.status = result.status ?? 400;
@@ -62,6 +78,73 @@ export const timeRuleRoutes = new Elysia({ prefix: "/time-rules" })
 				409: timeRuleErrorResponseSchema,
 			},
 			detail: { tags: ["MES - Time Rules"], summary: "Create time rule definition" },
+		},
+	)
+	.get(
+		"/:ruleId",
+		async ({ db, params, set }) => {
+			const result = await getDefinitionById(db, params.ruleId);
+			if (!result) {
+				set.status = 404;
+				return { ok: false, error: { code: "NOT_FOUND", message: "Definition not found" } };
+			}
+			return { ok: true, data: result };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.READINESS_CONFIG,
+			response: {
+				200: timeRuleDefinitionResponseSchema,
+				404: timeRuleErrorResponseSchema,
+			},
+			detail: { tags: ["MES - Time Rules"], summary: "Get time rule definition" },
+		},
+	)
+	.patch(
+		"/:ruleId",
+		async ({ db, params, body, set }) => {
+			const result = await updateDefinition(db, params.ruleId, body as any);
+
+			if (!result.success) {
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.READINESS_CONFIG,
+			body: timeRuleDefinitionUpdateSchema,
+			response: {
+				200: timeRuleDefinitionResponseSchema,
+				400: timeRuleErrorResponseSchema,
+				404: timeRuleErrorResponseSchema,
+			},
+			detail: { tags: ["MES - Time Rules"], summary: "Update time rule definition" },
+		},
+	)
+	.delete(
+		"/:ruleId",
+		async ({ db, params, set }) => {
+			const result = await deleteDefinition(db, params.ruleId);
+
+			if (!result.success) {
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.READINESS_CONFIG,
+			response: {
+				200: t.Object({ ok: t.Boolean(), data: t.Object({ id: t.String() }) }),
+				400: timeRuleErrorResponseSchema,
+				404: timeRuleErrorResponseSchema,
+			},
+			detail: { tags: ["MES - Time Rules"], summary: "Delete time rule definition" },
 		},
 	)
 	// ==========================================

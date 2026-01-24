@@ -9,12 +9,17 @@ export const timeRuleDefinitionSchema = t.Object({
 	code: t.String(),
 	name: t.String(),
 	description: t.Union([t.String(), t.Null()]),
-	ruleType: t.String(),
+	ruleType: t.Union([t.Literal("SOLDER_PASTE_EXPOSURE"), t.Literal("WASH_TIME_LIMIT")]),
 	durationMinutes: t.Number(),
 	warningMinutes: t.Union([t.Number(), t.Null()]),
 	startEvent: t.String(),
 	endEvent: t.String(),
-	scope: t.String(),
+	scope: t.Union([
+		t.Literal("GLOBAL"),
+		t.Literal("LINE"),
+		t.Literal("ROUTING"),
+		t.Literal("PRODUCT"),
+	]),
 	scopeValue: t.Union([t.String(), t.Null()]),
 	requiresWashStep: t.Boolean(),
 	isWaivable: t.Boolean(),
@@ -30,26 +35,42 @@ export const timeRuleDefinitionCreateSchema = t.Object({
 	description: t.Optional(t.String()),
 	ruleType: t.Union([t.Literal("SOLDER_PASTE_EXPOSURE"), t.Literal("WASH_TIME_LIMIT")]),
 	durationMinutes: t.Number({ minimum: 1 }),
-	warningMinutes: t.Optional(t.Number({ minimum: 1 })),
+	warningMinutes: t.Optional(t.Union([t.Number({ minimum: 1 }), t.Null()])),
 	startEvent: t.String({ minLength: 1 }),
 	endEvent: t.String({ minLength: 1 }),
 	scope: t.Optional(
 		t.Union([t.Literal("GLOBAL"), t.Literal("LINE"), t.Literal("ROUTING"), t.Literal("PRODUCT")]),
 	),
-	scopeValue: t.Optional(t.String()),
+	scopeValue: t.Optional(t.Union([t.String(), t.Null()])),
 	requiresWashStep: t.Optional(t.Boolean()),
 	isWaivable: t.Optional(t.Boolean()),
 	isActive: t.Optional(t.Boolean()),
 	priority: t.Optional(t.Number()),
 });
 
+export const timeRuleDefinitionUpdateSchema = t.Partial(
+	t.Omit(timeRuleDefinitionCreateSchema, ["code"]),
+);
+
 export const timeRuleDefinitionListQuerySchema = t.Object({
-	activeOnly: t.Optional(t.BooleanString()),
+	page: t.Optional(t.Numeric({ default: 1, minimum: 1 })),
+	pageSize: t.Optional(t.Numeric({ default: 30, minimum: 1, maximum: 100 })),
+	code: t.Optional(t.String()),
+	name: t.Optional(t.String()),
+	ruleType: t.Optional(t.Union([t.Literal("SOLDER_PASTE_EXPOSURE"), t.Literal("WASH_TIME_LIMIT")])),
+	isActive: t.Optional(t.Union([t.Literal("true"), t.Literal("false")])),
+	sortBy: t.Optional(
+		t.Union([t.Literal("code"), t.Literal("name"), t.Literal("createdAt"), t.Literal("updatedAt")]),
+	),
+	sortDir: t.Optional(t.Union([t.Literal("asc"), t.Literal("desc")])),
 });
 
 export const timeRuleDefinitionListResponseSchema = t.Object({
 	ok: t.Boolean(),
-	data: t.Array(timeRuleDefinitionSchema),
+	data: t.Object({
+		items: t.Array(timeRuleDefinitionSchema),
+		total: t.Number(),
+	}),
 });
 
 export const timeRuleDefinitionResponseSchema = t.Object({

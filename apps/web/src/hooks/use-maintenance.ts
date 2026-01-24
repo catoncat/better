@@ -24,9 +24,7 @@ export type MaintenanceRecordQuery = {
 	pageSize?: number;
 };
 
-type MaintenanceCreateInput = Parameters<
-	(typeof client.api)["maintenance-records"]["post"]
->[0];
+type MaintenanceCreateInput = Parameters<(typeof client.api)["maintenance-records"]["post"]>[0];
 
 type MaintenanceCompleteInput = {
 	resolution: string;
@@ -44,7 +42,9 @@ export function useMaintenanceRecordList(query: MaintenanceRecordQuery) {
 		queryKey: ["mes", "maintenance-records", query],
 		queryFn: async () => {
 			// Cast to API query type - the API will validate
-			const response = await client.api["maintenance-records"].get({ query: query as ApiMaintenanceQuery });
+			const response = await client.api["maintenance-records"].get({
+				query: query as ApiMaintenanceQuery,
+			});
 			return unwrap(response);
 		},
 		placeholderData: (previousData: MaintenanceRecordListData | undefined) => previousData,
@@ -103,7 +103,9 @@ export function useCompleteMaintenanceRecord() {
 
 	return useMutation({
 		mutationFn: async ({ id, data }: { id: string; data: MaintenanceCompleteInput }) => {
-			const response = await client.api["maintenance-records"]({ maintenanceId: id }).complete.post(data);
+			const response = await client.api["maintenance-records"]({ maintenanceId: id }).complete.post(
+				data,
+			);
 			return unwrap(response);
 		},
 		onSuccess: () => {
@@ -120,7 +122,9 @@ export function useVerifyMaintenanceRecord() {
 
 	return useMutation({
 		mutationFn: async ({ id, data }: { id: string; data: MaintenanceVerifyInput }) => {
-			const response = await client.api["maintenance-records"]({ maintenanceId: id }).verify.post(data);
+			const response = await client.api["maintenance-records"]({ maintenanceId: id }).verify.post(
+				data,
+			);
 			return unwrap(response);
 		},
 		onSuccess: () => {

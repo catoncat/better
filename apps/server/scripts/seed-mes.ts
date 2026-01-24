@@ -67,7 +67,7 @@ export const seedMESMasterData = async () => {
 	});
 
 	// 1.2 Seed go-live defaults for Readiness checks
-	// For full SMT E2E acceptance, enable all six checks
+	// For full SMT E2E acceptance, enable all checks including new PREP/TimeRule ones
 	await ensureLineReadinessEnabled(lineA.id, [
 		"ROUTE",
 		"LOADING",
@@ -75,8 +75,58 @@ export const seedMESMasterData = async () => {
 		"MATERIAL",
 		"STENCIL",
 		"SOLDER_PASTE",
+		"PREP_BAKE",
+		"PREP_PASTE",
+		"PREP_STENCIL_USAGE",
+		"PREP_STENCIL_CLEAN",
+		"PREP_SCRAPER",
+		"PREP_FIXTURE",
+		"PREP_PROGRAM",
+		"TIME_RULE",
 	]);
 	await ensureLineReadinessEnabled(dipLineA.id, ["ROUTE"]);
+
+	// 1.3 Seed default Time Rules
+	const timeRules = [
+		{
+			code: "SOLDER_PASTE_EXPOSURE",
+			name: "Solder Paste Exposure Time",
+			description: "Solder paste exposure time should not exceed 24 hours",
+			ruleType: "SOLDER_PASTE_EXPOSURE",
+			durationMinutes: 24 * 60,
+			warningMinutes: 2 * 60,
+			startEvent: "SOLDER_PASTE_USAGE_CREATE",
+			endEvent: "TRACK_OUT:PRINTING",
+			scope: "PRODUCT",
+			isWaivable: true,
+			isActive: true,
+			priority: 10,
+		},
+		{
+			code: "WASH_TIME_WINDOW",
+			name: "Wash Time Window",
+			description: "Time from Reflow to Wash should not exceed 4 hours",
+			ruleType: "WASH_TIME_LIMIT",
+			durationMinutes: 4 * 60,
+			warningMinutes: 30,
+			startEvent: "TRACK_OUT:REFLOW",
+			endEvent: "TRACK_IN:WASH",
+			scope: "ROUTING",
+			requiresWashStep: true,
+			isWaivable: true,
+			isActive: true,
+			priority: 10,
+		},
+	];
+
+	for (const rule of timeRules) {
+		await prisma.timeRuleDefinition.upsert({
+			where: { code: rule.code },
+			update: rule,
+			create: rule,
+		});
+	}
+	console.log("  -> Default Time Rules seeded");
 
 	// 2. Create Station Group
 	const smtGroupA = await prisma.stationGroup.upsert({

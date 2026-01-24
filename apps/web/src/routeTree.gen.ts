@@ -33,6 +33,7 @@ import { Route as AuthenticatedMesFaiRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedMesExecutionRouteImport } from './routes/_authenticated/mes/execution'
 import { Route as AuthenticatedMesDefectsRouteImport } from './routes/_authenticated/mes/defects'
 import { Route as AuthenticatedMesWorkCentersIndexRouteImport } from './routes/_authenticated/mes/work-centers/index'
+import { Route as AuthenticatedMesTimeRulesIndexRouteImport } from './routes/_authenticated/mes/time-rules/index'
 import { Route as AuthenticatedMesStencilUsageIndexRouteImport } from './routes/_authenticated/mes/stencil-usage/index'
 import { Route as AuthenticatedMesStencilCleaningIndexRouteImport } from './routes/_authenticated/mes/stencil-cleaning/index'
 import { Route as AuthenticatedMesSqueegeeUsageIndexRouteImport } from './routes/_authenticated/mes/squeegee-usage/index'
@@ -191,6 +192,12 @@ const AuthenticatedMesWorkCentersIndexRoute =
   AuthenticatedMesWorkCentersIndexRouteImport.update({
     id: '/mes/work-centers/',
     path: '/mes/work-centers/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMesTimeRulesIndexRoute =
+  AuthenticatedMesTimeRulesIndexRouteImport.update({
+    id: '/mes/time-rules/',
+    path: '/mes/time-rules/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedMesStencilUsageIndexRoute =
@@ -392,6 +399,7 @@ export interface FileRoutesByFullPath {
   '/mes/squeegee-usage': typeof AuthenticatedMesSqueegeeUsageIndexRoute
   '/mes/stencil-cleaning': typeof AuthenticatedMesStencilCleaningIndexRoute
   '/mes/stencil-usage': typeof AuthenticatedMesStencilUsageIndexRoute
+  '/mes/time-rules': typeof AuthenticatedMesTimeRulesIndexRoute
   '/mes/work-centers': typeof AuthenticatedMesWorkCentersIndexRoute
 }
 export interface FileRoutesByTo {
@@ -441,6 +449,7 @@ export interface FileRoutesByTo {
   '/mes/squeegee-usage': typeof AuthenticatedMesSqueegeeUsageIndexRoute
   '/mes/stencil-cleaning': typeof AuthenticatedMesStencilCleaningIndexRoute
   '/mes/stencil-usage': typeof AuthenticatedMesStencilUsageIndexRoute
+  '/mes/time-rules': typeof AuthenticatedMesTimeRulesIndexRoute
   '/mes/work-centers': typeof AuthenticatedMesWorkCentersIndexRoute
 }
 export interface FileRoutesById {
@@ -493,6 +502,7 @@ export interface FileRoutesById {
   '/_authenticated/mes/squeegee-usage/': typeof AuthenticatedMesSqueegeeUsageIndexRoute
   '/_authenticated/mes/stencil-cleaning/': typeof AuthenticatedMesStencilCleaningIndexRoute
   '/_authenticated/mes/stencil-usage/': typeof AuthenticatedMesStencilUsageIndexRoute
+  '/_authenticated/mes/time-rules/': typeof AuthenticatedMesTimeRulesIndexRoute
   '/_authenticated/mes/work-centers/': typeof AuthenticatedMesWorkCentersIndexRoute
 }
 export interface FileRouteTypes {
@@ -545,6 +555,7 @@ export interface FileRouteTypes {
     | '/mes/squeegee-usage'
     | '/mes/stencil-cleaning'
     | '/mes/stencil-usage'
+    | '/mes/time-rules'
     | '/mes/work-centers'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -594,6 +605,7 @@ export interface FileRouteTypes {
     | '/mes/squeegee-usage'
     | '/mes/stencil-cleaning'
     | '/mes/stencil-usage'
+    | '/mes/time-rules'
     | '/mes/work-centers'
   id:
     | '__root__'
@@ -645,6 +657,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/squeegee-usage/'
     | '/_authenticated/mes/stencil-cleaning/'
     | '/_authenticated/mes/stencil-usage/'
+    | '/_authenticated/mes/time-rules/'
     | '/_authenticated/mes/work-centers/'
   fileRoutesById: FileRoutesById
 }
@@ -821,6 +834,13 @@ declare module '@tanstack/react-router' {
       path: '/mes/work-centers'
       fullPath: '/mes/work-centers'
       preLoaderRoute: typeof AuthenticatedMesWorkCentersIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/mes/time-rules/': {
+      id: '/_authenticated/mes/time-rules/'
+      path: '/mes/time-rules'
+      fullPath: '/mes/time-rules'
+      preLoaderRoute: typeof AuthenticatedMesTimeRulesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/stencil-usage/': {
@@ -1063,6 +1083,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesSqueegeeUsageIndexRoute: typeof AuthenticatedMesSqueegeeUsageIndexRoute
   AuthenticatedMesStencilCleaningIndexRoute: typeof AuthenticatedMesStencilCleaningIndexRoute
   AuthenticatedMesStencilUsageIndexRoute: typeof AuthenticatedMesStencilUsageIndexRoute
+  AuthenticatedMesTimeRulesIndexRoute: typeof AuthenticatedMesTimeRulesIndexRoute
   AuthenticatedMesWorkCentersIndexRoute: typeof AuthenticatedMesWorkCentersIndexRoute
 }
 
@@ -1128,6 +1149,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedMesStencilCleaningIndexRoute,
   AuthenticatedMesStencilUsageIndexRoute:
     AuthenticatedMesStencilUsageIndexRoute,
+  AuthenticatedMesTimeRulesIndexRoute: AuthenticatedMesTimeRulesIndexRoute,
   AuthenticatedMesWorkCentersIndexRoute: AuthenticatedMesWorkCentersIndexRoute,
 }
 
