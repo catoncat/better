@@ -76,3 +76,6 @@ task:
 
 ## Open Questions
 - None (time window events confirmed; template view is static by choice).
+
+## Errors
+- `bun scripts/smart-verify.ts` failed at `bun run db:generate` with Prisma error P1012: duplicate `activeKey` field on `TimeRuleInstance` (`packages/db/prisma/schema/schema.prisma:2189`). Not addressed here.
