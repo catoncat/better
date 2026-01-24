@@ -32,7 +32,7 @@ export const timeRuleDefinitionSchema = t.Object({
 export const timeRuleDefinitionCreateSchema = t.Object({
 	code: t.String({ minLength: 1 }),
 	name: t.String({ minLength: 1 }),
-	description: t.Optional(t.String()),
+	description: t.Optional(t.Union([t.String(), t.Null()])),
 	ruleType: t.Union([t.Literal("SOLDER_PASTE_EXPOSURE"), t.Literal("WASH_TIME_LIMIT")]),
 	durationMinutes: t.Number({ minimum: 1 }),
 	warningMinutes: t.Optional(t.Union([t.Number({ minimum: 1 }), t.Null()])),
@@ -60,7 +60,17 @@ export const timeRuleDefinitionListQuerySchema = t.Object({
 	ruleType: t.Optional(t.Union([t.Literal("SOLDER_PASTE_EXPOSURE"), t.Literal("WASH_TIME_LIMIT")])),
 	isActive: t.Optional(t.Union([t.Literal("true"), t.Literal("false")])),
 	sortBy: t.Optional(
-		t.Union([t.Literal("code"), t.Literal("name"), t.Literal("createdAt"), t.Literal("updatedAt")]),
+		t.Union([
+			t.Literal("code"),
+			t.Literal("name"),
+			t.Literal("ruleType"),
+			t.Literal("durationMinutes"),
+			t.Literal("warningMinutes"),
+			t.Literal("scope"),
+			t.Literal("isActive"),
+			t.Literal("createdAt"),
+			t.Literal("updatedAt"),
+		]),
 	),
 	sortDir: t.Optional(t.Union([t.Literal("asc"), t.Literal("desc")])),
 });

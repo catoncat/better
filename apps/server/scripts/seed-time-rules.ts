@@ -11,8 +11,8 @@ const PRESET_TIME_RULES = [
 		ruleType: TimeRuleType.SOLDER_PASTE_EXPOSURE,
 		durationMinutes: 1440, // 24 hours
 		warningMinutes: 120, // 2 hours before expiry
-		startEvent: "PASTE_ISSUED",
-		endEvent: "PASTE_CONSUMED",
+		startEvent: "SOLDER_PASTE_USAGE_CREATE",
+		endEvent: "TRACK_OUT",
 		scope: TimeRuleScope.GLOBAL,
 		scopeValue: null,
 		requiresWashStep: false,
@@ -27,8 +27,8 @@ const PRESET_TIME_RULES = [
 		ruleType: TimeRuleType.WASH_TIME_LIMIT,
 		durationMinutes: 240, // 4 hours
 		warningMinutes: 30, // 30 minutes before expiry
-		startEvent: "REFLOW_TRACKOUT",
-		endEvent: "WASH_TRACKIN",
+		startEvent: "TRACK_OUT",
+		endEvent: "TRACK_IN",
 		scope: TimeRuleScope.GLOBAL,
 		scopeValue: null,
 		requiresWashStep: true,

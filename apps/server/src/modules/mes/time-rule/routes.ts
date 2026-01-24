@@ -1,3 +1,4 @@
+import type { TimeRuleType } from "@better-app/db";
 import Elysia, { t } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
@@ -14,11 +15,13 @@ import {
 	timeRuleInstanceWaiveSchema,
 } from "./schema";
 import {
+	type CreateDefinitionInput,
 	createDefinition,
 	deleteDefinition,
 	getDefinitionById,
 	listDefinitions,
 	listInstancesByRun,
+	type UpdateDefinitionInput,
 	updateDefinition,
 	waiveInstance,
 } from "./service";
@@ -33,12 +36,13 @@ export const timeRuleRoutes = new Elysia({ prefix: "/time-rules" })
 	.get(
 		"/",
 		async ({ db, query }) => {
+			const ruleType = query.ruleType ? (query.ruleType as TimeRuleType) : undefined;
 			const result = await listDefinitions(db, {
 				page: query.page,
 				pageSize: query.pageSize,
 				code: query.code,
 				name: query.name,
-				ruleType: query.ruleType as any,
+				ruleType,
 				isActive: query.isActive === "true" ? true : query.isActive === "false" ? false : undefined,
 				sortBy: query.sortBy,
 				sortDir: query.sortDir,
@@ -58,7 +62,7 @@ export const timeRuleRoutes = new Elysia({ prefix: "/time-rules" })
 	.post(
 		"/",
 		async ({ db, body, set }) => {
-			const result = await createDefinition(db, body as any);
+			const result = await createDefinition(db, body as CreateDefinitionInput);
 
 			if (!result.success) {
 				set.status = result.status ?? 400;
@@ -103,7 +107,7 @@ export const timeRuleRoutes = new Elysia({ prefix: "/time-rules" })
 	.patch(
 		"/:ruleId",
 		async ({ db, params, body, set }) => {
-			const result = await updateDefinition(db, params.ruleId, body as any);
+			const result = await updateDefinition(db, params.ruleId, body as UpdateDefinitionInput);
 
 			if (!result.success) {
 				set.status = result.status ?? 400;
