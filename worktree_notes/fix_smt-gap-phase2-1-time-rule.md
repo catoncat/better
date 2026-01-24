@@ -43,6 +43,8 @@ touchPoints:
 - `bunx prisma migrate diff ... --to-schema ... --script > migration.sql` failed due to shell noclobber. Next approach: use `>|` to overwrite.
 - `prisma migrate diff` from repo root produced empty output; running from `packages/db` produced unrelated diff (MaintenanceRecord). Resolved by writing minimal migration SQL manually for activeKey.
 - `bun scripts/smart-verify.ts` failed: Prisma `StringFilter` for SQLite doesn't support `mode`. Fixed by switching to in-memory case-insensitive check after selecting operation codes.
+- `bun run db:deploy` failed: migration `20260122132640_add_fixture_usage_record` tried to create `ReflowProfile` but table already exists. Need to reconcile migration history (likely `prisma migrate resolve`).
+- `bun apps/server/scripts/seed-time-rules.ts` failed: `DATABASE_URL` missing. Next approach: rerun with `DATABASE_URL=file:/Users/envvar/lzb/better/data/db.db`.
 ## Slices
 - [ ] Fix time rule end-event + WASH match + active instance uniqueness
 
