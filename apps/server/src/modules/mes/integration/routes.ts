@@ -4,6 +4,8 @@ import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
+import { deviceDataReceiveSchema, deviceDataResponseSchema } from "./device-data-schema";
+import { receiveDeviceData } from "./device-data-service";
 import {
 	syncErpBoms,
 	syncErpMaterials,
@@ -941,6 +943,66 @@ export const integrationModule = new Elysia({
 			requirePermission: Permission.SYSTEM_INTEGRATION,
 			body: inspectionResultReceiveSchema,
 			response: inspectionResultResponseSchema,
+			detail: { tags: ["MES - Integration"] },
+		},
+	)
+	// ==========================================
+	// Device Data Collection Endpoint (POC)
+	// ==========================================
+	.post(
+		"/device-data",
+		async ({ db, body, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+
+			try {
+				const result = await receiveDeviceData(db, body);
+
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: result.id,
+					entityDisplay: `Device Data ${result.eventId}`,
+					action: "DEVICE_DATA_RECEIVE",
+					actor,
+					status: "SUCCESS",
+					request: requestMeta,
+					payload: {
+						sourceSystem: "DEVICE",
+						entityType: "DEVICE_DATA",
+						eventId: result.eventId,
+						runNo: body.runNo ?? null,
+						unitSn: body.unitSn ?? null,
+						stationCode: body.stationCode ?? null,
+						stepNo: body.stepNo ?? null,
+						trackId: result.trackId,
+						carrierTrackId: result.carrierTrackId,
+						dataValuesCreated: result.dataValuesCreated,
+						isDuplicate: result.isDuplicate,
+					},
+				});
+
+				return { ok: true, data: result };
+			} catch (error) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: body.eventId,
+					entityDisplay: `Device Data ${body.eventId}`,
+					action: "DEVICE_DATA_RECEIVE",
+					actor,
+					status: "FAIL",
+					errorCode: "DEVICE_DATA_RECEIVE_FAILED",
+					errorMessage: error instanceof Error ? error.message : "Unknown error",
+					request: requestMeta,
+					payload: { sourceSystem: "DEVICE", entityType: "DEVICE_DATA" },
+				});
+				throw error;
+			}
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
+			body: deviceDataReceiveSchema,
+			response: deviceDataResponseSchema,
 			detail: { tags: ["MES - Integration"] },
 		},
 	)
