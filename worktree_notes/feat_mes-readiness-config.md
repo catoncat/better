@@ -32,13 +32,19 @@ task:
 - Line readiness-config endpoints read/write `line.meta.readinessChecks.enabled` and rely on `parseReadinessConfig` + readiness config schemas.
 - `parseReadinessConfig` defaults to `ALL_READINESS_TYPES` (all `ReadinessItemType` values) when meta missing/invalid and filters enabled to valid enum values.
 - Line readiness config schema already enumerates all readiness item types including PREP_* and TIME_RULE in `apps/server/src/modules/mes/line/schema.ts`.
+- `phase4_tasks.md` marks T4.4.* under "Readiness 配置（可选，P1）" and still unchecked.
+- `permission_audit.md` includes a full `/mes/readiness-config` page audit; UI gating for view/action is marked OK; no explicit backend audit requirement listed there.
+- No `readiness-config` references under `domain_docs/mes/spec/*` (rg returned none), so align updates may only need plan status changes.
+- `domain_docs/mes/tech/api/01_api_overview.md` lists readiness run endpoints but omits `/lines/:lineId/readiness-config` GET/PUT.
+- `domain_docs/mes/spec/process/03_smt_flows.md` claims readiness config is controlled by `Run.meta.readinessChecks.enabled` but current implementation uses `Line.meta.readinessChecks.enabled` (doc mismatch).
+- `agent_docs/03_backend/audit_logs.md` states config changes should be audit-logged; readiness-config PUT currently lacks audit logging.
 
 ## Slices
 - [x] Slice 0: worktree note context
-- [ ] Slice 1: Read plan/specs + capture requirements
-- [ ] Slice 2: Server model/API updates for readiness config
-- [ ] Slice 3: Web page for readiness config
-- [ ] Slice 4: Plan/align docs + verification
+- [x] Slice 1: Read plan/specs + capture requirements
+- [x] Slice 2: Server model/API updates for readiness config
+- [x] Slice 3: Web page for readiness config
+- [x] Slice 4: Plan/align docs + verification
 
 <!-- AUTO:BEGIN status -->
 
@@ -54,7 +60,7 @@ task:
 <!-- AUTO:END status -->
 
 ## Decisions
--
+- Add audit logging for readiness-config updates to match audit policy for config writes.
 
 ## Open Questions
 -
