@@ -106,8 +106,12 @@
 
 | ID | 任务 | 状态 | 依赖 | 备注 |
 |----|------|------|------|------|
-| T3.2 | 数采网关设计 | ⬜ | - | 架构文档 + POC，视现场条件 |
-| T3.3 | 自动数据源接入 | ⬜ | T3.2 | 幂等/去重 + dataSource=DEVICE 自动确认 |
+| T3.2 | 数采网关设计 | ✅ | - | 架构文档 + POC，视现场条件 |
+| T3.3 | 自动数据源接入 | ✅ | T3.2 | 幂等/去重 + dataSource=DEVICE 自动确认 |
+
+**As-built**：
+- T3.2: `domain_docs/mes/spec/data_collection/02_device_gateway_poc.md`
+- T3.3: `POST /api/integration/device-data` (`apps/server/src/modules/mes/integration/device-data-service.ts`)
 
 ---
 

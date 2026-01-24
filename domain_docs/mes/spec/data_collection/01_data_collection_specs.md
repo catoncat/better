@@ -33,7 +33,7 @@ The Data Collection Specifications define how data will be captured during the p
 
 ## 4. Collection Flow
 1. **Manual**: Operator input via UI.
-2. **Auto**: Data parsed from `Ingest` events or `TrackOut` payloads.
+2. **Auto**: Data parsed from `Ingest` events, `TrackOut` payloads, or device gateway POC (`02_device_gateway_poc.md`).
 
 ## 5. Validation Rules
 - Data values are validated against `spec` at the time of collection.
