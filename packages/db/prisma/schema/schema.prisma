@@ -2064,6 +2064,43 @@ model InspectionResultRecord {
 // Time Rule Models (SMT Gap Phase 2)
 // ==========================================
 
+enum MesEventStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model MesEvent {
+  id              String         @id @default(cuid())
+  eventType       String
+  status          MesEventStatus @default(PENDING)
+  attempts        Int            @default(0)
+  maxAttempts     Int            @default(10)
+  nextAttemptAt   DateTime?
+  processedAt     DateTime?
+  occurredAt      DateTime?
+  idempotencyKey  String?        @unique
+
+  entityType      String?
+  entityId        String?
+  runId           String?
+
+  errorCode       String?
+  errorMessage    String?
+  payload         Json?
+  retentionUntil  DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([eventType])
+  @@index([runId])
+  @@index([entityType, entityId])
+  @@index([retentionUntil])
+  @@map("mes_events")
+}
+
 model TimeRuleDefinition {
   id              String          @id @default(cuid())
   code            String          @unique  // "SOLDER_PASTE_24H"

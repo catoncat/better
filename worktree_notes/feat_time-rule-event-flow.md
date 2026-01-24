@@ -22,7 +22,7 @@ task:
 
 ## Slices
 - [x] Slice 0: worktree note context
-- [ ] Slice 1: 事件表模型 + 索引 + 迁移（T2.9）
+- [x] Slice 1: 事件表模型 + 索引 + 迁移（T2.9）
 - [ ] Slice 2: 事件发射（TrackIn/TrackOut/锡膏使用）（T2.10）
 - [ ] Slice 3: 事件处理器（30s 轮询、幂等、重试 10 次指数退避）（T2.11）
 - [ ] Slice 4: TimeRule 触发改为事件驱动（T2.12）
@@ -30,6 +30,23 @@ task:
 
 ## Findings
 - main 本地分支领先 origin/main（需确认是否先合并 feat/smt-gap-time-rules）
+- Prisma 规范：`packages/db/prisma/schema/schema.prisma` 修改后用 `bun run db:migrate -- --name <change>` 生成迁移
+- TimeRule 相关模型位于 `schema.prisma` 约 2067 行附近（TimeRuleDefinition/Instance）
+- 现有事件型模型仅有 `AuditEvent`（含 status/error/payload/createdAt/idempotencyKey 索引）
+- TimeRuleDefinition/Instance 已含 startEvent/endEvent 字段与 scope/priority/meta 结构
+- Track in/out 在 `apps/server/src/modules/mes/execution/routes.ts`，成功后会写 `AuditEvent`（action: TRACK_IN/TRACK_OUT）
+- 锡膏使用记录在 `apps/server/src/modules/mes/solder-paste/routes.ts`，成功后写 `AuditEvent`（action: SOLDER_PASTE_USAGE_CREATE）
+- TimeRule 逻辑分散在 `mes/execution/service.ts` 与 `mes/solder-paste/service.ts`，需改为事件驱动
+- TimeRule 实例创建/完成逻辑在 `apps/server/src/modules/mes/time-rule/service.ts`
+- Readiness 检查依赖 `checkTimeRules`（`apps/server/src/modules/mes/readiness/service.ts`）
+- 现有 TimeRule Cron 在 `apps/server/src/plugins/time-rule-cron.ts`，每分钟处理超时/预警并发通知
+- 系统通用日志模型为 `SystemLog`（`schema.prisma`），cron 任务会写 `system_logs`
+- `mes/solder-paste/service.ts` 在 issuedAt 时创建 `SOLDER_PASTE_24H` 实例
+- `mes/execution/service.ts` TrackOut(REFLOW) 创建 `WASH_4H` 实例；TrackIn(WASH) 完成实例
+- `db:migrate` 脚本即 `prisma migrate dev`（支持 `DATABASE_URL` 临时库）
+- worktree 根目录暂无 `data/`，需创建临时库路径
+- 新生成迁移 `20260124064831_mes_event_table` 意外包含 `MaintenanceRecord` 表（需手工剔除以避免重复建表）
+- 已生成事件表迁移并手工剔除多余的 `MaintenanceRecord` 语句；`check-types` 通过
 
 <!-- AUTO:BEGIN status -->
 
@@ -51,3 +68,6 @@ task:
 
 ## Open Questions
 - 事件发射点是否已有统一事件中心可复用（待盘点）
+
+## Errors
+- 2026-01-24: `bun run db:migrate -- --name mes_event_table` 失败，提示 SQLite DB drift（shared DB 含 ReflowProfile 等表，要求 reset）。下一步：使用独立临时 DB（`DATABASE_URL=file:/.../data/db-temp.db`）执行 migrate dev 生成迁移，避免重置共享 DB。
