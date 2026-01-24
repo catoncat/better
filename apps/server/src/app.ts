@@ -14,6 +14,7 @@ import { usersModule } from "./modules/users";
 import { auditArchiveCronPlugin } from "./plugins/audit-archive-cron";
 import { authPlugin } from "./plugins/auth";
 import { erpSyncCronPlugin } from "./plugins/erp-sync-cron";
+import { mesEventCronPlugin } from "./plugins/mes-event-cron";
 import { permissionPlugin } from "./plugins/permission";
 import { prismaPlugin } from "./plugins/prisma";
 import { timeRuleCronPlugin } from "./plugins/time-rule-cron";
@@ -180,6 +181,7 @@ export const createApi = (options?: CreateApiOptions) => {
 	if (enableCrons) {
 		api.use(erpSyncCronPlugin);
 		api.use(auditArchiveCronPlugin);
+		api.use(mesEventCronPlugin);
 		api.use(timeRuleCronPlugin);
 	}
 

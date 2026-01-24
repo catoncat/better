@@ -33,6 +33,7 @@ export const startTestServer = async (db: TestDbHandle): Promise<TestAppHandle> 
 			HOST: "127.0.0.1",
 			DISABLE_CRONS: "true",
 			TIME_RULE_CRON_ENABLED: "false",
+			MES_EVENT_CRON_ENABLED: "false",
 			MES_INTEGRATION_CRON_ENABLED: "false",
 			AUDIT_ARCHIVE_ENABLED: "false",
 		},

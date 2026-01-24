@@ -24,7 +24,7 @@ task:
 - [x] Slice 0: worktree note context
 - [x] Slice 1: 事件表模型 + 索引 + 迁移（T2.9）
 - [x] Slice 2: 事件发射（TrackIn/TrackOut/锡膏使用）（T2.10）
-- [ ] Slice 3: 事件处理器（30s 轮询、幂等、重试 10 次指数退避）（T2.11）
+- [x] Slice 3: 事件处理器（30s 轮询、幂等、重试 10 次指数退避）（T2.11）
 - [ ] Slice 4: TimeRule 触发改为事件驱动（T2.12）
 - [ ] Slice 5: 事件保留与清理任务（30 天）（T2.13）
 
@@ -49,6 +49,10 @@ task:
 - 已生成事件表迁移并手工剔除多余的 `MaintenanceRecord` 语句；`check-types` 通过
 - 集成模块已有事件幂等模式（如 `mes/integration/solder-paste-service.ts` 用 `eventId` 去重）
 - 新增 `mes/event/service.ts` 作为事件发射入口，TrackIn/TrackOut/锡膏使用将写入 `mes_events`
+- `@elysiajs/cron` 使用 Croner，支持秒级表达式（README 示例 `*/1 * * * * *`）
+- `scopeValue` 可能对齐 `Line.code` / `Routing.code` / `WorkOrder.productCode`（需在事件处理器里支持 ID 或 code）
+- Cron 插件注册在 `apps/server/src/app.ts`（`createApi` enableCrons 分支）
+- 事件处理器修正 `entityDisplay` 类型后，`check-types` 通过
 
 <!-- AUTO:BEGIN status -->
 
@@ -73,3 +77,4 @@ task:
 
 ## Errors
 - 2026-01-24: `bun run db:migrate -- --name mes_event_table` 失败，提示 SQLite DB drift（shared DB 含 ReflowProfile 等表，要求 reset）。下一步：使用独立临时 DB（`DATABASE_URL=file:/.../data/db-temp.db`）执行 migrate dev 生成迁移，避免重置共享 DB。
+- 2026-01-24: `bun run check-types` 失败，TS2322（`entityDisplay` 传入 `string | null`）。已改为 `?? undefined`，准备重跑。
