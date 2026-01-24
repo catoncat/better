@@ -1,6 +1,6 @@
 import type { Prisma, PrismaClient } from "@better-app/db";
-import { buildMesEventIdempotencyKey, createMesEvent, MES_EVENT_TYPES } from "../event/service";
 import type { ServiceResult } from "../../../types/service-result";
+import { buildMesEventIdempotencyKey, createMesEvent, MES_EVENT_TYPES } from "../event/service";
 
 // ==========================================
 // Types
