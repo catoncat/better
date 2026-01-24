@@ -32,11 +32,53 @@ interface TimeRuleSearchParams {
 	pageSize?: number;
 }
 
+const ruleTypeValues = ["SOLDER_PASTE_EXPOSURE", "WASH_TIME_LIMIT"] as const;
+const isActiveValues = ["true", "false"] as const;
+const sortByValues = [
+	"code",
+	"name",
+	"ruleType",
+	"durationMinutes",
+	"warningMinutes",
+	"scope",
+	"isActive",
+	"createdAt",
+	"updatedAt",
+] as const;
+
+const parseRuleType = (value: unknown): TimeRuleSearchParams["ruleType"] => {
+	return ruleTypeValues.includes(value as (typeof ruleTypeValues)[number])
+		? (value as (typeof ruleTypeValues)[number])
+		: undefined;
+};
+
+const parseIsActive = (value: unknown): TimeRuleSearchParams["isActive"] => {
+	return isActiveValues.includes(value as (typeof isActiveValues)[number])
+		? (value as (typeof isActiveValues)[number])
+		: undefined;
+};
+
+const parseSort = (
+	value?: string,
+): {
+	sortBy?: (typeof sortByValues)[number];
+	sortDir?: "asc" | "desc";
+} => {
+	if (!value) return {};
+	const [sortBy, sortDir] = value.split(".");
+	return {
+		sortBy: sortByValues.includes(sortBy as (typeof sortByValues)[number])
+			? (sortBy as (typeof sortByValues)[number])
+			: undefined,
+		sortDir: sortDir === "asc" || sortDir === "desc" ? sortDir : undefined,
+	};
+};
+
 export const Route = createFileRoute("/_authenticated/mes/time-rules/")({
 	validateSearch: (search: Record<string, unknown>): TimeRuleSearchParams => ({
 		search: (search.search as string) || undefined,
-		ruleType: (search.ruleType as any) || undefined,
-		isActive: (search.isActive as any) || undefined,
+		ruleType: parseRuleType(search.ruleType),
+		isActive: parseIsActive(search.isActive),
 		sort: (search.sort as string) || undefined,
 		page: Number(search.page) || 1,
 		pageSize: Number(search.pageSize) || 30,
@@ -97,7 +139,7 @@ function TimeRulesPage() {
 				page: 1,
 			};
 			for (const [key, value] of Object.entries(newFilters)) {
-				(newSearch as any)[key] = value || undefined;
+				(newSearch as Record<string, unknown>)[key] = value || undefined;
 			}
 			navigate({
 				to: ".",
@@ -180,8 +222,7 @@ function TimeRulesPage() {
 			name: filters.search || undefined,
 			ruleType: filters.ruleType,
 			isActive: filters.isActive,
-			sortBy: searchParams.sort?.split(".")[0] as any,
-			sortDir: searchParams.sort?.split(".")[1] as any,
+			...parseSort(searchParams.sort),
 		},
 		{ enabled: canViewRules },
 	);

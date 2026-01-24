@@ -1,7 +1,6 @@
 import { useForm } from "@tanstack/react-form";
-import { zodValidator } from "@tanstack/zod-form-adapter";
 import { Loader2 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,10 +23,13 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
+	type TimeRuleDefinition,
 	useCreateTimeRule,
 	useUpdateTimeRule,
-	type TimeRuleDefinition,
 } from "@/hooks/use-time-rules";
+import type { client } from "@/lib/eden";
+
+type TimeRuleCreateInput = Parameters<(typeof client.api)["time-rules"]["post"]>[0];
 
 const timeRuleSchema = z.object({
 	code: z.string().min(1, "必须填写代码").max(50),
@@ -40,11 +42,11 @@ const timeRuleSchema = z.object({
 	endEvent: z.string().min(1, "必须填写结束事件"),
 	scope: z.enum(["GLOBAL", "LINE", "ROUTING", "PRODUCT"]),
 	scopeValue: z.string().optional().nullable(),
-	requiresWashStep: z.boolean().default(false),
-	isWaivable: z.boolean().default(true),
-	isActive: z.boolean().default(true),
-	priority: z.number().default(10),
-});
+	requiresWashStep: z.boolean(),
+	isWaivable: z.boolean(),
+	isActive: z.boolean(),
+	priority: z.number(),
+}) satisfies z.ZodType<TimeRuleCreateInput>;
 
 type TimeRuleFormValues = z.infer<typeof timeRuleSchema>;
 
@@ -59,14 +61,14 @@ export function TimeRuleDialog({ open, onOpenChange, rule }: TimeRuleDialogProps
 	const createMutation = useCreateTimeRule();
 	const updateMutation = useUpdateTimeRule();
 
-	const form = useForm<TimeRuleFormValues, typeof zodValidator>({
-		defaultValues: {
+	const defaultValues = useMemo<TimeRuleFormValues>(
+		() => ({
 			code: rule?.code ?? "",
 			name: rule?.name ?? "",
 			description: rule?.description ?? "",
 			ruleType: rule?.ruleType ?? "SOLDER_PASTE_EXPOSURE",
 			durationMinutes: rule?.durationMinutes ?? 60,
-			warningMinutes: rule?.warningMinutes ?? 10,
+			warningMinutes: rule?.warningMinutes ?? (rule ? null : 10),
 			startEvent: rule?.startEvent ?? "",
 			endEvent: rule?.endEvent ?? "",
 			scope: rule?.scope ?? "GLOBAL",
@@ -75,27 +77,36 @@ export function TimeRuleDialog({ open, onOpenChange, rule }: TimeRuleDialogProps
 			isWaivable: rule?.isWaivable ?? true,
 			isActive: rule?.isActive ?? true,
 			priority: rule?.priority ?? 10,
-		} as TimeRuleFormValues,
-		validatorAdapter: zodValidator(),
+		}),
+		[rule],
+	);
+
+	const form = useForm({
+		defaultValues,
 		validators: {
 			onChange: timeRuleSchema,
 		},
 		onSubmit: async ({ value }) => {
 			try {
-				const payload = {
+				const normalized: TimeRuleCreateInput = {
 					...value,
-					description: value.description || null,
-					warningMinutes: value.warningMinutes || null,
-					scopeValue: value.scopeValue || null,
+					code: value.code.trim(),
+					name: value.name.trim(),
+					description: value.description?.trim() || null,
+					warningMinutes: value.warningMinutes ?? null,
+					startEvent: value.startEvent.trim(),
+					endEvent: value.endEvent.trim(),
+					scopeValue: value.scopeValue?.trim() || null,
 				};
 
 				if (isEdit && rule) {
+					const { code, ...updatePayload } = normalized;
 					await updateMutation.mutateAsync({
 						ruleId: rule.id,
-						...payload,
-					} as any);
+						...updatePayload,
+					});
 				} else {
-					await createMutation.mutateAsync(payload as any);
+					await createMutation.mutateAsync(normalized);
 				}
 				onOpenChange(false);
 			} catch {
@@ -107,24 +118,9 @@ export function TimeRuleDialog({ open, onOpenChange, rule }: TimeRuleDialogProps
 	// Reset form when dialog opens/closes or rule changes
 	useEffect(() => {
 		if (open) {
-			form.reset({
-				code: rule?.code ?? "",
-				name: rule?.name ?? "",
-				description: rule?.description ?? "",
-				ruleType: rule?.ruleType ?? "SOLDER_PASTE_EXPOSURE",
-				durationMinutes: rule?.durationMinutes ?? 60,
-				warningMinutes: rule?.warningMinutes ?? 10,
-				startEvent: rule?.startEvent ?? "",
-				endEvent: rule?.endEvent ?? "",
-				scope: rule?.scope ?? "GLOBAL",
-				scopeValue: rule?.scopeValue ?? "",
-				requiresWashStep: rule?.requiresWashStep ?? false,
-				isWaivable: rule?.isWaivable ?? true,
-				isActive: rule?.isActive ?? true,
-				priority: rule?.priority ?? 10,
-			} as TimeRuleFormValues);
+			form.reset(defaultValues);
 		}
-	}, [open, rule, form]);
+	}, [open, defaultValues, form]);
 
 	const isPending = createMutation.isPending || updateMutation.isPending;
 
@@ -150,7 +146,7 @@ export function TimeRuleDialog({ open, onOpenChange, rule }: TimeRuleDialogProps
 						<Field form={form} name="code" label="规则代码" required>
 							{(field) => (
 								<Input
-									placeholder="例如: SOLDER_PASTE_EXPOSURE"
+									placeholder="例如: SOLDER_PASTE_24H"
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
@@ -195,7 +191,9 @@ export function TimeRuleDialog({ open, onOpenChange, rule }: TimeRuleDialogProps
 										<SelectValue placeholder="选择类型" />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="SOLDER_PASTE_EXPOSURE">锡膏暴露 (SOLDER_PASTE_EXPOSURE)</SelectItem>
+										<SelectItem value="SOLDER_PASTE_EXPOSURE">
+											锡膏暴露 (SOLDER_PASTE_EXPOSURE)
+										</SelectItem>
 										<SelectItem value="WASH_TIME_LIMIT">水洗时限 (WASH_TIME_LIMIT)</SelectItem>
 									</SelectContent>
 								</Select>
@@ -276,7 +274,7 @@ export function TimeRuleDialog({ open, onOpenChange, rule }: TimeRuleDialogProps
 						<Field form={form} name="endEvent" label="结束事件" required>
 							{(field) => (
 								<Input
-									placeholder="例如: TRACK_OUT:PRINTING"
+									placeholder="例如: TRACK_OUT"
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
@@ -325,7 +323,7 @@ export function TimeRuleDialog({ open, onOpenChange, rule }: TimeRuleDialogProps
 							取消
 						</Button>
 						<form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-							{([canSubmit, _isSubmitting]) => (
+							{([canSubmit]) => (
 								<Button type="submit" disabled={!canSubmit || isPending}>
 									{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 									{isEdit ? "保存更改" : "创建时间规则"}

@@ -1,44 +1,42 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { client } from "@/lib/eden";
+import { client, unwrap } from "@/lib/eden";
 
-export type TimeRuleDefinition = {
-	id: string;
-	code: string;
-	name: string;
-	description: string | null;
-	ruleType: "SOLDER_PASTE_EXPOSURE" | "WASH_TIME_LIMIT";
-	durationMinutes: number;
-	warningMinutes: number | null;
-	startEvent: string;
-	endEvent: string;
-	scope: "GLOBAL" | "LINE" | "ROUTING" | "PRODUCT";
-	scopeValue: string | null;
-	requiresWashStep: boolean;
-	isWaivable: boolean;
-	isActive: boolean;
-	priority: number;
-	createdAt: string;
-	updatedAt: string;
-};
+export type TimeRuleListResponse = Awaited<
+	ReturnType<(typeof client.api)["time-rules"]["get"]>
+>["data"];
+export type TimeRuleListData = NonNullable<TimeRuleListResponse>["data"];
+export type TimeRuleDefinition = TimeRuleListData["items"][number];
+
+type TimeRuleCreateInput = Parameters<(typeof client.api)["time-rules"]["post"]>[0];
+type TimeRuleUpdateInput = Parameters<ReturnType<(typeof client.api)["time-rules"]>["patch"]>[0];
 
 interface TimeRuleListParams {
 	page?: number;
 	pageSize?: number;
 	code?: string;
 	name?: string;
-	ruleType?: "SOLDER_PASTE_EXPOSURE" | "WASH_TIME_LIMIT";
+	ruleType?: TimeRuleDefinition["ruleType"];
 	isActive?: "true" | "false";
-	sortBy?: "updatedAt" | "name" | "createdAt" | "code";
+	sortBy?:
+		| "updatedAt"
+		| "name"
+		| "createdAt"
+		| "code"
+		| "ruleType"
+		| "durationMinutes"
+		| "warningMinutes"
+		| "scope"
+		| "isActive";
 	sortDir?: "asc" | "desc";
 }
 
 export function useTimeRuleList(params: TimeRuleListParams = {}, options?: { enabled?: boolean }) {
-	return useQuery({
+	return useQuery<TimeRuleListData>({
 		queryKey: ["mes", "time-rules", params],
 		enabled: options?.enabled ?? true,
 		queryFn: async () => {
-			const { data, error } = await client.api["time-rules"].get({
+			const response = await client.api["time-rules"].get({
 				query: {
 					page: params.page ?? 1,
 					pageSize: params.pageSize ?? 30,
@@ -50,24 +48,18 @@ export function useTimeRuleList(params: TimeRuleListParams = {}, options?: { ena
 					sortDir: params.sortDir,
 				},
 			});
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "加载失败");
-			}
-			return data.data;
+			return unwrap(response);
 		},
 	});
 }
 
 export function useTimeRule(ruleId: string | undefined, options?: { enabled?: boolean }) {
-	return useQuery({
+	return useQuery<TimeRuleDefinition>({
 		queryKey: ["mes", "time-rules", ruleId],
 		queryFn: async () => {
 			if (!ruleId) throw new Error("ruleId is required");
-			const { data, error } = await client.api["time-rules"]({ ruleId }).get();
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "加载失败");
-			}
-			return data.data;
+			const response = await client.api["time-rules"]({ ruleId }).get();
+			return unwrap(response);
 		},
 		enabled: Boolean(ruleId) && (options?.enabled ?? true),
 	});
@@ -76,27 +68,9 @@ export function useTimeRule(ruleId: string | undefined, options?: { enabled?: bo
 export function useCreateTimeRule() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: async (input: {
-			code: string;
-			name: string;
-			description?: string;
-			ruleType: "SOLDER_PASTE_EXPOSURE" | "WASH_TIME_LIMIT";
-			durationMinutes: number;
-			warningMinutes?: number | null;
-			startEvent: string;
-			endEvent: string;
-			scope?: "GLOBAL" | "LINE" | "ROUTING" | "PRODUCT";
-			scopeValue?: string | null;
-			requiresWashStep?: boolean;
-			isWaivable?: boolean;
-			isActive?: boolean;
-			priority?: number;
-		}) => {
-			const { data, error } = await client.api["time-rules"].post(input as any);
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "创建失败");
-			}
-			return data.data;
+		mutationFn: async (input: TimeRuleCreateInput) => {
+			const response = await client.api["time-rules"].post(input);
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["mes", "time-rules"] });
@@ -111,30 +85,9 @@ export function useCreateTimeRule() {
 export function useUpdateTimeRule() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: async ({
-			ruleId,
-			...input
-		}: {
-			ruleId: string;
-			name?: string;
-			description?: string;
-			ruleType?: "SOLDER_PASTE_EXPOSURE" | "WASH_TIME_LIMIT";
-			durationMinutes?: number;
-			warningMinutes?: number | null;
-			startEvent?: string;
-			endEvent?: string;
-			scope?: "GLOBAL" | "LINE" | "ROUTING" | "PRODUCT";
-			scopeValue?: string | null;
-			requiresWashStep?: boolean;
-			isWaivable?: boolean;
-			isActive?: boolean;
-			priority?: number;
-		}) => {
-			const { data, error } = await client.api["time-rules"]({ ruleId }).patch(input as any);
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "更新失败");
-			}
-			return data.data;
+		mutationFn: async ({ ruleId, ...input }: { ruleId: string } & TimeRuleUpdateInput) => {
+			const response = await client.api["time-rules"]({ ruleId }).patch(input);
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["mes", "time-rules"] });
@@ -150,11 +103,8 @@ export function useDeleteTimeRule() {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: async (ruleId: string) => {
-			const { data, error } = await client.api["time-rules"]({ ruleId }).delete();
-			if (error) {
-				throw new Error(error.value ? JSON.stringify(error.value) : "删除失败");
-			}
-			return data.data;
+			const response = await client.api["time-rules"]({ ruleId }).delete();
+			return unwrap(response);
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["mes", "time-rules"] });
