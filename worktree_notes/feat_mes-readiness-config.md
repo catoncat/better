@@ -67,3 +67,4 @@ task:
 
 ## Errors
 - 2026-01-24T15:14:34Z: `.scratch/agent_session.md` missing in worktree; next: check `.scratch/` in main worktree for session context.
+- 2026-01-24T15:40:36Z: `bun scripts/smart-verify.ts` failed in `db:generate` with Prisma P1012: `Field "activeKey" is already defined on model "TimeRuleInstance"` (`prisma/schema/schema.prisma:2189`). Next: confirm upstream schema state before retrying.
