@@ -23,7 +23,7 @@ task:
 ## Slices
 - [x] Slice 0: worktree note context
 - [x] Slice 1: 事件表模型 + 索引 + 迁移（T2.9）
-- [ ] Slice 2: 事件发射（TrackIn/TrackOut/锡膏使用）（T2.10）
+- [x] Slice 2: 事件发射（TrackIn/TrackOut/锡膏使用）（T2.10）
 - [ ] Slice 3: 事件处理器（30s 轮询、幂等、重试 10 次指数退避）（T2.11）
 - [ ] Slice 4: TimeRule 触发改为事件驱动（T2.12）
 - [ ] Slice 5: 事件保留与清理任务（30 天）（T2.13）
@@ -47,6 +47,8 @@ task:
 - worktree 根目录暂无 `data/`，需创建临时库路径
 - 新生成迁移 `20260124064831_mes_event_table` 意外包含 `MaintenanceRecord` 表（需手工剔除以避免重复建表）
 - 已生成事件表迁移并手工剔除多余的 `MaintenanceRecord` 语句；`check-types` 通过
+- 集成模块已有事件幂等模式（如 `mes/integration/solder-paste-service.ts` 用 `eventId` 去重）
+- 新增 `mes/event/service.ts` 作为事件发射入口，TrackIn/TrackOut/锡膏使用将写入 `mes_events`
 
 <!-- AUTO:BEGIN status -->
 

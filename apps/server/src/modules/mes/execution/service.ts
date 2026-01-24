@@ -10,6 +10,7 @@ import {
 } from "@better-app/db";
 import type { Static } from "elysia";
 import { createDefectFromTrackOut } from "../defect/service";
+import { buildMesEventIdempotencyKey, createMesEvent, MES_EVENT_TYPES } from "../event/service";
 import { checkAndTriggerOqc } from "../oqc/trigger-service";
 import { canAuthorize as canAuthorizeReadiness } from "../readiness/service";
 import {
@@ -437,7 +438,7 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 					};
 				}
 
-				await tx.track.create({
+				const track = await tx.track.create({
 					data: {
 						unitId: resolvedUnit.id,
 						stepNo: currentStep.stepNo,
@@ -455,7 +456,7 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 					data: { status: UnitStatus.IN_STATION },
 				});
 
-				return { success: true as const, unit: resolvedUnit };
+				return { success: true as const, unit: resolvedUnit, trackId: track.id };
 			});
 
 			if (!updatedUnit.success) {
@@ -464,14 +465,40 @@ export const trackIn = async (db: PrismaClient, stationCode: string, data: Track
 				return { success: false, code: updatedUnit.code, message: updatedUnit.message };
 			}
 
+			const { unit: trackedUnit, trackId } = updatedUnit;
 			// T2.4: Track-in to WASH → 完成水洗时间规则实例
 			const currentOperation = await db.operation.findUnique({
 				where: { id: currentStep.operationId },
 				select: { code: true },
 			});
+			try {
+				await createMesEvent(db, {
+					eventType: MES_EVENT_TYPES.TRACK_IN,
+					idempotencyKey: buildMesEventIdempotencyKey(MES_EVENT_TYPES.TRACK_IN, trackId),
+					occurredAt: now,
+					entityType: "UNIT",
+					entityId: trackedUnit.id,
+					runId: run.id,
+					payload: {
+						trackId,
+						runId: run.id,
+						runNo: run.runNo,
+						unitId: trackedUnit.id,
+						unitSn: trackedUnit.sn,
+						stationId: station.id,
+						stationCode: station.code,
+						stepNo: currentStep.stepNo,
+						operationId: currentStep.operationId,
+						operationCode: currentOperation?.code ?? null,
+						occurredAt: now.toISOString(),
+					},
+				});
+			} catch (error) {
+				console.error(`[TrackIn] Event emit failed for unit ${trackedUnit.sn}:`, error);
+			}
 			if (currentOperation?.code?.toUpperCase().includes("WASH")) {
 				try {
-					await completeTimeRuleInstanceByEntity(db, "WASH_4H", "UNIT", updatedUnit.unit.id);
+					await completeTimeRuleInstanceByEntity(db, "WASH_4H", "UNIT", trackedUnit.id);
 				} catch (error) {
 					console.error(`[TrackIn] WASH time rule completion failed for unit ${data.sn}:`, error);
 				}
@@ -860,6 +887,33 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 				where: { id: currentStep.operationId },
 				select: { code: true },
 			});
+			try {
+				await createMesEvent(db, {
+					eventType: MES_EVENT_TYPES.TRACK_OUT,
+					idempotencyKey: buildMesEventIdempotencyKey(MES_EVENT_TYPES.TRACK_OUT, track.id),
+					occurredAt: now,
+					entityType: "UNIT",
+					entityId: unit.id,
+					runId: run.id,
+					payload: {
+						trackId: track.id,
+						runId: run.id,
+						runNo: run.runNo,
+						unitId: unit.id,
+						unitSn: unit.sn,
+						stationId: station.id,
+						stationCode: station.code,
+						stepNo: currentStep.stepNo,
+						operationId: currentStep.operationId,
+						operationCode: trackOutOperation?.code ?? null,
+						result,
+						routeVersionId: run.routeVersionId,
+						occurredAt: now.toISOString(),
+					},
+				});
+			} catch (error) {
+				console.error(`[TrackOut] Event emit failed for unit ${unit.sn}:`, error);
+			}
 			if (
 				result === TrackResult.PASS &&
 				trackOutOperation?.code?.toUpperCase().includes("REFLOW") &&
