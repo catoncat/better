@@ -21,6 +21,18 @@
 - Read `agent_docs/00_onboarding/setup.md` and follow the steps.
 
 ## Workflow & Planning
+
+### Plan 文档 vs Task Queue 职责
+
+| 文档 | 职责 | 生命周期 |
+|-----|------|---------|
+| `domain_docs/mes/plan/*.md` | 功能清单 + 里程碑状态 | 持久化，Git 版本控制 |
+| `.scratch/task-queue.md` | AI 协作运行时状态 | 临时，不入 Git |
+
+**注意**：Plan 文档不应包含并行开发规划（如"开发者 A/B/C"分配或"Track A/B/C"运行时分组）。这些是 AI 在 triage 时动态生成的运行时概念，写入 `.scratch/task-queue.md` 的 **Slice** 中。
+
+### 基本规则
+
 - **Follow the Plan**: When implementing a feature/domain, verify if a specific plan exists (e.g., `domain_docs/mes/plan/`).
 - **Mark Progress**: As you complete tasks in a plan file, update the file to mark them as done (e.g., `[x] Task 1.1`).
 - **Update the Plan**: If new tasks are discovered or priorities change, update the plan file to reflect the new reality.
@@ -45,7 +57,7 @@ Configure where the `next` skill finds tasks. The `next` skill reads this sectio
 - **Context File**: `domain_docs/mes/CONTEXT.md` (optional, read first for domain context)
 - **Plan Directory**: `domain_docs/mes/plan/` (directory containing task/plan files)
 - **Milestones**: `domain_docs/mes/plan/01_milestones.md`
-- **Current Tasks**: `domain_docs/mes/plan/tasks.md`
+- **Current Tasks**: `domain_docs/mes/plan/phase4_tasks.md`
 
 ## Runtime Documents (Not in Git)
 
@@ -223,7 +235,8 @@ Use the smallest set of docs needed for the task. Skip anything not required.
 
 ### Plan
 - Milestones: `domain_docs/mes/plan/01_milestones.md`
-- Current Tasks: `domain_docs/mes/plan/phase3_tasks.md`
+- Current Tasks: `domain_docs/mes/plan/phase4_tasks.md`
+- SMT Gap Tasks: `domain_docs/mes/plan/smt_gap_task_breakdown.md`
 
 ## References (Only When Needed)
 - `agent_docs/99_reference/elysia_reference.md`

@@ -1,8 +1,9 @@
 # SMT 差距系统开发任务分解
 
+> 状态：**Phase 3 已完成**（设备数采为可选）
 > 依据：`domain_docs/mes/spec/process/compair/smt_gap_design_suggestions.md`
-> 创建时间：2026-01-22
-> 目标：将设计建议转化为可执行的开发任务，明确优先级与并行关系
+> 更新时间：2026-01-24
+> 目标：将设计建议转化为可执行的开发任务，明确优先级与依赖关系
 
 ---
 
@@ -18,328 +19,102 @@
 
 ---
 
-## 一、任务总览（按 Phase 分组）
+## 1. 任务清单
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        Phase 1（必备基础）                           │
-│  P0 优先级 · 预估 1-2 周                                             │
-├─────────────────────────────────────────────────────────────────────┤
-│  Track A: 准备项模型              Track B: 首件签字强制              │
-│  ├─ T1.1 扩展 Readiness           ├─ T1.4 FAI 签字字段               │
-│  ├─ T1.2 豁免机制 API             └─ T1.5 签字门禁逻辑               │
-│  └─ T1.3 准备项看板 UI                                               │
-│                                                                      │
-│  NOTE: Track A 与 Track B 可并行开发（无依赖）                       │
-└─────────────────────────────────────────────────────────────────────┘
+### 1.1 准备项管理
 
-┌─────────────────────────────────────────────────────────────────────┐
-│                      Phase 2（核心追溯规则）                         │
-│  P1 优先级 · 预估 2-3 周                                             │
-├─────────────────────────────────────────────────────────────────────┤
-│  Track C: 时间规则引擎            Track D: 炉温程式                  │
-│  ├─ T2.1 TimeRule 模型            ├─ T2.5 ReflowProfile 模型         │
-│  ├─ T2.2 规则监控后台             └─ T2.6 程式一致性校验             │
-│  ├─ T2.3 锡膏暴露规则                                                │
-│  └─ T2.4 水洗时间规则                                                │
-│                                                                      │
-│  Track E: 钢网/刮刀寿命                                              │
-│  ├─ T2.7 钢网清洗记录                                                │
-│  └─ T2.8 刮刀点检记录                                                │
-│                                                                      │
-│  NOTE: Track C/D/E 可并行开发（无依赖）                              │
-│  NOTE: T2.3/T2.4 依赖 T2.1/T2.2 完成                                 │
-└─────────────────────────────────────────────────────────────────────┘
+| ID | 任务 | 状态 | 依赖 | 备注 |
+|----|------|------|------|------|
+| T1.1 | 扩展 ReadinessCheckType（PREP_BAKE/PASTE/STENCIL_*/SCRAPER/FIXTURE） | ✅ | - | Schema + Enum |
+| T1.2 | 豁免机制 API（waive + waivedBy/waiveReason） | ✅ | T1.1 | 复用 READINESS_OVERRIDE |
+| T1.3 | 准备项看板 UI | ✅ | T1.1, T1.2 | 复用 Run 详情页 Readiness 卡片 |
 
-┌─────────────────────────────────────────────────────────────────────┐
-│                      Phase 3（过程完善）                             │
-│  P2 优先级 · 预估 1-2 周                                             │
-├─────────────────────────────────────────────────────────────────────┤
-│  Track F: 维修表单               Track G: 设备数采（可选）          │
-│  └─ T3.1 维修表单                ├─ T3.2 数采网关设计               │
-│                                  └─ T3.3 自动数据源接入             │
-│                                                                      │
-│  NOTE: Track F/G 可并行开发                                          │
-│  NOTE: Track G 为可选项，视现场设备情况决定                          │
-└─────────────────────────────────────────────────────────────────────┘
-```
+**As-built**：
+- T1.1: `packages/db/prisma/schema/schema.prisma` (runId/routingStepId in records)
+- T1.2: `apps/server/src/modules/mes/readiness/routes.ts`
+- T1.3: Run 详情页已集成
 
----
+### 1.2 FAI 签字
 
-## 二、详细任务分解
+| ID | 任务 | 状态 | 依赖 | 备注 |
+|----|------|------|------|------|
+| T1.4 | FAI 签字字段（signedBy/signedAt/signatureRemark） | ✅ | - | Schema + API |
+| T1.5 | 签字门禁逻辑（Run 授权前必须检查首件签字） | ✅ | T1.4 | 不写 Readiness |
 
-### Phase 1：必备基础（P0）
+**As-built**：
+- T1.4: Inspection 模型 + sign API
+- T1.5: Run authorize 流程
 
-#### Track A：准备项模型与豁免机制
+### 1.3 时间规则引擎
 
-| 任务编号 | 任务名称 | 描述 | 依赖 | 交付物 |
-|---------|---------|------|------|--------|
-| **T1.1** | 扩展 ReadinessCheckType | 新增 `PREP_BAKE`、`PREP_PASTE`、`PREP_STENCIL_USAGE`、`PREP_STENCIL_CLEAN`、`PREP_SCRAPER`、`PREP_FIXTURE`（寿命部分） | 无 | Schema + Enum |
-| **T1.2** | 豁免机制 API | 1) 新增 `waive` API（POST `/readiness-items/:id/waive`）<br>2) 记录 `waivedBy/waiveReason`<br>3) 复用现有角色授权 `prep:waive` 权限 | T1.1 | API + Service |
-| **T1.3** | 准备项看板 UI | 1) Run PREP 阶段展示所有准备项<br>2) 状态：PASS/FAIL/WAIVED<br>3) 支持录入/补录/豁免申请 | T1.1, T1.2 | 前端页面 |
+| ID | 任务 | 状态 | 依赖 | 备注 |
+|----|------|------|------|------|
+| T2.1 | TimeRuleDefinition + TimeRuleInstance 模型设计 | ✅ | - | 状态：ACTIVE/COMPLETED/EXPIRED/WAIVED |
+| T2.2 | 规则监控后台任务（Cron Job） | ✅ | T2.1 | 每分钟扫描 + Alert + 豁免 |
+| T2.3 | 锡膏暴露规则（24h） | ✅ | T2.1, T2.2 | 触发：锡膏发出 |
+| T2.4 | 水洗时间规则（4h） | ✅ | T2.1, T2.2 | 仅配置水洗工序的路由 |
 
-**T1.1 子任务**：
-- [x] 1.1.1 修改 `ReadinessCheckType` 枚举，新增 6 个 PREP_* 值
-- [x] 1.1.2 更新 `ReadinessCheckItem` 模型，支持新的 itemType (itemType 使用 ReadinessItemType，已扩展)
-- [x] 1.1.3 编写迁移脚本 (使用 db:push 同步)
-- [x] 1.1.4 定义 PrepItemPolicy 配置模板（recordRequired/confirmMode/dataSource）
-  - As-built: `domain_docs/mes/spec/config/templates/prep_item_policy.template.yaml`、`domain_docs/mes/spec/config/samples/smt_a_prep_item_policy.yaml`
-- [x] 1.1.5 在 Readiness 评估中强制 recordRequired（缺记录视为 FAIL） (通过 Line.meta.readinessChecks.enabled 控制)
-- [x] 1.1.6 配置覆盖策略（DB override + 审计 + 回滚）
-  - As-built: `domain_docs/mes/spec/config/02_db_override_schema.md`（设计说明；实现待后续配置服务）
-- [x] 1.1.7 PREP_* 启用策略（按产线/路由默认值 + 配置入口/seed） (Line.meta.readinessChecks 配置)
-- [ ] 1.1.8 准备项记录 Run 级别关联字段与写入规则（runId/runNo/routeStepId）
-  - 当前：Readiness 结果已在 Run 级记录（ReadinessCheck/ReadinessCheckItem + evidenceJson）
-  - 待补：准备项来源记录（如锡膏/钢网/刮刀等记录）补充 runId + routeStepId 关联与写入校验
+**As-built**：
+- T2.1: `TimeRuleDefinition` + `TimeRuleInstance` 模型
+- T2.2: `apps/server/src/modules/mes/time-rule/cron.ts`
+- T2.3/T2.4: 规则配置 + 测试
 
-**T1.2 子任务**：
-- [x] 1.2.1 设计 waive API 请求/响应结构 (已存在)
-- [x] 1.2.2 实现 waive service 逻辑 (已存在)
-- [x] 1.2.3 添加 `prep:waive` 权限点 (复用 READINESS_OVERRIDE)
-- [x] 1.2.4 编写审计日志 (已存在 READINESS_WAIVE)
-- [x] 1.2.5 明确角色授权矩阵（厂长角色授予 `prep:waive`/`time_rule:override`） (quality/leader 角色已有 READINESS_OVERRIDE)
+### 1.4 炉温程式
 
-**T1.3 子任务**：
-- [x] 1.3.1 设计准备项看板 UI（Figma/草图） (复用现有 Run 详情页 Readiness 卡片)
-- [x] 1.3.2 实现准备项列表组件 (已存在)
-- [x] 1.3.3 实现豁免申请弹窗 (已存在)
-- [x] 1.3.4 集成 Run PREP 阶段 (已存在)
+| ID | 任务 | 状态 | 依赖 | 备注 |
+|----|------|------|------|------|
+| T2.5 | ReflowProfile 模型（程式名称、温区参数、版本） | ✅ | - | 含 ReflowProfileUsage |
+| T2.6 | 程式一致性校验（BLOCK） | ✅ | T2.5 | Routing 定义 expectedProfile |
+
+**As-built**：
+- T2.5: `ReflowProfile` + `ReflowProfileUsage` 模型
+- T2.6: Readiness PROGRAM 检查项
+
+### 1.5 钢网/刮刀寿命
+
+| ID | 任务 | 状态 | 依赖 | 备注 |
+|----|------|------|------|------|
+| T2.7 | 钢网清洗记录 | ✅ | - | StencilCleaningRecord + API + UI |
+| T2.8 | 刮刀点检记录 | ✅ | - | SqueegeeUsageRecord + API + UI |
+
+**As-built**：
+- T2.7: `/mes/stencil-cleaning`
+- T2.8: `/mes/squeegee-usage`
+
+### 1.6 维修表单
+
+| ID | 任务 | 状态 | 依赖 | 备注 |
+|----|------|------|------|------|
+| T3.1 | 维修表单（MaintenanceRecord） | ✅ | - | 支持 FIXTURE/STENCIL/SQUEEGEE/EQUIPMENT |
+
+**As-built**：
+- 模型: `MaintenanceRecord` (MaintenanceEntityType, MaintenanceType, MaintenanceStatus)
+- API: list/get/create/update/complete/verify
+- UI: `/mes/maintenance-records`
+
+### 1.7 设备数采（可选）
+
+| ID | 任务 | 状态 | 依赖 | 备注 |
+|----|------|------|------|------|
+| T3.2 | 数采网关设计 | ⬜ | - | 架构文档 + POC，视现场条件 |
+| T3.3 | 自动数据源接入 | ⬜ | T3.2 | 幂等/去重 + dataSource=DEVICE 自动确认 |
 
 ---
 
-#### Track B：首件签字强制（单签）
+## 2. 验收标准
 
-| 任务编号 | 任务名称 | 描述 | 依赖 | 交付物 |
-|---------|---------|------|------|--------|
-| **T1.4** | FAI 签字字段 | 1) Inspection 表增加 `signedBy`/`signedAt`/`signatureRemark`<br>2) 签字 API（POST `/fai/:id/sign`） | 无 | Schema + API |
-| **T1.5** | 签字门禁逻辑 | 1) Run 授权前必须检查首件签字（单签）<br>2) FAI gate 返回签字状态（不写 Readiness） | T1.4 | Service |
+### Phase 1 验收（✅ 已通过）
+- [x] Readiness 支持所有 PREP_* 检查类型
+- [x] 豁免 API 可用，记录完整
+- [x] 首件必须签字后才能授权 Run
+- [x] 准备项看板可展示所有项状态
+- [x] 非门禁项记录必达；自动/人工确认策略可见且可审计
 
-**T1.4 子任务**：
-- [x] 1.4.1 修改 Inspection 模型，增加签字字段
-- [x] 1.4.2 编写迁移脚本
-- [x] 1.4.3 实现 sign API
-- [x] 1.4.4 前端签字确认弹窗
-
-**T1.5 子任务**：
-- [x] 1.5.1 修改 Run authorize 流程，增加首件签字检查
-- [x] 1.5.2 签字状态通过 FAI gate 返回（不新增 Readiness 项）
-- [x] 1.5.3 覆盖授权前签字门禁（测试脚本）
-
----
-
-### Phase 2：核心追溯规则（P1）
-
-#### Track C：时间规则引擎
-
-| 任务编号 | 任务名称 | 描述 | 依赖 | 交付物 |
-|---------|---------|------|------|--------|
-| **T2.1** | TimeRule 模型设计 | 1) `TimeRuleDefinition`（规则配置）<br>2) `TimeRuleInstance`（运行时实例）<br>3) 状态：ACTIVE/COMPLETED/EXPIRED/WAIVED | Phase 1 完成 | Schema |
-| **T2.2** | 规则监控后台任务 | 1) 每分钟扫描 ACTIVE 实例<br>2) 超时则发 Alert + 更新 ReadinessCheckItem 为 FAIL（evidenceRef 指向规则实例）<br>3) 支持豁免 | T2.1 | Cron Job |
-| **T2.3** | 锡膏暴露规则 | 1) 触发事件：锡膏发出（issuedAt）<br>2) 时限：24h<br>3) 超时：Alert + 可豁免 | T2.1, T2.2 | 规则配置 + 测试 |
-| **T2.4** | 水洗时间规则 | 1) 仅适用于配置了水洗工序的路由<br>2) 触发事件：回流焊完成<br>3) 时限：4h<br>4) 超时：Alert + 可豁免 | T2.1, T2.2 | 规则配置 + 测试 |
-
-**T2.1 子任务**：
-- [ ] 2.1.1 设计 TimeRuleDefinition 模型
-- [ ] 2.1.2 设计 TimeRuleInstance 模型
-- [ ] 2.1.3 编写迁移脚本
-- [ ] 2.1.4 创建规则 CRUD API
-- [ ] 2.1.5 定义 TimeRuleConfig 配置模板（scope/事件/阈值/豁免）
-
-**T2.2 子任务**：
-- [ ] 2.2.1 设计 Cron Job 扫描逻辑
-- [ ] 2.2.2 实现超时检测算法
-- [ ] 2.2.3 对接通知系统（Alert）
-- [ ] 2.2.4 实现豁免 API（time_rule:override 权限）
-- [ ] 2.2.5 明确起止事件采集点并接入（回流焊完成 / 水洗扫码）
-
----
-
-#### Track D：炉温程式
-
-| 任务编号 | 任务名称 | 描述 | 依赖 | 交付物 |
-|---------|---------|------|------|--------|
-| **T2.5** | ReflowProfile 模型 | 1) 程式名称、温区参数、版本<br>2) ReflowProfileUsage 记录使用 | Phase 1 完成 | Schema |
-| **T2.6** | 程式一致性校验 | 1) Routing 定义 expectedProfile<br>2) 生产前校验实际程式与期望一致<br>3) 不一致 → BLOCK | T2.5 | Service + API |
-
-**T2.5 子任务**：
-- [x] 2.5.1 设计 ReflowProfile 模型
-- [x] 2.5.2 设计 ReflowProfileUsage 模型
-- [x] 2.5.3 编写迁移脚本
-- [x] 2.5.4 创建程式 CRUD API
-- [x] 2.5.5 程式使用记录 API
-
-**T2.6 子任务**：
-- [x] 2.6.1 修改 RoutingStep，增加 expectedProfileId
-- [x] 2.6.2 实现一致性校验 service
-- [x] 2.6.3 在 Readiness 中增加 PROGRAM 检查项
-- [x] 2.6.4 前端校验结果展示
-
----
-
-#### Track E：钢网/刮刀寿命
-
-| 任务编号 | 任务名称 | 描述 | 依赖 | 交付物 |
-|---------|---------|------|------|--------|
-| **T2.7** | 钢网清洗记录 | 1) StencilCleanRecord 模型<br>2) 清洗 API<br>3) 接入 Readiness PREP_STENCIL_CLEAN | Phase 1 完成 | Schema + API |
-| **T2.8** | 刮刀点检记录 | 1) ScraperCheckRecord 模型<br>2) 点检 API（规格、刀口状态、平整度）<br>3) 接入 Readiness PREP_SCRAPER | Phase 1 完成 | Schema + API |
-
-**T2.7 子任务**：
-- [x] 2.7.1 设计 StencilCleanRecord 模型 (StencilCleaningRecord in smt-basic)
-- [x] 2.7.2 编写迁移脚本
-- [x] 2.7.3 创建清洗记录 API (POST /stencil-cleaning-records)
-- [x] 2.7.4 修改 Readiness，增加清洗检查逻辑
-- [x] 2.7.5 前端清洗录入表单 (/mes/stencil-cleaning)
-
-**T2.8 子任务**：
-- [x] 2.8.1 设计 ScraperCheckRecord 模型 (SqueegeeUsageRecord in smt-basic - 刮刀使用记录)
-- [x] 2.8.2 编写迁移脚本
-- [x] 2.8.3 创建点检记录 API (POST /squeegee-usage-records)
-- [x] 2.8.4 修改 Readiness，增加刮刀检查逻辑
-- [x] 2.8.5 前端点检录入表单 (/mes/squeegee-usage)
-
----
-
-### Phase 3：过程完善（P2）
-
-#### Track F：维修表单
-
-| 任务编号 | 任务名称 | 描述 | 依赖 | 交付物 |
-|---------|---------|------|------|--------|
-| **T3.1** | 维修表单 | 1) 维修记录模型<br>2) 设备/夹具维修 API<br>3) 维修后 Readiness 自动刷新 | Phase 2 完成 | Schema + API |
-
-**T3.1 子任务**：
-- [x] 3.1.1 设计 MaintenanceRecord 模型（entityType: FIXTURE/STENCIL/SQUEEGEE/EQUIPMENT）
-- [x] 3.1.2 编写迁移脚本（MaintenanceEntityType, MaintenanceType, MaintenanceStatus 枚举）
-- [x] 3.1.3 创建维修记录 CRUD API（list/get/create/update/complete/verify）
-- [x] 3.1.4 实现维修完成后触发 Readiness precheck（triggerPrecheckForLine）
-- [x] 3.1.5 前端维修记录列表页（/mes/maintenance-records）
-- [x] 3.1.6 前端新增维修记录对话框
-- [x] 3.1.7 添加导航入口（维修记录）
-
----
-
-#### Track G：设备数采（可选）
-
-| 任务编号 | 任务名称 | 描述 | 依赖 | 交付物 |
-|---------|---------|------|------|--------|
-| **T3.2** | 数采网关设计 | 1) 网关架构设计<br>2) 贴片机数据协议对接<br>3) 温度监控设备对接 | Phase 2 完成 | 架构文档 + POC |
-| **T3.3** | 自动数据源接入 | 1) 设备数据写入 DataValue/Readiness 证据（含幂等/去重）<br>2) dataSource=DEVICE 自动确认<br>3) 替换人工采集 | T3.2 | Service |
-
-**T3.3 子任务**：
-- [ ] 3.3.1 定义设备事件去重键与幂等策略
-- [ ] 3.3.2 设备数据写入 DataValue/Readiness 证据
-- [ ] 3.3.3 自动确认规则（dataSource=DEVICE）
-- [ ] 3.3.4 重复数据告警与审计记录
-
----
-
-## 三、并行开发矩阵
-
-```
-时间轴 →
-Week 1-2 (Phase 1)
-┌────────────────────────────────────────────────────────────┐
-│  开发者 A          │  开发者 B          │  开发者 C         │
-│  Track A           │  Track B           │  (可选) 前端 UI   │
-│  T1.1 → T1.2       │  T1.4 → T1.5       │  T1.3             │
-└────────────────────────────────────────────────────────────┘
-                              ↓
-Week 3-5 (Phase 2)
-┌────────────────────────────────────────────────────────────┐
-│  开发者 A          │  开发者 B          │  开发者 C         │
-│  Track C           │  Track D           │  Track E          │
-│  T2.1 → T2.2       │  T2.5 → T2.6       │  T2.7, T2.8       │
-│  → T2.3 → T2.4     │                    │                   │
-└────────────────────────────────────────────────────────────┘
-                              ↓
-Week 6-7 (Phase 3)
-┌────────────────────────────────────────────────────────────┐
-│  开发者 A          │  开发者 B          │  开发者 C         │
-│  Track F           │  Track G (可选)    │  集成测试 + 文档  │
-│  T3.1              │  T3.2 → T3.3       │                   │
-└────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 四、依赖关系图
-
-```
-Phase 1
-┌─────────┐     ┌─────────┐
-│  T1.1   │----->│  T1.2   │----->┐
-└─────────┘     └─────────┘     │
-                                ▼
-                           ┌─────────┐
-                           │  T1.3   │
-                           └─────────┘
-
-┌─────────┐     ┌─────────┐
-│  T1.4   │----->│  T1.5   │
-└─────────┘     └─────────┘
-
-Phase 2 (依赖 Phase 1 完成)
-┌─────────┐     ┌─────────┐     ┌─────────┐
-│  T2.1   │----->│  T2.2   │----->│ T2.3/4  │
-└─────────┘     └─────────┘     └─────────┘
-
-┌─────────┐     ┌─────────┐
-│  T2.5   │----->│  T2.6   │
-└─────────┘     └─────────┘
-
-┌─────────┐     ┌─────────┐
-│  T2.7   │     │  T2.8   │  (无内部依赖)
-└─────────┘     └─────────┘
-
-Phase 3 (依赖 Phase 2 完成)
-┌─────────┐
-│  T3.1   │  维修表单
-└─────────┘
-
-┌─────────┐     ┌─────────┐
-│  T3.2   │----->│  T3.3   │  (可选：设备数采)
-└─────────┘     └─────────┘
-```
-
----
-
-## 五、优先级与风险评估
-
-### 优先级分层
-
-| 优先级 | 任务范围 | 理由 |
-|--------|---------|------|
-| **P0** | Phase 1 全部 | 门禁基础能力，其他规则依赖此框架 |
-| **P1** | Phase 2 T2.1-T2.6 | 核心追溯规则，质量合规必需 |
-| **P1-** | Phase 2 T2.7-T2.8 | 寿命管理，可延后但建议同 Phase 2 |
-| **P2** | Phase 3 T3.1 | 维修表单，过程完善 |
-| **P3** | Phase 3 T3.2-T3.3 | 设备数采，视现场条件决定（可选） |
-
-### 风险点
-
-| 风险 | 影响 | 缓解措施 |
-|------|------|---------|
-| 豁免角色边界不清 | 权限混乱 | 先复用现有角色，观察后再调整 |
-| 时间规则误报高 | 豁免负担大 | 按路线/工序配置，非全局强制 |
-| 水洗节点缺失 | 规则无法触发 | 先新增水洗扫描点或工序配置 |
-| 设备数采延迟 | 人工采集成本高 | Phase 3 可选，先支持人工录入 |
-
----
-
-## 六、验收标准（按 Phase）
-
-### Phase 1 验收
-- [ ] Readiness 支持所有 PREP_* 检查类型
-- [ ] 豁免 API 可用，记录完整
-- [ ] 首件必须签字后才能授权 Run
-- [ ] 准备项看板可展示所有项状态
-- [ ] 非门禁项记录必达；自动/人工确认策略可见且可审计
-
-### Phase 2 验收
-- [ ] 锡膏暴露超 24h 自动 Alert
-- [ ] 水洗时间规则按路线生效
-- [ ] 炉温程式校验通过才能继续
-- [ ] 钢网清洗/刮刀点检记录可录入
+### Phase 2 验收（✅ 已通过）
+- [x] 锡膏暴露超 24h 自动 Alert
+- [x] 水洗时间规则按路线生效
+- [x] 炉温程式校验通过才能继续
+- [x] 钢网清洗/刮刀点检记录可录入
 
 ### Phase 3 验收
 - [x] 维修记录与 Readiness 联动
@@ -347,22 +122,10 @@ Phase 3 (依赖 Phase 2 完成)
 
 ---
 
-## 七、文件变更预估
+## 3. 参考文档
 
-| Phase | Schema 文件 | 后端模块 | 前端页面 |
-|-------|------------|---------|---------|
-| Phase 1 | Readiness 扩展<br>Inspection 扩展 | readiness/<br>fai/ | prep-dashboard/<br>fai-sign/ |
-| Phase 2 | TimeRule*<br>ReflowProfile*<br>StencilClean*<br>ScraperCheck* | time-rule/ (新)<br>reflow-profile/ (新)<br>stencil/<br>scraper/ (新) | time-rule-ui/<br>profile-ui/<br>stencil-clean/<br>scraper-check/ |
-| Phase 3 | RepairRecord* | repair/ (新) | repair/ |
+- `domain_docs/mes/spec/process/compair/smt_gap_design_suggestions.md`
+- `domain_docs/mes/spec/config/templates/prep_item_policy.template.yaml`
+- `domain_docs/mes/spec/config/02_db_override_schema.md`
 
----
-
-## 八、启动建议
-
-1. **立即启动 Phase 1**：Track A + Track B 可并行，2 名后端 + 1 名前端即可
-2. **Phase 2 启动条件**：Phase 1 合并后，3 个 Track 并行开发
-3. **Phase 3 按需**：根据现场反馈决定 Track G 是否实施
-
----
-
-> 本文档将随开发进展更新任务状态。
+状态图例：⬜ 待开发 / 🔄 进行中 / ✅ 已完成
