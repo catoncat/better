@@ -397,7 +397,7 @@ export async function createSolderPasteUsageRecord(
 				),
 				occurredAt: issuedAt,
 				entityType: "SOLDER_PASTE_LOT",
-				entityId: record.id,
+				entityId: lotId,
 				runId: record.runId ?? null,
 				payload: {
 					recordId: record.id,

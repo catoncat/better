@@ -12,7 +12,7 @@ const PRESET_TIME_RULES = [
 		durationMinutes: 1440, // 24 hours
 		warningMinutes: 120, // 2 hours before expiry
 		startEvent: "SOLDER_PASTE_USAGE_CREATE",
-		endEvent: "TRACK_OUT",
+		endEvent: "SOLDER_PASTE_USAGE_UNBIND",
 		scope: TimeRuleScope.GLOBAL,
 		scopeValue: null,
 		requiresWashStep: false,
