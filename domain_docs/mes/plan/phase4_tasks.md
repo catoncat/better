@@ -59,10 +59,10 @@ P0（必须）：
 
 | ID | 任务 | 状态 | 依赖 | 备注 |
 |----|------|------|------|------|
-| T4.2.1 | Schema: IngestEvent（持久化 + 索引 + 去重策略 + 必要关联） | ⬜ | T4.1.1 | |
-| T4.2.2 | Server: Ingest API（create + idempotency + validation + error taxonomy） | ⬜ | T4.2.1 | |
-| T4.2.3 | Service: raw persistence → normalize/dispatch（为后续执行/追溯留扩展点） | ⬜ | T4.2.2 | |
-| T4.2.4 | Trace: 事件可查询/可关联（最小字段回显，支持回放定位） | ⬜ | T4.2.3 | |
+| T4.2.1 | Schema: IngestEvent（持久化 + 索引 + 去重策略 + 必要关联） | ✅ | T4.1.1 | |
+| T4.2.2 | Server: Ingest API（create + idempotency + validation + error taxonomy） | ✅ | T4.2.1 | |
+| T4.2.3 | Service: raw persistence → normalize/dispatch（为后续执行/追溯留扩展点） | ✅ | T4.2.2 | |
+| T4.2.4 | Trace: 事件可查询/可关联（最小字段回显，支持回放定位） | ✅ | T4.2.3 | |
 
 ### 3.3 AUTO/TEST 执行映射
 
