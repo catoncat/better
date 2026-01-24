@@ -38,6 +38,7 @@ task:
 - `domain_docs/mes/tech/api/01_api_overview.md` lists readiness run endpoints but omits `/lines/:lineId/readiness-config` GET/PUT.
 - `domain_docs/mes/spec/process/03_smt_flows.md` claims readiness config is controlled by `Run.meta.readinessChecks.enabled` but current implementation uses `Line.meta.readinessChecks.enabled` (doc mismatch).
 - `agent_docs/03_backend/audit_logs.md` states config changes should be audit-logged; readiness-config PUT currently lacks audit logging.
+- Prisma schema had duplicate `TimeRuleInstance.activeKey`; removed duplicate line (no DB migration needed per `db:migrate`).
 
 ## Slices
 - [x] Slice 0: worktree note context
