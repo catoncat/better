@@ -77,8 +77,8 @@ P0（必须）：
 
 | ID | 任务 | 状态 | 依赖 | 备注 |
 |----|------|------|------|------|
-| T4.4.1 | Readiness 配置模型与 API（开关/规则/默认值可配置） | ⬜ | - | |
-| T4.4.2 | Web 配置页（工程师/管理员可操作；与权限/审计一致） | ⬜ | T4.4.1 | |
+| T4.4.1 | Readiness 配置模型与 API（开关/规则/默认值可配置） | ✅ | - | as-built: `/lines/:lineId/readiness-config` (`line.meta.readinessChecks.enabled`) |
+| T4.4.2 | Web 配置页（工程师/管理员可操作；与权限/审计一致） | ✅ | T4.4.1 | as-built: `/mes/readiness-config` |
 
 ### 3.5 Outbound Feedback（TBD）
 

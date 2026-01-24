@@ -55,6 +55,8 @@ Aligned with `agent_docs/03_backend/api_patterns.md` (envelope + error format + 
 - `GET /api/runs/:runNo/readiness/history`
 - `POST /api/runs/:runNo/readiness/items/:itemId/waive`
 - `GET /api/readiness/exceptions`
+- `GET /api/lines/:lineId/readiness-config`
+- `PUT /api/lines/:lineId/readiness-config`
 
 ### 1.5 Loading (Execution + Config)
 
