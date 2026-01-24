@@ -42,6 +42,7 @@ touchPoints:
 - `bunx prisma migrate diff --from-migrations ... --to-schema-datamodel ...` failed; CLI now requires `--to-schema`. Next approach: rerun with `--from-migrations ... --to-schema packages/db/prisma/schema/schema.prisma --script`.
 - `bunx prisma migrate diff ... --to-schema ... --script > migration.sql` failed due to shell noclobber. Next approach: use `>|` to overwrite.
 - `prisma migrate diff` from repo root produced empty output; running from `packages/db` produced unrelated diff (MaintenanceRecord). Resolved by writing minimal migration SQL manually for activeKey.
+- `bun scripts/smart-verify.ts` failed: Prisma `StringFilter` for SQLite doesn't support `mode`. Fixed by switching to in-memory case-insensitive check after selecting operation codes.
 ## Slices
 - [ ] Fix time rule end-event + WASH match + active instance uniqueness
 
