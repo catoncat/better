@@ -1,10 +1,14 @@
 import { AuditEntityType } from "@better-app/db";
-import { Elysia, error } from "elysia";
+import { Elysia, status } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
-import { ingestEventCreateSchema, ingestEventErrorResponseSchema, ingestEventResponseSchema } from "./schema";
+import {
+	ingestEventCreateSchema,
+	ingestEventErrorResponseSchema,
+	ingestEventResponseSchema,
+} from "./schema";
 import { createIngestEvent } from "./service";
 
 export const ingestModule = new Elysia({
@@ -30,6 +34,7 @@ export const ingestModule = new Elysia({
 			});
 
 			if (!result.success) {
+				const statusCode = result.status ?? 400;
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.INTEGRATION,
 					entityId: `${body.sourceSystem}:${body.dedupeKey}`,
@@ -46,7 +51,13 @@ export const ingestModule = new Elysia({
 						dedupeKey: body.dedupeKey,
 					},
 				});
-				return error(result.status ?? 400, {
+				if (statusCode === 404) {
+					return status(404, {
+						ok: false,
+						error: { code: result.code, message: result.message },
+					});
+				}
+				return status(400, {
 					ok: false,
 					error: { code: result.code, message: result.message },
 				});

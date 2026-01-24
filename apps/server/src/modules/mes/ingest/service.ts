@@ -53,7 +53,7 @@ export type CreateIngestEventInput = {
 	eventType: IngestEventType;
 	occurredAt: string;
 	runNo?: string | null;
-	payload: Prisma.JsonValue;
+	payload: Prisma.InputJsonValue;
 	meta?: Prisma.InputJsonValue | null;
 };
 
@@ -67,6 +67,14 @@ type SnapshotStep = {
 	stationType?: string;
 	ingestMapping?: Prisma.JsonValue | null;
 };
+
+type RunWithRouteVersion = Prisma.RunGetPayload<{
+	include: { routeVersion: true };
+}>;
+
+type UnitWithRunRouteVersion = Prisma.UnitGetPayload<{
+	include: { run: { include: { routeVersion: true } } };
+}>;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === "object" && value !== null;
@@ -83,6 +91,9 @@ const asString = (value: unknown) => {
 	return null;
 };
 
+const toOptionalString = (value: string | null | undefined) =>
+	value === null || value === undefined ? undefined : value;
+
 const toStringArray = (value: unknown) => {
 	if (Array.isArray(value)) {
 		return value.map(asString).filter((item): item is string => !!item);
@@ -95,14 +106,18 @@ const resolveSegments = (value: unknown, segments: string[]): unknown => {
 	if (segments.length === 0) return value;
 	if (value === null || value === undefined) return undefined;
 
-	const [head, ...tail] = segments;
+	const head = segments[0];
+	if (!head) return undefined;
+	const tail = segments.slice(1);
 	const arrayMatch = head.match(/^(.*)\[\*\]$/);
 	if (arrayMatch) {
 		const key = arrayMatch[1];
 		const target = key ? (isRecord(value) ? value[key] : undefined) : value;
 		if (!Array.isArray(target)) return [];
 		const results = target.map((item) => resolveSegments(item, tail));
-		return results.flatMap((item) => (Array.isArray(item) ? item : [item])).filter((item) => item !== undefined);
+		return results
+			.flatMap((item) => (Array.isArray(item) ? item : [item]))
+			.filter((item) => item !== undefined);
 	}
 
 	if (!isRecord(value)) return undefined;
@@ -134,8 +149,9 @@ const resolveIngestMapping = (
 ): IngestMapping | null => {
 	const steps = parseSnapshotSteps(snapshot);
 	const candidates = steps.filter((step) => step.stationType === eventType && step.ingestMapping);
-	if (candidates.length === 0) return null;
-	const mapping = toIngestMapping(candidates[0].ingestMapping ?? null);
+	const candidate = candidates[0];
+	if (!candidate) return null;
+	const mapping = toIngestMapping(candidate.ingestMapping ?? null);
 	if (!mapping) return null;
 	if (mapping.eventType && mapping.eventType !== eventType) return null;
 	return mapping;
@@ -152,7 +168,7 @@ const normalizeResult = (value: unknown, mapping: IngestResultMapping | undefine
 };
 
 const normalizeMeasurements = (
-	payload: Prisma.JsonValue,
+	payload: Prisma.InputJsonValue,
 	mapping: IngestMeasurementMapping | undefined,
 ): NormalizedIngest["measurements"] => {
 	if (!mapping) return undefined;
@@ -173,7 +189,7 @@ const normalizeMeasurements = (
 };
 
 const normalizePayload = (
-	payload: Prisma.JsonValue,
+	payload: Prisma.InputJsonValue,
 	mapping: IngestMapping,
 ): NormalizedIngest => {
 	const occurredAt = asString(resolvePath(payload, mapping.occurredAtPath));
@@ -220,10 +236,11 @@ const buildNormalizedJson = (normalized: NormalizedIngest): Prisma.InputJsonValu
 	return record;
 };
 
-const extractFallbackSn = (payload: Prisma.JsonValue) => {
+const extractFallbackSn = (payload: Prisma.InputJsonValue) => {
 	if (!isRecord(payload)) return { sn: null, snList: [] as string[] };
-	const sn = asString(payload.sn);
-	const snList = toStringArray(payload.snList);
+	const record = payload as Record<string, unknown>;
+	const sn = asString(record.sn);
+	const snList = toStringArray(record.snList);
 	return { sn, snList };
 };
 
@@ -232,17 +249,27 @@ const resolveRunFromSn = async (
 	sn: string,
 ): Promise<
 	ServiceResult<{
-		run: { id: string; runNo: string | null; routeVersionId: string | null; snapshot: Prisma.JsonValue | null };
+		run: {
+			id: string;
+			runNo: string | null;
+			routeVersionId: string | null;
+			snapshot: Prisma.JsonValue | null;
+		};
 		unitId: string;
 	}>
 > => {
-	const unit = await db.unit.findUnique({
+	const unit = (await db.unit.findUnique({
 		where: { sn },
 		include: { run: { include: { routeVersion: true } } },
-	});
+	})) as UnitWithRunRouteVersion | null;
 
 	if (!unit || !unit.run) {
-		return { success: false, code: "UNIT_RUN_NOT_FOUND", message: "Unit run not found", status: 404 };
+		return {
+			success: false,
+			code: "UNIT_RUN_NOT_FOUND",
+			message: "Unit run not found",
+			status: 404,
+		};
 	}
 
 	return {
@@ -264,7 +291,12 @@ const resolveRunFromSnList = async (
 	snList: string[],
 ): Promise<
 	ServiceResult<{
-		run: { id: string; runNo: string | null; routeVersionId: string | null; snapshot: Prisma.JsonValue | null };
+		run: {
+			id: string;
+			runNo: string | null;
+			routeVersionId: string | null;
+			snapshot: Prisma.JsonValue | null;
+		};
 	}>
 > => {
 	const units = await db.unit.findMany({
@@ -281,7 +313,9 @@ const resolveRunFromSnList = async (
 		};
 	}
 
-	const runIds = new Set(units.map((unit) => unit.runId).filter(Boolean));
+	const runIds = new Set(
+		units.map((unit) => unit.runId).filter((runId): runId is string => !!runId),
+	);
 	if (runIds.size !== 1) {
 		return {
 			success: false,
@@ -292,10 +326,13 @@ const resolveRunFromSnList = async (
 	}
 
 	const runId = Array.from(runIds)[0];
-	const run = await db.run.findUnique({
+	if (!runId) {
+		return { success: false, code: "RUN_NOT_FOUND", message: "Run not found", status: 404 };
+	}
+	const run = (await db.run.findUnique({
 		where: { id: runId },
 		include: { routeVersion: true },
-	});
+	})) as RunWithRouteVersion | null;
 
 	if (!run) {
 		return { success: false, code: "RUN_NOT_FOUND", message: "Run not found", status: 404 };
@@ -343,21 +380,30 @@ export const createIngestEvent = async (
 		};
 	}
 
-	let resolvedRun:
-		| {
-				id: string;
-				runNo: string | null;
-				routeVersionId: string | null;
-				snapshot: Prisma.JsonValue | null;
-		  }
-		| null = null;
+	if (input.payload === null) {
+		return {
+			success: false,
+			code: "INGEST_PAYLOAD_INVALID",
+			message: "payload is required",
+			status: 400,
+		};
+	}
+
+	const payload = input.payload;
+
+	let resolvedRun: {
+		id: string;
+		runNo: string | null;
+		routeVersionId: string | null;
+		snapshot: Prisma.JsonValue | null;
+	} | null = null;
 	let unitId: string | null = null;
 
 	if (input.runNo) {
-		const run = await db.run.findUnique({
+		const run = (await db.run.findUnique({
 			where: { runNo: input.runNo },
 			include: { routeVersion: true },
-		});
+		})) as RunWithRouteVersion | null;
 		if (!run) {
 			return { success: false, code: "RUN_NOT_FOUND", message: "Run not found", status: 404 };
 		}
@@ -368,7 +414,7 @@ export const createIngestEvent = async (
 			snapshot: run.routeVersion?.snapshotJson ?? null,
 		};
 	} else {
-		const fallback = extractFallbackSn(input.payload);
+		const fallback = extractFallbackSn(payload);
 		if (fallback.sn) {
 			const resolved = await resolveRunFromSn(db, fallback.sn);
 			if (!resolved.success) return resolved;
@@ -398,7 +444,7 @@ export const createIngestEvent = async (
 		};
 	}
 
-	const normalized = normalizePayload(input.payload, mapping);
+	const normalized = normalizePayload(payload, mapping);
 	if (!validateNormalized(input.eventType, normalized)) {
 		return {
 			success: false,
@@ -407,6 +453,8 @@ export const createIngestEvent = async (
 			status: 400,
 		};
 	}
+
+	const runNo = toOptionalString(resolvedRun?.runNo ?? input.runNo);
 
 	if (!unitId && normalized.sn) {
 		const unit = await db.unit.findUnique({ where: { sn: normalized.sn } });
@@ -417,7 +465,9 @@ export const createIngestEvent = async (
 
 	return await db.$transaction(async (tx) => {
 		const existing = await tx.ingestEvent.findUnique({
-			where: { sourceSystem_dedupeKey: { sourceSystem: input.sourceSystem, dedupeKey: input.dedupeKey } },
+			where: {
+				sourceSystem_dedupeKey: { sourceSystem: input.sourceSystem, dedupeKey: input.dedupeKey },
+			},
 			select: { id: true },
 		});
 
@@ -436,7 +486,7 @@ export const createIngestEvent = async (
 					eventType: input.eventType,
 					occurredAt,
 					runId: resolvedRun?.id ?? null,
-					runNo: resolvedRun?.runNo ?? input.runNo ?? null,
+					runNo,
 					unitId,
 					stationCode: normalized.stationCode ?? null,
 					lineCode: normalized.lineCode ?? null,
@@ -445,7 +495,7 @@ export const createIngestEvent = async (
 					snList: normalized.snList ?? undefined,
 					result: normalized.result ?? null,
 					testResultId: normalized.testResultId ?? null,
-					payload: input.payload ?? undefined,
+					payload,
 					normalized: buildNormalizedJson(normalized),
 					meta: input.meta ?? undefined,
 				},
@@ -459,7 +509,12 @@ export const createIngestEvent = async (
 		} catch (error) {
 			if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
 				const duplicate = await tx.ingestEvent.findUnique({
-					where: { sourceSystem_dedupeKey: { sourceSystem: input.sourceSystem, dedupeKey: input.dedupeKey } },
+					where: {
+						sourceSystem_dedupeKey: {
+							sourceSystem: input.sourceSystem,
+							dedupeKey: input.dedupeKey,
+						},
+					},
 					select: { id: true },
 				});
 				if (duplicate) {

@@ -55,6 +55,7 @@ touchPoints:
 - Schema already includes `activeKey` for time-rule instances; migration file needs to be recreated to match drifted DB.
 - Migration files live under `packages/db/prisma/schema/migrations`; follow SQL style from recent migrations (CreateTable + CreateIndex).
 - Recreated `20260124105432_time_rule_instance_active_key` migration and reran `db:migrate`; new ingest migration `20260124130231_ingest_events` created/applied successfully.
+- `bun scripts/smart-verify.ts` now passes after ingest type fixes and formatter cleanup.
 - Ingest migration also created `MaintenanceRecord` table (model existed without prior migration). Decide whether to keep combined migration or split later.
 - Use Prisma `P2002` handling pattern (see OQC service) for idempotent create on unique constraints.
 - Trace routes use auth+permission plugin and `status()` helper for errors; mirror pattern for ingest API.
@@ -66,6 +67,7 @@ touchPoints:
 - E2E align updated to map AUTO/BATCH/TEST ingest nodes to `POST /api/ingest/events`.
 - Permission enum not found in Prisma schema; locate in `packages/db/src` constants.
 - IngestEvent model added in schema with eventType/sourceSystem/dedupeKey + run/unit links and indexes.
+- smart-verify passes after fixing ingest typing/status handling.
 - Traceability contract mentions ingest events but has no ingest event schema/contract; needs new section.
 - Route execution config mandates ingestMapping for AUTO/BATCH/TEST with required fields per station type; use as baseline for mapping schema.
 - Routing engine defines AUTO/BATCH/TEST as ingest event sources; compile requires ingestMapping; TrackOut/ingest must validate required specs.
@@ -91,6 +93,7 @@ touchPoints:
 - `ls apps/server/src/modules/mes/ingest` → No such file or directory (will only create during implementation; avoid retrying now).
 - `rg -n "ingest" apps/server/src/modules/mes/trace` → no matches (trace module currently has no ingest references).
 - `bun run db:migrate -- --name ingest_events` failed: drift detected (missing migration `20260124105432_time_rule_instance_active_key` in worktree). Next approach: sync migration files from main or resolve via `db:deploy`/`migrate resolve` before retry.
+- `bun scripts/smart-verify.ts` failed: Biome format errors in ingest routes/service + trace service; fixed via `bun run format`. Typecheck errors remain (elysia `error` import, resolveSegments typing, runNo/null handling, run include routeVersion, payload/normalized types). Next: adjust code and rerun smart-verify.
 
 ## Slices
 - [x] Docs: ingest contract + ingestMapping + acceptance scenario updates (T4.1.1-T4.1.3)

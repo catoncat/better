@@ -249,10 +249,7 @@ export const getUnitTrace = async (
 			})
 		: [];
 
-	const ingestEventFilters: Prisma.IngestEventWhereInput[] = [
-		{ unitId: unit.id },
-		{ sn: unit.sn },
-	];
+	const ingestEventFilters: Prisma.IngestEventWhereInput[] = [{ unitId: unit.id }, { sn: unit.sn }];
 	if (unit.runId) {
 		ingestEventFilters.push({ runId: unit.runId });
 	}
