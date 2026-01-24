@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from "@better-app/db";
 import type { ServiceResult } from "../../../types/service-result";
+import { buildMesEventIdempotencyKey, createMesEvent, MES_EVENT_TYPES } from "../event/service";
 
 // ==========================================
 // Types
@@ -261,6 +262,27 @@ export const unbindSolderPasteFromLine = async (
 			unboundBy: userId ?? null,
 		},
 	});
+
+	try {
+		await createMesEvent(db, {
+			eventType: MES_EVENT_TYPES.SOLDER_PASTE_USAGE_UNBIND,
+			idempotencyKey: buildMesEventIdempotencyKey(
+				MES_EVENT_TYPES.SOLDER_PASTE_USAGE_UNBIND,
+				updated.id,
+			),
+			occurredAt: now,
+			entityType: "SOLDER_PASTE_LOT",
+			entityId: updated.lotId,
+			payload: {
+				lineId: updated.lineId,
+				lotId: updated.lotId,
+				bindingId: updated.id,
+				unboundAt: now.toISOString(),
+			},
+		});
+	} catch (error) {
+		console.error(`[LineSolderPaste] Event emit failed for lot ${updated.lotId}:`, error);
+	}
 
 	return {
 		success: true,

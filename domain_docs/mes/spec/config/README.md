@@ -28,7 +28,7 @@ config/
 - 规则默认从 `templates/*` 加载。
 - 现场变更通过配置覆盖（DB 或配置服务）生效。
 - 所有覆盖必须记录：变更人、时间、原因、影响范围。
-- 时间规则 `startEvent/endEvent` 需与系统事件流一致（当前默认使用审计动作：`TRACK_IN` / `TRACK_OUT` / `SOLDER_PASTE_USAGE_CREATE`）。
+- 时间规则 `startEvent/endEvent` 需与系统事件流一致（当前默认使用审计动作：`TRACK_IN` / `TRACK_OUT` / `SOLDER_PASTE_USAGE_CREATE` / `SOLDER_PASTE_USAGE_UNBIND`）。
 - 细粒度条件（如工序、路由、水洗步骤）通过事件 payload 或规则 scope 约束。
 
 ## 3. 关联规范

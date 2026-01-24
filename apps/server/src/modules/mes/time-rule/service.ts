@@ -1,5 +1,5 @@
 import {
-	type Prisma,
+	Prisma,
 	type PrismaClient,
 	type TimeRuleDefinition,
 	type TimeRuleInstance,
@@ -76,6 +76,9 @@ export type WaiveInstanceInput = {
 // ==========================================
 // Mappers
 // ==========================================
+
+const buildActiveKey = (definitionId: string, entityType: string, entityId: string) =>
+	`${definitionId}:${entityType}:${entityId}`;
 
 const mapDefinition = (def: TimeRuleDefinition): TimeRuleDefinitionDetail => ({
 	id: def.id,
@@ -396,26 +399,39 @@ export async function createInstance(
 	const warningAt = definition.warningMinutes
 		? new Date(expiresAt.getTime() - definition.warningMinutes * 60000)
 		: null;
+	const activeKey = buildActiveKey(definition.id, input.entityType, input.entityId);
 
-	const instance = await db.timeRuleInstance.create({
-		data: {
-			definitionId: definition.id,
-			runId: input.runId ?? null,
-			entityType: input.entityType,
-			entityId: input.entityId,
-			entityDisplay: input.entityDisplay ?? null,
-			startedAt,
-			expiresAt,
-			warningAt,
-			status: TimeRuleInstanceStatus.ACTIVE,
-		},
-		include: {
-			definition: true,
-			run: { select: { runNo: true } },
-		},
-	});
-
-	return { success: true, data: mapInstance(instance) };
+	try {
+		const instance = await db.timeRuleInstance.create({
+			data: {
+				definitionId: definition.id,
+				runId: input.runId ?? null,
+				entityType: input.entityType,
+				entityId: input.entityId,
+				entityDisplay: input.entityDisplay ?? null,
+				activeKey,
+				startedAt,
+				expiresAt,
+				warningAt,
+				status: TimeRuleInstanceStatus.ACTIVE,
+			},
+			include: {
+				definition: true,
+				run: { select: { runNo: true } },
+			},
+		});
+		return { success: true, data: mapInstance(instance) };
+	} catch (error) {
+		if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+			return {
+				success: false,
+				code: "INSTANCE_ALREADY_ACTIVE",
+				message: `An active time rule instance already exists for this entity`,
+				status: 409,
+			};
+		}
+		throw error;
+	}
 }
 
 export async function completeInstance(
@@ -448,6 +464,7 @@ export async function completeInstance(
 		data: {
 			status: TimeRuleInstanceStatus.COMPLETED,
 			completedAt: new Date(),
+			activeKey: null,
 		},
 		include: { definition: true, run: { select: { runNo: true } } },
 	});
@@ -481,6 +498,7 @@ export async function completeInstanceByEntity(
 		data: {
 			status: TimeRuleInstanceStatus.COMPLETED,
 			completedAt: new Date(),
+			activeKey: null,
 		},
 		include: { definition: true, run: { select: { runNo: true } } },
 	});
@@ -531,6 +549,7 @@ export async function waiveInstance(
 			waivedAt: new Date(),
 			waivedBy: input.waivedBy,
 			waiveReason: input.waiveReason,
+			activeKey: null,
 		},
 		include: { definition: true, run: { select: { runNo: true } } },
 	});
@@ -617,17 +636,17 @@ export async function routeHasWashStep(db: PrismaClient, routeVersionId: string)
 	});
 	if (!version) return false;
 
-	// Check if routing has any step with operation code containing "WASH"
-	const washStep = await db.routingStep.findFirst({
+	// Check if routing has any step with operation code containing "WASH" (case-insensitive)
+	const steps = await db.routingStep.findMany({
 		where: {
 			routingId: version.routingId,
-			operation: {
-				code: { contains: "WASH" },
-			},
+		},
+		select: {
+			operation: { select: { code: true } },
 		},
 	});
 
-	return washStep !== null;
+	return steps.some((step) => (step.operation?.code ?? "").toUpperCase().includes("WASH"));
 }
 
 /**
@@ -687,6 +706,7 @@ export async function markInstanceExpired(
 			status: TimeRuleInstanceStatus.EXPIRED,
 			expiredAt: new Date(),
 			expiryNotified: true,
+			activeKey: null,
 		},
 	});
 }
