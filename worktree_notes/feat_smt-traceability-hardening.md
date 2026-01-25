@@ -73,6 +73,7 @@ task:
 - User-confirmed matrix says “印锡→回流焊 <4h” is just a reminder and clarifies the real control is reflow/AOI → wash within 4h (scan at wash machine).
 - Time-rule cron already marks warnings/expired instances, creates readiness items on expiry, and dispatches notifications to line users/supervisors.
 - Seeded time rules are `SOLDER_PASTE_24H` (SOLDER_PASTE_EXPOSURE) and `WASH_4H` (WASH_TIME_LIMIT) with start/end events TRACK_OUT/IN and SOLDER_PASTE_USAGE_CREATE/UNBIND.
+- `TimeRuleInstance` declares `activeKey` twice in `packages/db/prisma/schema/schema.prisma`, causing Prisma validation failure.
 
 ## Open Questions
 - None (time window events confirmed; template view is static by choice).
