@@ -373,7 +373,7 @@ async function runTest(options: CliOptions) {
 	const woNo =
 		options.woNo ??
 		(options.idStrategy === "reuse-wo" ? `WO-${key}` : `WO-${key}-${now}`);
-	const sn = options.sn ?? `SN-${key}-${now}`;
+	let sn = options.sn ?? `SN-${key}-${now}`;
 	let samplingRuleId: string | undefined;
 
 	summary.context.woNo = woNo;
@@ -429,7 +429,7 @@ async function runTest(options: CliOptions) {
 		}, { actor: "engineer" });
 
 		await runStep(summary, "WO: receive", async () => {
-			const { res, data } = await admin.post("/integration/work-orders", {
+			const { res, data } = await planner.post("/integration/work-orders", {
 				woNo,
 				productCode: options.productCode,
 				plannedQty: 100,
@@ -437,7 +437,7 @@ async function runTest(options: CliOptions) {
 				pickStatus: "2",
 			});
 			return expectOk(res, data, "WO receive");
-		}, { actor: "admin" });
+		}, { actor: "planner" });
 
 		await runStep(summary, "WO: release", async () => {
 			const { res, data } = await planner.post(`/work-orders/${woNo}/release`, {
@@ -455,7 +455,10 @@ async function runTest(options: CliOptions) {
 		}, { actor: "planner" });
 
 		const runNo = await runStep(summary, "Run: create", async () => {
-			const { res, data } = await planner.post(`/work-orders/${woNo}/runs`, { lineCode: options.lineCode });
+			const { res, data } = await planner.post(`/work-orders/${woNo}/runs`, {
+				lineCode: options.lineCode,
+				planQty: 1,
+			});
 			const created = expectOk(res, data, "Run create");
 			if (!created.runNo) {
 				throw new ApiError("Run create response missing runNo");
@@ -464,6 +467,21 @@ async function runTest(options: CliOptions) {
 		}, { actor: "planner" });
 
 		summary.context.runNo = runNo;
+
+		await runStep(summary, "Run: generate units (qty=1)", async () => {
+			const { res, data } = await planner.post(`/runs/${runNo}/generate-units`, {
+				quantity: 1,
+				snPrefix: `SN-${runNo}-`,
+			});
+			const result = expectOk(res, data, "Generate units");
+			const generatedSn = result?.units?.[0]?.sn as string | undefined;
+			if (!generatedSn) {
+				throw new ApiError("Generate units response missing sn");
+			}
+			sn = generatedSn;
+			summary.context.sn = sn;
+			return { generatedSn, generated: result.generated };
+		}, { actor: "planner" });
 
 		samplingRuleId = await runStep(
 			summary,
