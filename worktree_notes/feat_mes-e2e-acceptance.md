@@ -11,7 +11,6 @@ task:
   title: "Slice 5: E2E Acceptance - run UI flow + stabilize P0 regressions"
   triageNote: ".scratch/task-queue.md"
 touchPoints:
-  - "user_docs/demo/acceptance_plan.md"
   - "user_docs/demo/acceptance_plan_dip.md"
   - "user_docs/demo/acceptance_issues.md"
   - "apps/server/scripts/test-mes-flow.ts"
@@ -46,3 +45,11 @@ touchPoints:
 
 ## Open Questions
 -
+
+## Findings
+- Canonical acceptance plan: `user_docs/demo/acceptance_plan_dip.md` (DIP 4.1-4.7). `user_docs/demo/acceptance_plan.md` does not exist.
+- Issue log file exists but is empty: `user_docs/demo/acceptance_issues.md` (will append discoveries here during execution).
+
+## Progress
+- Worktree created at `/Users/envvar/lzb/better-wt/mes-e2e-acceptance`.
+- Task queue updated: Slice 5 claimed by `feat/mes-e2e-acceptance`.
