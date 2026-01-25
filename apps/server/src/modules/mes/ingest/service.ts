@@ -15,6 +15,8 @@ type IngestMeasurementMapping = {
 	judgePath?: string;
 };
 
+type IngestBatchPolicy = "ALL_OR_NOTHING" | "PARTIAL";
+
 type IngestMapping = {
 	eventType?: string;
 	occurredAtPath?: string;
@@ -23,6 +25,7 @@ type IngestMapping = {
 	snPath?: string;
 	snListPath?: string;
 	carrierCodePath?: string;
+	batchPolicy?: IngestBatchPolicy;
 	testResultIdPath?: string;
 	result?: IngestResultMapping;
 	measurements?: IngestMeasurementMapping;
@@ -64,7 +67,14 @@ type CreateIngestEventResult = {
 };
 
 type SnapshotStep = {
+	stepNo: number;
+	operationId: string;
 	stationType?: string;
+	stationGroupId?: string | null;
+	allowedStationIds?: string[];
+	requiresFAI?: boolean;
+	requiresAuthorization?: boolean;
+	dataSpecIds?: string[];
 	ingestMapping?: Prisma.JsonValue | null;
 };
 
@@ -135,7 +145,51 @@ const parseSnapshotSteps = (snapshot: Prisma.JsonValue | null | undefined): Snap
 	if (!snapshot || typeof snapshot !== "object") return [];
 	const record = snapshot as { steps?: unknown };
 	if (!Array.isArray(record.steps)) return [];
-	return record.steps.filter((step): step is SnapshotStep => !!step && typeof step === "object");
+
+	return record.steps
+		.map((step) => {
+			if (!step || typeof step !== "object") return null;
+			const value = step as {
+				stepNo?: unknown;
+				operationId?: unknown;
+				stationType?: unknown;
+				stationGroupId?: unknown;
+				allowedStationIds?: unknown;
+				requiresFAI?: unknown;
+				requiresAuthorization?: unknown;
+				dataSpecIds?: unknown;
+				ingestMapping?: unknown;
+			};
+
+			if (typeof value.stepNo !== "number") return null;
+			if (typeof value.operationId !== "string") return null;
+
+			return {
+				stepNo: value.stepNo,
+				operationId: value.operationId,
+				stationType: typeof value.stationType === "string" ? value.stationType : undefined,
+				stationGroupId:
+					value.stationGroupId === null || typeof value.stationGroupId === "string"
+						? value.stationGroupId
+						: undefined,
+				allowedStationIds: Array.isArray(value.allowedStationIds)
+					? value.allowedStationIds.filter((id): id is string => typeof id === "string")
+					: undefined,
+				requiresFAI: typeof value.requiresFAI === "boolean" ? value.requiresFAI : undefined,
+				requiresAuthorization:
+					typeof value.requiresAuthorization === "boolean"
+						? value.requiresAuthorization
+						: undefined,
+				dataSpecIds: Array.isArray(value.dataSpecIds)
+					? value.dataSpecIds.filter((id): id is string => typeof id === "string")
+					: undefined,
+				ingestMapping:
+					value.ingestMapping && typeof value.ingestMapping === "object"
+						? (value.ingestMapping as Prisma.JsonValue)
+						: null,
+			};
+		})
+		.filter((step): step is SnapshotStep => Boolean(step));
 };
 
 const toIngestMapping = (value: Prisma.JsonValue | null | undefined): IngestMapping | null => {
