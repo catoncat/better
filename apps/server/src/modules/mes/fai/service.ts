@@ -308,7 +308,7 @@ export async function createFai(
 		return {
 			success: false as const,
 			code: "FAI_SAMPLE_UNITS_INSUFFICIENT",
-			message: `Run has insufficient units for FAI sample quantity (${existingUnitCount}/${data.sampleQty}).`,
+			message: `Run has insufficient units for FAI sample quantity (${existingUnitCount}/${data.sampleQty}). Generate units before creating FAI.`,
 			status: 400,
 		};
 	}
