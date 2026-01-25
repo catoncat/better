@@ -53,3 +53,4 @@ touchPoints:
 ## Progress
 - Worktree created at `/Users/envvar/lzb/better-wt/mes-e2e-acceptance`.
 - Task queue updated: Slice 5 claimed by `feat/mes-e2e-acceptance`.
+- Fixed acceptance automation blockers (mes:acceptance + test-mes-flow) and got DIP happy scenario passing.
