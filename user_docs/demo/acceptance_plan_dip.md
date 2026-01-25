@@ -79,6 +79,7 @@ bun run dev
 | 1.2 | 点击「接收外部工单」创建 DIP 工单（routingCode=`PCBA-DIP-V1`，plannedQty≥1） | 工单创建成功，状态为 RECEIVED | [ ] |
 | 1.3 | 在工单列表找到该工单，点击「下发」选择 `LINE-DIP-A` | 工单状态变为 RELEASED | [ ] |
 | 1.4 | 点击「创建批次」 | **新建 Run**，跳转到 Run 详情页（Run=PREP） | [ ] |
+| 1.5 | 在 Run 详情页点击「生成单件」数量=1（或等于计划数量） | Run 单件数 > 0（后续 FAI/执行会用到） | [ ] |
 
 ### 阶段 2：Readiness（产前检查）（4.2）
 **页面**: `/mes/runs/{runNo}`
@@ -100,7 +101,9 @@ bun run dev
 | 3.2 | 在 `/mes/execution` 选择 DIP 首工位 `ST-DIP-INS-01` 完成一次 TrackIn/TrackOut(PASS) | 试产过站成功 | [ ] |
 | 3.3 | 回到 `/mes/fai` 记录检验项并「完成」为 PASS | FAI 状态变为 PASS | [ ] |
 
-> 注意：授权前试产只允许首工序；Run=PREP 时操作非首工位可能返回 `FAI_TRIAL_STEP_NOT_ALLOWED`。
+> 注意：
+> - FAI 开始前需要先生成单件（阶段 1.5）。若当前账号无权限生成单件，请切回 `planner@example.com` 操作。
+> - 授权前试产只允许首工序；Run=PREP 时操作非首工位可能返回 `FAI_TRIAL_STEP_NOT_ALLOWED`。
 
 ### 阶段 4：Run 授权（4.4）
 **页面**: `/mes/runs/{runNo}`
