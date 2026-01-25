@@ -1,5 +1,14 @@
-import { IngestEventType, Prisma, type PrismaClient } from "@better-app/db";
+import {
+	IngestEventType,
+	Prisma,
+	type PrismaClient,
+	RunStatus,
+	TrackResult,
+	TrackSource,
+	UnitStatus,
+} from "@better-app/db";
 import type { ServiceResult } from "../../../types/service-result";
+import { checkAndTriggerOqc } from "../oqc/trigger-service";
 
 type IngestResultMapping = {
 	path: string;
@@ -64,7 +73,14 @@ type CreateIngestEventResult = {
 };
 
 type SnapshotStep = {
+	stepNo?: number;
+	operationId?: string;
 	stationType?: string;
+	stationGroupId?: string | null;
+	allowedStationIds?: string[];
+	requiresFAI?: boolean;
+	requiresAuthorization?: boolean;
+	dataSpecIds?: string[];
 	ingestMapping?: Prisma.JsonValue | null;
 };
 
@@ -75,6 +91,14 @@ type RunWithRouteVersion = Prisma.RunGetPayload<{
 type UnitWithRunRouteVersion = Prisma.UnitGetPayload<{
 	include: { run: { include: { routeVersion: true } } };
 }>;
+
+type DataCollectionSpecRecord = Prisma.DataCollectionSpecGetPayload<Record<string, never>>;
+
+type IngestExecutionWrite = {
+	trackId: string;
+	dataValueCount: number;
+	unitStatus: UnitStatus;
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === "object" && value !== null;
@@ -135,7 +159,35 @@ const parseSnapshotSteps = (snapshot: Prisma.JsonValue | null | undefined): Snap
 	if (!snapshot || typeof snapshot !== "object") return [];
 	const record = snapshot as { steps?: unknown };
 	if (!Array.isArray(record.steps)) return [];
-	return record.steps.filter((step): step is SnapshotStep => !!step && typeof step === "object");
+
+	return record.steps
+		.filter((step): step is SnapshotStep => !!step && typeof step === "object")
+		.map((step) => {
+			const record = step as Record<string, unknown>;
+			return {
+				stepNo: typeof record.stepNo === "number" ? record.stepNo : undefined,
+				operationId: typeof record.operationId === "string" ? record.operationId : undefined,
+				stationType: typeof record.stationType === "string" ? record.stationType : undefined,
+				stationGroupId:
+					record.stationGroupId === null
+						? null
+						: typeof record.stationGroupId === "string"
+							? record.stationGroupId
+							: undefined,
+				allowedStationIds: Array.isArray(record.allowedStationIds)
+					? record.allowedStationIds.filter((v): v is string => typeof v === "string")
+					: undefined,
+				requiresFAI: typeof record.requiresFAI === "boolean" ? record.requiresFAI : undefined,
+				requiresAuthorization:
+					typeof record.requiresAuthorization === "boolean"
+						? record.requiresAuthorization
+						: undefined,
+				dataSpecIds: Array.isArray(record.dataSpecIds)
+					? record.dataSpecIds.filter((v): v is string => typeof v === "string")
+					: undefined,
+				ingestMapping: record.ingestMapping as Prisma.JsonValue,
+			};
+		});
 };
 
 const toIngestMapping = (value: Prisma.JsonValue | null | undefined): IngestMapping | null => {
@@ -147,14 +199,256 @@ const resolveIngestMapping = (
 	snapshot: Prisma.JsonValue | null | undefined,
 	eventType: IngestEventType,
 ): IngestMapping | null => {
-	const steps = parseSnapshotSteps(snapshot);
-	const candidates = steps.filter((step) => step.stationType === eventType && step.ingestMapping);
-	const candidate = candidates[0];
+	const steps = getResolvedSnapshotSteps(snapshot).filter(
+		(step) => step.stationType === eventType && step.ingestMapping,
+	);
+	const candidate = steps[0];
 	if (!candidate) return null;
-	const mapping = toIngestMapping(candidate.ingestMapping ?? null);
+	const mapping = candidate.ingestMapping;
 	if (!mapping) return null;
 	if (mapping.eventType && mapping.eventType !== eventType) return null;
 	return mapping;
+};
+
+type ResolvedSnapshotStep = {
+	stepNo: number;
+	operationId: string;
+	stationType: string;
+	stationGroupId: string | null;
+	allowedStationIds: string[];
+	requiresFAI: boolean;
+	requiresAuthorization: boolean;
+	dataSpecIds: string[];
+	ingestMapping: IngestMapping;
+};
+
+const isValidStationForStep = (
+	step: { stationGroupId: string | null; stationType: string; allowedStationIds?: string[] },
+	station: { id: string; groupId: string | null; stationType: string },
+) => {
+	if (step.stationType !== station.stationType) {
+		return false;
+	}
+	if (step.allowedStationIds && step.allowedStationIds.length > 0) {
+		if (!step.allowedStationIds.includes(station.id)) return false;
+	}
+	if (step.stationGroupId && step.stationGroupId !== station.groupId) {
+		return false;
+	}
+	return true;
+};
+
+const resolveIngestStep = (
+	steps: ResolvedSnapshotStep[],
+	input: { eventType: IngestEventType; stationCode?: string | null },
+	station: { id: string; stationType: string; groupId: string | null } | null,
+	unit: { currentStepNo: number } | null,
+): ResolvedSnapshotStep | null => {
+	const candidates = steps.filter((step) => step.stationType === input.eventType);
+	if (candidates.length === 0) return null;
+
+	const eligible = station
+		? candidates.filter((step) => isValidStationForStep(step, station))
+		: candidates;
+	if (eligible.length === 0) return null;
+
+	if (unit) {
+		const current = eligible.find((step) => step.stepNo === unit.currentStepNo);
+		if (current) return current;
+		return null;
+	}
+
+	if (eligible.length === 1) return eligible[0] ?? null;
+	return null;
+};
+
+const resolveStepDataSpecs = async (db: Prisma.TransactionClient, step: ResolvedSnapshotStep) => {
+	if (!step.dataSpecIds || step.dataSpecIds.length === 0) return [];
+	const specs = await db.dataCollectionSpec.findMany({
+		where: { id: { in: step.dataSpecIds }, isActive: true },
+	});
+	if (specs.length !== step.dataSpecIds.length) {
+		return null;
+	}
+	return specs;
+};
+
+const buildIngestDataItems = (
+	normalized: NormalizedIngest,
+	activeSpecs: DataCollectionSpecRecord[],
+): Array<{
+	specName: string;
+	valueNumber?: number;
+	valueText?: string;
+	valueBoolean?: boolean;
+	valueJson?: Prisma.InputJsonValue;
+	judge?: string | null;
+}> => {
+	const map = normalized.dataSpecMap ?? {};
+	const byName = new Map((normalized.measurements ?? []).map((m) => [m.name, m]));
+	const items: Array<{
+		specName: string;
+		valueNumber?: number;
+		valueText?: string;
+		valueBoolean?: boolean;
+		valueJson?: Prisma.InputJsonValue;
+		judge?: string | null;
+	}> = [];
+
+	for (const spec of activeSpecs) {
+		const measurementKey = Object.keys(map).find((k) => map[k] === spec.name) ?? spec.name;
+		const measurement = byName.get(measurementKey);
+		if (!measurement) continue;
+
+		const value = measurement.value;
+		const base = { specName: spec.name, judge: measurement.judge ?? null };
+		if (spec.dataType === "NUMBER") {
+			items.push({ ...base, valueNumber: typeof value === "number" ? value : Number(value) });
+		} else if (spec.dataType === "TEXT") {
+			items.push({ ...base, valueText: typeof value === "string" ? value : JSON.stringify(value) });
+		} else if (spec.dataType === "BOOLEAN") {
+			items.push({ ...base, valueBoolean: Boolean(value) });
+		} else {
+			items.push({ ...base, valueJson: value as Prisma.InputJsonValue });
+		}
+	}
+
+	return items;
+};
+
+const validateRequiredData = (
+	result: TrackResult,
+	dataItems: Array<{ specName: string }>,
+	activeSpecs: DataCollectionSpecRecord[],
+) => {
+	if (result !== TrackResult.PASS) return true;
+	const requiredNames = activeSpecs.filter((spec) => spec.isRequired).map((spec) => spec.name);
+	const present = new Set(dataItems.map((item) => item.specName));
+	return requiredNames.every((name) => present.has(name));
+};
+
+const resolveNextStepNo = (steps: ResolvedSnapshotStep[], currentStepNo: number) => {
+	const sorted = [...steps].sort((a, b) => a.stepNo - b.stepNo);
+	const next = sorted.find((s) => s.stepNo > currentStepNo);
+	return next?.stepNo ?? null;
+};
+
+const persistAutoTrackOut = async (
+	tx: Prisma.TransactionClient,
+	ctx: {
+		stationId: string;
+		stepNo: number;
+		operationId: string;
+		occurredAt: Date;
+		result: TrackResult;
+		source: TrackSource;
+		unit: { id: string; currentStepNo: number };
+		routeSteps: ResolvedSnapshotStep[];
+		dataItems: Array<{
+			specName: string;
+			valueNumber?: number;
+			valueText?: string;
+			valueBoolean?: boolean;
+			valueJson?: Prisma.InputJsonValue;
+			judge?: string | null;
+		}>;
+		activeSpecs: DataCollectionSpecRecord[];
+	},
+): Promise<IngestExecutionWrite> => {
+	const now = ctx.occurredAt;
+
+	const track = await tx.track.create({
+		data: {
+			unitId: ctx.unit.id,
+			stepNo: ctx.stepNo,
+			stationId: ctx.stationId,
+			source: ctx.source,
+			inAt: now,
+			outAt: now,
+			result: ctx.result,
+		},
+	});
+
+	let dataValueCount = 0;
+	if (ctx.dataItems.length > 0) {
+		const specsByName = new Map(ctx.activeSpecs.map((spec) => [spec.name, spec]));
+		await tx.dataValue.createMany({
+			data: ctx.dataItems.map((item) => {
+				const spec = specsByName.get(item.specName);
+				if (!spec) {
+					throw new Error(`Data spec not found: ${item.specName}`);
+				}
+				dataValueCount += 1;
+
+				return {
+					specId: spec.id,
+					trackId: track.id,
+					collectedAt: now,
+					valueNumber: spec.dataType === "NUMBER" ? (item.valueNumber ?? null) : null,
+					valueText: spec.dataType === "TEXT" ? (item.valueText ?? null) : null,
+					valueBoolean: spec.dataType === "BOOLEAN" ? (item.valueBoolean ?? null) : null,
+					...(spec.dataType === "JSON"
+						? { valueJson: item.valueJson ?? Prisma.JsonNull }
+						: { valueJson: undefined }),
+					judge: item.judge ?? null,
+					source: ctx.source,
+				};
+			}),
+		});
+	}
+
+	let nextUnitStatus: UnitStatus;
+	if (ctx.result === TrackResult.PASS) {
+		const nextStepNo = resolveNextStepNo(ctx.routeSteps, ctx.unit.currentStepNo);
+		if (!nextStepNo) {
+			nextUnitStatus = UnitStatus.DONE;
+			await tx.unit.update({ where: { id: ctx.unit.id }, data: { status: UnitStatus.DONE } });
+		} else {
+			nextUnitStatus = UnitStatus.QUEUED;
+			await tx.unit.update({
+				where: { id: ctx.unit.id },
+				data: { status: UnitStatus.QUEUED, currentStepNo: nextStepNo },
+			});
+		}
+	} else {
+		nextUnitStatus = UnitStatus.OUT_FAILED;
+		await tx.unit.update({ where: { id: ctx.unit.id }, data: { status: UnitStatus.OUT_FAILED } });
+	}
+
+	return { trackId: track.id, dataValueCount, unitStatus: nextUnitStatus };
+};
+
+const getResolvedSnapshotSteps = (
+	snapshot: Prisma.JsonValue | null | undefined,
+): ResolvedSnapshotStep[] => {
+	const rawSteps = parseSnapshotSteps(snapshot);
+	return rawSteps
+		.map((step) => {
+			const stepNo = step.stepNo;
+			const operationId = step.operationId ?? null;
+			const stationType = step.stationType;
+			const ingestMapping = toIngestMapping(step.ingestMapping ?? null);
+
+			if (stepNo === undefined || !operationId || !stationType || !ingestMapping) {
+				return null;
+			}
+			if (ingestMapping.eventType && ingestMapping.eventType !== stationType) {
+				return null;
+			}
+
+			return {
+				stepNo,
+				operationId,
+				stationType,
+				stationGroupId: step.stationGroupId ?? null,
+				allowedStationIds: step.allowedStationIds ?? [],
+				requiresFAI: step.requiresFAI ?? false,
+				requiresAuthorization: step.requiresAuthorization ?? false,
+				dataSpecIds: step.dataSpecIds ?? [],
+				ingestMapping,
+			} satisfies ResolvedSnapshotStep;
+		})
+		.filter((step): step is ResolvedSnapshotStep => step !== null);
 };
 
 const normalizeResult = (value: unknown, mapping: IngestResultMapping | undefined) => {
@@ -168,11 +462,11 @@ const normalizeResult = (value: unknown, mapping: IngestResultMapping | undefine
 };
 
 const normalizeMeasurements = (
-	payload: Prisma.InputJsonValue,
+	event: unknown,
 	mapping: IngestMeasurementMapping | undefined,
 ): NormalizedIngest["measurements"] => {
 	if (!mapping) return undefined;
-	const items = resolvePath(payload, mapping.itemsPath);
+	const items = resolvePath(event, mapping.itemsPath);
 	if (!Array.isArray(items)) return [];
 
 	return items
@@ -192,20 +486,22 @@ const normalizePayload = (
 	payload: Prisma.InputJsonValue,
 	mapping: IngestMapping,
 ): NormalizedIngest => {
-	const occurredAt = asString(resolvePath(payload, mapping.occurredAtPath));
-	const stationCode = asString(resolvePath(payload, mapping.stationCodePath));
-	const lineCode = asString(resolvePath(payload, mapping.lineCodePath));
-	const snValue = resolvePath(payload, mapping.snPath);
+	const event = { payload };
+
+	const occurredAt = asString(resolvePath(event, mapping.occurredAtPath));
+	const stationCode = asString(resolvePath(event, mapping.stationCodePath));
+	const lineCode = asString(resolvePath(event, mapping.lineCodePath));
+	const snValue = resolvePath(event, mapping.snPath);
 	const sn = asString(snValue);
 	const snListFromSnPath = Array.isArray(snValue) ? toStringArray(snValue) : [];
 	const snList = mapping.snListPath
-		? toStringArray(resolvePath(payload, mapping.snListPath))
+		? toStringArray(resolvePath(event, mapping.snListPath))
 		: snListFromSnPath;
-	const carrierCode = asString(resolvePath(payload, mapping.carrierCodePath));
-	const testResultId = asString(resolvePath(payload, mapping.testResultIdPath));
-	const resultValue = mapping.result ? resolvePath(payload, mapping.result.path) : undefined;
+	const carrierCode = asString(resolvePath(event, mapping.carrierCodePath));
+	const testResultId = asString(resolvePath(event, mapping.testResultIdPath));
+	const resultValue = mapping.result ? resolvePath(event, mapping.result.path) : undefined;
 	const result = normalizeResult(resultValue, mapping.result);
-	const measurements = normalizeMeasurements(payload, mapping.measurements);
+	const measurements = normalizeMeasurements(event, mapping.measurements);
 
 	return {
 		occurredAt,
@@ -478,7 +774,8 @@ export const createIngestEvent = async (
 			};
 		}
 
-		try {
+		// BATCH: 先保持原有策略（仅落库 + trace），执行写入留到下一步实现。
+		if (input.eventType === IngestEventType.BATCH) {
 			const created = await tx.ingestEvent.create({
 				data: {
 					sourceSystem: input.sourceSystem,
@@ -506,25 +803,191 @@ export const createIngestEvent = async (
 				success: true,
 				data: { eventId: created.id, duplicate: false, status: "RECEIVED" },
 			};
-		} catch (error) {
-			if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-				const duplicate = await tx.ingestEvent.findUnique({
-					where: {
-						sourceSystem_dedupeKey: {
-							sourceSystem: input.sourceSystem,
-							dedupeKey: input.dedupeKey,
-						},
-					},
-					select: { id: true },
-				});
-				if (duplicate) {
-					return {
-						success: true,
-						data: { eventId: duplicate.id, duplicate: true, status: "RECEIVED" },
-					};
-				}
-			}
-			throw error;
 		}
+
+		if (!normalized.stationCode) {
+			return {
+				success: false,
+				code: "INGEST_PAYLOAD_INVALID",
+				message: "Payload missing required fields",
+				status: 400,
+			};
+		}
+		if (!normalized.sn) {
+			return {
+				success: false,
+				code: "INGEST_PAYLOAD_INVALID",
+				message: "Payload missing required fields",
+				status: 400,
+			};
+		}
+
+		const [station, unit, run, runRouteVersion] = await Promise.all([
+			tx.station.findUnique({ where: { code: normalized.stationCode } }),
+			tx.unit.findUnique({ where: { sn: normalized.sn } }),
+			tx.run.findUnique({ where: { id: resolvedRun?.id ?? "" } }),
+			tx.executableRouteVersion.findUnique({ where: { id: resolvedRun?.routeVersionId ?? "" } }),
+		]);
+
+		if (!station) {
+			return {
+				success: false,
+				code: "STATION_NOT_FOUND",
+				message: "Station not found",
+				status: 404,
+			};
+		}
+		if (!run) {
+			return { success: false, code: "RUN_NOT_FOUND", message: "Run not found", status: 404 };
+		}
+		if (!runRouteVersion) {
+			return {
+				success: false,
+				code: "ROUTE_VERSION_NOT_READY",
+				message: "Run has no executable route version",
+				status: 400,
+			};
+		}
+		if (!unit) {
+			return {
+				success: false,
+				code: "UNIT_NOT_FOUND",
+				message: "Unit not found",
+				status: 404,
+			};
+		}
+
+		if (unit.runId && unit.runId !== run.id) {
+			return {
+				success: false,
+				code: "UNIT_RUN_MISMATCH",
+				message: "Unit does not belong to run",
+				status: 400,
+			};
+		}
+
+		if (unit.status === UnitStatus.DONE) {
+			return {
+				success: false,
+				code: "UNIT_ALREADY_DONE",
+				message: "Unit already completed",
+				status: 400,
+			};
+		}
+		if (unit.status === UnitStatus.OUT_FAILED) {
+			return {
+				success: false,
+				code: "UNIT_OUT_FAILED",
+				message: "Unit failed last track-out; disposition required before re-entry",
+				status: 400,
+			};
+		}
+
+		const steps = getResolvedSnapshotSteps(runRouteVersion.snapshotJson ?? null);
+		if (steps.length === 0) {
+			return {
+				success: false,
+				code: "ROUTING_EMPTY",
+				message: "Routing has no steps",
+				status: 400,
+			};
+		}
+
+		const step = resolveIngestStep(
+			steps,
+			{ eventType: input.eventType, stationCode: normalized.stationCode },
+			{ id: station.id, stationType: station.stationType, groupId: station.groupId ?? null },
+			{ currentStepNo: unit.currentStepNo },
+		);
+		if (!step) {
+			return {
+				success: false,
+				code: "STATION_MISMATCH",
+				message: "Station does not match routing step",
+				status: 400,
+			};
+		}
+
+		const activeSpecs = await resolveStepDataSpecs(tx, step);
+		if (activeSpecs === null) {
+			return {
+				success: false,
+				code: "DATA_SPEC_NOT_FOUND",
+				message: "One or more bound data specs are missing",
+				status: 400,
+			};
+		}
+
+		const dataItems = buildIngestDataItems(normalized, activeSpecs);
+		const result = normalized.result === "FAIL" ? TrackResult.FAIL : TrackResult.PASS;
+		const trackSource =
+			input.eventType === IngestEventType.TEST ? TrackSource.TEST : TrackSource.AUTO;
+		if (!validateRequiredData(result, dataItems, activeSpecs)) {
+			return {
+				success: false,
+				code: "REQUIRED_DATA_MISSING",
+				message: "Missing required data specs",
+				status: 400,
+			};
+		}
+
+		// All guards passed → now persist ingest event + execution results together.
+		const created = await tx.ingestEvent.create({
+			data: {
+				sourceSystem: input.sourceSystem,
+				dedupeKey: input.dedupeKey,
+				eventType: input.eventType,
+				occurredAt,
+				runId: resolvedRun?.id ?? null,
+				runNo,
+				unitId: unit.id,
+				stationCode: normalized.stationCode ?? null,
+				lineCode: normalized.lineCode ?? null,
+				carrierCode: normalized.carrierCode ?? null,
+				sn: normalized.sn ?? null,
+				snList: normalized.snList ?? undefined,
+				result: normalized.result ?? null,
+				testResultId: normalized.testResultId ?? null,
+				payload,
+				normalized: buildNormalizedJson(normalized),
+				meta: {
+					...(isRecord(input.meta) ? (input.meta as Record<string, unknown>) : {}),
+					trackSource,
+				},
+			},
+			select: { id: true },
+		});
+
+		if (run.status === RunStatus.AUTHORIZED) {
+			await tx.run.updateMany({
+				where: { id: run.id, status: RunStatus.AUTHORIZED },
+				data: { status: RunStatus.IN_PROGRESS, startedAt: run.startedAt ?? occurredAt },
+			});
+		}
+
+		const write = await persistAutoTrackOut(tx, {
+			stationId: station.id,
+			stepNo: step.stepNo,
+			operationId: step.operationId,
+			occurredAt,
+			result,
+			source: trackSource,
+			unit: { id: unit.id, currentStepNo: unit.currentStepNo },
+			routeSteps: steps,
+			dataItems,
+			activeSpecs,
+		});
+
+		// If unit becomes DONE, try triggering OQC (best-effort).
+		if (write.unitStatus === UnitStatus.DONE && run.runNo) {
+			checkAndTriggerOqc(db, run.runNo).catch((err) => {
+				console.error(`[Ingest] OQC trigger failed for run ${run.runNo}:`, err);
+			});
+		}
+
+		return {
+			success: true,
+			data: { eventId: created.id, duplicate: false, status: "RECEIVED" },
+		};
 	});
 };
