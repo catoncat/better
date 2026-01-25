@@ -1,3 +1,5 @@
+import path from "node:path";
+
 type Track = "smt" | "dip";
 type Scenario = "happy" | "oqc-fail-mrb-release" | "oqc-fail-mrb-scrap" | "readiness-waive";
 type IdStrategy = "unique" | "reuse-wo";
@@ -98,6 +100,18 @@ const parseArgs = (argv: string[]): Options => {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const resolveFileDbUrl = (databaseUrl: string) => {
+	if (!databaseUrl.startsWith("file:")) return databaseUrl;
+
+	const filePath = databaseUrl.slice("file:".length);
+	if (!filePath) return databaseUrl;
+	if (filePath.startsWith("/")) return databaseUrl;
+
+	const repoRoot = path.resolve(import.meta.dirname, "..");
+	const absolute = path.resolve(repoRoot, filePath);
+	return `file:${absolute}`;
+};
+
 const runCommand = async (
 	cmd: string[],
 	options: { env?: Record<string, string>; cwd?: string },
@@ -136,12 +150,13 @@ const main = async () => {
 	const args = process.argv.slice(2);
 	const options = parseArgs(args);
 
+	const databaseUrl = resolveFileDbUrl(options.databaseUrl);
 	const apiUrl = `http://${options.host}:${options.port}/api`;
-	console.log(`Acceptance DB: ${options.databaseUrl}`);
+	console.log(`Acceptance DB: ${databaseUrl}`);
 	console.log(`Server: ${apiUrl}`);
 
 	const env = {
-		DATABASE_URL: options.databaseUrl,
+		DATABASE_URL: databaseUrl,
 		HOST: options.host,
 		PORT: String(options.port),
 		MES_API_URL: apiUrl,
