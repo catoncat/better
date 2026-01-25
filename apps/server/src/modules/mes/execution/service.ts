@@ -869,7 +869,7 @@ export const trackOut = async (db: PrismaClient, stationCode: string, data: Trac
 				}
 			}
 
-			// T2.4: Track-out from REFLOW → 创建水洗时间规则实例（如果路由有 WASH 工序）
+			// T2.4: Track-out from REFLOW/AOI → 创建水洗时间规则实例（如果路由有 WASH 工序）
 			const trackOutOperation = await db.operation.findUnique({
 				where: { id: currentStep.operationId },
 				select: { code: true },

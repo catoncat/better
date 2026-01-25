@@ -100,7 +100,8 @@ const shouldApplyRule = async (
 		if (event.eventType === "TRACK_OUT") {
 			const result = asString(payload?.result)?.toUpperCase() ?? "";
 			if (result !== "PASS") return false;
-			if (!operationCode.includes("REFLOW")) return false;
+			const isReflowOrAoi = operationCode.includes("REFLOW") || operationCode.includes("AOI");
+			if (!isReflowOrAoi) return false;
 			if (definition.requiresWashStep) {
 				const routeVersionId =
 					asString(payload?.routeVersionId) ?? runContext?.routeVersion?.id ?? null;

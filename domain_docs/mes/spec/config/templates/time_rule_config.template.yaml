@@ -9,7 +9,7 @@ rules:
     maxDurationHours: 4
     alertLevel: ALERT
     waivePermission: time_rule:override
-    notes: "Applies only when the route includes wash step"
+    notes: "Start at REFLOW/AOI track-out; applies only when the route includes wash step"
   - ruleCode: SOLDER_PASTE_24H
     scopeType: ROUTING
     scopeRef: ROUTE_CODE_HERE

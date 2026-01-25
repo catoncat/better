@@ -16,7 +16,7 @@ import {
 	Shield,
 	XCircle,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Can } from "@/components/ability/can";
 import { NoAccessCard } from "@/components/ability/no-access-card";
@@ -79,6 +79,17 @@ import {
 export const Route = createFileRoute("/_authenticated/mes/runs/$runNo")({
 	component: RunDetailPage,
 });
+
+const PREP_CHECKLIST_TEMPLATE = [
+	{ title: "烘烤", itemTypes: ["PREP_BAKE"] },
+	{ title: "辅料", itemTypes: ["PREP_PASTE"] },
+	{
+		title: "钢网/刮刀/夹具",
+		itemTypes: ["PREP_STENCIL_USAGE", "PREP_STENCIL_CLEAN", "PREP_SCRAPER", "PREP_FIXTURE"],
+	},
+	{ title: "程式", itemTypes: ["PREP_PROGRAM"] },
+	{ title: "时间窗口", itemTypes: ["TIME_RULE"] },
+] as const;
 
 function RunDetailPage() {
 	const { runNo } = Route.useParams();
@@ -155,6 +166,15 @@ function RunDetailPage() {
 	const [waiveDialogOpen, setWaiveDialogOpen] = useState(false);
 	const [selectedItem, setSelectedItem] = useState<ReadinessCheckItem | null>(null);
 	const [waiveReason, setWaiveReason] = useState("");
+	const readinessItemsByType = useMemo(() => {
+		const map = new Map<string, ReadinessCheckItem[]>();
+		for (const item of readinessData?.items ?? []) {
+			const items = map.get(item.itemType) ?? [];
+			items.push(item);
+			map.set(item.itemType, items);
+		}
+		return map;
+	}, [readinessData?.items]);
 
 	// FAI creation dialog state
 	const [faiDialogOpen, setFaiDialogOpen] = useState(false);
@@ -232,6 +252,27 @@ function RunDetailPage() {
 
 	const getItemTypeLabel = (type: string) => {
 		return READINESS_ITEM_TYPE_MAP[type] ?? type;
+	};
+
+	const getTemplateStatus = (itemType: string) => {
+		const items = readinessItemsByType.get(itemType) ?? [];
+		if (items.length === 0) {
+			return { status: "UNSET", count: 0 };
+		}
+		if (items.some((item) => item.status === "FAILED")) {
+			return { status: "FAILED", count: items.length };
+		}
+		if (items.some((item) => item.status === "WAIVED")) {
+			return { status: "WAIVED", count: items.length };
+		}
+		return { status: "PASSED", count: items.length };
+	};
+
+	const getTemplateStatusBadge = (status: string) => {
+		if (status === "UNSET") {
+			return <Badge variant="outline">未检查</Badge>;
+		}
+		return getItemStatusBadge(status);
 	};
 
 	const getFaiStatusBadge = (status: string) => {
@@ -832,6 +873,59 @@ function RunDetailPage() {
 							{data.unitStats.failed}
 						</p>
 						<p className="text-xs text-muted-foreground">不良/报废/冻结</p>
+					</CardContent>
+				</Card>
+
+				<Card className="lg:col-span-2">
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<ClipboardCheck className="h-5 w-5 text-blue-600" />
+							转拉前检查模板
+						</CardTitle>
+						<CardDescription>
+							静态模板（QR-Pro-133）展示准备项与时间窗口状态，完整检查明细请参考上方准备状态。
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						{!canViewReadiness ? (
+							<NoAccessCard description="无权限查看准备检查状态。" />
+						) : readinessLoading ? (
+							<p className="text-muted-foreground">加载中...</p>
+						) : !readinessData ? (
+							<div className="py-4 text-center text-muted-foreground">
+								<p>暂无检查记录</p>
+								{canShowReadinessActions && (
+									<p className="text-sm mt-1">请先完成准备检查以生成模板结果</p>
+								)}
+							</div>
+						) : (
+							<div className="space-y-6">
+								{PREP_CHECKLIST_TEMPLATE.map((section) => (
+									<div key={section.title} className="space-y-2">
+										<p className="text-sm font-medium">{section.title}</p>
+										<div className="grid gap-2 md:grid-cols-2">
+											{section.itemTypes.map((itemType) => {
+												const { status, count } = getTemplateStatus(itemType);
+												return (
+													<div
+														key={itemType}
+														className="flex items-center justify-between rounded-md border px-3 py-2"
+													>
+														<div>
+															<p className="text-sm font-medium">{getItemTypeLabel(itemType)}</p>
+															{count > 1 && (
+																<p className="text-xs text-muted-foreground">{count} 项</p>
+															)}
+														</div>
+														{getTemplateStatusBadge(status)}
+													</div>
+												);
+											})}
+										</div>
+									</div>
+								))}
+							</div>
+						)}
 					</CardContent>
 				</Card>
 			</div>
