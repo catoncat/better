@@ -6,7 +6,7 @@ baseRef: "origin/main"
 dependencies:
   blockedBy: []
   blocks: []
-status: in_progress  # pending | in_progress | completed
+status: completed  # pending | in_progress | completed
 task:
   title: "SMT T4.6.12: confirm & split remaining forms"
   planPath: "domain_docs/mes/plan/phase4_tasks.md"
@@ -27,8 +27,8 @@ touchPoints:
 - Risks: Some forms are explicitly “not in MES” per user confirmation; ensure plan reflects the decision and doesn’t create accidental scope creep.
 
 ## Slices
-- [ ] Docs: complete smt_form_collection_matrix.md
-- [ ] Plan: split remaining SMT forms into tasks
+- [x] Docs: complete smt_form_collection_matrix.md
+- [x] Plan: split remaining SMT forms into tasks
 
 <!-- AUTO:BEGIN status -->
 
