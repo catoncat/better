@@ -30,6 +30,7 @@ import { Route as AuthenticatedMesReworkTasksRouteImport } from './routes/_authe
 import { Route as AuthenticatedMesReadinessExceptionsRouteImport } from './routes/_authenticated/mes/readiness-exceptions'
 import { Route as AuthenticatedMesReadinessConfigRouteImport } from './routes/_authenticated/mes/readiness-config'
 import { Route as AuthenticatedMesFaiRouteImport } from './routes/_authenticated/mes/fai'
+import { Route as AuthenticatedMesFqcIndexRouteImport } from './routes/_authenticated/mes/fqc/index'
 import { Route as AuthenticatedMesExecutionRouteImport } from './routes/_authenticated/mes/execution'
 import { Route as AuthenticatedMesDefectsRouteImport } from './routes/_authenticated/mes/defects'
 import { Route as AuthenticatedMesWorkCentersIndexRouteImport } from './routes/_authenticated/mes/work-centers/index'
@@ -177,6 +178,12 @@ const AuthenticatedMesFaiRoute = AuthenticatedMesFaiRouteImport.update({
   path: '/mes/fai',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedMesFqcIndexRoute =
+  AuthenticatedMesFqcIndexRouteImport.update({
+    id: '/mes/fqc/',
+    path: '/mes/fqc/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMesExecutionRoute =
   AuthenticatedMesExecutionRouteImport.update({
     id: '/mes/execution',
@@ -359,6 +366,7 @@ export interface FileRoutesByFullPath {
   '/mes/defects': typeof AuthenticatedMesDefectsRoute
   '/mes/execution': typeof AuthenticatedMesExecutionRoute
   '/mes/fai': typeof AuthenticatedMesFaiRoute
+  '/mes/fqc': typeof AuthenticatedMesFqcIndexRoute
   '/mes/readiness-config': typeof AuthenticatedMesReadinessConfigRoute
   '/mes/readiness-exceptions': typeof AuthenticatedMesReadinessExceptionsRoute
   '/mes/rework-tasks': typeof AuthenticatedMesReworkTasksRoute
@@ -410,6 +418,7 @@ export interface FileRoutesByTo {
   '/mes/defects': typeof AuthenticatedMesDefectsRoute
   '/mes/execution': typeof AuthenticatedMesExecutionRoute
   '/mes/fai': typeof AuthenticatedMesFaiRoute
+  '/mes/fqc': typeof AuthenticatedMesFqcIndexRoute
   '/mes/readiness-config': typeof AuthenticatedMesReadinessConfigRoute
   '/mes/readiness-exceptions': typeof AuthenticatedMesReadinessExceptionsRoute
   '/mes/rework-tasks': typeof AuthenticatedMesReworkTasksRoute
@@ -462,6 +471,7 @@ export interface FileRoutesById {
   '/_authenticated/mes/defects': typeof AuthenticatedMesDefectsRoute
   '/_authenticated/mes/execution': typeof AuthenticatedMesExecutionRoute
   '/_authenticated/mes/fai': typeof AuthenticatedMesFaiRoute
+  '/_authenticated/mes/fqc/': typeof AuthenticatedMesFqcIndexRoute
   '/_authenticated/mes/readiness-config': typeof AuthenticatedMesReadinessConfigRoute
   '/_authenticated/mes/readiness-exceptions': typeof AuthenticatedMesReadinessExceptionsRoute
   '/_authenticated/mes/rework-tasks': typeof AuthenticatedMesReworkTasksRoute
@@ -515,6 +525,7 @@ export interface FileRouteTypes {
     | '/mes/defects'
     | '/mes/execution'
     | '/mes/fai'
+    | '/mes/fqc'
     | '/mes/readiness-config'
     | '/mes/readiness-exceptions'
     | '/mes/rework-tasks'
@@ -566,6 +577,7 @@ export interface FileRouteTypes {
     | '/mes/defects'
     | '/mes/execution'
     | '/mes/fai'
+    | '/mes/fqc'
     | '/mes/readiness-config'
     | '/mes/readiness-exceptions'
     | '/mes/rework-tasks'
@@ -617,6 +629,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/defects'
     | '/_authenticated/mes/execution'
     | '/_authenticated/mes/fai'
+    | '/_authenticated/mes/fqc/'
     | '/_authenticated/mes/readiness-config'
     | '/_authenticated/mes/readiness-exceptions'
     | '/_authenticated/mes/rework-tasks'
@@ -813,6 +826,13 @@ declare module '@tanstack/react-router' {
       path: '/mes/fai'
       fullPath: '/mes/fai'
       preLoaderRoute: typeof AuthenticatedMesFaiRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/mes/fqc/': {
+      id: '/_authenticated/mes/fqc/'
+      path: '/mes/fqc'
+      fullPath: '/mes/fqc'
+      preLoaderRoute: typeof AuthenticatedMesFqcIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/execution': {
@@ -1045,6 +1065,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesDefectsRoute: typeof AuthenticatedMesDefectsRoute
   AuthenticatedMesExecutionRoute: typeof AuthenticatedMesExecutionRoute
   AuthenticatedMesFaiRoute: typeof AuthenticatedMesFaiRoute
+  AuthenticatedMesFqcIndexRoute: typeof AuthenticatedMesFqcIndexRoute
   AuthenticatedMesReadinessConfigRoute: typeof AuthenticatedMesReadinessConfigRoute
   AuthenticatedMesReadinessExceptionsRoute: typeof AuthenticatedMesReadinessExceptionsRoute
   AuthenticatedMesReworkTasksRoute: typeof AuthenticatedMesReworkTasksRoute
@@ -1094,6 +1115,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMesDefectsRoute: AuthenticatedMesDefectsRoute,
   AuthenticatedMesExecutionRoute: AuthenticatedMesExecutionRoute,
   AuthenticatedMesFaiRoute: AuthenticatedMesFaiRoute,
+  AuthenticatedMesFqcIndexRoute: AuthenticatedMesFqcIndexRoute,
   AuthenticatedMesReadinessConfigRoute: AuthenticatedMesReadinessConfigRoute,
   AuthenticatedMesReadinessExceptionsRoute:
     AuthenticatedMesReadinessExceptionsRoute,

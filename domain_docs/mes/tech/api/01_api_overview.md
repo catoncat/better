@@ -86,7 +86,7 @@ Aligned with `agent_docs/03_backend/api_patterns.md` (envelope + error format + 
 - `POST /api/stations/:stationCode/track-in`
 - `POST /api/stations/:stationCode/track-out`
 
-### 1.7 Quality (FAI / OQC)
+### 1.7 Quality (FAI / FQC / OQC)
 
 - `GET /api/fai`
 - `GET /api/fai/:faiId`
@@ -96,6 +96,16 @@ Aligned with `agent_docs/03_backend/api_patterns.md` (envelope + error format + 
 - `POST /api/fai/:faiId/start`
 - `POST /api/fai/:faiId/items`
 - `POST /api/fai/:faiId/complete`
+- `POST /api/fai/:faiId/sign`
+
+- `GET /api/fqc`
+- `GET /api/fqc/:fqcId`
+- `GET /api/fqc/run/:runNo`
+- `POST /api/fqc/run/:runNo`
+- `POST /api/fqc/:fqcId/start`
+- `POST /api/fqc/:fqcId/items`
+- `POST /api/fqc/:fqcId/complete`
+- `POST /api/fqc/:fqcId/sign`
 
 - `GET /api/oqc`
 - `GET /api/oqc/:oqcId`
@@ -135,6 +145,7 @@ Aligned with `agent_docs/03_backend/api_patterns.md` (envelope + error format + 
 - `LINE_NOT_FOUND`, `STATION_GROUP_NOT_FOUND`
 - `READINESS_CHECK_FAILED`
 - `FAI_NOT_PASSED`, `FAI_ALREADY_EXISTS`
+- `FQC_NOT_READY`, `FQC_ALREADY_EXISTS`
 - `STEP_MISMATCH`, `STATION_MISMATCH`, `STATION_LINE_MISMATCH`, `REQUIRED_DATA_MISSING`, `UNIT_NOT_IN_STATION`
 - `TPM_EQUIPMENT_UNAVAILABLE`, `TPM_MAINTENANCE_IN_PROGRESS`
 - `OQC_NOT_READY`, `UNIT_NOT_IN_SAMPLE`
