@@ -9,7 +9,9 @@
 ### Query Params
 - `mode`: `run` (default) | `latest`
 
-> M4 计划：新增 `ingestEvents[]` 字段用于 AUTO/BATCH/TEST 来源追溯。
+> as-built（M4）：trace 输出包含 `ingestEvents[]`（AUTO/BATCH/TEST），并新增：
+> - `carrierTracks[]` / `carrierLoads[]` / `carrierDataValues[]`（用于 BATCH 载具追溯）
+> - `ingestEvents[].snList` + `ingestEvents[].links`（用 meta links 关联 Track/CarrierTrack/DataValue）
 
 ### 响应示例
 ```json
@@ -37,14 +39,42 @@
     "ingestEvents": [
       {
         "id": "ie_001",
-        "eventType": "AUTO",
+        "eventType": "BATCH",
         "sourceSystem": "EQP-AOI-01",
         "dedupeKey": "EQP-123456",
         "occurredAt": "2026-01-24T09:00:00Z",
-        "stationCode": "ST-AOI-01",
-        "sn": "SN0001",
-        "result": "PASS"
+        "stationCode": null,
+        "lineCode": null,
+        "carrierCode": "CARRIER-001",
+        "sn": null,
+        "snList": ["SN0001", "SN0002"],
+        "result": "PASS",
+        "links": {
+          "carrierId": "car_001",
+          "carrierTrackId": "ct_001",
+          "carrierDataValueCount": 3,
+          "unitTracks": { "SN0001": "trk_001", "SN0002": "trk_002" }
+        }
       }
+    ],
+    "carrierTracks": [
+      {
+        "id": "ct_001",
+        "carrierNo": "CARRIER-001",
+        "stepNo": 1,
+        "stationCode": null,
+        "inAt": "2026-01-24T09:00:00Z",
+        "outAt": "2026-01-24T09:00:00Z",
+        "result": "PASS",
+        "source": "BATCH",
+        "dataValueCount": 3
+      }
+    ],
+    "carrierLoads": [
+      { "id": "cl_001", "carrierNo": "CARRIER-001", "loadedAt": "2026-01-24T09:00:00Z", "unloadedAt": null }
+    ],
+    "carrierDataValues": [
+      { "carrierTrackId": "ct_001", "carrierNo": "CARRIER-001", "stepNo": 1, "name": "TEMP", "value": 247.2, "judge": "PASS" }
     ],
     "dataValues": [
       { "stepNo": 4, "name": "峰值温度", "value": 247.2, "judge": "PASS" }

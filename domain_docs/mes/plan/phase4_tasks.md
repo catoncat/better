@@ -68,10 +68,10 @@ P0（必须）：
 
 | ID | 任务 | 状态 | 依赖 | 备注 |
 |----|------|------|------|------|
-| T4.3.1 | 执行映射：根据 routeVersion snapshot + ingestMapping 解析事件并定位 step/unit | ⬜ | T4.2.3 | |
-| T4.3.2 | 写入结果：生成 Track/CarrierTrack（如适用）+ DataValues + PASS/FAIL outcome | ⬜ | T4.3.1 | |
-| T4.3.3 | 门禁/一致性：station constraint / step mismatch / required data 校验与可定位错误 | ⬜ | T4.3.2 | |
-| T4.3.4 | Trace 聚合：trace 输出包含 ingest 事件与对应的执行结果/数据值 | ⬜ | T4.3.3 | |
+| T4.3.1 | 执行映射：根据 routeVersion snapshot + ingestMapping 解析事件并定位 step/unit | ✅ | T4.2.3 | |
+| T4.3.2 | 写入结果：生成 Track/CarrierTrack（如适用）+ DataValues + PASS/FAIL outcome | ✅ | T4.3.1 | |
+| T4.3.3 | 门禁/一致性：station constraint / step mismatch / required data 校验与可定位错误 | ✅ | T4.3.2 | |
+| T4.3.4 | Trace 聚合：trace 输出包含 ingest 事件与对应的执行结果/数据值 | ✅ | T4.3.3 | |
 
 ### 3.4 Readiness 配置（可选，P1）
 
