@@ -4,7 +4,9 @@ import {
 	type PrismaClient,
 	type TimeRuleDefinition,
 } from "@better-app/db";
+import { deliverOutboundFeedbackPayload } from "../integration/outbound-feedback-service";
 import { completeInstanceByEntity, createInstance, routeHasWashStep } from "../time-rule/service";
+import { MES_EVENT_TYPES } from "./service";
 
 const BASE_BACKOFF_MS = 30_000;
 const DEFAULT_BATCH_SIZE = 50;
@@ -221,17 +223,25 @@ export const processMesEvents = async (
 	db: PrismaClient,
 	options?: { limit?: number },
 ): Promise<MesEventProcessSummary> => {
+	const outboundEnabled = process.env.MES_OUTBOUND_FEEDBACK_ENABLED === "true";
 	const now = new Date();
 	const activeDefinitions = await db.timeRuleDefinition.findMany({
 		where: { isActive: true },
 		select: { startEvent: true, endEvent: true },
 	});
-	const eventTypes = Array.from(
+	const timeRuleEventTypes = Array.from(
 		new Set(
 			activeDefinitions
 				.flatMap((def) => [def.startEvent, def.endEvent])
 				.filter((value): value is string => Boolean(value?.trim())),
 		),
+	);
+
+	const eventTypes = Array.from(
+		new Set([
+			...timeRuleEventTypes,
+			...(outboundEnabled ? [MES_EVENT_TYPES.OUTBOUND_FEEDBACK] : []),
+		]),
 	);
 	if (eventTypes.length === 0) {
 		return { processed: 0, completed: 0, failed: 0, skipped: 0 };
@@ -285,6 +295,10 @@ export const processMesEvents = async (
 		try {
 			await processStartEvents(db, event, payload, runContext);
 			await processEndEvents(db, event, payload, runContext);
+
+			if (event.eventType === MES_EVENT_TYPES.OUTBOUND_FEEDBACK) {
+				await deliverOutboundFeedbackPayload(event.payload);
+			}
 
 			await db.mesEvent.update({
 				where: { id: event.id },
