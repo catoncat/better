@@ -73,6 +73,28 @@ describe("integration: mes ingest BATCH execution + trace", () => {
 	let app: TestAppHandle;
 	let dbModule: typeof import("@better-app/db");
 
+	type TraceUnitResponse = {
+		ok: boolean;
+		data: {
+			ingestEvents: Array<{
+				dedupeKey: string;
+				snList: string[] | null;
+				links: {
+					carrierTrackId: string | null;
+					unitTracks: Record<string, string> | null;
+				} | null;
+			}>;
+			carrierTracks: Array<{
+				carrierNo: string;
+				dataValueCount: number;
+			}>;
+			carrierDataValues: Array<{
+				name: string;
+				valueNumber: number | null;
+			}>;
+		};
+	};
+
 	beforeAll(async () => {
 		db = await setupTestDb({ prefix: "integration", seed: true });
 		process.env.DATABASE_URL = db.databaseUrl;
@@ -285,29 +307,25 @@ describe("integration: mes ingest BATCH execution + trace", () => {
 				: 0;
 			expect(carrierDataValueCount).toBe(1);
 
-			const { res: traceRes, data: traceData } = await client.get<any>(
+			const { res: traceRes, data: traceData } = await client.get<TraceUnitResponse>(
 				`/api/trace/units/${sn1}?mode=run`,
 			);
 			expect(traceRes.status).toBe(200);
 			expect(traceData?.ok).toBe(true);
-			expect(Array.isArray(traceData?.data?.carrierTracks)).toBe(true);
-			expect(Array.isArray(traceData?.data?.carrierDataValues)).toBe(true);
+			if (!traceData || !traceData.ok) {
+				throw new Error("Trace response missing ok/data");
+			}
 
-			const event = (traceData?.data?.ingestEvents ?? []).find(
-				(e: any) => e?.dedupeKey === dedupeKey,
-			);
+			const event = traceData.data.ingestEvents.find((e) => e.dedupeKey === dedupeKey);
+			expect(event).not.toBeUndefined();
 			expect(event?.snList).toEqual([sn1, sn2]);
 			expect(typeof event?.links?.carrierTrackId).toBe("string");
 			expect(typeof event?.links?.unitTracks?.[sn1]).toBe("string");
 
-			const traceCarrierTrack = (traceData?.data?.carrierTracks ?? []).find(
-				(t: any) => t?.carrierNo === carrierNo,
-			);
+			const traceCarrierTrack = traceData.data.carrierTracks.find((t) => t.carrierNo === carrierNo);
 			expect(traceCarrierTrack?.dataValueCount).toBeGreaterThanOrEqual(1);
 
-			const traceCarrierValue = (traceData?.data?.carrierDataValues ?? []).find(
-				(v: any) => v?.name === specName,
-			);
+			const traceCarrierValue = traceData.data.carrierDataValues.find((v) => v.name === specName);
 			expect(traceCarrierValue?.valueNumber).toBeCloseTo(123.4, 5);
 		} finally {
 			await dbClient.$disconnect();

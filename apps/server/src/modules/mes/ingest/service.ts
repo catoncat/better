@@ -78,13 +78,13 @@ type CreateIngestEventResult = {
 type SnapshotStep = {
 	stepNo: number;
 	operationId: string;
-	stationType?: string;
-	stationGroupId?: string | null;
-	allowedStationIds?: string[];
-	requiresFAI?: boolean;
-	requiresAuthorization?: boolean;
-	dataSpecIds?: string[];
-	ingestMapping?: Prisma.JsonValue | null;
+	stationType: string | undefined;
+	stationGroupId: string | null | undefined;
+	allowedStationIds: string[] | undefined;
+	requiresFAI: boolean | undefined;
+	requiresAuthorization: boolean | undefined;
+	dataSpecIds: string[] | undefined;
+	ingestMapping: Prisma.JsonValue | null;
 };
 
 type RunWithRouteVersion = Prisma.RunGetPayload<{

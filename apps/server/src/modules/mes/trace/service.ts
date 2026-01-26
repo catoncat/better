@@ -353,8 +353,7 @@ export const getUnitTrace = async (
 		const snList = event.snList ?? [];
 		const unitTracks = event.links?.unitTracks;
 		const isRelevant =
-			snList.includes(unit.sn) ||
-			(Boolean(unitTracks) && Object.prototype.hasOwnProperty.call(unitTracks, unit.sn));
+			snList.includes(unit.sn) || (unitTracks ? Object.hasOwn(unitTracks, unit.sn) : false);
 
 		if (isRelevant) {
 			relevantCarrierTrackIds.add(carrierTrackId);
