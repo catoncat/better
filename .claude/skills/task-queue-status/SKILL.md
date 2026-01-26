@@ -7,6 +7,7 @@ trigger_examples:
     - "任务队列状态"
     - "队列进度"
     - "task queue status"
+    - "task-queue-status"
     - "show task queue"
     - "谁在做什么"
     - "任务分配情况"
@@ -24,6 +25,9 @@ Display the current state of the shared task queue for multi-AI coordination vis
 
 ## Workflow
 
+0. Preflight per `AGENTS.md`:
+   - Run `git status` and call out if the tree is dirty
+
 1. Check if `.scratch/task-queue.md` exists:
    - If not, inform user: "No task queue found. Run `/mes-next` to triage and create tasks."
    - Exit.
@@ -38,7 +42,7 @@ Display the current state of the shared task queue for multi-AI coordination vis
 
 4. Display detailed status for each slice:
    - Task name
-   - Status (with emoji: ⏳ pending, 🔄 in_progress, ✅ completed)
+   - Status (`pending` | `in_progress` | `completed`)
    - Claimed by (branch name if claimed)
    - Dependencies status
 
@@ -57,18 +61,18 @@ Display the current state of the shared task queue for multi-AI coordination vis
 
 ## Summary
 - Total: 4
-- ⏳ Pending: 1
-- 🔄 In Progress: 2
-- ✅ Completed: 1
+- Pending: 1
+- In Progress: 2
+- Completed: 1
 
 ## Slices
 
 | # | Task | Status | Claimed By | Started |
 |---|------|--------|------------|---------|
-| 1 | Implement SMT flow | ✅ completed | feat/smt-flow | 2026-01-23T10:00 |
-| 2 | Add inspection step | 🔄 in_progress | feat/inspection | 2026-01-23T11:00 |
-| 3 | AOI data collection | 🔄 in_progress | feat/aoi | 2026-01-23T11:30 |
-| 4 | Traceability links | ⏳ pending | - | - |
+| 1 | Implement SMT flow | completed | feat/smt-flow | 2026-01-23T10:00 |
+| 2 | Add inspection step | in_progress | feat/inspection | 2026-01-23T11:00 |
+| 3 | AOI data collection | in_progress | feat/aoi | 2026-01-23T11:30 |
+| 4 | Traceability links | pending | - | - |
 
 ## Dependency Graph
 - Slice 4 blocked by: Slice 2, Slice 3
@@ -77,6 +81,10 @@ Display the current state of the shared task queue for multi-AI coordination vis
 
 To claim a pending task: `/claim-task`
 To mark your task complete: update `.scratch/task-queue.md` Status to `completed`
+
+If a completed task queue was superseded, it should have been archived to `.scratch/task-queue-archive/`.
+If you want to archive the current queue manually:
+`bun scripts/task-queue-archive.ts` (or `--force`).
 ```
 
 ## Guardrails

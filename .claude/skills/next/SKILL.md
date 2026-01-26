@@ -62,13 +62,16 @@ If `## Task Sources` is not found in `AGENTS.md`, prompt the user to configure i
    - Track = a set of tasks that do not block each other (avoid shared touch points)
    - Explicitly list conflicts (what cannot be done in parallel)
 6. Produce the triage output (tracks + conflicts) in the Output Format below.
-7. **Write task queue for multi-AI coordination**:
-   - Write to `.scratch/task-queue.md` using the Task Queue Format below.
-   - This allows other AI sessions to claim pending tasks.
-8. Sync triage output to a conversation note BEFORE asking the user to pick:
+7. Sync triage output to a conversation note BEFORE asking the user to pick:
    - Create a note: `bun scripts/conversation-new.ts "next_<topic>"`
    - Paste the full triage output into the note (include Worktree Scan, Tracks, Candidates, Conflicts, and the selection prompt).
    - Do not save only the chosen track; the note must preserve all options for parallel agents.
+8. **Write task queue for multi-AI coordination**:
+   - If `.scratch/task-queue.md` already exists, check whether it is fully completed:
+     - If completed: archive it to `.scratch/task-queue-archive/` before writing a new queue.
+     - If not completed: do not overwrite unless explicitly forced.
+   - Prefer using the script so behavior is consistent and the triage note is linked:
+     - `bun scripts/task-queue-write.ts --input <generated-md-path> --triage <triage-note-path>`
 9. Output the tracks + candidates to the user, then ask the user to pick one track or one candidate.
    - Also ask whether they want a dedicated worktree for the chosen item (recommended if they will run another track in parallel or run full lint/typecheck).
    - If yes, propose using `bun scripts/worktree-new.ts <branch> <path> --task ... --plan ... --plan-item ... --triage ...` so the new worktree carries context into `worktree_notes/`.
