@@ -49,4 +49,3 @@ export const outboundEventRetryResponseSchema = t.Object({
 		nextAttemptAt: t.Union([t.String({ format: "date-time" }), t.Null()]),
 	}),
 });
-

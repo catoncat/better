@@ -141,8 +141,9 @@ describe("integration: outbound feedback - enqueue/list/retry", () => {
 			);
 			expect(first.res.status).toBe(200);
 			expect(first.data?.ok).toBe(true);
-			const firstData = (first.data as { ok: true; data: { eventId: string; idempotencyKey: string } })
-				.data;
+			const firstData = (
+				first.data as { ok: true; data: { eventId: string; idempotencyKey: string } }
+			).data;
 
 			const second = await client.post<EnqueueResponse>(
 				`/api/integration/outbound/erp/runs/${runNo}/completion`,
@@ -150,8 +151,9 @@ describe("integration: outbound feedback - enqueue/list/retry", () => {
 			);
 			expect(second.res.status).toBe(200);
 			expect(second.data?.ok).toBe(true);
-			const secondData = (second.data as { ok: true; data: { eventId: string; idempotencyKey: string } })
-				.data;
+			const secondData = (
+				second.data as { ok: true; data: { eventId: string; idempotencyKey: string } }
+			).data;
 
 			expect(secondData.eventId).toBe(firstData.eventId);
 			expect(secondData.idempotencyKey).toBe(firstData.idempotencyKey);
@@ -251,4 +253,3 @@ describe("integration: outbound feedback - enqueue/list/retry", () => {
 		}
 	});
 });
-

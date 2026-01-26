@@ -56,9 +56,7 @@ const clampText = (value: string, maxLen: number) =>
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === "object" && value !== null && !Array.isArray(value);
 
-const parseOutboundRunCompletionMessageV1 = (
-	payload: unknown,
-): OutboundRunCompletionMessageV1 => {
+const parseOutboundRunCompletionMessageV1 = (payload: unknown): OutboundRunCompletionMessageV1 => {
 	if (!isRecord(payload)) throw new Error("Outbound payload must be an object");
 
 	const schemaVersion = payload.schemaVersion;
@@ -238,4 +236,3 @@ export const deliverOutboundFeedbackPayload = async (payload: unknown) => {
 		);
 	}
 };
-

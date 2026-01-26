@@ -266,7 +266,10 @@ export const integrationModule = new Elysia({
 		async ({ db, params }) => {
 			const existing = await db.mesEvent.findUnique({ where: { id: params.eventId } });
 			if (!existing || existing.eventType !== MES_EVENT_TYPES.OUTBOUND_FEEDBACK) {
-				return status(404, { ok: false, error: { code: "EVENT_NOT_FOUND", message: "Event not found" } });
+				return status(404, {
+					ok: false,
+					error: { code: "EVENT_NOT_FOUND", message: "Event not found" },
+				});
 			}
 
 			const updated = await db.mesEvent.update({
