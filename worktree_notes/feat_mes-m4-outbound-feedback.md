@@ -22,15 +22,15 @@ touchPoints:
 # feat/mes-m4-outbound-feedback - M4 Outbound feedback MVP (T4.5.1-T4.5.2)
 
 ## Scope
-- Goal:
-- Non-goals:
-- Risks:
+- Goal: Land ERP outbound feedback MVP (contract + enqueue + retryable outbox delivery).
+- Non-goals: Auto-trigger on every state transition; TPM outbound feedback.
+- Risks: External ERP endpoint contract still TBD; delivery is best-effort until ERP endpoint is available/configured.
 
 ## Slices
-- [ ] Contract: outbound payload spec
-- [ ] DB: outbox + indexes
-- [ ] Server: enqueue + delivery worker
-- [ ] Docs/tests: acceptance + trace
+- [x] Contract: outbound payload spec
+- [x] DB: outbox + indexes
+- [x] Server: enqueue + delivery worker
+- [x] Docs/tests: acceptance + trace
 
 ## Findings
 - No existing “outbox” implementation found in `apps/server/src` (needs new model/worker).

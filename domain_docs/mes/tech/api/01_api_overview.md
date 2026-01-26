@@ -23,6 +23,9 @@ Aligned with `agent_docs/03_backend/api_patterns.md` (envelope + error format + 
 - `POST /api/integration/lines/:lineId/stencil/unbind`
 - `POST /api/integration/lines/:lineId/solder-paste/bind`
 - `POST /api/integration/lines/:lineId/solder-paste/unbind`
+- `POST /api/integration/outbound/erp/runs/:runNo/completion`
+- `GET /api/integration/outbound/events`
+- `POST /api/integration/outbound/events/:eventId/retry`
 
 ### 1.2 Routing (Read + Execution Config + Compile)
 
