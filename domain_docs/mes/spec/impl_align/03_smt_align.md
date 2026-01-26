@@ -47,6 +47,7 @@
 | 首件生产(试产) | `POST /api/fai/:faiId/start`, `POST /api/stations/:stationCode/track-in`, `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/fai/service.ts`, `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/fai.tsx` |
 | 记录首件检验项 | `POST /api/fai/:faiId/items` | `apps/server/src/modules/mes/fai/service.ts` | `apps/web/src/routes/_authenticated/mes/fai.tsx` |
 | 首件判定 | `POST /api/fai/:faiId/complete` | `apps/server/src/modules/mes/fai/service.ts` | `apps/web/src/routes/_authenticated/mes/fai.tsx` |
+| FAI 签字确认 | `POST /api/fai/:faiId/sign` | `apps/server/src/modules/mes/fai/service.ts` | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` |
 | Run 授权 (Run=AUTHORIZED) | `POST /api/runs/:runNo/authorize` | `apps/server/src/modules/mes/run/service.ts` | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` |
 
 ## 时间规则/事件流
@@ -74,6 +75,11 @@
 | 处置评审 | `POST /api/defects/:defectId/disposition` | `apps/server/src/modules/mes/defect/service.ts` | `apps/web/src/routes/_authenticated/mes/defects.tsx` |
 | 日常 QC 记录 | `GET /api/daily-qc-records`, `POST /api/daily-qc-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/daily-qc-records/index.tsx` |
 | 生产异常记录 | `GET /api/production-exception-records`, `POST /api/production-exception-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/production-exception-records/index.tsx` |
+| 创建末件检查 (FQC=PENDING) | `POST /api/fqc/run/:runNo` | `apps/server/src/modules/mes/fqc/service.ts` | `apps/web/src/routes/_authenticated/mes/fqc/index.tsx` |
+| 开始末件检查 | `POST /api/fqc/:fqcId/start` | `apps/server/src/modules/mes/fqc/service.ts` | `apps/web/src/routes/_authenticated/mes/fqc/index.tsx` |
+| 记录末件检验项 | `POST /api/fqc/:fqcId/items` | `apps/server/src/modules/mes/fqc/service.ts` | `apps/web/src/routes/_authenticated/mes/fqc/index.tsx` |
+| 末件判定 | `POST /api/fqc/:fqcId/complete` | `apps/server/src/modules/mes/fqc/service.ts` | `apps/web/src/routes/_authenticated/mes/fqc/index.tsx` |
+| 末件签字确认 | `POST /api/fqc/:fqcId/sign` | `apps/server/src/modules/mes/fqc/service.ts` | `apps/web/src/routes/_authenticated/mes/fqc/index.tsx` |
 | OQC 抽检任务 | `POST /api/oqc/run/:runNo`, `GET /api/oqc` | `apps/server/src/modules/mes/oqc/service.ts` | `apps/web/src/routes/_authenticated/mes/oqc.tsx` |
 | Run=COMPLETED | `POST /api/oqc/:oqcId/complete` | `apps/server/src/modules/mes/oqc/service.ts` | `apps/web/src/routes/_authenticated/mes/oqc.tsx` |
 | Run=ON_HOLD | `POST /api/oqc/:oqcId/complete` | `apps/server/src/modules/mes/oqc/service.ts` | `apps/web/src/routes/_authenticated/mes/oqc.tsx` |
