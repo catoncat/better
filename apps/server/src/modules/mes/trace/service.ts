@@ -17,6 +17,12 @@ type SnapshotStep = {
 
 const toIso = (value: Date | null | undefined) => (value ? value.toISOString() : null);
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null && !Array.isArray(value);
+
+const toStringArray = (value: unknown) =>
+	Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : null;
+
 const resolveDataValue = (value: {
 	valueNumber?: number | null;
 	valueText?: string | null;
@@ -99,7 +105,43 @@ export const getUnitTrace = async (
 			lineCode: string | null;
 			carrierCode: string | null;
 			sn: string | null;
+			snList: string[] | null;
 			result: string | null;
+			links: {
+				carrierId: string | null;
+				carrierTrackId: string | null;
+				carrierDataValueCount: number | null;
+				unitTracks: Record<string, string> | null;
+			} | null;
+		}>;
+		carrierTracks: Array<{
+			id: string;
+			carrierNo: string;
+			stepNo: number;
+			stationCode: string | null;
+			inAt: string | null;
+			outAt: string | null;
+			result: string | null;
+			source: string;
+			dataValueCount: number;
+		}>;
+		carrierLoads: Array<{
+			id: string;
+			carrierNo: string;
+			loadedAt: string;
+			unloadedAt: string | null;
+		}>;
+		carrierDataValues: Array<{
+			carrierTrackId: string | null;
+			carrierNo: string | null;
+			stepNo: number | null;
+			name: string;
+			value: Prisma.JsonValue | string | number | boolean | null;
+			valueNumber: number | null;
+			valueText: string | null;
+			valueBoolean: boolean | null;
+			valueJson: Prisma.JsonValue | null;
+			judge: string | null;
 		}>;
 		dataValues: Array<{
 			stepNo: number | null;
@@ -267,9 +309,95 @@ export const getUnitTrace = async (
 			lineCode: true,
 			carrierCode: true,
 			sn: true,
+			snList: true,
 			result: true,
+			meta: true,
 		},
 	});
+
+	const ingestEventsWithLinks = ingestEvents.map((event) => {
+		const meta = event.meta;
+		const metaLinks = isRecord(meta) ? (meta as Record<string, unknown>).links : null;
+		const links = isRecord(metaLinks)
+			? {
+					carrierId: typeof metaLinks.carrierId === "string" ? metaLinks.carrierId : null,
+					carrierTrackId:
+						typeof metaLinks.carrierTrackId === "string" ? metaLinks.carrierTrackId : null,
+					carrierDataValueCount:
+						typeof metaLinks.carrierDataValueCount === "number"
+							? metaLinks.carrierDataValueCount
+							: null,
+					unitTracks: isRecord(metaLinks.unitTracks)
+						? (Object.fromEntries(
+								Object.entries(metaLinks.unitTracks).filter(
+									([, value]) => typeof value === "string",
+								),
+							) as Record<string, string>)
+						: null,
+				}
+			: null;
+
+		return {
+			...event,
+			snList: toStringArray(event.snList),
+			links,
+		};
+	});
+
+	const relevantCarrierTrackIds = new Set<string>();
+	for (const event of ingestEventsWithLinks) {
+		if (event.eventType !== "BATCH") continue;
+		const carrierTrackId = event.links?.carrierTrackId;
+		if (!carrierTrackId) continue;
+
+		const snList = event.snList ?? [];
+		const unitTracks = event.links?.unitTracks;
+		const isRelevant =
+			snList.includes(unit.sn) ||
+			(Boolean(unitTracks) && Object.prototype.hasOwnProperty.call(unitTracks, unit.sn));
+
+		if (isRelevant) {
+			relevantCarrierTrackIds.add(carrierTrackId);
+		}
+	}
+
+	const carrierTrackIds = [...relevantCarrierTrackIds];
+	const carrierTracks = carrierTrackIds.length
+		? await db.carrierTrack.findMany({
+				where: { id: { in: carrierTrackIds } },
+				orderBy: { inAt: "asc" },
+				select: {
+					id: true,
+					stepNo: true,
+					stationId: true,
+					source: true,
+					inAt: true,
+					outAt: true,
+					result: true,
+					carrier: { select: { carrierNo: true } },
+					station: { select: { code: true } },
+				},
+			})
+		: [];
+
+	const carrierTrackById = new Map(carrierTracks.map((track) => [track.id, track]));
+
+	const carrierDataValues = carrierTrackIds.length
+		? await db.dataValue.findMany({
+				where: { carrierTrackId: { in: carrierTrackIds } },
+				orderBy: { collectedAt: "asc" },
+				include: { spec: true },
+			})
+		: [];
+
+	const carrierDataValueCountByTrackId = new Map<string, number>();
+	for (const value of carrierDataValues) {
+		if (!value.carrierTrackId) continue;
+		carrierDataValueCountByTrackId.set(
+			value.carrierTrackId,
+			(carrierDataValueCountByTrackId.get(value.carrierTrackId) ?? 0) + 1,
+		);
+	}
 
 	const defects = await db.defect.findMany({
 		where: { unitId: unit.id },
@@ -324,6 +452,27 @@ export const getUnitTrace = async (
 			if (!latestOutAt || outAt > latestOutAt) latestOutAt = outAt;
 		}
 	}
+
+	const carrierLoads = await db.carrierLoad.findMany({
+		where: {
+			unitId: unit.id,
+			...(earliestInAt && latestOutAt
+				? {
+						AND: [
+							{ loadedAt: { lte: latestOutAt } },
+							{ OR: [{ unloadedAt: null }, { unloadedAt: { gte: earliestInAt } }] },
+						],
+					}
+				: {}),
+		},
+		orderBy: { loadedAt: "asc" },
+		select: {
+			id: true,
+			loadedAt: true,
+			unloadedAt: true,
+			carrier: { select: { carrierNo: true } },
+		},
+	});
 
 	const loadingRecords = unit.runId
 		? await db.loadingRecord.findMany({
@@ -424,7 +573,7 @@ export const getUnitTrace = async (
 					result: track.result ?? null,
 				};
 			}),
-			ingestEvents: ingestEvents.map((event) => ({
+			ingestEvents: ingestEventsWithLinks.map((event) => ({
 				id: event.id,
 				eventType: event.eventType,
 				sourceSystem: event.sourceSystem,
@@ -434,8 +583,42 @@ export const getUnitTrace = async (
 				lineCode: event.lineCode ?? null,
 				carrierCode: event.carrierCode ?? null,
 				sn: event.sn ?? null,
+				snList: event.snList,
 				result: event.result ?? null,
+				links: event.links,
 			})),
+			carrierTracks: carrierTracks.map((track) => ({
+				id: track.id,
+				carrierNo: track.carrier.carrierNo,
+				stepNo: track.stepNo,
+				stationCode: track.station?.code ?? null,
+				inAt: toIso(track.inAt),
+				outAt: toIso(track.outAt),
+				result: track.result ?? null,
+				source: track.source,
+				dataValueCount: carrierDataValueCountByTrackId.get(track.id) ?? 0,
+			})),
+			carrierLoads: carrierLoads.map((load) => ({
+				id: load.id,
+				carrierNo: load.carrier.carrierNo,
+				loadedAt: load.loadedAt.toISOString(),
+				unloadedAt: toIso(load.unloadedAt),
+			})),
+			carrierDataValues: carrierDataValues.map((value) => {
+				const track = value.carrierTrackId ? carrierTrackById.get(value.carrierTrackId) : null;
+				return {
+					carrierTrackId: value.carrierTrackId ?? null,
+					carrierNo: track?.carrier.carrierNo ?? null,
+					stepNo: track?.stepNo ?? null,
+					name: value.spec.name,
+					value: resolveDataValue(value),
+					valueNumber: value.valueNumber ?? null,
+					valueText: value.valueText ?? null,
+					valueBoolean: value.valueBoolean ?? null,
+					valueJson: value.valueJson ?? null,
+					judge: value.judge ?? null,
+				};
+			}),
 			dataValues: dataValues.map((value) => ({
 				stepNo: value.trackId ? (trackById.get(value.trackId)?.stepNo ?? null) : null,
 				name: value.spec.name,

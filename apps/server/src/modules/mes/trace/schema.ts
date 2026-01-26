@@ -55,7 +55,52 @@ export const traceUnitResponseSchema = t.Object({
 				lineCode: t.Union([t.String(), t.Null()]),
 				carrierCode: t.Union([t.String(), t.Null()]),
 				sn: t.Union([t.String(), t.Null()]),
+				snList: t.Union([t.Array(t.String()), t.Null()]),
 				result: t.Union([t.String(), t.Null()]),
+				links: t.Union([
+					t.Null(),
+					t.Object({
+						carrierId: t.Union([t.String(), t.Null()]),
+						carrierTrackId: t.Union([t.String(), t.Null()]),
+						carrierDataValueCount: t.Union([t.Number(), t.Null()]),
+						unitTracks: t.Union([t.Any(), t.Null()]),
+					}),
+				]),
+			}),
+		),
+		carrierTracks: t.Array(
+			t.Object({
+				id: t.String(),
+				carrierNo: t.String(),
+				stepNo: t.Number(),
+				stationCode: t.Union([t.String(), t.Null()]),
+				inAt: t.Union([t.String(), t.Null()]),
+				outAt: t.Union([t.String(), t.Null()]),
+				result: t.Union([t.String(), t.Null()]),
+				source: t.String(),
+				dataValueCount: t.Number(),
+			}),
+		),
+		carrierLoads: t.Array(
+			t.Object({
+				id: t.String(),
+				carrierNo: t.String(),
+				loadedAt: t.String(),
+				unloadedAt: t.Union([t.String(), t.Null()]),
+			}),
+		),
+		carrierDataValues: t.Array(
+			t.Object({
+				carrierTrackId: t.Union([t.String(), t.Null()]),
+				carrierNo: t.Union([t.String(), t.Null()]),
+				stepNo: t.Union([t.Number(), t.Null()]),
+				name: t.String(),
+				value: t.Union([t.Number(), t.String(), t.Boolean(), t.Any(), t.Null()]),
+				valueNumber: t.Union([t.Number(), t.Null()]),
+				valueText: t.Union([t.String(), t.Null()]),
+				valueBoolean: t.Union([t.Boolean(), t.Null()]),
+				valueJson: t.Union([t.Any(), t.Null()]),
+				judge: t.Union([t.String(), t.Null()]),
 			}),
 		),
 		dataValues: t.Array(
