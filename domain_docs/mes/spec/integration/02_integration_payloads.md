@@ -428,3 +428,73 @@ Mapping:
 2. 如果 `trackId` 未提供，查找 `Unit.status === 'IN_STATION'` 且 `stationCode` 匹配的 Track
 3. `PASS` → 记录检测数据到 `DataValue`
 4. `FAIL` → 创建 `Defect` 记录，关联 `trackId`，触发处置流程
+
+---
+
+## 6. Outbound Payloads (MES → ERP/TPM)
+
+> 当前实现：先落地 ERP “Run 完成回传” 的最小闭环；TPM 回传后续补齐。
+
+### 6.1 ERP Run completion feedback (`RUN_COMPLETION_V1`)
+
+**Enqueue (MES 内部 API)**:
+- `POST /api/integration/outbound/erp/runs/:runNo/completion`
+
+**Delivery (MES → ERP)**:
+- Method: `POST`
+- URL: `${MES_OUTBOUND_ERP_BASE_URL}${MES_OUTBOUND_ERP_PATH}`
+- Headers:
+  - `Content-Type: application/json`
+  - `Idempotency-Key: <idempotencyKey>`
+- Body: `OutboundRunCompletionMessageV1` (see below)
+
+**Outbox / Retry**:
+- Stored as `MesEvent` (outbox) with `eventType=OUTBOUND_FEEDBACK`
+- `idempotencyKey` format:
+  - `mes-event:OUTBOUND_FEEDBACK:ERP:RUN_COMPLETION_V1:<runNo>`
+- Retry/backoff: handled by `MesEvent` processor (exponential backoff)
+- DLQ: when `attempts >= maxAttempts`, event remains `FAILED` and stops retrying; can be replayed via
+  - `POST /api/integration/outbound/events/:eventId/retry`
+
+#### Payload: `OutboundRunCompletionMessageV1`
+
+```json
+{
+  "schemaVersion": 1,
+  "idempotencyKey": "mes-event:OUTBOUND_FEEDBACK:ERP:RUN_COMPLETION_V1:RUN-OUTBOUND-123",
+  "targetSystem": "ERP",
+  "messageType": "RUN_COMPLETION_V1",
+  "occurredAt": "2026-01-26T05:42:08.000Z",
+  "businessKey": {
+    "runNo": "RUN-OUTBOUND-123",
+    "woNo": "WO-OUTBOUND-123",
+    "productCode": "PROD-001",
+    "lineCode": "SMT-L1"
+  },
+  "data": {
+    "run": {
+      "runNo": "RUN-OUTBOUND-123",
+      "status": "COMPLETED",
+      "planQty": 100,
+      "startedAt": "2026-01-26T04:42:08.000Z",
+      "endedAt": "2026-01-26T05:42:08.000Z"
+    },
+    "route": {
+      "code": "ROUTE-001",
+      "sourceSystem": "ERP",
+      "sourceKey": "100-241-184R",
+      "routeVersionId": "rv_123",
+      "routeVersionNo": 3,
+      "routeVersionCompiledAt": "2026-01-25T02:10:00.000Z"
+    },
+    "stats": {
+      "unitStats": {
+        "DONE": 98,
+        "SCRAPPED": 2
+      },
+      "goodQty": 98,
+      "scrapQty": 2
+    }
+  }
+}
+```

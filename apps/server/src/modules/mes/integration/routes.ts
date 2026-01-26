@@ -1,9 +1,10 @@
-import { AuditEntityType } from "@better-app/db";
-import { Elysia } from "elysia";
+import { AuditEntityType, MesEventStatus } from "@better-app/db";
+import { Elysia, status, t } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
+import { MES_EVENT_TYPES } from "../event/service";
 import { deviceDataReceiveSchema, deviceDataResponseSchema } from "./device-data-schema";
 import { receiveDeviceData } from "./device-data-service";
 import {
@@ -46,6 +47,13 @@ import {
 	mockTpmMaintenanceTasks,
 	mockTpmStatusLogs,
 } from "./mock-data";
+import {
+	outboundEventListQuerySchema,
+	outboundEventListResponseSchema,
+	outboundEventRetryResponseSchema,
+	outboundRunCompletionEnqueueResponseSchema,
+} from "./outbound-feedback-schema";
+import { enqueueRunCompletionOutboundFeedback } from "./outbound-feedback-service";
 import {
 	erpBomPullResponseSchema,
 	erpMasterSyncQuerySchema,
@@ -161,6 +169,139 @@ export const integrationModule = new Elysia({
 			requirePermission: Permission.SYSTEM_INTEGRATION,
 			response: integrationStatusResponseSchema,
 			detail: { tags: ["MES - Integration"] },
+		},
+	)
+	.post(
+		"/outbound/erp/runs/:runNo/completion",
+		async ({ db, params, user, request, set }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+
+			const result = await enqueueRunCompletionOutboundFeedback(db, params.runNo);
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INTEGRATION,
+					entityId: params.runNo,
+					entityDisplay: `Outbound ERP Run Completion - ${params.runNo}`,
+					action: "OUTBOUND_ERP_RUN_COMPLETION_ENQUEUE",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					request: requestMeta,
+					payload: { runNo: params.runNo },
+				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INTEGRATION,
+				entityId: result.data.eventId,
+				entityDisplay: `Outbound ERP Run Completion - ${params.runNo}`,
+				action: "OUTBOUND_ERP_RUN_COMPLETION_ENQUEUE",
+				actor,
+				status: "SUCCESS",
+				request: requestMeta,
+				payload: { runNo: params.runNo, eventId: result.data.eventId },
+			});
+
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
+			params: t.Object({ runNo: t.String() }),
+			response: {
+				200: outboundRunCompletionEnqueueResponseSchema,
+				400: integrationErrorResponseSchema,
+				404: integrationErrorResponseSchema,
+				409: integrationErrorResponseSchema,
+			},
+			detail: { tags: ["MES - Integration"], summary: "Enqueue outbound ERP run completion" },
+		},
+	)
+	.get(
+		"/outbound/events",
+		async ({ db, query }) => {
+			const limit = Math.min(200, Math.max(1, Number(query.limit ?? 50)));
+			const events = await db.mesEvent.findMany({
+				where: {
+					eventType: MES_EVENT_TYPES.OUTBOUND_FEEDBACK,
+					...(query.status ? { status: query.status } : {}),
+				},
+				orderBy: { createdAt: "desc" },
+				take: limit,
+			});
+
+			return {
+				ok: true,
+				data: {
+					items: events.map((event) => ({
+						id: event.id,
+						eventType: event.eventType,
+						status: event.status,
+						attempts: event.attempts,
+						maxAttempts: event.maxAttempts,
+						nextAttemptAt: event.nextAttemptAt?.toISOString() ?? null,
+						processedAt: event.processedAt?.toISOString() ?? null,
+						occurredAt: event.occurredAt?.toISOString() ?? null,
+						idempotencyKey: event.idempotencyKey,
+						errorMessage: event.errorMessage,
+						payload: event.payload,
+					})),
+				},
+			};
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
+			query: outboundEventListQuerySchema,
+			response: outboundEventListResponseSchema,
+			detail: { tags: ["MES - Integration"], summary: "List outbound events" },
+		},
+	)
+	.post(
+		"/outbound/events/:eventId/retry",
+		async ({ db, params }) => {
+			const existing = await db.mesEvent.findUnique({ where: { id: params.eventId } });
+			if (!existing || existing.eventType !== MES_EVENT_TYPES.OUTBOUND_FEEDBACK) {
+				return status(404, {
+					ok: false,
+					error: { code: "EVENT_NOT_FOUND", message: "Event not found" },
+				});
+			}
+
+			const updated = await db.mesEvent.update({
+				where: { id: existing.id },
+				data: {
+					status: MesEventStatus.PENDING,
+					attempts: 0,
+					errorCode: null,
+					errorMessage: null,
+					nextAttemptAt: new Date(),
+					processedAt: null,
+				},
+			});
+
+			return {
+				ok: true,
+				data: {
+					eventId: updated.id,
+					status: updated.status,
+					nextAttemptAt: updated.nextAttemptAt?.toISOString() ?? null,
+				},
+			};
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
+			params: t.Object({ eventId: t.String() }),
+			response: {
+				200: outboundEventRetryResponseSchema,
+				404: integrationErrorResponseSchema,
+			},
+			detail: { tags: ["MES - Integration"], summary: "Retry an outbound event" },
 		},
 	)
 	.get(

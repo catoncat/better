@@ -224,6 +224,21 @@ Env prefix: `MES_INTEGRATION_`
 - Mapping gaps: produce INVALID version and output missing keys
 - Dedupe collisions: return existing result without duplication
 
+### 4.5 Outbound feedback delivery (MES → ERP) (M4)
+
+Env prefix: `MES_OUTBOUND_`
+- `FEEDBACK_ENABLED` (`true` to enable outbound delivery worker)
+- `ERP_BASE_URL` (required for ERP delivery)
+- `ERP_PATH` (default `/api/mes/outbound/erp/feedback`)
+- `ERP_API_KEY` (optional bearer token)
+
+Design:
+- Outbox: `MesEvent` (`eventType=OUTBOUND_FEEDBACK`) + retry/backoff + DLQ
+- Enqueue API: `POST /api/integration/outbound/erp/runs/:runNo/completion`
+- Ops:
+  - List: `GET /api/integration/outbound/events`
+  - Retry: `POST /api/integration/outbound/events/:eventId/retry`
+
 ---
 
 ## 5. Ownership & Source of Truth

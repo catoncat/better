@@ -84,8 +84,8 @@ P0（必须）：
 
 | ID | 任务 | 状态 | 依赖 | 备注 |
 |----|------|------|------|------|
-| T4.5.1 | 定义回传 payload 合约（完成/质量/追溯摘要；幂等键） | ⬜ | - | 待确认是否纳入 M4 |
-| T4.5.2 | Outbox/重试策略（失败回放、死信、审计） | ⬜ | T4.5.1 | |
+| T4.5.1 | 定义回传 payload 合约（完成/质量/追溯摘要；幂等键） | ✅ | - | as-built: `spec/integration/02_integration_payloads.md` (Outbound `RUN_COMPLETION_V1`) |
+| T4.5.2 | Outbox/重试策略（失败回放、死信、审计） | ✅ | T4.5.1 | as-built: `MesEvent` outbox + retry API (`/api/integration/outbound/events`) |
 
 ### 3.6 SMT 追溯强化
 
