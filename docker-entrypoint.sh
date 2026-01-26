@@ -44,6 +44,18 @@ else
   echo "Database already exists (size: $DB_SIZE bytes)."
 fi
 
+# Optional: seed MES/process master data (idempotent) after DB is ready.
+# Useful for production/docker deployments where TS seed scripts are not shipped.
+if [ "$SEED_MES_MASTER_DATA" = "true" ]; then
+  echo "SEED_MES_MASTER_DATA=true -> running: ./better-app seed mes"
+  ./better-app seed mes
+  SEED_EXIT_CODE=$?
+  if [ "$SEED_EXIT_CODE" != "0" ]; then
+    echo "Seed failed (exit code: $SEED_EXIT_CODE). Aborting."
+    exit "$SEED_EXIT_CODE"
+  fi
+fi
+
 # Start the server in background
 ./better-app &
 SERVER_PID=$!

@@ -55,6 +55,7 @@ bun apps/server/scripts/test-mes-flow.ts
 - `bun scripts/smart-verify.ts`（智能验证：纯文档变更跳过 `lint`/`check-types`）
 - `bun run build:single`（生成单一二进制 `apps/server/better-app` + 嵌入前端）
 - `bun run db:seed`（刷新 MES 示例数据）
+- `apps/server/better-app seed mes`（单一二进制/容器内：补齐 MES 流程主数据；默认会编译可执行路由版本，可用 `--no-compile` 关闭）
 
 ## 关键环境变量
 
@@ -63,6 +64,7 @@ bun apps/server/scripts/test-mes-flow.ts
 - `APP_WEB_MODE`: `off|embedded|dir`，由 `apps/server/src/web/config.ts` 解析 Web 服务策略。
 - `APP_TIMEZONE`: 时区设置（默认 `Asia/Shanghai`）。
 - `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD`: 默认管理员凭据；`DEFAULT_USER_PASSWORD` 为新用户初始化密码。
+- `SEED_MES_MASTER_DATA`: Docker/单一二进制启动前是否执行 `seed mes`（`true` 时启用；幂等）。
 - `APP_TLS_CERT_PATH`/`APP_TLS_KEY_PATH`: 生产 TLS 证书路径。
 
 更多配置请参考 `apps/server/.env.example`。
