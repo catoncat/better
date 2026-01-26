@@ -122,6 +122,12 @@ BATCH additions:
 - `carrierCodePath`
 - `snListPath` (list of units or `itemsPath` with `snPath`)
 - `batchPolicy`: `ALL_OR_NOTHING` | `PARTIAL`
+- Station constraint enforcement:
+  - If the step uses `stationGroupId` or `allowedStationIds`, `stationCodePath` MUST be present and resolvable.
+  - If no station constraints are configured (not recommended), `stationCodePath` is optional.
+
+Defaults:
+- If `batchPolicy` is omitted, MES treats it as `ALL_OR_NOTHING`.
 
 TEST additions:
 - `testResultIdPath` (source idempotency)

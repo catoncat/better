@@ -691,9 +691,9 @@ async function runTest(options: CliOptions) {
 				return expectOk(res, data, "Track-in");
 			}, { actor: "operator" });
 
-			await runStep(summary, "Trace: verify readiness attribution", async () => {
-				const { res, data } = await quality.get(`/trace/units/${unitSn}?mode=run`);
-				const trace = expectOk(res, data, "Trace get unit");
+				await runStep(summary, "Trace: verify readiness attribution", async () => {
+					const { res, data } = await quality.get(`/trace/units/${unitSn}?mode=run`);
+					const trace = expectOk(res, data, "Trace get unit");
 
 				if (!Array.isArray(trace.inspections)) {
 					throw new ApiError("Trace missing inspections");
@@ -712,14 +712,15 @@ async function runTest(options: CliOptions) {
 				if (trace.readiness.status !== "PASSED") {
 					throw new ApiError(`Trace readiness status is ${trace.readiness.status}, expected PASSED`);
 				}
-				
-				const waivedItems = Array.isArray(trace.readiness.waivedItems) ? trace.readiness.waivedItems : [];
-				const waivedTypes = new Set(waivedItems.map((i: any) => i?.itemType));
-				for (const expected of ["LOADING", "EQUIPMENT", "STENCIL", "SOLDER_PASTE"]) {
-					if (!waivedTypes.has(expected)) {
-						throw new ApiError(`Trace readiness missing waived item ${expected}`);
+					
+					const waivedItems = Array.isArray(trace.readiness.waivedItems) ? trace.readiness.waivedItems : [];
+					const waivedTypes = new Set(waivedItems.map((i: any) => i?.itemType));
+					const targetTypes = new Set(["LOADING", "EQUIPMENT", "STENCIL", "SOLDER_PASTE"]);
+					for (const expected of ["LOADING", "EQUIPMENT", "STENCIL", "SOLDER_PASTE"]) {
+						if (!waivedTypes.has(expected)) {
+							throw new ApiError(`Trace readiness missing waived item ${expected}`);
+						}
 					}
-				}
 
 				for (const item of waivedItems) {
 					if (targetTypes.has(item?.itemType) && item?.source !== "WAIVE") {
