@@ -470,6 +470,35 @@ const getResolvedSnapshotSteps = (
 		.filter((step): step is ResolvedSnapshotStep => step !== null);
 };
 
+const hasStationConstraints = (step: {
+	stationGroupId: string | null;
+	allowedStationIds: string[];
+}) => Boolean(step.stationGroupId) || step.allowedStationIds.length > 0;
+
+const areSameStringSet = (left: string[], right: string[]) => {
+	if (left.length !== right.length) return false;
+	const counts = new Map<string, number>();
+	for (const value of left) {
+		counts.set(value, (counts.get(value) ?? 0) + 1);
+	}
+	for (const value of right) {
+		const next = (counts.get(value) ?? 0) - 1;
+		if (next < 0) return false;
+		if (next === 0) counts.delete(value);
+		else counts.set(value, next);
+	}
+	return counts.size === 0;
+};
+
+const mergeMeta = (
+	base: Prisma.InputJsonValue | null | undefined,
+	patch: Record<string, Prisma.InputJsonValue>,
+): Prisma.InputJsonValue => {
+	if (!base) return patch;
+	if (!isRecord(base) || Array.isArray(base)) return patch;
+	return { ...(base as Record<string, Prisma.InputJsonValue>), ...patch };
+};
+
 const normalizeResult = (value: unknown, mapping: IngestResultMapping | undefined) => {
 	const raw = asString(value);
 	if (!raw) return null;
@@ -566,7 +595,9 @@ const resolveRunFromSn = async (
 	ServiceResult<{
 		run: {
 			id: string;
-			runNo: string | null;
+			runNo: string;
+			status: RunStatus;
+			startedAt: Date | null;
 			routeVersionId: string | null;
 			snapshot: Prisma.JsonValue | null;
 		};
@@ -593,7 +624,9 @@ const resolveRunFromSn = async (
 			unitId: unit.id,
 			run: {
 				id: unit.run.id,
-				runNo: unit.run.runNo ?? null,
+				runNo: unit.run.runNo,
+				status: unit.run.status,
+				startedAt: unit.run.startedAt ?? null,
 				routeVersionId: unit.run.routeVersionId ?? null,
 				snapshot: unit.run.routeVersion?.snapshotJson ?? null,
 			},
@@ -608,7 +641,9 @@ const resolveRunFromSnList = async (
 	ServiceResult<{
 		run: {
 			id: string;
-			runNo: string | null;
+			runNo: string;
+			status: RunStatus;
+			startedAt: Date | null;
 			routeVersionId: string | null;
 			snapshot: Prisma.JsonValue | null;
 		};
@@ -658,7 +693,9 @@ const resolveRunFromSnList = async (
 		data: {
 			run: {
 				id: run.id,
-				runNo: run.runNo ?? null,
+				runNo: run.runNo,
+				status: run.status,
+				startedAt: run.startedAt ?? null,
 				routeVersionId: run.routeVersionId ?? null,
 				snapshot: run.routeVersion?.snapshotJson ?? null,
 			},
@@ -670,6 +707,7 @@ const validateNormalized = (eventType: IngestEventType, normalized: NormalizedIn
 	if (eventType === IngestEventType.BATCH) {
 		if (!normalized.carrierCode) return false;
 		if (!normalized.snList || normalized.snList.length === 0) return false;
+		if (!normalized.result) return false;
 		return true;
 	}
 
@@ -681,10 +719,57 @@ const validateNormalized = (eventType: IngestEventType, normalized: NormalizedIn
 	return true;
 };
 
+class BatchIngestConflictError extends Error {
+	code: string;
+
+	constructor(code: string, message: string) {
+		super(message);
+		this.name = "BatchIngestConflictError";
+		this.code = code;
+	}
+}
+
+type BatchContext = {
+	carrierNo: string;
+	result: TrackResult;
+	stepNo: number;
+	nextStepNo: number | null;
+	stationId: string | null;
+	stationCode: string | null;
+	units: Array<{ id: string; sn: string }>;
+	carrierDataValues: Array<{
+		specId: string;
+		valueNumber: number | null;
+		valueText: string | null;
+		valueBoolean: boolean | null;
+		valueJson?: Prisma.InputJsonValue;
+		judge: string | null;
+		meta: Prisma.InputJsonValue;
+	}>;
+	measurementSummary: {
+		receivedCount: number;
+		persistedCount: number;
+		names: string[];
+	};
+};
+
 export const createIngestEvent = async (
 	db: PrismaClient,
 	input: CreateIngestEventInput,
 ): Promise<ServiceResult<CreateIngestEventResult>> => {
+	const existing = await db.ingestEvent.findUnique({
+		where: {
+			sourceSystem_dedupeKey: { sourceSystem: input.sourceSystem, dedupeKey: input.dedupeKey },
+		},
+		select: { id: true },
+	});
+	if (existing) {
+		return {
+			success: true,
+			data: { eventId: existing.id, duplicate: true, status: "RECEIVED" },
+		};
+	}
+
 	const occurredAt = parseDate(input.occurredAt);
 	if (!occurredAt) {
 		return {
@@ -708,7 +793,9 @@ export const createIngestEvent = async (
 
 	let resolvedRun: {
 		id: string;
-		runNo: string | null;
+		runNo: string;
+		status: RunStatus;
+		startedAt: Date | null;
 		routeVersionId: string | null;
 		snapshot: Prisma.JsonValue | null;
 	} | null = null;
@@ -724,7 +811,9 @@ export const createIngestEvent = async (
 		}
 		resolvedRun = {
 			id: run.id,
-			runNo: run.runNo ?? null,
+			runNo: run.runNo,
+			status: run.status,
+			startedAt: run.startedAt ?? null,
 			routeVersionId: run.routeVersionId ?? null,
 			snapshot: run.routeVersion?.snapshotJson ?? null,
 		};
@@ -778,88 +867,22 @@ export const createIngestEvent = async (
 		}
 	}
 
-	return await db.$transaction(async (tx) => {
-		const existing = await tx.ingestEvent.findUnique({
-			where: {
-				sourceSystem_dedupeKey: { sourceSystem: input.sourceSystem, dedupeKey: input.dedupeKey },
-			},
-			select: { id: true },
-		});
-
-		if (existing) {
-			return {
-				success: true,
-				data: { eventId: existing.id, duplicate: true, status: "RECEIVED" },
-			};
-		}
-
-		// BATCH: 先保持原有策略（仅落库 + trace），执行写入留到下一步实现。
-		if (input.eventType === IngestEventType.BATCH) {
-			const created = await tx.ingestEvent.create({
-				data: {
-					sourceSystem: input.sourceSystem,
-					dedupeKey: input.dedupeKey,
-					eventType: input.eventType,
-					occurredAt,
-					runId: resolvedRun?.id ?? null,
-					runNo,
-					unitId,
-					stationCode: normalized.stationCode ?? null,
-					lineCode: normalized.lineCode ?? null,
-					carrierCode: normalized.carrierCode ?? null,
-					sn: normalized.sn ?? null,
-					snList: normalized.snList ?? undefined,
-					result: normalized.result ?? null,
-					testResultId: normalized.testResultId ?? null,
-					payload,
-					normalized: buildNormalizedJson(normalized),
-					meta: input.meta ?? undefined,
-				},
-				select: { id: true },
-			});
-
-			return {
-				success: true,
-				data: { eventId: created.id, duplicate: false, status: "RECEIVED" },
-			};
-		}
-
-		if (!normalized.stationCode) {
+	let batchContext: BatchContext | null = null;
+	if (input.eventType === IngestEventType.BATCH) {
+		const policy = mapping.batchPolicy ?? "ALL_OR_NOTHING";
+		if (policy !== "ALL_OR_NOTHING") {
 			return {
 				success: false,
-				code: "INGEST_PAYLOAD_INVALID",
-				message: "Payload missing required fields",
-				status: 400,
-			};
-		}
-		if (!normalized.sn) {
-			return {
-				success: false,
-				code: "INGEST_PAYLOAD_INVALID",
-				message: "Payload missing required fields",
+				code: "BATCH_POLICY_NOT_SUPPORTED",
+				message: "Only ALL_OR_NOTHING batchPolicy is supported",
 				status: 400,
 			};
 		}
 
-		const [station, unit, run, runRouteVersion] = await Promise.all([
-			tx.station.findUnique({ where: { code: normalized.stationCode } }),
-			tx.unit.findUnique({ where: { sn: normalized.sn } }),
-			tx.run.findUnique({ where: { id: resolvedRun?.id ?? "" } }),
-			tx.executableRouteVersion.findUnique({ where: { id: resolvedRun?.routeVersionId ?? "" } }),
-		]);
-
-		if (!station) {
-			return {
-				success: false,
-				code: "STATION_NOT_FOUND",
-				message: "Station not found",
-				status: 404,
-			};
-		}
-		if (!run) {
+		if (!resolvedRun) {
 			return { success: false, code: "RUN_NOT_FOUND", message: "Run not found", status: 404 };
 		}
-		if (!runRouteVersion) {
+		if (!resolvedRun.routeVersionId) {
 			return {
 				success: false,
 				code: "ROUTE_VERSION_NOT_READY",
@@ -867,42 +890,118 @@ export const createIngestEvent = async (
 				status: 400,
 			};
 		}
-		if (!unit) {
+
+		if (
+			resolvedRun.status !== RunStatus.AUTHORIZED &&
+			resolvedRun.status !== RunStatus.IN_PROGRESS
+		) {
+			return {
+				success: false,
+				code: "RUN_NOT_AUTHORIZED",
+				message: "Run is not authorized or in progress",
+				status: 400,
+			};
+		}
+
+		const normalizedResult = normalized.result;
+		if (normalizedResult !== "PASS" && normalizedResult !== "FAIL") {
+			return {
+				success: false,
+				code: "INGEST_PAYLOAD_INVALID",
+				message: "Payload result must be PASS or FAIL for BATCH",
+				status: 400,
+			};
+		}
+
+		const snList = normalized.snList ?? [];
+		const unitRows = await db.unit.findMany({
+			where: { sn: { in: snList } },
+			select: { id: true, sn: true, runId: true, status: true, currentStepNo: true },
+		});
+
+		const foundSns = unitRows.map((row) => row.sn);
+		if (unitRows.length !== snList.length || !areSameStringSet(foundSns, snList)) {
+			const found = new Set(foundSns);
+			const missing = snList.filter((sn) => !found.has(sn));
 			return {
 				success: false,
 				code: "UNIT_NOT_FOUND",
-				message: "Unit not found",
+				message: `Unit not found: ${missing.join(", ")}`,
 				status: 404,
 			};
 		}
 
-		if (unit.runId && unit.runId !== run.id) {
+		const mismatchedRun = unitRows.find((row) => row.runId !== resolvedRun.id);
+		if (mismatchedRun) {
 			return {
 				success: false,
-				code: "UNIT_RUN_MISMATCH",
-				message: "Unit does not belong to run",
+				code: "RUN_MISMATCH",
+				message: "Units do not belong to the same run",
 				status: 400,
 			};
 		}
 
-		if (unit.status === UnitStatus.DONE) {
-			return {
-				success: false,
-				code: "UNIT_ALREADY_DONE",
-				message: "Unit already completed",
-				status: 400,
-			};
+		for (const unit of unitRows) {
+			if (unit.status === UnitStatus.IN_STATION) {
+				return {
+					success: false,
+					code: "UNIT_ALREADY_IN_STATION",
+					message: "Unit is already in station",
+					status: 400,
+				};
+			}
+			if (unit.status === UnitStatus.DONE) {
+				return {
+					success: false,
+					code: "UNIT_ALREADY_DONE",
+					message: "Unit already completed",
+					status: 400,
+				};
+			}
+			if (unit.status === UnitStatus.OUT_FAILED) {
+				return {
+					success: false,
+					code: "UNIT_OUT_FAILED",
+					message: "Unit failed last track-out; disposition required before re-entry",
+					status: 400,
+				};
+			}
+			if (unit.status === UnitStatus.SCRAPPED) {
+				return {
+					success: false,
+					code: "UNIT_SCRAPPED",
+					message: "Unit already scrapped",
+					status: 400,
+				};
+			}
+			if (unit.status === UnitStatus.ON_HOLD) {
+				return { success: false, code: "UNIT_ON_HOLD", message: "Unit is on hold", status: 400 };
+			}
 		}
-		if (unit.status === UnitStatus.OUT_FAILED) {
+
+		const currentStepNos = new Set(unitRows.map((row) => row.currentStepNo));
+		if (currentStepNos.size !== 1) {
 			return {
 				success: false,
-				code: "UNIT_OUT_FAILED",
-				message: "Unit failed last track-out; disposition required before re-entry",
+				code: "STEP_MISMATCH",
+				message: "Units are not at the same routing step",
 				status: 400,
 			};
 		}
 
-		const steps = getResolvedSnapshotSteps(runRouteVersion.snapshotJson ?? null);
+		const stepNo = unitRows[0]?.currentStepNo;
+		if (typeof stepNo !== "number") {
+			return {
+				success: false,
+				code: "STEP_MISMATCH",
+				message: "Current step not found",
+				status: 400,
+			};
+		}
+
+		const steps = [...getResolvedSnapshotSteps(resolvedRun.snapshot)].sort(
+			(a, b) => a.stepNo - b.stepNo,
+		);
 		if (steps.length === 0) {
 			return {
 				success: false,
@@ -912,101 +1011,749 @@ export const createIngestEvent = async (
 			};
 		}
 
-		const step = resolveIngestStep(
-			steps,
-			{ eventType: input.eventType, stationCode: normalized.stationCode },
-			{ id: station.id, stationType: station.stationType, groupId: station.groupId ?? null },
-			{ currentStepNo: unit.currentStepNo },
-		);
-		if (!step) {
+		const currentStep = steps.find((step) => step.stepNo === stepNo);
+		if (!currentStep) {
 			return {
 				success: false,
-				code: "STATION_MISMATCH",
-				message: "Station does not match routing step",
+				code: "STEP_MISMATCH",
+				message: "Current step not found in routing",
+				status: 400,
+			};
+		}
+		if (currentStep.stationType !== "BATCH") {
+			return {
+				success: false,
+				code: "STEP_MISMATCH",
+				message: "Current step is not a BATCH routing step",
 				status: 400,
 			};
 		}
 
-		const activeSpecs = await resolveStepDataSpecs(tx, step);
-		if (activeSpecs === null) {
-			return {
-				success: false,
-				code: "DATA_SPEC_NOT_FOUND",
-				message: "One or more bound data specs are missing",
-				status: 400,
-			};
-		}
-
-		const dataItems = buildIngestDataItems(normalized, activeSpecs);
-		const result = normalized.result === "FAIL" ? TrackResult.FAIL : TrackResult.PASS;
-		const trackSource =
-			input.eventType === IngestEventType.TEST ? TrackSource.TEST : TrackSource.AUTO;
-		if (!validateRequiredData(result, dataItems, activeSpecs)) {
-			return {
-				success: false,
-				code: "REQUIRED_DATA_MISSING",
-				message: "Missing required data specs",
-				status: 400,
-			};
-		}
-
-		// All guards passed → now persist ingest event + execution results together.
-		const created = await tx.ingestEvent.create({
-			data: {
-				sourceSystem: input.sourceSystem,
-				dedupeKey: input.dedupeKey,
-				eventType: input.eventType,
-				occurredAt,
-				runId: resolvedRun?.id ?? null,
-				runNo,
-				unitId: unit.id,
-				stationCode: normalized.stationCode ?? null,
-				lineCode: normalized.lineCode ?? null,
-				carrierCode: normalized.carrierCode ?? null,
-				sn: normalized.sn ?? null,
-				snList: normalized.snList ?? undefined,
-				result: normalized.result ?? null,
-				testResultId: normalized.testResultId ?? null,
-				payload,
-				normalized: buildNormalizedJson(normalized),
-				meta: {
-					...(isRecord(input.meta) ? (input.meta as Record<string, unknown>) : {}),
-					trackSource,
-				},
-			},
-			select: { id: true },
-		});
-
-		if (run.status === RunStatus.AUTHORIZED) {
-			await tx.run.updateMany({
-				where: { id: run.id, status: RunStatus.AUTHORIZED },
-				data: { status: RunStatus.IN_PROGRESS, startedAt: run.startedAt ?? occurredAt },
+		let stationId: string | null = null;
+		if (normalized.stationCode) {
+			const station = await db.station.findUnique({
+				where: { code: normalized.stationCode },
+				select: { id: true, groupId: true, stationType: true },
 			});
+			if (!station) {
+				return {
+					success: false,
+					code: "STATION_NOT_FOUND",
+					message: "Station not found",
+					status: 404,
+				};
+			}
+			if (!isValidStationForStep(currentStep, station)) {
+				return {
+					success: false,
+					code: "STATION_MISMATCH",
+					message: "Station does not match routing step",
+					status: 400,
+				};
+			}
+			stationId = station.id;
+		} else if (hasStationConstraints(currentStep)) {
+			return {
+				success: false,
+				code: "INGEST_PAYLOAD_INVALID",
+				message: "stationCode is required for constrained batch steps",
+				status: 400,
+			};
 		}
 
-		const write = await persistAutoTrackOut(tx, {
-			stationId: station.id,
-			stepNo: step.stepNo,
-			operationId: step.operationId,
-			occurredAt,
+		const result = normalizedResult === "FAIL" ? TrackResult.FAIL : TrackResult.PASS;
+		const nextStepNo = resolveNextStepNo(steps, stepNo);
+
+		const boundSpecIds = currentStep.dataSpecIds ?? [];
+		const carrierDataValues: BatchContext["carrierDataValues"] = [];
+		const measurementNames: string[] = [];
+		const measurements = normalized.measurements ?? [];
+
+		for (const item of measurements) {
+			measurementNames.push(item.name);
+		}
+
+		if (boundSpecIds.length > 0) {
+			const specs = await db.dataCollectionSpec.findMany({
+				where: { id: { in: boundSpecIds } },
+			});
+			const fetchedIds = new Set(specs.map((spec) => spec.id));
+			const missingIds = boundSpecIds.filter((id) => !fetchedIds.has(id));
+			if (missingIds.length > 0) {
+				return {
+					success: false,
+					code: "DATA_SPEC_NOT_FOUND",
+					message: `One or more bound data specs are missing: ${missingIds.join(", ")}`,
+					status: 400,
+				};
+			}
+
+			const activeSpecs = specs.filter((spec) => spec.isActive);
+			const requiredSpecs = activeSpecs.filter((spec) => spec.isRequired);
+			const mismatchedRequiredTrigger = requiredSpecs.filter(
+				(spec) => spec.triggerType !== "EACH_CARRIER",
+			);
+			if (mismatchedRequiredTrigger.length > 0) {
+				return {
+					success: false,
+					code: "DATA_SPEC_TRIGGER_MISMATCH",
+					message: `Required specs must be EACH_CARRIER for BATCH: ${mismatchedRequiredTrigger.map((s) => s.name).join(", ")}`,
+					status: 400,
+				};
+			}
+
+			const specsByName = new Map(activeSpecs.map((spec) => [spec.name, spec]));
+			const dataSpecMap = normalized.dataSpecMap ?? {};
+			const providedSpecNames = new Set<string>();
+
+			for (const item of measurements) {
+				const specName = dataSpecMap[item.name] ?? item.name;
+				const spec = specsByName.get(specName);
+				if (!spec) continue;
+				if (spec.method !== "AUTO") {
+					return {
+						success: false,
+						code: "DATA_SPEC_METHOD_MISMATCH",
+						message: `Spec ${spec.name} does not allow AUTO ingestion`,
+						status: 400,
+					};
+				}
+
+				const value = item.value;
+				let valueNumber: number | null = null;
+				let valueText: string | null = null;
+				let valueBoolean: boolean | null = null;
+				let valueJson: Prisma.JsonValue | null = null;
+
+				if (spec.dataType === "NUMBER") {
+					if (typeof value === "number") {
+						valueNumber = value;
+					} else if (typeof value === "string") {
+						const parsed = Number.parseFloat(value);
+						if (!Number.isNaN(parsed)) {
+							valueNumber = parsed;
+						} else {
+							return {
+								success: false,
+								code: "DATA_VALUE_INVALID",
+								message: `Invalid numeric value for ${spec.name}`,
+								status: 400,
+							};
+						}
+					} else {
+						return {
+							success: false,
+							code: "DATA_VALUE_INVALID",
+							message: `Missing numeric value for ${spec.name}`,
+							status: 400,
+						};
+					}
+				} else if (spec.dataType === "TEXT") {
+					const text = asString(value);
+					if (!text) {
+						return {
+							success: false,
+							code: "DATA_VALUE_INVALID",
+							message: `Missing text value for ${spec.name}`,
+							status: 400,
+						};
+					}
+					valueText = text;
+				} else if (spec.dataType === "BOOLEAN") {
+					if (typeof value === "boolean") {
+						valueBoolean = value;
+					} else if (typeof value === "string") {
+						const lower = value.toLowerCase();
+						if (lower === "true") valueBoolean = true;
+						else if (lower === "false") valueBoolean = false;
+						else {
+							return {
+								success: false,
+								code: "DATA_VALUE_INVALID",
+								message: `Invalid boolean value for ${spec.name}`,
+								status: 400,
+							};
+						}
+					} else {
+						return {
+							success: false,
+							code: "DATA_VALUE_INVALID",
+							message: `Missing boolean value for ${spec.name}`,
+							status: 400,
+						};
+					}
+				} else if (spec.dataType === "JSON") {
+					valueJson = value;
+				} else {
+					return {
+						success: false,
+						code: "DATA_VALUE_INVALID",
+						message: `Unsupported data type for ${spec.name}`,
+						status: 400,
+					};
+				}
+
+				providedSpecNames.add(spec.name);
+				carrierDataValues.push({
+					specId: spec.id,
+					valueNumber,
+					valueText,
+					valueBoolean,
+					valueJson: valueJson as Prisma.InputJsonValue,
+					judge: item.judge ?? null,
+					meta: {
+						specName: spec.name,
+						measurementName: item.name,
+						unit: item.unit ?? null,
+					},
+				});
+			}
+
+			if (result === TrackResult.PASS) {
+				const missingRequired = requiredSpecs
+					.map((spec) => spec.name)
+					.filter((name) => !providedSpecNames.has(name));
+				if (missingRequired.length > 0) {
+					return {
+						success: false,
+						code: "REQUIRED_DATA_MISSING",
+						message: `Missing required data specs: ${missingRequired.join(", ")}`,
+						status: 400,
+					};
+				}
+			}
+		}
+
+		batchContext = {
+			carrierNo: normalized.carrierCode ?? "",
 			result,
-			source: trackSource,
-			unit: { id: unit.id, currentStepNo: unit.currentStepNo },
-			routeSteps: steps,
-			dataItems,
-			activeSpecs,
-		});
-
-		// If unit becomes DONE, try triggering OQC (best-effort).
-		if (write.unitStatus === UnitStatus.DONE && run.runNo) {
-			checkAndTriggerOqc(db, run.runNo).catch((err) => {
-				console.error(`[Ingest] OQC trigger failed for run ${run.runNo}:`, err);
-			});
-		}
-
-		return {
-			success: true,
-			data: { eventId: created.id, duplicate: false, status: "RECEIVED" },
+			stepNo,
+			nextStepNo,
+			stationId,
+			stationCode: normalized.stationCode ?? null,
+			units: unitRows.map((row) => ({ id: row.id, sn: row.sn })),
+			carrierDataValues,
+			measurementSummary: {
+				receivedCount: measurements.length,
+				persistedCount: carrierDataValues.length,
+				names: [...new Set(measurementNames)].sort(),
+			},
 		};
-	});
+	}
+
+	let shouldTriggerOqc = false;
+
+	let service: ServiceResult<CreateIngestEventResult>;
+	try {
+		service = await db.$transaction(async (tx) => {
+			const existing = await tx.ingestEvent.findUnique({
+				where: {
+					sourceSystem_dedupeKey: { sourceSystem: input.sourceSystem, dedupeKey: input.dedupeKey },
+				},
+				select: { id: true },
+			});
+
+			if (existing) {
+				return {
+					success: true,
+					data: { eventId: existing.id, duplicate: true, status: "RECEIVED" },
+				};
+			}
+
+			if (input.eventType === IngestEventType.BATCH) {
+				if (!batchContext) {
+					return {
+						success: false,
+						code: "INGEST_PAYLOAD_INVALID",
+						message: "Batch context not resolved",
+						status: 400,
+					};
+				}
+
+				let created: { id: string };
+				try {
+					created = await tx.ingestEvent.create({
+						data: {
+							sourceSystem: input.sourceSystem,
+							dedupeKey: input.dedupeKey,
+							eventType: input.eventType,
+							occurredAt,
+							runId: resolvedRun?.id ?? null,
+							runNo,
+							unitId,
+							stationCode: normalized.stationCode ?? null,
+							lineCode: normalized.lineCode ?? null,
+							carrierCode: normalized.carrierCode ?? null,
+							sn: normalized.sn ?? null,
+							snList: normalized.snList ?? undefined,
+							result: normalized.result ?? null,
+							testResultId: normalized.testResultId ?? null,
+							payload,
+							normalized: buildNormalizedJson(normalized),
+							meta: input.meta ?? undefined,
+						},
+						select: { id: true },
+					});
+				} catch (error) {
+					if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+						const duplicate = await tx.ingestEvent.findUnique({
+							where: {
+								sourceSystem_dedupeKey: {
+									sourceSystem: input.sourceSystem,
+									dedupeKey: input.dedupeKey,
+								},
+							},
+							select: { id: true },
+						});
+						if (duplicate) {
+							return {
+								success: true,
+								data: { eventId: duplicate.id, duplicate: true, status: "RECEIVED" },
+							};
+						}
+					}
+					throw error;
+				}
+
+				if (resolvedRun && resolvedRun.status === RunStatus.AUTHORIZED) {
+					await tx.run.updateMany({
+						where: { id: resolvedRun.id, status: RunStatus.AUTHORIZED },
+						data: {
+							status: RunStatus.IN_PROGRESS,
+							startedAt: resolvedRun.startedAt ?? occurredAt,
+						},
+					});
+				}
+
+				const carrier = await tx.carrier.upsert({
+					where: { carrierNo: batchContext.carrierNo },
+					create: {
+						carrierNo: batchContext.carrierNo,
+						type: "UNKNOWN",
+						status: "ACTIVE",
+						meta: { createdByIngest: created.id },
+					},
+					update: { status: "ACTIVE" },
+					select: { id: true },
+				});
+
+				const carrierTrack = await tx.carrierTrack.create({
+					data: {
+						carrierId: carrier.id,
+						stepNo: batchContext.stepNo,
+						stationId: batchContext.stationId,
+						source: TrackSource.BATCH,
+						inAt: occurredAt,
+						outAt: occurredAt,
+						result: batchContext.result,
+						meta: {
+							ingestEventId: created.id,
+							sourceSystem: input.sourceSystem,
+							dedupeKey: input.dedupeKey,
+						},
+					},
+					select: { id: true },
+				});
+
+				const openLoads = await tx.carrierLoad.findMany({
+					where: { carrierId: carrier.id, unloadedAt: null },
+					select: { id: true, unitId: true },
+				});
+				const desiredUnitIds = new Set(batchContext.units.map((unit) => unit.id));
+				const openUnitIds = new Set(openLoads.map((load) => load.unitId));
+				const toUnloadIds = openLoads
+					.filter((load) => !desiredUnitIds.has(load.unitId))
+					.map((load) => load.id);
+				if (toUnloadIds.length > 0) {
+					await tx.carrierLoad.updateMany({
+						where: { id: { in: toUnloadIds } },
+						data: { unloadedAt: occurredAt },
+					});
+				}
+
+				for (const unit of batchContext.units) {
+					if (openUnitIds.has(unit.id)) continue;
+					try {
+						await tx.carrierLoad.create({
+							data: {
+								carrierId: carrier.id,
+								unitId: unit.id,
+								loadedAt: occurredAt,
+								meta: {
+									ingestEventId: created.id,
+									carrierTrackId: carrierTrack.id,
+									sourceSystem: input.sourceSystem,
+									dedupeKey: input.dedupeKey,
+								},
+							},
+						});
+					} catch (error) {
+						if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+							continue;
+						}
+						throw error;
+					}
+				}
+
+				const unitTrackIdsBySn: Record<string, string> = {};
+				for (const unit of batchContext.units) {
+					const track = await tx.track.create({
+						data: {
+							unitId: unit.id,
+							stepNo: batchContext.stepNo,
+							stationId: batchContext.stationId,
+							source: TrackSource.BATCH,
+							inAt: occurredAt,
+							outAt: occurredAt,
+							result: batchContext.result,
+							meta: {
+								ingestEventId: created.id,
+								carrierId: carrier.id,
+								carrierNo: batchContext.carrierNo,
+								carrierTrackId: carrierTrack.id,
+								sourceSystem: input.sourceSystem,
+								dedupeKey: input.dedupeKey,
+							},
+						},
+						select: { id: true },
+					});
+					unitTrackIdsBySn[unit.sn] = track.id;
+				}
+
+				if (batchContext.carrierDataValues.length > 0) {
+					await tx.dataValue.createMany({
+						data: batchContext.carrierDataValues.map((value) => ({
+							specId: value.specId,
+							carrierTrackId: carrierTrack.id,
+							collectedAt: occurredAt,
+							valueNumber: value.valueNumber,
+							valueText: value.valueText,
+							valueBoolean: value.valueBoolean,
+							...(value.valueJson !== undefined ? { valueJson: value.valueJson } : {}),
+							judge: value.judge,
+							source: TrackSource.BATCH,
+							meta: mergeMeta(value.meta, {
+								ingestEventId: created.id,
+								carrierNo: batchContext.carrierNo,
+								carrierId: carrier.id,
+								carrierTrackId: carrierTrack.id,
+							}),
+						})),
+					});
+				}
+
+				const unitIds = batchContext.units.map((unit) => unit.id);
+				if (batchContext.result === TrackResult.PASS) {
+					if (batchContext.nextStepNo) {
+						const updated = await tx.unit.updateMany({
+							where: {
+								id: { in: unitIds },
+								status: UnitStatus.QUEUED,
+								currentStepNo: batchContext.stepNo,
+							},
+							data: { status: UnitStatus.QUEUED, currentStepNo: batchContext.nextStepNo },
+						});
+						if (updated.count !== unitIds.length) {
+							throw new BatchIngestConflictError(
+								"INGEST_CONFLICT",
+								"Units changed during batch ingestion; please retry",
+							);
+						}
+					} else {
+						const updated = await tx.unit.updateMany({
+							where: {
+								id: { in: unitIds },
+								status: UnitStatus.QUEUED,
+								currentStepNo: batchContext.stepNo,
+							},
+							data: { status: UnitStatus.DONE },
+						});
+						if (updated.count !== unitIds.length) {
+							throw new BatchIngestConflictError(
+								"INGEST_CONFLICT",
+								"Units changed during batch ingestion; please retry",
+							);
+						}
+					}
+				} else {
+					const updated = await tx.unit.updateMany({
+						where: {
+							id: { in: unitIds },
+							status: UnitStatus.QUEUED,
+							currentStepNo: batchContext.stepNo,
+						},
+						data: { status: UnitStatus.OUT_FAILED },
+					});
+					if (updated.count !== unitIds.length) {
+						throw new BatchIngestConflictError(
+							"INGEST_CONFLICT",
+							"Units changed during batch ingestion; please retry",
+						);
+					}
+				}
+
+				await tx.ingestEvent.update({
+					where: { id: created.id },
+					data: {
+						meta: mergeMeta(input.meta, {
+							links: {
+								carrierId: carrier.id,
+								carrierTrackId: carrierTrack.id,
+								unitTracks: unitTrackIdsBySn,
+								carrierDataValueCount: batchContext.carrierDataValues.length,
+							},
+							batch: {
+								carrierNo: batchContext.carrierNo,
+								stepNo: batchContext.stepNo,
+								nextStepNo: batchContext.nextStepNo,
+								stationCode: batchContext.stationCode,
+								result: batchContext.result,
+								unitCount: batchContext.units.length,
+							},
+							measurementSummary: batchContext.measurementSummary,
+						}),
+					},
+				});
+
+				shouldTriggerOqc =
+					batchContext.result === TrackResult.PASS && batchContext.nextStepNo === null;
+
+				return {
+					success: true,
+					data: { eventId: created.id, duplicate: false, status: "RECEIVED" },
+				};
+			}
+
+			if (!normalized.stationCode) {
+				return {
+					success: false,
+					code: "INGEST_PAYLOAD_INVALID",
+					message: "Payload missing required fields",
+					status: 400,
+				};
+			}
+			if (!normalized.sn) {
+				return {
+					success: false,
+					code: "INGEST_PAYLOAD_INVALID",
+					message: "Payload missing required fields",
+					status: 400,
+				};
+			}
+
+			const [station, unit, run, runRouteVersion] = await Promise.all([
+				tx.station.findUnique({ where: { code: normalized.stationCode } }),
+				tx.unit.findUnique({ where: { sn: normalized.sn } }),
+				tx.run.findUnique({ where: { id: resolvedRun?.id ?? "" } }),
+				tx.executableRouteVersion.findUnique({ where: { id: resolvedRun?.routeVersionId ?? "" } }),
+			]);
+
+			if (!station) {
+				return {
+					success: false,
+					code: "STATION_NOT_FOUND",
+					message: "Station not found",
+					status: 404,
+				};
+			}
+			if (!run) {
+				return { success: false, code: "RUN_NOT_FOUND", message: "Run not found", status: 404 };
+			}
+			if (!runRouteVersion) {
+				return {
+					success: false,
+					code: "ROUTE_VERSION_NOT_READY",
+					message: "Run has no executable route version",
+					status: 400,
+				};
+			}
+			if (!unit) {
+				return {
+					success: false,
+					code: "UNIT_NOT_FOUND",
+					message: "Unit not found",
+					status: 404,
+				};
+			}
+
+			if (unit.runId && unit.runId !== run.id) {
+				return {
+					success: false,
+					code: "UNIT_RUN_MISMATCH",
+					message: "Unit does not belong to run",
+					status: 400,
+				};
+			}
+
+			if (unit.status === UnitStatus.DONE) {
+				return {
+					success: false,
+					code: "UNIT_ALREADY_DONE",
+					message: "Unit already completed",
+					status: 400,
+				};
+			}
+			if (unit.status === UnitStatus.OUT_FAILED) {
+				return {
+					success: false,
+					code: "UNIT_OUT_FAILED",
+					message: "Unit failed last track-out; disposition required before re-entry",
+					status: 400,
+				};
+			}
+
+			const steps = getResolvedSnapshotSteps(runRouteVersion.snapshotJson ?? null);
+			if (steps.length === 0) {
+				return {
+					success: false,
+					code: "ROUTING_EMPTY",
+					message: "Routing has no steps",
+					status: 400,
+				};
+			}
+
+			const step = resolveIngestStep(
+				steps,
+				{ eventType: input.eventType, stationCode: normalized.stationCode },
+				{ id: station.id, stationType: station.stationType, groupId: station.groupId ?? null },
+				{ currentStepNo: unit.currentStepNo },
+			);
+			if (!step) {
+				return {
+					success: false,
+					code: "STATION_MISMATCH",
+					message: "Station does not match routing step",
+					status: 400,
+				};
+			}
+
+			const activeSpecs = await resolveStepDataSpecs(tx, step);
+			if (activeSpecs === null) {
+				return {
+					success: false,
+					code: "DATA_SPEC_NOT_FOUND",
+					message: "One or more bound data specs are missing",
+					status: 400,
+				};
+			}
+
+			const dataItems = buildIngestDataItems(normalized, activeSpecs);
+			const result = normalized.result === "FAIL" ? TrackResult.FAIL : TrackResult.PASS;
+			const trackSource =
+				input.eventType === IngestEventType.TEST ? TrackSource.TEST : TrackSource.AUTO;
+			if (!validateRequiredData(result, dataItems, activeSpecs)) {
+				return {
+					success: false,
+					code: "REQUIRED_DATA_MISSING",
+					message: "Missing required data specs",
+					status: 400,
+				};
+			}
+
+			// All guards passed → now persist ingest event + execution results together.
+			let created: { id: string };
+			try {
+				created = await tx.ingestEvent.create({
+					data: {
+						sourceSystem: input.sourceSystem,
+						dedupeKey: input.dedupeKey,
+						eventType: input.eventType,
+						occurredAt,
+						runId: resolvedRun?.id ?? null,
+						runNo,
+						unitId: unit.id,
+						stationCode: normalized.stationCode ?? null,
+						lineCode: normalized.lineCode ?? null,
+						carrierCode: normalized.carrierCode ?? null,
+						sn: normalized.sn ?? null,
+						snList: normalized.snList ?? undefined,
+						result: normalized.result ?? null,
+						testResultId: normalized.testResultId ?? null,
+						payload,
+						normalized: buildNormalizedJson(normalized),
+						meta: {
+							...(isRecord(input.meta) ? (input.meta as Record<string, unknown>) : {}),
+							trackSource,
+						},
+					},
+					select: { id: true },
+				});
+			} catch (error) {
+				if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+					const duplicate = await tx.ingestEvent.findUnique({
+						where: {
+							sourceSystem_dedupeKey: {
+								sourceSystem: input.sourceSystem,
+								dedupeKey: input.dedupeKey,
+							},
+						},
+						select: { id: true },
+					});
+					if (duplicate) {
+						return {
+							success: true,
+							data: { eventId: duplicate.id, duplicate: true, status: "RECEIVED" },
+						};
+					}
+				}
+				throw error;
+			}
+
+			if (run.status === RunStatus.AUTHORIZED) {
+				await tx.run.updateMany({
+					where: { id: run.id, status: RunStatus.AUTHORIZED },
+					data: { status: RunStatus.IN_PROGRESS, startedAt: run.startedAt ?? occurredAt },
+				});
+			}
+
+			const write = await persistAutoTrackOut(tx, {
+				stationId: station.id,
+				stepNo: step.stepNo,
+				operationId: step.operationId,
+				occurredAt,
+				result,
+				source: trackSource,
+				unit: { id: unit.id, currentStepNo: unit.currentStepNo },
+				routeSteps: steps,
+				dataItems,
+				activeSpecs,
+			});
+
+			// If unit becomes DONE, try triggering OQC (best-effort).
+			if (write.unitStatus === UnitStatus.DONE && run.runNo) {
+				checkAndTriggerOqc(db, run.runNo).catch((err) => {
+					console.error(`[Ingest] OQC trigger failed for run ${run.runNo}:`, err);
+				});
+			}
+
+			return {
+				success: true,
+				data: { eventId: created.id, duplicate: false, status: "RECEIVED" },
+			};
+		});
+	} catch (error) {
+		if (error instanceof BatchIngestConflictError) {
+			return { success: false, code: error.code, message: error.message, status: 400 };
+		}
+		throw error;
+	}
+
+	if (
+		batchContext &&
+		shouldTriggerOqc &&
+		service.success &&
+		!service.data.duplicate &&
+		resolvedRun
+	) {
+		try {
+			const result = await checkAndTriggerOqc(db, resolvedRun.runNo);
+			if (!result.success) {
+				console.error(`[Ingest] OQC trigger failed for run ${resolvedRun.runNo}:`, result);
+			}
+		} catch (error) {
+			console.error(`[Ingest] OQC trigger error for run ${resolvedRun.runNo}:`, error);
+		}
+	}
+
+	return service;
 };
