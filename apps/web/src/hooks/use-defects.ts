@@ -206,3 +206,31 @@ export function useCompleteRework() {
 		onError: (error: unknown) => showError("完成返工失败", error),
 	});
 }
+
+/**
+ * Record repair details for a rework task (QR-Pro-012)
+ */
+export function useSaveRepairRecord() {
+	const queryClient = useQueryClient();
+	const showError = useApiError();
+
+	return useMutation({
+		mutationFn: async ({
+			taskId,
+			data,
+		}: {
+			taskId: string;
+			data: { reason?: string; action: string; result: string; remark?: string };
+		}) => {
+			const response = await client.api["rework-tasks"]({ taskId })["repair-record"].post(data);
+			return unwrap(response);
+		},
+		onSuccess: () => {
+			toast.success("维修记录已保存");
+			queryClient.invalidateQueries({ queryKey: ["mes", "rework-tasks"] });
+			queryClient.invalidateQueries({ queryKey: ["mes", "defects"] });
+			queryClient.invalidateQueries({ queryKey: ["mes", "trace"] });
+		},
+		onError: (error: unknown) => showError("保存维修记录失败", error),
+	});
+}

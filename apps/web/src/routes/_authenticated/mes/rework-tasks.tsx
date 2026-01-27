@@ -33,7 +33,12 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useAbility } from "@/hooks/use-ability";
-import { type ReworkQuery, useCompleteRework, useReworkTaskList } from "@/hooks/use-defects";
+import {
+	type ReworkQuery,
+	useCompleteRework,
+	useReworkTaskList,
+	useSaveRepairRecord,
+} from "@/hooks/use-defects";
 import { REWORK_TASK_STATUS_MAP } from "@/lib/constants";
 import { formatDateTime } from "@/lib/utils";
 
@@ -50,11 +55,19 @@ function ReworkTasksPage() {
 	const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 	const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
 	const [completeRemark, setCompleteRemark] = useState("");
+	const [repairDialogOpen, setRepairDialogOpen] = useState(false);
+	const [repairForm, setRepairForm] = useState({
+		reason: "",
+		action: "",
+		result: "",
+		remark: "",
+	});
 
 	const { hasPermission } = useAbility();
 	const canDispose = hasPermission(Permission.QUALITY_DISPOSITION);
 	const { data, isLoading, refetch } = useReworkTaskList(query, { enabled: canDispose });
 	const completeRework = useCompleteRework();
+	const saveRepairRecord = useSaveRepairRecord();
 
 	// Cast to include relations
 	type ReworkTaskWithRelations = NonNullable<typeof data>["items"][number] & {
@@ -62,6 +75,7 @@ function ReworkTasksPage() {
 		disposition?: {
 			defect?: { code?: string; location?: string } | null;
 		} | null;
+		meta?: unknown;
 	};
 	const items = (data?.items ?? []) as ReworkTaskWithRelations[];
 	const total = data?.total ?? 0;
@@ -80,6 +94,22 @@ function ReworkTasksPage() {
 		return <Badge variant={variant}>{label}</Badge>;
 	};
 
+	const getRepairRecord = (meta?: unknown) => {
+		if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
+		const record = (meta as Record<string, unknown>).repairRecordV1;
+		if (!record || typeof record !== "object" || Array.isArray(record)) return null;
+		const value = record as Record<string, unknown>;
+		if (typeof value.action !== "string" || typeof value.result !== "string") return null;
+		return {
+			reason: typeof value.reason === "string" ? value.reason : "",
+			action: value.action,
+			result: value.result,
+			remark: typeof value.remark === "string" ? value.remark : "",
+			recordedBy: typeof value.recordedBy === "string" ? value.recordedBy : "",
+			recordedAt: typeof value.recordedAt === "string" ? value.recordedAt : "",
+		};
+	};
+
 	const handleCompleteRework = () => {
 		if (!selectedTaskId) return;
 		completeRework.mutate(
@@ -91,6 +121,30 @@ function ReworkTasksPage() {
 				onSuccess: () => {
 					setCompleteDialogOpen(false);
 					setCompleteRemark("");
+					setSelectedTaskId(null);
+					refetch();
+				},
+			},
+		);
+	};
+
+	const handleSaveRepairRecord = () => {
+		if (!selectedTaskId) return;
+		if (!repairForm.action.trim() || !repairForm.result.trim()) return;
+		saveRepairRecord.mutate(
+			{
+				taskId: selectedTaskId,
+				data: {
+					reason: repairForm.reason.trim() || undefined,
+					action: repairForm.action.trim(),
+					result: repairForm.result.trim(),
+					remark: repairForm.remark.trim() || undefined,
+				},
+			},
+			{
+				onSuccess: () => {
+					setRepairDialogOpen(false);
+					setRepairForm({ reason: "", action: "", result: "", remark: "" });
 					setSelectedTaskId(null);
 					refetch();
 				},
@@ -195,12 +249,13 @@ function ReworkTasksPage() {
 							<TableHeader>
 								<TableRow>
 									<TableHead>单位 SN</TableHead>
-									<TableHead>缺陷代码</TableHead>
-									<TableHead>目标工步</TableHead>
-									<TableHead>状态</TableHead>
-									<TableHead>创建时间</TableHead>
-									<TableHead>完成时间</TableHead>
-									<TableHead className="text-right">操作</TableHead>
+								<TableHead>缺陷代码</TableHead>
+								<TableHead>目标工步</TableHead>
+								<TableHead>状态</TableHead>
+								<TableHead>维修记录</TableHead>
+								<TableHead>创建时间</TableHead>
+								<TableHead>完成时间</TableHead>
+								<TableHead className="text-right">操作</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
@@ -210,20 +265,46 @@ function ReworkTasksPage() {
 										<TableCell>{task.disposition?.defect?.code ?? "-"}</TableCell>
 										<TableCell>工步 {task.toStepNo}</TableCell>
 										<TableCell>{getStatusBadge(task.status)}</TableCell>
+										<TableCell>
+											{getRepairRecord(task.meta) ? (
+												<Badge variant="secondary">已记录</Badge>
+											) : (
+												<Badge variant="outline">未记录</Badge>
+											)}
+										</TableCell>
 										<TableCell>{formatDateTime(task.createdAt)}</TableCell>
 										<TableCell>{formatDateTime(task.doneAt)}</TableCell>
 										<TableCell className="text-right">
 											{task.status === "OPEN" && (
-												<Button
-													size="sm"
-													onClick={() => {
-														setSelectedTaskId(task.id);
-														setCompleteDialogOpen(true);
-													}}
-												>
-													<CheckCircle2 className="h-4 w-4 mr-1" />
-													完成
-												</Button>
+												<div className="flex gap-2 justify-end">
+													<Button
+														size="sm"
+														variant="outline"
+														onClick={() => {
+															const record = getRepairRecord(task.meta);
+															setSelectedTaskId(task.id);
+															setRepairForm({
+																reason: record?.reason ?? "",
+																action: record?.action ?? "",
+																result: record?.result ?? "",
+																remark: record?.remark ?? "",
+															});
+															setRepairDialogOpen(true);
+														}}
+													>
+														维修记录
+													</Button>
+													<Button
+														size="sm"
+														onClick={() => {
+															setSelectedTaskId(task.id);
+															setCompleteDialogOpen(true);
+														}}
+													>
+														<CheckCircle2 className="h-4 w-4 mr-1" />
+														完成
+													</Button>
+												</div>
 											)}
 										</TableCell>
 									</TableRow>
@@ -285,6 +366,68 @@ function ReworkTasksPage() {
 						<Button onClick={handleCompleteRework} disabled={completeRework.isPending}>
 							{completeRework.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
 							确认完成
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* Repair Record Dialog */}
+			<Dialog open={repairDialogOpen} onOpenChange={setRepairDialogOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>维修记录</DialogTitle>
+						<DialogDescription>记录 QR-Pro-012 维修原因、措施与结果</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4">
+						<div className="space-y-2">
+							<Label>维修原因/不良现象</Label>
+							<Input
+								value={repairForm.reason}
+								onChange={(e) => setRepairForm({ ...repairForm, reason: e.target.value })}
+								placeholder="可选"
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label>维修措施/过程</Label>
+							<Textarea
+								value={repairForm.action}
+								onChange={(e) => setRepairForm({ ...repairForm, action: e.target.value })}
+								placeholder="必填"
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label>维修结果</Label>
+							<Input
+								value={repairForm.result}
+								onChange={(e) => setRepairForm({ ...repairForm, result: e.target.value })}
+								placeholder="必填"
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label>备注</Label>
+							<Textarea
+								value={repairForm.remark}
+								onChange={(e) => setRepairForm({ ...repairForm, remark: e.target.value })}
+								placeholder="可选"
+							/>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setRepairDialogOpen(false)}>
+							取消
+						</Button>
+						<Button
+							onClick={handleSaveRepairRecord}
+							disabled={
+								saveRepairRecord.isPending ||
+								!repairForm.action.trim() ||
+								!repairForm.result.trim()
+							}
+						>
+							{saveRepairRecord.isPending && (
+								<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+							)}
+							保存
 						</Button>
 					</DialogFooter>
 				</DialogContent>
