@@ -6,7 +6,7 @@ baseRef: "origin/main"
 dependencies:
   blockedBy: []
   blocks: []
-status: in_progress  # pending | in_progress | completed
+status: completed  # pending | in_progress | completed
 task:
   title: "Slice 4: Acceptance decision + rerun"
   planPath: "domain_docs/mes/plan/phase4_tasks.md"
@@ -26,7 +26,7 @@ touchPoints:
 - Risks: `user_docs/demo/acceptance_plan.md` (SMT) is missing; only DIP plan exists.
 
 ## Slices
-- [ ] Slice 4: Acceptance decision + rerun
+- [x] Slice 4: Acceptance decision + rerun
 
 <!-- AUTO:BEGIN status -->
 
