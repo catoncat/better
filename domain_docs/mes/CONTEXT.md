@@ -1,6 +1,6 @@
 # MES 文档索引
 
-> **更新时间**: 2026-01-20
+> **更新时间**: 2026-01-27
 
 ## 里程碑定义
 
@@ -15,8 +15,8 @@
 
 | 目的 | 文档 |
 |------|------|
-| 当前验收（SMT / 前端集成 UI 全流程） | `user_docs/demo/acceptance_plan.md`（当前搁置） |
-| 当前验收（DIP 专用） | `user_docs/demo/acceptance_plan_dip.md`（当前搁置） |
+| 当前验收（SMT） | `user_docs/demo/acceptance_plan_smt.md` |
+| 当前验收（DIP） | `user_docs/demo/acceptance_plan_dip.md` |
 | 验收问题跟踪 | `user_docs/demo/acceptance_issues.md` |
 | 了解 M4 进度/待办 | `plan/phase4_tasks.md` |
 | 了解 SMT Gap 当前任务 | `plan/smt_gap_task_breakdown.md` |
@@ -30,10 +30,10 @@
 ## Triage（接下来做什么）
 
 - DIP 验收脚本已完成（`user_docs/demo/acceptance_plan_dip.md`），无阻断问题。
-- SMT 验收计划文件仍缺失（`user_docs/demo/acceptance_plan.md`），继续保持“暂不执行”状态。
-- 当前优先：以 `plan/smt_gap_task_breakdown.md` 为执行入口推进 SMT Gap 任务（先合并 smt-basic 记录层，再做 Readiness 联动）。
-- 其他任务：M4 开发仍以 `plan/phase4_tasks.md` 为参考，但需避免与 SMT Gap 重复执行。
-- 使用 `/mes-next` skill 进行任务分拣（会输出 worktree scan + 候选项 + 冲突提示），以 SMT Gap 计划为主入口。
+- SMT 验收计划已创建（`user_docs/demo/acceptance_plan_smt.md`），待执行验收。
+- SMT Gap 任务已基本完成，详见 `plan/smt_gap_task_breakdown.md`。
+- M4 开发以 `plan/phase4_tasks.md` 为参考，当前重点是 P0 验收标准确认。
+- 使用 `/next` skill 进行任务分拣（会输出 worktree scan + 候选项 + 冲突提示）。
 
 ## 流程定义
 
@@ -55,9 +55,9 @@
 ## 任务追踪
 
 - `plan/01_milestones.md` - 里程碑概览
-- `plan/smt_gap_task_breakdown.md` - **SMT Gap 任务分解（当前执行入口）**
-- `user_docs/demo/acceptance_plan.md` - SMT 验收计划（当前搁置）
-- `user_docs/demo/acceptance_plan_dip.md` - DIP 验收计划（当前搁置）
+- `plan/smt_gap_task_breakdown.md` - SMT Gap 任务分解（已基本完成）
+- `user_docs/demo/acceptance_plan_smt.md` - SMT 验收计划
+- `user_docs/demo/acceptance_plan_dip.md` - DIP 验收计划（已完成脚本验收）
 - `user_docs/demo/acceptance_issues.md` - 验收问题跟踪
 - `plan/phase4_tasks.md` - M4 当前任务分解（参考）
 - `plan/tasks.md` - M3 上线准备（已完成）

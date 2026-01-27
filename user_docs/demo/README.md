@@ -39,10 +39,11 @@
 
 ### 验收文档
 
-| 文档 | 说明 |
-|------|------|
-| [acceptance_plan_dip.md](./acceptance_plan_dip.md) | DIP 验收计划 |
-| [acceptance_issues.md](./acceptance_issues.md) | 验收问题记录 |
+| 文档 | 说明 | 状态 |
+|------|------|------|
+| [acceptance_plan_smt.md](./acceptance_plan_smt.md) | SMT 验收计划 | 待验收 |
+| [acceptance_plan_dip.md](./acceptance_plan_dip.md) | DIP 验收计划 | 已完成 |
+| [acceptance_issues.md](./acceptance_issues.md) | 验收问题记录 | - |
 
 ---
 
