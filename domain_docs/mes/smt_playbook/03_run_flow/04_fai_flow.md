@@ -21,6 +21,7 @@ stateDiagram-v2
     PENDING --> INSPECTING: start
     INSPECTING --> PASS: complete (decision=PASS)
     INSPECTING --> FAIL: complete (decision=FAIL)
+    PASS --> PASS_SIGNED: sign
 
     note right of PENDING
         等待启动
@@ -33,6 +34,12 @@ stateDiagram-v2
     end note
 
     note right of PASS
+        FAI 通过
+        等待签字
+    end note
+
+    note right of PASS_SIGNED
+        已签字
         Run 可授权
     end note
 
@@ -45,6 +52,7 @@ stateDiagram-v2
 **Gate 逻辑**：
 - 若路由要求 FAI（`faiRequired=true`），则 Run 授权前必须有 `FAI.status=PASS`
 - 若 FAI FAIL，Run 无法授权，需创建新 FAI 或取消批次
+- **签字门禁**：FAI PASS 后，Run 授权前还需完成 FAI 签字（`signedBy` 不为空）
 
 ## 4. 数据如何产生
 ### 4.1 创建 FAI
@@ -84,10 +92,48 @@ stateDiagram-v2
   - FAIL 时 failedQty 必须 > 0
   - 若 PASS 但存在 SPI/AOI 检验 FAIL，则不允许完成
 
+### 4.6 FAI 签字
+FAI 判定 PASS 后，需由指定人员进行签字确认，Run 授权前必须完成签字。
+
+- 入口：`POST /api/fai/:faiId/sign`
+- 输入：
+  - `signatureRemark`（可选）：签字备注
+- 规则：
+  - FAI 必须已 PASS 才能签字
+  - 只有具有 `fai:sign` 权限的用户才能签字
+  - 签字后记录 signedBy、signedAt、signatureRemark
+
+```
+POST /api/fai/:faiId/sign
+
+Request:
+{
+  "signatureRemark": "首件质量确认，可批量生产"
+}
+
+Response:
+{
+  "id": "fai-id",
+  "status": "PASS",
+  "signedBy": "user-id",
+  "signedAt": "2026-01-27T10:00:00Z",
+  "signatureRemark": "首件质量确认，可批量生产"
+}
+```
+
+**签字字段**：
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| signedBy | String | 签字人用户 ID |
+| signedAt | DateTime | 签字时间 |
+| signatureRemark | String? | 签字备注（可选） |
+
 ## 5. 数据如何管理
-- FAI 状态流转：PENDING → INSPECTING → PASS/FAIL。
+- FAI 状态流转：PENDING → INSPECTING → PASS/FAIL → PASS_SIGNED（签字后）。
 - FAI 与 Run 绑定，授权前需通过 FAI gate（路由要求时）。
+- **签字门禁**：FAI PASS 后必须签字，签字后 Run 才能授权。
 - 试产 TrackIn/TrackOut 与检验项数据用于追溯。
+- 签字记录（signedBy/signedAt/signatureRemark）保留完整审计追踪。
 
 ## 6. 真实例子（中文）
 - 创建 FAI：样本数 2
@@ -98,7 +144,8 @@ stateDiagram-v2
 - 判定：PASS → Run 可授权
 
 ## 7. 演示数据生成建议
-- 准备 1 个 PASS 场景（样本数 = 2）。
+- 准备 1 个 PASS + 已签字场景（样本数 = 2）。
+- 准备 1 个 PASS + 未签字场景，验证授权被阻断。
 - 准备 1 个 FAIL 场景（存在检验 FAIL 或 failedQty>0）。
 - 模拟 SPI/AOI 失败场景，验证 PASS 被阻断。
 
@@ -106,5 +153,7 @@ stateDiagram-v2
 - 创建 FAI 是否要求就绪检查通过。
 - 检查试产数量不足时的错误提示。
 - PASS/FAIL 统计规则与 SPI/AOI 失败阻断逻辑。
+- 验证签字 API 权限控制（`fai:sign`）。
+- 验证未签字时 Run 授权被阻断。
 
 详细验证见 `05_validation/02_run_and_execution_validation.md`。

@@ -21,14 +21,17 @@
   - `02_material_master_and_lots.md` 物料与批次配置
   - `03_slot_material_mapping.md` 槽位物料映射
   - `04_routes_and_products.md` 路由/产品影响范围
+  - `05_reflow_profile.md` 炉温程式配置
 - `03_run_flow/`
   - `01_work_order_to_run.md` 工单与批次
-  - `02_readiness_and_prep.md` 准备流程与就绪检查
+  - `02_readiness_and_prep.md` 准备流程与就绪检查（含豁免机制）
   - `03_loading_flow.md` 上料防错（加载站位表/扫码验证/换料）
-  - `04_fai_flow.md` 首件流程
+  - `04_fai_flow.md` 首件流程（含签字门禁）
   - `05_execution_and_trace.md` 执行与追溯
   - `06_oqc_closeout.md` OQC 与完工
   - `07_exception_and_recovery.md` 异常处理与回滚场景
+  - `08_time_rules.md` 时间规则（锡膏暴露/水洗等）
+  - `09_maintenance.md` 维修管理
 - `04_demo_data/`
   - `01_demo_dataset_blueprint.md` 演示数据蓝图
   - `02_demo_run_recipe.md` 演示批次生成步骤

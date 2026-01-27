@@ -37,14 +37,15 @@
   - `04_inspection_config.md` 检验配置（IPQC/ICT/FCT）
 - `03_run_flow/`
   - `01_work_order_to_run.md` 工单到批次
-  - `02_readiness_and_prep.md` 就绪检查与准备
+  - `02_readiness_and_prep.md` 就绪检查与准备（含豁免机制）
   - `03_insertion_flow.md` 插件流程（AI/手工/异形）
   - `04_wave_soldering.md` 波峰焊接
   - `05_post_soldering.md` 后焊处理（补焊/剪脚/喷涂/固化）
-  - `06_fai_and_ipqc.md` 首件与过程检验
+  - `06_fai_and_ipqc.md` 首件与过程检验（含签字门禁）
   - `07_testing_flow.md` 测试流程（ICT/FCT）
   - `08_oqc_closeout.md` OQC 与完工
   - `09_exception_and_recovery.md` 异常处理与返修
+  - `10_maintenance.md` 维修管理
 - `04_demo_data/`
   - `01_demo_dataset_blueprint.md` 演示数据蓝图
   - `02_demo_run_recipe.md` 演示批次生成步骤

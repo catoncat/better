@@ -181,8 +181,58 @@ BOM 需求
 | 查询检查结果 | `GET /api/runs/:runNo/readiness` | |
 | 手动确认检查项 | `POST /api/runs/:runNo/readiness/confirm` | |
 | 分配夹具 | `POST /api/tooling/:id/assign` | 关联到 Run |
+| 豁免检查项 | `POST /api/runs/:runNo/readiness/items/:itemId/waive` | 需权限 |
 
-## 10. 与 SMT 就绪检查对比
+## 10. 豁免机制
+
+### 10.1 概述
+当某个就绪检查项失败但生产需要继续时，具有相应权限的角色可以进行豁免（Waive）操作。豁免记录将保留完整的审计追踪。
+
+### 10.2 豁免权限
+| 权限 | 说明 | 典型角色 |
+|------|------|----------|
+| `prep:waive` | 豁免准备项检查 | 线长、工艺工程师 |
+
+### 10.3 豁免 API
+```
+POST /api/runs/:runNo/readiness/items/:itemId/waive
+
+Request:
+{
+  "reason": "紧急生产需求，夹具状态已人工确认"
+}
+
+Response:
+{
+  "id": "item-id",
+  "status": "WAIVED",
+  "waivedBy": "user-id",
+  "waivedAt": "2026-01-27T10:00:00Z",
+  "waiveReason": "紧急生产需求，夹具状态已人工确认"
+}
+```
+
+### 10.4 豁免记录字段
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| waivedBy | String | 豁免人用户 ID |
+| waivedAt | DateTime | 豁免时间 |
+| waiveReason | String | 豁免原因（必填） |
+
+### 10.5 DIP 常见豁免场景
+| 检查项 | 豁免场景 |
+|--------|----------|
+| 波峰焊设备参数 | 参数微调在允许范围内 |
+| 夹具寿命预警 | 寿命接近但外观检查正常 |
+| 测试夹具校准 | 校准过期但自检通过 |
+
+### 10.6 豁免规则
+- 豁免原因必须填写，不能为空
+- 豁免后检查项状态变为 `WAIVED`，不再阻塞授权
+- 豁免操作会记录操作日志
+- 某些关键检查项（如 PCB 来料确认）可能配置为不可豁免
+
+## 11. 与 SMT 就绪检查对比
 
 | 维度 | SMT | DIP |
 |------|-----|-----|

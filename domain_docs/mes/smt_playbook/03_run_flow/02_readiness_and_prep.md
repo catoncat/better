@@ -15,33 +15,103 @@
 
 ## 4. 系统就绪检查项
 系统支持的 Readiness 项（Line.meta.readinessChecks.enabled，通过 `/api/lines/:lineId/readiness-config` 配置）：
-- STENCIL（钢网）
-- PREP_STENCIL_CLEAN（钢网清洗）
-- SOLDER_PASTE（锡膏）
-- EQUIPMENT（设备）
-- MATERIAL（物料齐套）
-- ROUTE（路由版本可用）
-- LOADING（上料完成）
-- PREP_SCRAPER（刮刀准备）
+
+### 4.1 基础检查项
+| 检查项 | 说明 | 数据来源 |
+|--------|------|----------|
+| STENCIL | 钢网状态 | 线体钢网绑定 + 状态记录 |
+| SOLDER_PASTE | 锡膏状态 | 锡膏批次扫码/状态记录 |
+| EQUIPMENT | 设备状态 | TPM/设备接口同步 |
+| MATERIAL | 物料齐套 | 物料主数据 + BOM |
+| ROUTE | 路由版本 | 路由编译状态 = READY |
+| LOADING | 上料完成 | 上料期望 + 上料记录 |
+
+### 4.2 准备项检查（PREP_*）
+| 检查项 | 说明 | 数据来源 |
+|--------|------|----------|
+| PREP_BAKE | PCB 烘烤确认 | BakeRecord（烘烤记录） |
+| PREP_PASTE | 锡膏准备（开封/回温/暴露时间） | 锡膏批次状态 + 暴露规则 |
+| PREP_STENCIL_USAGE | 钢网使用准备 | StencilUsageRecord + 寿命检查 |
+| PREP_STENCIL_CLEAN | 钢网清洗准备 | StencilCleaningRecord |
+| PREP_SCRAPER | 刮刀点检准备 | SqueegeeUsageRecord（表面/刀口/平整度必填） |
+| PREP_FIXTURE | 夹具寿命准备 | FixtureUsageRecord + 寿命检查 |
+| PREP_PROGRAM | 炉温程式一致性 | ReflowProfile 程式校验 |
+
+### 4.3 时间规则检查
+| 检查项 | 说明 | 数据来源 |
+|--------|------|----------|
+| TIME_RULE | 时间规则状态 | TimeRuleInstance 状态检查 |
+
+详见 `08_time_rules.md`。
 
 ## 5. 数据如何产生
 | 检查项 | 数据来源 | 产生方式 | 备注 |
 |---|---|---|---|
 | STENCIL | 线体钢网绑定 + 状态记录 | 配置/接口写入 | 需与产线绑定 |
-| PREP_STENCIL_CLEAN | 钢网清洗记录 | 手工录入 | 用于门禁：要求存在清洗记录 |
+| PREP_STENCIL_CLEAN | StencilCleaningRecord | 手工录入 `/mes/stencil-cleaning` | 用于门禁：要求存在清洗记录 |
+| PREP_STENCIL_USAGE | StencilUsageRecord | 手工录入 | 使用记录 + 寿命检查 |
 | SOLDER_PASTE | 锡膏状态记录 | 扫码/接口写入 | 可关联批次 |
+| PREP_PASTE | 锡膏批次 + TimeRuleInstance | 开封时创建暴露规则实例 | 暴露 24h 限制 |
 | EQUIPMENT | 设备状态记录 | TPM/接口同步 | 设备状态正常 |
 | MATERIAL | 物料齐套检查 | 物料主数据 + BOM | 规则需配置 |
 | ROUTE | 路由版本 | 路由编译 | READY 才可用 |
 | LOADING | 上料期望 + 上料记录 | 加载站位表 + 扫码 | 全部 LOADED 才通过 |
-| PREP_SCRAPER | 刮刀点检记录 | 手工录入 | 用于门禁：要求存在点检记录，且表面/刀口/平整度必须填写并通过 |
+| PREP_SCRAPER | SqueegeeUsageRecord | 手工录入 `/mes/squeegee-usage` | 表面/刀口/平整度必填 |
+| PREP_BAKE | BakeRecord | 手工录入 | PCB 烘烤确认 |
+| PREP_FIXTURE | FixtureUsageRecord | 手工/扫码录入 | 寿命超限则 FAIL |
+| PREP_PROGRAM | ReflowProfile + ReflowProfileUsage | 设备程式读取 + 比对 | 程式名必须匹配 |
+| TIME_RULE | TimeRuleInstance | Cron 扫描 + 事件驱动 | 超时则 FAIL |
 
-## 6. 数据如何管理
+## 6. 豁免机制
+
+### 6.1 概述
+当某个准备项检查失败但生产需要继续时，具有相应权限的角色可以进行豁免（Waive）操作。豁免记录将保留完整的审计追踪。
+
+### 6.2 豁免权限
+| 权限 | 说明 | 典型角色 |
+|------|------|----------|
+| `prep:waive` | 豁免准备项检查 | 线长、工艺工程师 |
+| `time_rule:override` | 豁免时间规则检查 | 厂长、质量经理 |
+
+### 6.3 豁免 API
+```
+POST /api/runs/:runNo/readiness/items/:itemId/waive
+
+Request:
+{
+  "reason": "紧急生产需求，锡膏批次已确认可用"
+}
+
+Response:
+{
+  "id": "item-id",
+  "status": "WAIVED",
+  "waivedBy": "user-id",
+  "waivedAt": "2026-01-27T10:00:00Z",
+  "waiveReason": "紧急生产需求，锡膏批次已确认可用"
+}
+```
+
+### 6.4 豁免记录字段
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| waivedBy | String | 豁免人用户 ID |
+| waivedAt | DateTime | 豁免时间 |
+| waiveReason | String | 豁免原因（必填） |
+
+### 6.5 豁免规则
+- 豁免原因必须填写，不能为空
+- 豁免后检查项状态变为 `WAIVED`，不再阻塞授权
+- 豁免操作会记录操作日志
+- 某些关键检查项（如路由版本）可能配置为不可豁免
+
+## 7. 数据如何管理
 - Readiness 检查结果记录在系统历史表中，可追溯。
 - 若某项失败，Run 仍保持 PREP 状态，需要整改后重新检查。
 - Run 授权时会强制触发一次 Formal Readiness 检查（如果未做）。
+- 豁免记录保留在 ReadinessCheckItem 中，可追溯豁免人和原因。
 
-## 7. 真实例子（中文）
+## 8. 真实例子（中文）
 批次 `RUN-WO-20250526-001-01`：
 - ROUTE：路由版本 READY OK
 - STENCIL：钢网已绑定并状态合规 OK
@@ -49,15 +119,19 @@
 - EQUIPMENT：贴片机状态 normal OK
 - MATERIAL：物料齐套 OK
 - LOADING：尚未完成 NO
+- PREP_SCRAPER：刮刀点检 OK（表面/刀口/平整度全部通过）
+- TIME_RULE：锡膏暴露时间 18h（未超限） OK
 
-结论：就绪检查未通过，不能进入上料/授权。
+结论：就绪检查未通过（LOADING 失败），不能进入上料/授权。
 
-## 8. 演示数据生成建议
+## 9. 演示数据生成建议
 - 准备至少 1 个失败案例（例如 LOADING 未完成或 STENCIL 缺失）。
 - 准备至少 1 个通过案例，确保后续可进入上料与 FAI。
+- 准备 1 个豁免案例，验证豁免流程和权限控制。
 
-## 9. 验证步骤（预览）
+## 10. 验证步骤（预览）
 - 在 `/mes/runs/:runNo/readiness/check` 检查返回项，逐一核对。
 - 在 Run 授权时验证：若未做就绪检查，系统会自动触发。
+- 验证豁免 API 权限控制和记录写入。
 
 详细验证见 `05_validation/02_run_and_execution_validation.md`。

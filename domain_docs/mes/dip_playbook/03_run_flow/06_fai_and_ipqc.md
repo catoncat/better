@@ -86,8 +86,43 @@ Request:
 |------|------|
 | PENDING | 待检验 |
 | IN_PROGRESS | 检验中 |
-| PASSED | 合格 |
+| PASSED | 合格（等待签字） |
 | FAILED | 不合格 |
+
+### 2.7 FAI 签字
+FAI 判定 PASS 后，需由指定人员进行签字确认，Run 授权前必须完成签字。
+
+#### 签字 API
+```
+POST /api/fai/:faiId/sign
+
+Request:
+{
+  "signatureRemark": "首件质量确认，可批量生产"
+}
+
+Response:
+{
+  "id": "fai-id",
+  "status": "PASSED",
+  "signedBy": "user-id",
+  "signedAt": "2026-01-27T10:00:00Z",
+  "signatureRemark": "首件质量确认，可批量生产"
+}
+```
+
+#### 签字字段
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| signedBy | String | 签字人用户 ID |
+| signedAt | DateTime | 签字时间 |
+| signatureRemark | String? | 签字备注（可选） |
+
+#### 签字门禁
+- FAI 必须已 PASS 才能签字
+- 只有具有 `fai:sign` 权限的用户才能签字
+- **Run 授权前必须完成 FAI 签字**（signedBy 不为空）
+- 未签字的 FAI 会阻塞 Run 授权
 
 ## 3. IPQC（过程检验）
 
@@ -266,6 +301,7 @@ IPQC 不合格
 | 创建 FAI | `POST /api/fai/run/:runNo` | |
 | 开始 FAI | `POST /api/fai/:faiId/start` | |
 | 完成 FAI | `POST /api/fai/:faiId/complete` | |
+| FAI 签字 | `POST /api/fai/:faiId/sign` | 需 `fai:sign` 权限 |
 | 查询 FAI | `GET /api/fai` | 支持按 Run 筛选 |
 | 创建 IPQC | `POST /api/ipqc` | （待实现） |
 | 完成 IPQC | `POST /api/ipqc/:id/complete` | （待实现） |

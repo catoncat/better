@@ -36,6 +36,12 @@
 | 执行记录 | TrackIn/TrackOut | 工位执行事件 | `/mes/execution` |
 | OQC | OQC | 出货抽检 | `/mes/oqc` |
 | 追溯 | Trace | 单件/批次追溯输出 | `/mes/trace` |
+| 时间规则 | TimeRuleDefinition + TimeRuleInstance | 时效监控（锡膏暴露、水洗等） | 后台 Cron 监控 |
+| 炉温程式 | ReflowProfile | 回流焊温区参数与版本 | Routing 配置 |
+| 钢网清洗 | StencilCleaningRecord | 钢网清洗记录 | `/mes/stencil-cleaning` |
+| 刮刀点检 | SqueegeeUsageRecord | 刮刀使用与点检记录 | `/mes/squeegee-usage` |
+| 维修记录 | MaintenanceRecord | 设备/夹具/钢网维修 | `/mes/maintenance-records` |
+| 豁免 | Readiness Waive | 准备项豁免机制（需授权） | Run 详情页 |
 
 ## 4. 站位与工位的区别
 - 站位（FeederSlot）：上料位置，用于“上料防错”。

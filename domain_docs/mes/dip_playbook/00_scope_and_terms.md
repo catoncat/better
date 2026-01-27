@@ -51,6 +51,8 @@
 | ICT 测试 | TestRecord (type=ICT) | 在线测试记录 | `/mes/execution` |
 | FCT 测试 | TestRecord (type=FCT) | 功能测试记录 | `/mes/execution` |
 | 不良记录 | Defect | 不良信息与返修任务 | `/mes/defects` |
+| 维修记录 | MaintenanceRecord | 设备/夹具维修 | `/mes/maintenance-records` |
+| 豁免 | Readiness Waive | 准备项豁免机制（需授权） | Run 详情页 |
 
 ## 4. 工位与工段的概念
 
