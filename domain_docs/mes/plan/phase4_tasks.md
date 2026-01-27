@@ -38,10 +38,16 @@
 ## 2. 验收标准
 
 P0（必须）：
-- [ ] Ingest API 支持幂等（dedupeKey），重复上报不产生重复副作用
-- [ ] AUTO/TEST step 能通过 ingestMapping 自动写入 DataValue，并产生可追溯的执行事件/结果
-- [ ] Trace API 能展示 ingest 事件来源、映射后的结果、以及对应的 routeVersion（冻结）
-- [ ] 现有 MANUAL 执行路径与 `bun apps/server/scripts/test-mes-flow.ts` 仍稳定通过（回归）
+- [x] Ingest API 支持幂等（dedupeKey），重复上报不产生重复副作用
+- [x] AUTO/TEST step 能通过 ingestMapping 自动写入 DataValue，并产生可追溯的执行事件/结果
+- [x] Trace API 能展示 ingest 事件来源、映射后的结果、以及对应的 routeVersion（冻结）
+- [x] 现有 MANUAL 执行路径与 `bun apps/server/scripts/test-mes-flow.ts` 仍稳定通过（回归）
+
+已验证（2026-01-27）：
+- `bun run mes:acceptance -- --track dip --scenario happy --json`
+- `bun run mes:acceptance -- --track smt --scenario happy --json`
+- `bun test apps/server/src/testing/integration/mes-ingest-batch.test.ts --max-concurrency=1`
+- `bun test ./apps/server/src/testing/integration/mes-ingest-auto-test.test.ts --max-concurrency=1`
 
 ---
 
