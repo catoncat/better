@@ -72,14 +72,17 @@ If `## Task Sources` is not found in `AGENTS.md`, prompt the user to configure i
      - If not completed: do not overwrite unless explicitly forced.
    - Prefer using the script so behavior is consistent and the triage note is linked:
      - `bun scripts/task-queue-write.ts --input <generated-md-path> --triage <triage-note-path>`
-9. Output the tracks + candidates to the user, then ask the user to pick one track or one candidate.
+9. **Scratch hygiene**:
+   - Update `.scratch/index.md` to list the latest triage note and active working set.
+   - Keep task queue history in `.scratch/task-queue-archive/`; move other stale notes to `.scratch/archive/`.
+10. Output the tracks + candidates to the user, then ask the user to pick one track or one candidate.
    - Also ask whether they want a dedicated worktree for the chosen item (recommended if they will run another track in parallel or run full lint/typecheck).
    - If yes, propose using `bun scripts/worktree-new.ts <branch> <path> --task ... --plan ... --plan-item ... --triage ...` so the new worktree carries context into `worktree_notes/`.
    - **Mention**: "Task queue written to `.scratch/task-queue.md`. Other AI sessions can run `/claim-task` to pick up remaining tasks."
-10. After the user picks:
+11. After the user picks:
     - Update the SAME triage note (append a short "Selected" section with the chosen track/task and any worktree decision).
     - Update `.scratch/task-queue.md` to mark the selected slice as `in_progress` and set `Claimed By` to the branch name.
-11. After the user picks, switch to the implementation workflow (use `dev`).
+12. After the user picks, switch to the implementation workflow (use `dev`).
 
 ## Output Format
 

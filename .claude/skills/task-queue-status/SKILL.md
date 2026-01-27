@@ -51,6 +51,10 @@ Display the current state of the shared task queue for multi-AI coordination vis
    - Long-running tasks (claimed > X hours ago)
    - Orphaned claims (branch no longer exists)
 
+6. Reference scratch index (optional):
+   - `.scratch/index.md` should list the latest triage note and active files.
+   - Task queue history lives in `.scratch/task-queue-archive/` (managed by scripts).
+
 ## Output Format
 
 ```

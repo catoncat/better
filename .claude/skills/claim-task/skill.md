@@ -85,3 +85,4 @@ Which task do you want to claim? (Enter number or "skip")
 - Do not modify code or docs; only update `.scratch/task-queue.md`
 - Do not create worktrees unless user explicitly asks
 - If task queue format is invalid, warn and suggest running `/mes-next` again
+- If `.scratch/index.md` needs updates, do it in a separate step outside this skill

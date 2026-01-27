@@ -67,6 +67,7 @@ When reporting status:
 1. 提示用户：main 分支不使用 worktree_notes
 2. 建议替代方案：
    - 调查/讨论 → 用 `.scratch/` 记录临时笔记（`bun scripts/conversation-new.ts "<topic>"`）
+   - 更新索引 → 同步维护 `.scratch/index.md` 的当前工作集
    - 重要决策 → 用 `conversation/` 记录并 commit（`bun scripts/conversation-new.ts --persist "<topic>"`）
    - 要写复杂代码 → 创建 feature 分支 + worktree（`bun scripts/worktree-new.ts <branch> <path>`）
 3. 不要尝试读取或创建 `worktree_notes/main.md`
