@@ -1,11 +1,17 @@
 import { AuditEntityType, MesEventStatus } from "@better-app/db";
+import type { Prisma } from "@better-app/db";
 import { Elysia, status, t } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../audit/service";
 import { MES_EVENT_TYPES } from "../event/service";
-import { deviceDataReceiveSchema, deviceDataResponseSchema } from "./device-data-schema";
+import {
+	deviceDataReceiveSchema,
+	deviceDataRecordListQuerySchema,
+	deviceDataRecordListResponseSchema,
+	deviceDataResponseSchema,
+} from "./device-data-schema";
 import { receiveDeviceData } from "./device-data-service";
 import {
 	syncErpBoms,
@@ -1088,8 +1094,75 @@ export const integrationModule = new Elysia({
 		},
 	)
 	// ==========================================
-	// Device Data Collection Endpoint (POC)
+	// Device Data Collection (POC)
 	// ==========================================
+	.get(
+		"/device-data",
+		async ({ db, query }) => {
+			const page = Number(query.page ?? 1);
+			const pageSize = Math.min(100, Math.max(1, Number(query.pageSize ?? 30)));
+			const skip = (page - 1) * pageSize;
+
+			const where: Prisma.DeviceDataRecordWhereInput = {};
+			if (query.eventId) where.eventId = query.eventId;
+			if (query.runNo) where.runNo = query.runNo;
+			if (query.unitSn) where.unitSn = query.unitSn;
+			if (query.stationCode) where.stationCode = query.stationCode;
+			if (query.stepNo) where.stepNo = Number(query.stepNo);
+			if (query.source) where.source = query.source;
+			if (query.eventFrom || query.eventTo) {
+				where.eventTime = {
+					...(query.eventFrom ? { gte: new Date(query.eventFrom) } : {}),
+					...(query.eventTo ? { lte: new Date(query.eventTo) } : {}),
+				};
+			}
+
+			const [total, records] = await Promise.all([
+				db.deviceDataRecord.count({ where }),
+				db.deviceDataRecord.findMany({
+					where,
+					orderBy: [{ eventTime: "desc" }, { receivedAt: "desc" }],
+					skip,
+					take: pageSize,
+				}),
+			]);
+
+			return {
+				ok: true,
+				data: {
+					items: records.map((record) => ({
+						id: record.id,
+						eventId: record.eventId,
+						eventTime: record.eventTime.toISOString(),
+						source: record.source,
+						runNo: record.runNo ?? null,
+						unitSn: record.unitSn ?? null,
+						stationCode: record.stationCode ?? null,
+						stepNo: record.stepNo ?? null,
+						trackId: record.trackId ?? null,
+						carrierTrackId: record.carrierTrackId ?? null,
+						operationId: record.operationId ?? null,
+						equipmentId: record.equipmentId ?? null,
+						operatorId: record.operatorId ?? null,
+						data: Array.isArray(record.data) ? (record.data as unknown[]) : [],
+						meta: record.meta ?? null,
+						dataValuesCreated: record.dataValuesCreated,
+						receivedAt: record.receivedAt.toISOString(),
+					})),
+					total,
+					page,
+					pageSize,
+				},
+			};
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.SYSTEM_INTEGRATION,
+			query: deviceDataRecordListQuerySchema,
+			response: deviceDataRecordListResponseSchema,
+			detail: { tags: ["MES - Integration"], summary: "List device data records" },
+		},
+	)
 	.post(
 		"/device-data",
 		async ({ db, body, user, request }) => {
