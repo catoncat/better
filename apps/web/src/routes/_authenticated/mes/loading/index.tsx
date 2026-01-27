@@ -1,7 +1,7 @@
 import { Permission } from "@better-app/db/permissions";
 import { createFileRoute } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 
 import { NoAccessCard } from "@/components/ability/no-access-card";
@@ -14,7 +14,7 @@ import { useLoadingExpectations, useLoadTable } from "@/hooks/use-loading";
 import { useRunDetail, useRunList } from "@/hooks/use-runs";
 import { LoadingHistory } from "./-components/loading-history";
 import { ScanPanel } from "./-components/scan-panel";
-import { SlotList } from "./-components/slot-list";
+import { type SimulateScanData, SlotList } from "./-components/slot-list";
 
 const loadingSearchSchema = z.object({
 	runNo: z.string().optional(),
@@ -30,6 +30,8 @@ function LoadingPage() {
 	const navigate = Route.useNavigate();
 	const [inputRunNo, setInputRunNo] = useState(search.runNo ?? "");
 	const [runSearch, setRunSearch] = useState("");
+	// 模拟扫码数据状态
+	const [simulateScanData, setSimulateScanData] = useState<SimulateScanData | null>(null);
 	const runNo = search.runNo;
 	const { hasPermission } = useAbility();
 	const canReadRun = hasPermission(Permission.RUN_READ);
@@ -91,6 +93,16 @@ function LoadingPage() {
 			await loadTable.mutateAsync(runNo);
 		}
 	};
+
+	// 处理模拟扫码（从 SlotList 接收数据，传递给 ScanPanel）
+	const handleSimulateScan = useCallback((data: SimulateScanData) => {
+		setSimulateScanData(data);
+	}, []);
+
+	// 清除模拟扫码数据的回调（ScanPanel 使用后调用）
+	const clearSimulateScanData = useCallback(() => {
+		setSimulateScanData(null);
+	}, []);
 
 	const hasRun = Boolean(runNo && run);
 	const showScan = hasRun;
@@ -175,14 +187,23 @@ function LoadingPage() {
 				<div className="grid gap-6 lg:grid-cols-2">
 					<div className="space-y-6">
 						{canVerifyLoading ? (
-							<ScanPanel runNo={runNo} />
+							<ScanPanel
+								runNo={runNo}
+								simulateScanData={simulateScanData}
+								onSimulateScanConsumed={clearSimulateScanData}
+							/>
 						) : (
 							<NoAccessCard description="需要上料验证权限才能进行扫码作业。" />
 						)}
 					</div>
 					<div className="space-y-6">
 						{canViewLoading ? (
-							<SlotList runNo={runNo} canUnlock={canConfigureLoading} enabled={canViewLoading} />
+							<SlotList
+								runNo={runNo}
+								canUnlock={canConfigureLoading}
+								enabled={canViewLoading}
+								onSimulateScan={handleSimulateScan}
+							/>
 						) : (
 							<NoAccessCard description="需要上料查看权限才能查看站位状态。" />
 						)}

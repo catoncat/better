@@ -1,5 +1,6 @@
 import { useForm } from "@tanstack/react-form";
 import { Loader2, Scan } from "lucide-react";
+import { useEffect } from "react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,8 @@ import { Field } from "@/components/ui/form-field-wrapper";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useReplaceLoading, useVerifyLoading } from "@/hooks/use-loading";
+
+import type { SimulateScanData } from "./slot-list";
 
 const scanSchema = z
 	.object({
@@ -40,9 +43,13 @@ const scanSchema = z
 
 interface ScanPanelProps {
 	runNo: string;
+	/** 模拟扫码数据（从 SlotList 传入） */
+	simulateScanData?: SimulateScanData | null;
+	/** 模拟扫码数据被消费后的回调 */
+	onSimulateScanConsumed?: () => void;
 }
 
-export function ScanPanel({ runNo }: ScanPanelProps) {
+export function ScanPanel({ runNo, simulateScanData, onSimulateScanConsumed }: ScanPanelProps) {
 	const verifyLoading = useVerifyLoading();
 	const replaceLoading = useReplaceLoading();
 
@@ -87,6 +94,16 @@ export function ScanPanel({ runNo }: ScanPanelProps) {
 	});
 
 	const isPending = verifyLoading.isPending || replaceLoading.isPending;
+
+	// 处理模拟扫码数据：当从 SlotList 接收到数据时，填充表单
+	useEffect(() => {
+		if (simulateScanData) {
+			form.setFieldValue("slotCode", simulateScanData.slotCode);
+			form.setFieldValue("materialLotBarcode", simulateScanData.materialLotBarcode);
+			// 通知父组件数据已被消费
+			onSimulateScanConsumed?.();
+		}
+	}, [simulateScanData, form, onSimulateScanConsumed]);
 
 	return (
 		<Card>
