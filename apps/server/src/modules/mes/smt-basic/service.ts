@@ -122,6 +122,11 @@ export type EquipmentInspectionRecordDetail = {
 	updatedAt: string;
 };
 
+export type EquipmentInspectionCreateResult = {
+	record: EquipmentInspectionRecordDetail;
+	exceptionRecord: ProductionExceptionRecordDetail | null;
+};
+
 export type OvenProgramRecordDetail = {
 	id: string;
 	lineId: string | null;
@@ -1528,7 +1533,7 @@ export async function listEquipmentInspectionRecords(
 export async function createEquipmentInspectionRecord(
 	db: PrismaClient,
 	input: EquipmentInspectionCreateInput,
-): Promise<ServiceResult<EquipmentInspectionRecordDetail>> {
+): Promise<ServiceResult<EquipmentInspectionCreateResult>> {
 	const machineName = input.machineName.trim();
 	if (!machineName) {
 		return {
@@ -1562,24 +1567,62 @@ export async function createEquipmentInspectionRecord(
 	const lineResult = await resolveLineId(db, input.lineCode);
 	if (!lineResult.success) return lineResult;
 
-	const record = await db.equipmentInspectionRecord.create({
-		data: {
-			lineId: lineResult.data,
-			equipmentType: input.equipmentType ?? null,
-			inspectedAt,
-			machineName,
-			sampleModel: input.sampleModel?.trim() || null,
-			version: input.version?.trim() || null,
-			programName: input.programName?.trim() || null,
-			result: input.result ?? null,
-			inspector,
-			remark: input.remark?.trim() || null,
-			meta: input.meta ?? undefined,
-		},
-		include: { line: { select: { id: true, code: true, name: true } } },
+	const { record, exceptionRecord } = await db.$transaction(async (tx) => {
+		const createdRecord = await tx.equipmentInspectionRecord.create({
+			data: {
+				lineId: lineResult.data,
+				equipmentType: input.equipmentType ?? null,
+				inspectedAt,
+				machineName,
+				sampleModel: input.sampleModel?.trim() || null,
+				version: input.version?.trim() || null,
+				programName: input.programName?.trim() || null,
+				result: input.result ?? null,
+				inspector,
+				remark: input.remark?.trim() || null,
+				meta: input.meta ?? undefined,
+			},
+			include: { line: { select: { id: true, code: true, name: true } } },
+		});
+
+		if (input.result !== "FAIL") {
+			return { record: createdRecord, exceptionRecord: null };
+		}
+
+		const description = `Equipment inspection failed: ${machineName}${
+			input.equipmentType ? ` (${input.equipmentType})` : ""
+		}`;
+
+		const exception = await tx.productionExceptionRecord.create({
+			data: {
+				lineId: createdRecord.lineId,
+				description,
+				issuedBy: inspector,
+				issuedAt: inspectedAt,
+				meta: {
+					source: "equipment-inspection",
+					equipmentInspectionRecordId: createdRecord.id,
+					equipmentType: createdRecord.equipmentType ?? null,
+					machineName: createdRecord.machineName,
+					inspectedAt: createdRecord.inspectedAt.toISOString(),
+					result: createdRecord.result ?? null,
+					lineId: createdRecord.lineId ?? null,
+					lineCode: createdRecord.line?.code ?? null,
+				},
+			},
+			include: { line: { select: { id: true, code: true, name: true } } },
+		});
+
+		return { record: createdRecord, exceptionRecord: exception };
 	});
 
-	return { success: true, data: mapEquipmentInspectionRecord(record) };
+	return {
+		success: true,
+		data: {
+			record: mapEquipmentInspectionRecord(record),
+			exceptionRecord: exceptionRecord ? mapProductionExceptionRecord(exceptionRecord) : null,
+		},
+	};
 }
 
 export async function listOvenProgramRecords(
