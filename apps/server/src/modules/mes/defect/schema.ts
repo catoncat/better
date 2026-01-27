@@ -25,6 +25,13 @@ export const completeReworkSchema = t.Object({
 	remark: t.Optional(t.String()),
 });
 
+export const repairRecordSchema = t.Object({
+	reason: t.Optional(t.String({ description: "Repair reason / defect phenomenon" })),
+	action: t.String({ description: "Repair action / process" }),
+	result: t.String({ description: "Repair result" }),
+	remark: t.Optional(t.String({ description: "Additional remark" })),
+});
+
 export const defectQuerySchema = t.Object({
 	unitSn: t.Optional(t.String()),
 	runNo: t.Optional(t.String()),

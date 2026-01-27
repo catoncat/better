@@ -11,6 +11,7 @@ import {
 	defectQuerySchema,
 	releaseHoldSchema,
 	reworkTaskQuerySchema,
+	repairRecordSchema,
 } from "./schema";
 import {
 	assignDisposition,
@@ -20,6 +21,7 @@ import {
 	listDefects,
 	listReworkTasks,
 	releaseHold,
+	saveRepairRecord,
 } from "./service";
 
 const defectInclude = {
@@ -223,6 +225,56 @@ export const reworkRoutes = new Elysia({ prefix: "/rework-tasks" })
 			requirePermission: Permission.QUALITY_DISPOSITION,
 			query: reworkTaskQuerySchema,
 			detail: { tags: ["MES - Rework"], summary: "List rework tasks" },
+		},
+	)
+	// Record repair details (QR-Pro-012)
+	.post(
+		"/:taskId/repair-record",
+		async ({ db, params, body, set, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const beforeTask = await db.reworkTask.findUnique({
+				where: { id: params.taskId },
+				include: { unit: true, disposition: { include: { defect: true } } },
+			});
+			const beforeDefect = beforeTask?.disposition.defect ?? null;
+			const result = await saveRepairRecord(db, params.taskId, body, user?.id);
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.DEFECT,
+					entityId: String(beforeDefect?.id ?? params.taskId),
+					entityDisplay: `Defect ${beforeDefect?.id ?? params.taskId}`,
+					action: "REPAIR_RECORD_UPSERT",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					before: beforeTask,
+					request: requestMeta,
+					payload: body,
+				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.DEFECT,
+				entityId: result.data.disposition.defect.id,
+				entityDisplay: `Defect ${result.data.disposition.defect.id}`,
+				action: "REPAIR_RECORD_UPSERT",
+				actor,
+				status: "SUCCESS",
+				before: beforeTask,
+				after: result.data,
+				request: requestMeta,
+				payload: body,
+			});
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.QUALITY_DISPOSITION,
+			body: repairRecordSchema,
+			detail: { tags: ["MES - Rework"], summary: "Record repair details for rework task" },
 		},
 	)
 	// Complete rework task

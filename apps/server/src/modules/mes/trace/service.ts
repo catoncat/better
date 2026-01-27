@@ -20,6 +20,26 @@ const toIso = (value: Date | null | undefined) => (value ? value.toISOString() :
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === "object" && value !== null && !Array.isArray(value);
 
+const toOptionalString = (value: unknown) => (typeof value === "string" ? value : null);
+
+const getRepairRecord = (meta: Prisma.JsonValue | null | undefined) => {
+	if (!isRecord(meta)) return null;
+	const record = meta.repairRecordV1;
+	if (!isRecord(record)) return null;
+	const action = toOptionalString(record.action);
+	const result = toOptionalString(record.result);
+	const recordedAt = toOptionalString(record.recordedAt);
+	if (!action || !result || !recordedAt) return null;
+	return {
+		action,
+		result,
+		recordedAt,
+		recordedBy: toOptionalString(record.recordedBy),
+		reason: toOptionalString(record.reason),
+		remark: toOptionalString(record.remark),
+	};
+};
+
 const toStringArray = (value: unknown) =>
 	Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : null;
 
@@ -159,6 +179,24 @@ export const getUnitTrace = async (
 			location: string | null;
 			qty: number;
 			status: string;
+			disposition: {
+				type: string;
+				reason: string | null;
+				reworkTask: {
+					id: string;
+					status: string;
+					doneAt: string | null;
+					doneBy: string | null;
+					repairRecord: {
+						action: string;
+						result: string;
+						recordedAt: string;
+						recordedBy: string | null;
+						reason: string | null;
+						remark: string | null;
+					} | null;
+				} | null;
+			} | null;
 		}>;
 		inspections: Array<{
 			id: string;
@@ -400,6 +438,7 @@ export const getUnitTrace = async (
 
 	const defects = await db.defect.findMany({
 		where: { unitId: unit.id },
+		include: { disposition: { include: { reworkTask: true } } },
 	});
 
 	const inspections = unit.runId
@@ -634,6 +673,21 @@ export const getUnitTrace = async (
 				location: defect.location ?? null,
 				qty: defect.qty,
 				status: defect.status,
+				disposition: defect.disposition
+					? {
+							type: defect.disposition.type,
+							reason: defect.disposition.reason ?? null,
+							reworkTask: defect.disposition.reworkTask
+								? {
+										id: defect.disposition.reworkTask.id,
+										status: defect.disposition.reworkTask.status,
+										doneAt: toIso(defect.disposition.reworkTask.doneAt),
+										doneBy: defect.disposition.reworkTask.doneBy ?? null,
+										repairRecord: getRepairRecord(defect.disposition.reworkTask.meta),
+									}
+								: null,
+						}
+					: null,
 			})),
 			inspections: inspections.map((inspection) => ({
 				id: inspection.id,

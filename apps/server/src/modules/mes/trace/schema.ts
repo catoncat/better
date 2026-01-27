@@ -122,6 +122,33 @@ export const traceUnitResponseSchema = t.Object({
 				location: t.Union([t.String(), t.Null()]),
 				qty: t.Number(),
 				status: t.String(),
+				disposition: t.Union([
+					t.Null(),
+					t.Object({
+						type: t.String(),
+						reason: t.Union([t.String(), t.Null()]),
+						reworkTask: t.Union([
+							t.Null(),
+							t.Object({
+								id: t.String(),
+								status: t.String(),
+								doneAt: t.Union([t.String(), t.Null()]),
+								doneBy: t.Union([t.String(), t.Null()]),
+								repairRecord: t.Union([
+									t.Null(),
+									t.Object({
+										action: t.String(),
+										result: t.String(),
+										recordedAt: t.String(),
+										recordedBy: t.Union([t.String(), t.Null()]),
+										reason: t.Union([t.String(), t.Null()]),
+										remark: t.Union([t.String(), t.Null()]),
+									}),
+								]),
+							}),
+						]),
+					}),
+				]),
 			}),
 		),
 		inspections: t.Array(

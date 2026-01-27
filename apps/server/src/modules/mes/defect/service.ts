@@ -6,12 +6,14 @@ import type {
 	completeReworkSchema,
 	createDefectSchema,
 	releaseHoldSchema,
+	repairRecordSchema,
 } from "./schema";
 
 type CreateDefectInput = Static<typeof createDefectSchema>;
 type AssignDispositionInput = Static<typeof assignDispositionSchema>;
 type ReleaseHoldInput = Static<typeof releaseHoldSchema>;
 type CompleteReworkInput = Static<typeof completeReworkSchema>;
+type RepairRecordInput = Static<typeof repairRecordSchema>;
 
 type DefectWithRelations = Prisma.DefectGetPayload<{
 	include: {
@@ -41,6 +43,36 @@ type DefectWithFailureStep = DefectWithRelations & {
 type ReworkTaskWithRelations = Prisma.ReworkTaskGetPayload<{
 	include: { unit: true; disposition: { include: { defect: true } } };
 }>;
+
+type RepairRecordPayload = {
+	reason?: string;
+	action: string;
+	result: string;
+	remark?: string;
+	recordedBy?: string | null;
+	recordedAt: string;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null && !Array.isArray(value);
+
+const buildRepairRecordMeta = (
+	meta: Prisma.JsonValue | null | undefined,
+	data: RepairRecordInput,
+	recordedBy?: string,
+): Prisma.JsonObject => {
+	const nextMeta: Prisma.JsonObject = isRecord(meta) ? { ...meta } : {};
+	const payload: RepairRecordPayload = {
+		action: data.action,
+		result: data.result,
+		recordedAt: new Date().toISOString(),
+		recordedBy: recordedBy ?? null,
+	};
+	if (data.reason) payload.reason = data.reason;
+	if (data.remark) payload.remark = data.remark;
+	nextMeta.repairRecordV1 = payload;
+	return nextMeta;
+};
 
 const DEFECT_STATUS = {
 	RECORDED: "RECORDED",
@@ -460,6 +492,49 @@ export async function completeRework(
 	}
 
 	return { success: true as const, data: result };
+}
+
+/**
+ * Record repair details for a rework task (QR-Pro-012).
+ */
+export async function saveRepairRecord(
+	db: PrismaClient,
+	reworkTaskId: string,
+	data: RepairRecordInput,
+	recordedBy?: string,
+): Promise<ServiceResult<ReworkTaskWithRelations>> {
+	const reworkTask = await db.reworkTask.findUnique({
+		where: { id: reworkTaskId },
+		include: { unit: true, disposition: { include: { defect: true } } },
+	});
+
+	if (!reworkTask) {
+		return {
+			success: false as const,
+			code: "REWORK_TASK_NOT_FOUND",
+			message: "Rework task not found",
+			status: 404,
+		};
+	}
+
+	if (reworkTask.status !== REWORK_STATUS.OPEN) {
+		return {
+			success: false as const,
+			code: "REWORK_TASK_NOT_OPEN",
+			message: `Rework task status is ${reworkTask.status}, cannot record repair`,
+			status: 400,
+		};
+	}
+
+	const updated = await db.reworkTask.update({
+		where: { id: reworkTaskId },
+		data: {
+			meta: buildRepairRecordMeta(reworkTask.meta, data, recordedBy),
+		},
+		include: { unit: true, disposition: { include: { defect: true } } },
+	});
+
+	return { success: true as const, data: updated };
 }
 
 /**
