@@ -6,7 +6,7 @@ baseRef: "origin/main"
 dependencies:
   blockedBy: []
   blocks: []
-status: in_progress  # pending | in_progress | completed
+status: completed  # pending | in_progress | completed
 task:
   title: "T4.6.12.1 QR-Pro-012 维修记录表单化"
   planPath: "domain_docs/mes/plan/phase4_tasks.md"
@@ -28,7 +28,7 @@ touchPoints:
 - Risks: Fields are minimal/confirmed only; full form is still empty in docs.
 
 ## Slices
-- [ ] Slice 6: QR-Pro-012 repair record
+- [x] Slice 6: QR-Pro-012 repair record
 
 <!-- AUTO:BEGIN status -->
 
@@ -50,6 +50,10 @@ touchPoints:
 
 ## Open Questions
 - Whether to allow edits after task is DONE/CANCELLED (default: disallow).
+
+## Progress
+- Implemented repair record API + trace exposure + web UI dialog.
+- Added integration test `mes-repair-record.test.ts`.
 
 ## Findings
 - `domain_docs/mes/spec/process/compair/smt_forms/维修记录表QR-Pro-012.md` is empty; matrix confirms only reason/action/result/responsible.
