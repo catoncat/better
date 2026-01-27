@@ -70,6 +70,7 @@
 | 单件完成 (Unit=DONE) | `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
 | 不良记录 (Unit=OUT_FAILED) | `POST /api/defects`, `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/defect/service.ts`, `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/defects.tsx` |
 | 创建返修任务/回流 | `POST /api/defects/:defectId/disposition`, `GET /api/rework-tasks` | `apps/server/src/modules/mes/defect/service.ts` | `apps/web/src/routes/_authenticated/mes/rework-tasks.tsx` |
+| 维修记录 (QR-Pro-012) | `POST /api/rework-tasks/:taskId/repair-record` | `apps/server/src/modules/mes/defect/service.ts` | `apps/web/src/routes/_authenticated/mes/rework-tasks.tsx` |
 | 报废确认 (Unit=SCRAPPED) | `POST /api/defects/:defectId/disposition` | `apps/server/src/modules/mes/defect/service.ts` | `apps/web/src/routes/_authenticated/mes/defects.tsx` |
 | 隔离 (Unit=ON_HOLD) | `POST /api/defects/:defectId/disposition`, `POST /api/defects/:defectId/release` | `apps/server/src/modules/mes/defect/service.ts` | `apps/web/src/routes/_authenticated/mes/defects.tsx` |
 | 处置评审 | `POST /api/defects/:defectId/disposition` | `apps/server/src/modules/mes/defect/service.ts` | `apps/web/src/routes/_authenticated/mes/defects.tsx` |
