@@ -69,3 +69,11 @@ touchPoints:
 ## Findings
 - `user_docs/demo/acceptance_plan_dip.md` exists; SMT `acceptance_plan.md` is missing.
 - `user_docs/demo/acceptance_issues.md` has no open items.
+- DIP acceptance script run succeeded (track=dip, scenario=happy).
+
+## Errors
+- `bun scripts/mes-acceptance.ts --track dip --scenario happy --json` failed at `bun run db:seed` with missing Prisma client: `Cannot find module '../prisma/generated/client/index.js'` (needs `bun run db:generate`).
+
+## Progress
+- Generated Prisma client with `bun run db:generate`.
+- Ran acceptance script successfully (Run=RUN-WO-acceptance-dip-happy-1769493460623, WO=WO-acceptance-dip-happy, SN=SN-RUN-WO-acceptance-dip-happy-1769493460623-0001).

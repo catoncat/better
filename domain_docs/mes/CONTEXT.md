@@ -29,7 +29,8 @@
 
 ## Triage（接下来做什么）
 
-- 当前最紧急：验收计划**暂时搁置**，不作为下一步优先事项。
+- DIP 验收脚本已完成（`user_docs/demo/acceptance_plan_dip.md`），无阻断问题。
+- SMT 验收计划文件仍缺失（`user_docs/demo/acceptance_plan.md`），继续保持“暂不执行”状态。
 - 当前优先：以 `plan/smt_gap_task_breakdown.md` 为执行入口推进 SMT Gap 任务（先合并 smt-basic 记录层，再做 Readiness 联动）。
 - 其他任务：M4 开发仍以 `plan/phase4_tasks.md` 为参考，但需避免与 SMT Gap 重复执行。
 - 使用 `/mes-next` skill 进行任务分拣（会输出 worktree scan + 候选项 + 冲突提示），以 SMT Gap 计划为主入口。

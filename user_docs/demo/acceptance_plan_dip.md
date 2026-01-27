@@ -1,7 +1,7 @@
 # MES 系统 AI 浏览器验收计划（DIP 专用）
 
 > 创建时间: 2026-01-14
-> 状态: 未开始
+> 状态: 已完成（脚本验收）
 
 ## 目标
 
@@ -13,19 +13,19 @@
 
 ### 当前进度（快速概览）
 
-- [ ] 环境检查 - 确认服务可用
-- [ ] 阶段 1: DIP 工单与批次创建
-- [ ] 阶段 2: Readiness（产前检查）
-- [ ] 阶段 3: FAI（可选）+ 授权前试产
-- [ ] 阶段 4: Run 授权
-- [ ] 阶段 5: DIP 执行过站
-- [ ] 阶段 6: 收尾与 OQC/MRB
-- [ ] 阶段 7: 工单收尾 + 追溯验证
-- [ ] 输出验收报告
+- [x] 环境检查 - 确认服务可用
+- [x] 阶段 1: DIP 工单与批次创建
+- [x] 阶段 2: Readiness（产前检查）
+- [x] 阶段 3: FAI（可选）+ 授权前试产
+- [x] 阶段 4: Run 授权
+- [x] 阶段 5: DIP 执行过站
+- [x] 阶段 6: 收尾与 OQC/MRB
+- [x] 阶段 7: 工单收尾 + 追溯验证
+- [x] 输出验收报告
 
 ### 日志
 
-- （验收过程中在此追加记录）
+- 2026-01-27: `bun scripts/mes-acceptance.ts --track dip --scenario happy --json` 执行通过；Run=RUN-WO-acceptance-dip-happy-1769493460623，WO=WO-acceptance-dip-happy，SN=SN-RUN-WO-acceptance-dip-happy-1769493460623-0001。
 
 ---
 
