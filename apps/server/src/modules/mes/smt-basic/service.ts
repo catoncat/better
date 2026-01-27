@@ -367,6 +367,14 @@ type DailyQcListQuery = {
 	pageSize?: number;
 };
 
+type DailyQcStatsQuery = {
+	lineCode?: string;
+	shiftCode?: string;
+	timeWindow?: string;
+	inspectedFrom?: string;
+	inspectedTo?: string;
+};
+
 type DailyQcCreateInput = {
 	lineCode?: string;
 	customer?: string;
@@ -423,6 +431,12 @@ type ProductionExceptionCreateInput = {
 	confirmedAt?: string;
 	remark?: string;
 	meta?: Prisma.JsonValue;
+};
+
+type ProductionExceptionConfirmInput = {
+	confirmedBy: string;
+	correctiveAction?: string;
+	remark?: string;
 };
 
 const mapLine = (record: { line?: { id: string; code: string; name: string } | null }) => ({
@@ -746,6 +760,11 @@ const validateNonNegative = (value: number | undefined, code: string, message: s
 		} as const;
 	}
 	return null;
+};
+
+const calculateRate = (numerator: number, denominator: number) => {
+	if (denominator <= 0) return null;
+	return Number((numerator / denominator).toFixed(4));
 };
 
 export async function listStencilUsageRecords(
@@ -1757,6 +1776,134 @@ export async function listDailyQcRecords(
 	return { items: items.map(mapDailyQcRecord), total, page, pageSize };
 }
 
+export async function listDailyQcStats(
+	db: PrismaClient,
+	query: DailyQcStatsQuery,
+): Promise<{
+	items: Array<{
+		shiftCode: string | null;
+		timeWindow: string | null;
+		totalRecords: number;
+		totalParts: number;
+		inspectedQty: number;
+		defectBoardQty: number;
+		defectBoardRate: number | null;
+		defectQty: number;
+		defectRate: number | null;
+	}>;
+	totals: {
+		totalRecords: number;
+		totalParts: number;
+		inspectedQty: number;
+		defectBoardQty: number;
+		defectBoardRate: number | null;
+		defectQty: number;
+		defectRate: number | null;
+	};
+}> {
+	const where: Prisma.DailyQcRecordWhereInput = {};
+
+	const shiftCode = query.shiftCode?.trim();
+	if (shiftCode) {
+		where.shiftCode = { contains: shiftCode };
+	}
+
+	const timeWindow = query.timeWindow?.trim();
+	if (timeWindow) {
+		where.timeWindow = { contains: timeWindow };
+	}
+
+	const lineCode = query.lineCode?.trim();
+	if (lineCode) {
+		const lineIds = await resolveLineIdsForSearch(db, lineCode);
+		if (!lineIds) {
+			return {
+				items: [],
+				totals: {
+					totalRecords: 0,
+					totalParts: 0,
+					inspectedQty: 0,
+					defectBoardQty: 0,
+					defectBoardRate: null,
+					defectQty: 0,
+					defectRate: null,
+				},
+			};
+		}
+		where.lineId = { in: lineIds };
+	}
+
+	const inspectedFrom = query.inspectedFrom ? parseDate(query.inspectedFrom) : null;
+	const inspectedTo = query.inspectedTo ? parseDate(query.inspectedTo) : null;
+	if (inspectedFrom || inspectedTo) {
+		where.inspectedAt = {
+			...(inspectedFrom ? { gte: inspectedFrom } : {}),
+			...(inspectedTo ? { lte: inspectedTo } : {}),
+		};
+	}
+
+	const grouped = await db.dailyQcRecord.groupBy({
+		by: ["shiftCode", "timeWindow"],
+		where,
+		_count: { _all: true },
+		_sum: {
+			totalParts: true,
+			inspectedQty: true,
+			defectBoardQty: true,
+			defectQty: true,
+		},
+		orderBy: [{ shiftCode: "asc" }, { timeWindow: "asc" }],
+	});
+
+	const items = grouped.map((row) => {
+		const totalParts = row._sum.totalParts ?? 0;
+		const inspectedQty = row._sum.inspectedQty ?? 0;
+		const defectBoardQty = row._sum.defectBoardQty ?? 0;
+		const defectQty = row._sum.defectQty ?? 0;
+		return {
+			shiftCode: row.shiftCode ?? null,
+			timeWindow: row.timeWindow ?? null,
+			totalRecords: row._count._all ?? 0,
+			totalParts,
+			inspectedQty,
+			defectBoardQty,
+			defectBoardRate: calculateRate(defectBoardQty, inspectedQty),
+			defectQty,
+			defectRate: calculateRate(defectQty, inspectedQty),
+		};
+	});
+
+	const totals = items.reduce(
+		(acc, item) => ({
+			totalRecords: acc.totalRecords + item.totalRecords,
+			totalParts: acc.totalParts + item.totalParts,
+			inspectedQty: acc.inspectedQty + item.inspectedQty,
+			defectBoardQty: acc.defectBoardQty + item.defectBoardQty,
+			defectBoardRate: null,
+			defectQty: acc.defectQty + item.defectQty,
+			defectRate: null,
+		}),
+		{
+			totalRecords: 0,
+			totalParts: 0,
+			inspectedQty: 0,
+			defectBoardQty: 0,
+			defectBoardRate: null,
+			defectQty: 0,
+			defectRate: null,
+		},
+	);
+
+	return {
+		items,
+		totals: {
+			...totals,
+			defectBoardRate: calculateRate(totals.defectBoardQty, totals.inspectedQty),
+			defectRate: calculateRate(totals.defectQty, totals.inspectedQty),
+		},
+	};
+}
+
 export async function createDailyQcRecord(
 	db: PrismaClient,
 	input: DailyQcCreateInput,
@@ -2022,6 +2169,53 @@ export async function createProductionExceptionRecord(
 			confirmedAt,
 			remark: input.remark?.trim() || null,
 			meta: input.meta ?? undefined,
+		},
+		include: { line: { select: { id: true, code: true, name: true } } },
+	});
+
+	return { success: true, data: mapProductionExceptionRecord(record) };
+}
+
+export async function confirmProductionExceptionRecord(
+	db: PrismaClient,
+	id: string,
+	input: ProductionExceptionConfirmInput,
+): Promise<ServiceResult<ProductionExceptionRecordDetail>> {
+	const existing = await db.productionExceptionRecord.findUnique({
+		where: { id },
+		select: { confirmedAt: true },
+	});
+
+	if (!existing) {
+		return { success: false, code: "NOT_FOUND", message: "Production exception record not found" };
+	}
+
+	if (existing.confirmedAt) {
+		return {
+			success: false,
+			code: "ALREADY_CONFIRMED",
+			message: "Production exception record already confirmed",
+			status: 400,
+		};
+	}
+
+	const confirmedBy = input.confirmedBy.trim();
+	if (!confirmedBy) {
+		return {
+			success: false,
+			code: "CONFIRMED_BY_REQUIRED",
+			message: "confirmedBy is required",
+			status: 400,
+		};
+	}
+
+	const record = await db.productionExceptionRecord.update({
+		where: { id },
+		data: {
+			confirmedBy,
+			confirmedAt: new Date(),
+			correctiveAction: input.correctiveAction?.trim() || undefined,
+			remark: input.remark?.trim() || undefined,
 		},
 		include: { line: { select: { id: true, code: true, name: true } } },
 	});

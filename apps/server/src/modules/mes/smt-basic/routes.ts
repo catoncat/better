@@ -9,10 +9,13 @@ import {
 	dailyQcListQuerySchema,
 	dailyQcListResponseSchema,
 	dailyQcResponseSchema,
+	dailyQcStatsQuerySchema,
+	dailyQcStatsResponseSchema,
 	equipmentInspectionCreateSchema,
 	equipmentInspectionListQuerySchema,
 	equipmentInspectionListResponseSchema,
 	equipmentInspectionResponseSchema,
+	errorResponseSchema,
 	fixtureUsageCreateSchema,
 	fixtureUsageListQuerySchema,
 	fixtureUsageListResponseSchema,
@@ -21,7 +24,9 @@ import {
 	ovenProgramListQuerySchema,
 	ovenProgramListResponseSchema,
 	ovenProgramResponseSchema,
+	productionExceptionConfirmSchema,
 	productionExceptionCreateSchema,
+	productionExceptionIdParamSchema,
 	productionExceptionListQuerySchema,
 	productionExceptionListResponseSchema,
 	productionExceptionResponseSchema,
@@ -39,6 +44,7 @@ import {
 	stencilUsageResponseSchema,
 } from "./schema";
 import {
+	confirmProductionExceptionRecord,
 	createDailyQcRecord,
 	createEquipmentInspectionRecord,
 	createFixtureUsageRecord,
@@ -48,6 +54,7 @@ import {
 	createStencilCleaningRecord,
 	createStencilUsageRecord,
 	listDailyQcRecords,
+	listDailyQcStats,
 	listEquipmentInspectionRecords,
 	listFixtureUsageRecords,
 	listOvenProgramRecords,
@@ -471,6 +478,20 @@ export const dailyQcRoutes = new Elysia({ prefix: "/daily-qc-records" })
 			detail: { tags: ["MES - QC"], summary: "List daily QC records" },
 		},
 	)
+	.get(
+		"/stats",
+		async ({ db, query }) => {
+			const result = await listDailyQcStats(db, query);
+			return { ok: true, data: result };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.QUALITY_OQC,
+			query: dailyQcStatsQuerySchema,
+			response: { 200: dailyQcStatsResponseSchema },
+			detail: { tags: ["MES - QC"], summary: "Get daily QC stats" },
+		},
+	)
 	.post(
 		"/",
 		async ({ db, body, set, user, request }) => {
@@ -582,6 +603,57 @@ export const productionExceptionRoutes = new Elysia({ prefix: "/production-excep
 			body: productionExceptionCreateSchema,
 			response: { 201: productionExceptionResponseSchema },
 			detail: { tags: ["MES - QC"], summary: "Create production exception record" },
+		},
+	)
+	.post(
+		"/:exceptionId/confirm",
+		async ({ db, params, body, set, user, request }) => {
+			const actor = buildAuditActor(user);
+			const meta = buildAuditRequestMeta(request);
+			const result = await confirmProductionExceptionRecord(db, params.exceptionId, body);
+
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.PRODUCTION_EXCEPTION,
+					entityId: params.exceptionId,
+					entityDisplay: `Production exception record`,
+					action: "PRODUCTION_EXCEPTION_CONFIRM",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					payload: body,
+					request: meta,
+				});
+				set.status = result.status ?? (result.code === "NOT_FOUND" ? 404 : 400);
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.PRODUCTION_EXCEPTION,
+				entityId: result.data.id,
+				entityDisplay: `Production exception record`,
+				action: "PRODUCTION_EXCEPTION_CONFIRM",
+				actor,
+				status: "SUCCESS",
+				after: result.data,
+				payload: body,
+				request: meta,
+			});
+
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.QUALITY_OQC,
+			params: productionExceptionIdParamSchema,
+			body: productionExceptionConfirmSchema,
+			response: {
+				200: productionExceptionResponseSchema,
+				400: errorResponseSchema,
+				404: errorResponseSchema,
+			},
+			detail: { tags: ["MES - QC"], summary: "Confirm production exception record" },
 		},
 	);
 
