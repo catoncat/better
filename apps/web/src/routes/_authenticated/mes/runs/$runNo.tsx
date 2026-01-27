@@ -23,6 +23,7 @@ import { NoAccessCard } from "@/components/ability/no-access-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import {
 	Dialog,
 	DialogContent,
@@ -760,12 +761,11 @@ function RunDetailPage() {
 				</div>
 			</div>
 
-			<Card>
-				<CardHeader className="pb-3">
-					<CardTitle>流程进度</CardTitle>
-					<CardDescription>就绪检查 → 首件检验 → 授权生产 → 批次执行 → 收尾</CardDescription>
-				</CardHeader>
-				<CardContent className="space-y-4">
+			<CollapsibleCard
+				title="流程进度"
+				description="就绪检查 → 首件检验 → 授权生产 → 批次执行 → 收尾"
+			>
+				<div className="space-y-4">
 					<div className="grid gap-3 md:grid-cols-5">
 						<div className="space-y-1">
 							<p className="text-sm text-muted-foreground">就绪检查</p>
@@ -812,8 +812,8 @@ function RunDetailPage() {
 							<span className="font-medium">{nextAction}</span>
 						</div>
 					)}
-				</CardContent>
-			</Card>
+				</div>
+			</CollapsibleCard>
 
 			<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
 				<Card>
@@ -876,66 +876,58 @@ function RunDetailPage() {
 					</CardContent>
 				</Card>
 
-				<Card className="lg:col-span-2">
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<ClipboardCheck className="h-5 w-5 text-blue-600" />
-							转拉前检查模板
-						</CardTitle>
-						<CardDescription>
-							静态模板（QR-Pro-133）展示准备项与时间窗口状态，完整检查明细请参考上方准备状态。
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						{!canViewReadiness ? (
-							<NoAccessCard description="无权限查看准备检查状态。" />
-						) : readinessLoading ? (
-							<p className="text-muted-foreground">加载中...</p>
-						) : !readinessData ? (
-							<div className="py-4 text-center text-muted-foreground">
-								<p>暂无检查记录</p>
-								{canShowReadinessActions && (
-									<p className="text-sm mt-1">请先完成准备检查以生成模板结果</p>
-								)}
-							</div>
-						) : (
-							<div className="space-y-6">
-								{PREP_CHECKLIST_TEMPLATE.map((section) => (
-									<div key={section.title} className="space-y-2">
-										<p className="text-sm font-medium">{section.title}</p>
-										<div className="grid gap-2 md:grid-cols-2">
-											{section.itemTypes.map((itemType) => {
-												const { status, count } = getTemplateStatus(itemType);
-												return (
-													<div
-														key={itemType}
-														className="flex items-center justify-between rounded-md border px-3 py-2"
-													>
-														<div>
-															<p className="text-sm font-medium">{getItemTypeLabel(itemType)}</p>
-															{count > 1 && (
-																<p className="text-xs text-muted-foreground">{count} 项</p>
-															)}
-														</div>
-														{getTemplateStatusBadge(status)}
+				<CollapsibleCard
+					title="转拉前检查模板"
+					icon={<ClipboardCheck className="h-5 w-5 text-blue-600" />}
+					description="静态模板（QR-Pro-133）展示准备项与时间窗口状态，完整检查明细请参考上方准备状态。"
+					className="lg:col-span-4"
+					defaultOpen={false}
+				>
+					{!canViewReadiness ? (
+						<NoAccessCard description="无权限查看准备检查状态。" />
+					) : readinessLoading ? (
+						<p className="text-muted-foreground">加载中...</p>
+					) : !readinessData ? (
+						<div className="py-4 text-center text-muted-foreground">
+							<p>暂无检查记录</p>
+							{canShowReadinessActions && (
+								<p className="text-sm mt-1">请先完成准备检查以生成模板结果</p>
+							)}
+						</div>
+					) : (
+						<div className="space-y-6">
+							{PREP_CHECKLIST_TEMPLATE.map((section) => (
+								<div key={section.title} className="space-y-2">
+									<p className="text-sm font-medium">{section.title}</p>
+									<div className="grid gap-2 md:grid-cols-2">
+										{section.itemTypes.map((itemType) => {
+											const { status, count } = getTemplateStatus(itemType);
+											return (
+												<div
+													key={itemType}
+													className="flex items-center justify-between rounded-md border px-3 py-2"
+												>
+													<div>
+														<p className="text-sm font-medium">{getItemTypeLabel(itemType)}</p>
+														{count > 1 && (
+															<p className="text-xs text-muted-foreground">{count} 项</p>
+														)}
 													</div>
-												);
-											})}
-										</div>
+													{getTemplateStatusBadge(status)}
+												</div>
+											);
+										})}
 									</div>
-								))}
-							</div>
-						)}
-					</CardContent>
-				</Card>
+								</div>
+							))}
+						</div>
+					)}
+				</CollapsibleCard>
 			</div>
 
 			<div className="grid gap-6 lg:grid-cols-2">
-				<Card>
-					<CardHeader>
-						<CardTitle>批次信息</CardTitle>
-					</CardHeader>
-					<CardContent className="grid gap-4 md:grid-cols-2">
+				<CollapsibleCard title="批次信息">
+					<div className="grid gap-4 md:grid-cols-2">
 						<div>
 							<p className="text-sm text-muted-foreground">产线</p>
 							<p className="font-medium">
@@ -958,52 +950,47 @@ function RunDetailPage() {
 							<p className="text-sm text-muted-foreground">创建时间</p>
 							<p className="font-medium">{formatDateTime(data.run.createdAt)}</p>
 						</div>
-					</CardContent>
-				</Card>
+					</div>
+				</CollapsibleCard>
 
-				<Card>
-					<CardHeader>
-						<CardTitle>路由版本</CardTitle>
-					</CardHeader>
-					<CardContent>
-						{data.routeVersion ? (
-							<div className="grid gap-4 md:grid-cols-2">
-								<div>
-									<p className="text-sm text-muted-foreground">路由编码</p>
-									{canViewRoutes ? (
-										<Link
-											to="/mes/routes/$routingCode"
-											params={{ routingCode: data.routeVersion.route.code }}
-											className="font-medium text-primary hover:underline"
-										>
-											{data.routeVersion.route.code}
-										</Link>
-									) : (
-										<p className="font-medium text-muted-foreground">
-											{data.routeVersion.route.code}
-										</p>
-									)}
-								</div>
-								<div>
-									<p className="text-sm text-muted-foreground">路由名称</p>
-									<p className="font-medium">{data.routeVersion.route.name}</p>
-								</div>
-								<div>
-									<p className="text-sm text-muted-foreground">版本号</p>
-									<p className="font-medium">v{data.routeVersion.versionNo}</p>
-								</div>
-								<div>
-									<p className="text-sm text-muted-foreground">版本状态</p>
-									<Badge variant={data.routeVersion.status === "READY" ? "default" : "outline"}>
-										{data.routeVersion.status}
-									</Badge>
-								</div>
+				<CollapsibleCard title="路由版本">
+					{data.routeVersion ? (
+						<div className="grid gap-4 md:grid-cols-2">
+							<div>
+								<p className="text-sm text-muted-foreground">路由编码</p>
+								{canViewRoutes ? (
+									<Link
+										to="/mes/routes/$routingCode"
+										params={{ routingCode: data.routeVersion.route.code }}
+										className="font-medium text-primary hover:underline"
+									>
+										{data.routeVersion.route.code}
+									</Link>
+								) : (
+									<p className="font-medium text-muted-foreground">
+										{data.routeVersion.route.code}
+									</p>
+								)}
 							</div>
-						) : (
-							<p className="text-muted-foreground">未绑定路由版本</p>
-						)}
-					</CardContent>
-				</Card>
+							<div>
+								<p className="text-sm text-muted-foreground">路由名称</p>
+								<p className="font-medium">{data.routeVersion.route.name}</p>
+							</div>
+							<div>
+								<p className="text-sm text-muted-foreground">版本号</p>
+								<p className="font-medium">v{data.routeVersion.versionNo}</p>
+							</div>
+							<div>
+								<p className="text-sm text-muted-foreground">版本状态</p>
+								<Badge variant={data.routeVersion.status === "READY" ? "default" : "outline"}>
+									{data.routeVersion.status}
+								</Badge>
+							</div>
+						</div>
+					) : (
+						<p className="text-muted-foreground">未绑定路由版本</p>
+					)}
+				</CollapsibleCard>
 
 				<Card className="lg:col-span-2">
 					<CardHeader>
@@ -1489,141 +1476,129 @@ function RunDetailPage() {
 				</Card>
 			)}
 
-			<Card>
-				<CardHeader className="flex flex-row items-center justify-between">
-					<div>
-						<CardTitle>路由进度</CardTitle>
-						<CardDescription>查看各工序完成情况</CardDescription>
-					</div>
-					<Package className="h-5 w-5 text-muted-foreground" />
-				</CardHeader>
-				<CardContent>
-					{data.routeSteps.length === 0 ? (
-						<div className="py-6 text-center text-muted-foreground">暂无路由步骤</div>
-					) : (
-						<div className="space-y-4">
-							{data.routeSteps.map((step) => {
-								const progress =
-									step.total > 0 ? Math.min((step.completed / step.total) * 100, 100) : 0;
-								return (
-									<div key={step.stepNo} className="space-y-2">
-										<div className="flex flex-wrap items-center justify-between gap-2">
-											<div>
-												<p className="text-sm font-medium">{formatStepLabel(step)}</p>
-												<p className="text-xs text-muted-foreground">{formatStepStation(step)}</p>
-											</div>
-											<p className="text-sm text-muted-foreground">
-												{step.completed}/{step.total} 完成
-											</p>
+			<CollapsibleCard
+				title="路由进度"
+				description="查看各工序完成情况"
+				icon={<Package className="h-5 w-5 text-muted-foreground" />}
+			>
+				{data.routeSteps.length === 0 ? (
+					<div className="py-6 text-center text-muted-foreground">暂无路由步骤</div>
+				) : (
+					<div className="space-y-4">
+						{data.routeSteps.map((step) => {
+							const progress =
+								step.total > 0 ? Math.min((step.completed / step.total) * 100, 100) : 0;
+							return (
+								<div key={step.stepNo} className="space-y-2">
+									<div className="flex flex-wrap items-center justify-between gap-2">
+										<div>
+											<p className="text-sm font-medium">{formatStepLabel(step)}</p>
+											<p className="text-xs text-muted-foreground">{formatStepStation(step)}</p>
 										</div>
-										<Progress value={progress} />
+										<p className="text-sm text-muted-foreground">
+											{step.completed}/{step.total} 完成
+										</p>
 									</div>
-								);
-							})}
-						</div>
-					)}
-				</CardContent>
-			</Card>
-
-			<Card>
-				<CardHeader className="flex flex-row items-center justify-between">
-					<div>
-						<CardTitle>Unit 列表</CardTitle>
-						<CardDescription>展示批次下产品当前进度</CardDescription>
+									<Progress value={progress} />
+								</div>
+							);
+						})}
 					</div>
-					<Package className="h-5 w-5 text-muted-foreground" />
-				</CardHeader>
-				<CardContent>
-					{runUnitsLoading ? (
-						<div className="py-8 text-center text-muted-foreground">加载中...</div>
-					) : !runUnits || runUnits.items.length === 0 ? (
-						<div className="py-8 text-center text-muted-foreground">暂无生产记录</div>
-					) : (
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>序列号 (SN)</TableHead>
-									<TableHead>当前步骤</TableHead>
-									<TableHead>下一步</TableHead>
-									<TableHead>状态</TableHead>
-									<TableHead>更新时间</TableHead>
-									<TableHead>操作</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{runUnits.items.map((unit) => (
-									<TableRow key={unit.sn}>
-										<TableCell className="font-mono">{unit.sn}</TableCell>
-										<TableCell>
-											<div className="space-y-1">
-												<div className="text-sm font-medium">
-													{formatStepLabel(unit.currentStep)}
-												</div>
-												<div className="text-xs text-muted-foreground">
-													{formatStepStation(unit.currentStep)}
-												</div>
-											</div>
-										</TableCell>
-										<TableCell>
-											<div className="space-y-1">
-												<div className="text-sm font-medium">{formatStepLabel(unit.nextStep)}</div>
-												<div className="text-xs text-muted-foreground">
-													{formatStepStation(unit.nextStep)}
-												</div>
-											</div>
-										</TableCell>
-										<TableCell>{getUnitStatusBadge(unit.status)}</TableCell>
-										<TableCell className="text-muted-foreground">
-											{formatDateTime(unit.updatedAt)}
-										</TableCell>
-										<TableCell>
-											<Button variant="ghost" size="sm" asChild>
-												<Link to="/mes/trace" search={{ sn: unit.sn }}>
-													追溯
-												</Link>
-											</Button>
-										</TableCell>
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
-					)}
+				)}
+			</CollapsibleCard>
 
-					{runUnits && runUnits.total > 0 && (
-						<div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
-							<span>
-								共 {runUnits.total} 条 · 第 {unitsPage}/
-								{Math.max(1, Math.ceil(runUnits.total / unitsPageSize))} 页
-							</span>
-							<div className="flex items-center gap-2">
-								<Button
-									variant="outline"
-									size="sm"
-									disabled={unitsPage <= 1 || runUnitsFetching}
-									onClick={() => setUnitsPage((current) => Math.max(1, current - 1))}
-								>
-									上一页
-								</Button>
-								<Button
-									variant="outline"
-									size="sm"
-									disabled={
-										runUnitsFetching ||
-										unitsPage >= Math.max(1, Math.ceil(runUnits.total / unitsPageSize))
-									}
-									onClick={() =>
-										setUnitsPage((current) =>
-											Math.min(Math.max(1, Math.ceil(runUnits.total / unitsPageSize)), current + 1),
-										)
-									}
-								>
-									下一页
-								</Button>
-							</div>
+			<CollapsibleCard
+				title="Unit 列表"
+				description="展示批次下产品当前进度"
+				icon={<Package className="h-5 w-5 text-muted-foreground" />}
+			>
+				{runUnitsLoading ? (
+					<div className="py-8 text-center text-muted-foreground">加载中...</div>
+				) : !runUnits || runUnits.items.length === 0 ? (
+					<div className="py-8 text-center text-muted-foreground">暂无生产记录</div>
+				) : (
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>序列号 (SN)</TableHead>
+								<TableHead>当前步骤</TableHead>
+								<TableHead>下一步</TableHead>
+								<TableHead>状态</TableHead>
+								<TableHead>更新时间</TableHead>
+								<TableHead>操作</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{runUnits.items.map((unit) => (
+								<TableRow key={unit.sn}>
+									<TableCell className="font-mono">{unit.sn}</TableCell>
+									<TableCell>
+										<div className="space-y-1">
+											<div className="text-sm font-medium">{formatStepLabel(unit.currentStep)}</div>
+											<div className="text-xs text-muted-foreground">
+												{formatStepStation(unit.currentStep)}
+											</div>
+										</div>
+									</TableCell>
+									<TableCell>
+										<div className="space-y-1">
+											<div className="text-sm font-medium">{formatStepLabel(unit.nextStep)}</div>
+											<div className="text-xs text-muted-foreground">
+												{formatStepStation(unit.nextStep)}
+											</div>
+										</div>
+									</TableCell>
+									<TableCell>{getUnitStatusBadge(unit.status)}</TableCell>
+									<TableCell className="text-muted-foreground">
+										{formatDateTime(unit.updatedAt)}
+									</TableCell>
+									<TableCell>
+										<Button variant="ghost" size="sm" asChild>
+											<Link to="/mes/trace" search={{ sn: unit.sn }}>
+												追溯
+											</Link>
+										</Button>
+									</TableCell>
+								</TableRow>
+							))}
+						</TableBody>
+					</Table>
+				)}
+
+				{runUnits && runUnits.total > 0 && (
+					<div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+						<span>
+							共 {runUnits.total} 条 · 第 {unitsPage}/
+							{Math.max(1, Math.ceil(runUnits.total / unitsPageSize))} 页
+						</span>
+						<div className="flex items-center gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={unitsPage <= 1 || runUnitsFetching}
+								onClick={() => setUnitsPage((current) => Math.max(1, current - 1))}
+							>
+								上一页
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={
+									runUnitsFetching ||
+									unitsPage >= Math.max(1, Math.ceil(runUnits.total / unitsPageSize))
+								}
+								onClick={() =>
+									setUnitsPage((current) =>
+										Math.min(Math.max(1, Math.ceil(runUnits.total / unitsPageSize)), current + 1),
+									)
+								}
+							>
+								下一页
+							</Button>
 						</div>
-					)}
-				</CardContent>
-			</Card>
+					</div>
+				)}
+			</CollapsibleCard>
 
 			<Dialog open={waiveDialogOpen} onOpenChange={setWaiveDialogOpen}>
 				<DialogContent>
