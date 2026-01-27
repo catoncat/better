@@ -27,6 +27,16 @@ touchPoints:
 - Non-goals:
 - Risks:
 
+## Findings
+- `createEquipmentInspectionRecord` currently creates only `EquipmentInspectionRecord` and returns mapped data; no exception handling.
+- Equipment inspection creation uses `resolveLineId` and stores optional `meta`; response excludes `meta`.
+- Equipment inspection routes only record audit for inspection creation; no exception audit.
+- Production exception create schema allows `meta` for linkage payload without schema changes.
+- `AuditEntityType` includes `PRODUCTION_EXCEPTION`, so audit logging can reuse existing enum.
+- `createProductionExceptionRecord` validates description + issuedBy + issuedAt; other fields optional, `meta` accepted.
+- `phase4_tasks.md` lists T4.6.8.1 as pending (⬜) with note “点检失败触发异常反馈链路”.
+- `03_smt_align.md` has a single row for “设备点检记录” without exception linkage notes.
+
 ## Slices
 - [ ] Slice 7: SMT traceability - device inspection exception linkage (T4.6.8.1)
 
@@ -55,7 +65,7 @@ touchPoints:
 <!-- AUTO:END status -->
 
 ## Decisions
--
+- Auto-create `ProductionExceptionRecord` when equipment inspection result is FAIL; keep API response unchanged.
 
 ## Open Questions
 -
