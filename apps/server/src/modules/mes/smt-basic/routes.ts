@@ -363,20 +363,39 @@ export const equipmentInspectionRoutes = new Elysia({ prefix: "/equipment-inspec
 				return { ok: false, error: { code: result.code, message: result.message } };
 			}
 
+			const { record, exceptionRecord } = result.data;
+
 			await recordAuditEvent(db, {
 				entityType: AuditEntityType.EQUIPMENT_INSPECTION,
-				entityId: result.data.id,
-				entityDisplay: `Equipment inspection for ${result.data.machineName}`,
+				entityId: record.id,
+				entityDisplay: `Equipment inspection for ${record.machineName}`,
 				action: "EQUIPMENT_INSPECTION_CREATE",
 				actor,
 				status: "SUCCESS",
-				after: result.data,
+				after: record,
 				payload: body,
 				request: meta,
 			});
 
+			if (exceptionRecord) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.PRODUCTION_EXCEPTION,
+					entityId: exceptionRecord.id,
+					entityDisplay: `Production exception record`,
+					action: "PRODUCTION_EXCEPTION_CREATE",
+					actor,
+					status: "SUCCESS",
+					after: exceptionRecord,
+					payload: {
+						source: "equipment-inspection",
+						equipmentInspectionRecordId: record.id,
+					},
+					request: meta,
+				});
+			}
+
 			set.status = 201;
-			return { ok: true, data: result.data };
+			return { ok: true, data: record };
 		},
 		{
 			isAuth: true,
