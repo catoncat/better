@@ -249,13 +249,13 @@ function ReworkTasksPage() {
 							<TableHeader>
 								<TableRow>
 									<TableHead>单位 SN</TableHead>
-								<TableHead>缺陷代码</TableHead>
-								<TableHead>目标工步</TableHead>
-								<TableHead>状态</TableHead>
-								<TableHead>维修记录</TableHead>
-								<TableHead>创建时间</TableHead>
-								<TableHead>完成时间</TableHead>
-								<TableHead className="text-right">操作</TableHead>
+									<TableHead>缺陷代码</TableHead>
+									<TableHead>目标工步</TableHead>
+									<TableHead>状态</TableHead>
+									<TableHead>维修记录</TableHead>
+									<TableHead>创建时间</TableHead>
+									<TableHead>完成时间</TableHead>
+									<TableHead className="text-right">操作</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
@@ -419,14 +419,10 @@ function ReworkTasksPage() {
 						<Button
 							onClick={handleSaveRepairRecord}
 							disabled={
-								saveRepairRecord.isPending ||
-								!repairForm.action.trim() ||
-								!repairForm.result.trim()
+								saveRepairRecord.isPending || !repairForm.action.trim() || !repairForm.result.trim()
 							}
 						>
-							{saveRepairRecord.isPending && (
-								<Loader2 className="h-4 w-4 mr-2 animate-spin" />
-							)}
+							{saveRepairRecord.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
 							保存
 						</Button>
 					</DialogFooter>

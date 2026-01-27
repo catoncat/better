@@ -292,43 +292,43 @@ function TracePage() {
 								<Table>
 									<TableHeader>
 										<TableRow>
-										<TableHead>缺陷代码</TableHead>
-										<TableHead>位置</TableHead>
-										<TableHead>数量</TableHead>
-										<TableHead>状态</TableHead>
-										<TableHead>维修记录</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{data.defects.map((defect) => {
-										const record = defect.disposition?.reworkTask?.repairRecord ?? null;
-										return (
-											<TableRow key={defect.id}>
-												<TableCell className="font-medium">{defect.code}</TableCell>
-												<TableCell>{defect.location ?? "-"}</TableCell>
-												<TableCell>{defect.qty}</TableCell>
-												<TableCell>
-													<Badge variant="outline">{defect.status}</Badge>
-												</TableCell>
-												<TableCell>
-													{record ? (
-														<div className="space-y-1 text-xs">
-															<div className="font-medium">{record.action}</div>
-															<div>结果：{record.result}</div>
-															{record.reason ? <div>原因：{record.reason}</div> : null}
-															<div className="text-muted-foreground">
-																{formatDateTime(record.recordedAt)}
+											<TableHead>缺陷代码</TableHead>
+											<TableHead>位置</TableHead>
+											<TableHead>数量</TableHead>
+											<TableHead>状态</TableHead>
+											<TableHead>维修记录</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{data.defects.map((defect) => {
+											const record = defect.disposition?.reworkTask?.repairRecord ?? null;
+											return (
+												<TableRow key={defect.id}>
+													<TableCell className="font-medium">{defect.code}</TableCell>
+													<TableCell>{defect.location ?? "-"}</TableCell>
+													<TableCell>{defect.qty}</TableCell>
+													<TableCell>
+														<Badge variant="outline">{defect.status}</Badge>
+													</TableCell>
+													<TableCell>
+														{record ? (
+															<div className="space-y-1 text-xs">
+																<div className="font-medium">{record.action}</div>
+																<div>结果：{record.result}</div>
+																{record.reason ? <div>原因：{record.reason}</div> : null}
+																<div className="text-muted-foreground">
+																	{formatDateTime(record.recordedAt)}
+																</div>
 															</div>
-														</div>
-													) : (
-														<span className="text-muted-foreground">-</span>
-													)}
-												</TableCell>
-											</TableRow>
-										);
-									})}
-								</TableBody>
-							</Table>
+														) : (
+															<span className="text-muted-foreground">-</span>
+														)}
+													</TableCell>
+												</TableRow>
+											);
+										})}
+									</TableBody>
+								</Table>
 							</CardContent>
 						</Card>
 					)}

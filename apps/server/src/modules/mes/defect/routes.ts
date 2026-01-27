@@ -10,8 +10,8 @@ import {
 	createDefectSchema,
 	defectQuerySchema,
 	releaseHoldSchema,
-	reworkTaskQuerySchema,
 	repairRecordSchema,
+	reworkTaskQuerySchema,
 } from "./schema";
 import {
 	assignDisposition,
