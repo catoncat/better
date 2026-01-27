@@ -138,7 +138,7 @@
 
 ### Phase 3 验收
 - [x] 维修记录与 Readiness 联动
-- [ ] （可选）设备数据自动写入
+- [x] （可选）设备数据自动写入（验证：`bun test ./apps/server/src/testing/integration/mes-device-data.test.ts --max-concurrency=1`）
 
 ---
 
