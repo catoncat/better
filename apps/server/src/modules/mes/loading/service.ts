@@ -46,6 +46,9 @@ type LoadingRecordDetail = {
 	loadedBy: string;
 	unloadedAt: string | null;
 	unloadedBy: string | null;
+	// Phase 1: 物料校验信息
+	materialKnown?: boolean;
+	materialName?: string | null;
 };
 
 type RunSlotExpectationDetail = {
@@ -540,9 +543,18 @@ export async function verifyLoading(
 					},
 				});
 				if (existingRecord) {
+					// Phase 1: 查询物料主数据
+					const material = await tx.material.findUnique({
+						where: { code: scannedMaterialCode },
+						select: { name: true },
+					});
 					return {
 						success: true as const,
-						data: mapLoadingRecord(existingRecord, { isIdempotent: true }),
+						data: {
+							...mapLoadingRecord(existingRecord, { isIdempotent: true }),
+							materialKnown: !!material,
+							materialName: material?.name ?? null,
+						},
 					};
 				}
 			}
@@ -689,7 +701,20 @@ export async function verifyLoading(
 			},
 		});
 
-		return { success: true as const, data: mapLoadingRecord(record) };
+		// Phase 1: 查询物料主数据，判断是否为已知物料
+		const material = await tx.material.findUnique({
+			where: { code: materialCode },
+			select: { name: true },
+		});
+
+		return {
+			success: true as const,
+			data: {
+				...mapLoadingRecord(record),
+				materialKnown: !!material,
+				materialName: material?.name ?? null,
+			},
+		};
 	});
 }
 
@@ -1011,7 +1036,20 @@ export async function replaceLoading(
 			},
 		});
 
-		return { success: true as const, data: mapLoadingRecord(record) };
+		// Phase 1: 查询物料主数据，判断是否为已知物料
+		const material = await tx.material.findUnique({
+			where: { code: materialCode },
+			select: { name: true },
+		});
+
+		return {
+			success: true as const,
+			data: {
+				...mapLoadingRecord(record),
+				materialKnown: !!material,
+				materialName: material?.name ?? null,
+			},
+		};
 	});
 }
 
