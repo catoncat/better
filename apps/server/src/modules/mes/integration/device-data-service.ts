@@ -1,5 +1,5 @@
-import { Prisma, TrackSource } from "@better-app/db";
 import type { IntegrationSource, PrismaClient } from "@better-app/db";
+import { Prisma, TrackSource } from "@better-app/db";
 import type { Static } from "elysia";
 import type { deviceDataReceiveSchema } from "./device-data-schema";
 import { parseDate, toJsonValue } from "./utils";
@@ -177,7 +177,7 @@ export const receiveDeviceData = async (
 	}
 
 	let resolvedTrackId = input.trackId ?? null;
-	let resolvedCarrierTrackId = input.carrierTrackId ?? null;
+	const resolvedCarrierTrackId = input.carrierTrackId ?? null;
 	let resolvedRunNo = input.runNo ?? null;
 	let resolvedUnitSn = input.unitSn ?? null;
 	let resolvedStationCode = input.stationCode ?? null;
@@ -303,9 +303,8 @@ export const receiveDeviceData = async (
 		};
 	});
 
-	let record;
 	try {
-		record = await db.$transaction(async (tx: Prisma.TransactionClient) => {
+		const record = await db.$transaction(async (tx: Prisma.TransactionClient) => {
 			const created = await tx.deviceDataRecord.create({
 				data: {
 					eventId: input.eventId,
@@ -350,6 +349,15 @@ export const receiveDeviceData = async (
 
 			return created;
 		});
+		return {
+			id: record.id,
+			eventId: input.eventId,
+			trackId: record.trackId,
+			carrierTrackId: record.carrierTrackId,
+			dataValuesCreated: dataValues.length,
+			receivedAt: record.receivedAt.toISOString(),
+			isDuplicate: false,
+		};
 	} catch (error) {
 		if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
 			const existingRecord = await db.deviceDataRecord.findUnique({
@@ -381,14 +389,4 @@ export const receiveDeviceData = async (
 		}
 		throw error;
 	}
-
-	return {
-		id: record.id,
-		eventId: input.eventId,
-		trackId: record.trackId,
-		carrierTrackId: record.carrierTrackId,
-		dataValuesCreated: dataValues.length,
-		receivedAt: record.receivedAt.toISOString(),
-		isDuplicate: false,
-	};
 };

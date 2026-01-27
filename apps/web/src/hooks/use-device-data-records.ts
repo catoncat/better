@@ -35,4 +35,3 @@ export function useDeviceDataRecordList(
 		staleTime: 10_000,
 	});
 }
-

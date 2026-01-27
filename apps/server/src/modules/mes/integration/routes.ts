@@ -1,5 +1,5 @@
-import { AuditEntityType, MesEventStatus } from "@better-app/db";
 import type { Prisma } from "@better-app/db";
+import { AuditEntityType, MesEventStatus } from "@better-app/db";
 import { Elysia, status, t } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
@@ -81,6 +81,16 @@ import { receiveWorkOrder } from "./service";
 import { receiveSolderPasteStatus } from "./solder-paste-service";
 import { receiveStencilStatus } from "./stencil-service";
 import { syncTpmEquipment, syncTpmMaintenanceTasks, syncTpmStatusLogs } from "./tpm-sync-service";
+
+type DeviceDataItem = {
+	specId?: string;
+	specName?: string;
+	valueNumber?: number;
+	valueText?: string;
+	valueBoolean?: boolean;
+	valueJson?: unknown;
+	collectedAt?: string;
+};
 
 export const integrationModule = new Elysia({
 	prefix: "/integration",
@@ -1134,7 +1144,7 @@ export const integrationModule = new Elysia({
 						id: record.id,
 						eventId: record.eventId,
 						eventTime: record.eventTime.toISOString(),
-						source: record.source,
+						source: record.source as "AUTO" | "MANUAL",
 						runNo: record.runNo ?? null,
 						unitSn: record.unitSn ?? null,
 						stationCode: record.stationCode ?? null,
@@ -1144,7 +1154,7 @@ export const integrationModule = new Elysia({
 						operationId: record.operationId ?? null,
 						equipmentId: record.equipmentId ?? null,
 						operatorId: record.operatorId ?? null,
-						data: Array.isArray(record.data) ? (record.data as unknown[]) : [],
+						data: Array.isArray(record.data) ? (record.data as DeviceDataItem[]) : [],
 						meta: record.meta ?? null,
 						dataValuesCreated: record.dataValuesCreated,
 						receivedAt: record.receivedAt.toISOString(),

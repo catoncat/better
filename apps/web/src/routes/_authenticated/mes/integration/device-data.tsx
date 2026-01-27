@@ -16,13 +16,6 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import {
-	type DeviceDataRecord,
-	type DeviceDataRecordQuery,
-	useDeviceDataRecordList,
-} from "@/hooks/use-device-data-records";
-import { useAbility } from "@/hooks/use-ability";
-import { formatDateTime } from "@/lib/utils";
-import {
 	Table,
 	TableBody,
 	TableCell,
@@ -30,6 +23,13 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useAbility } from "@/hooks/use-ability";
+import {
+	type DeviceDataRecord,
+	type DeviceDataRecordQuery,
+	useDeviceDataRecordList,
+} from "@/hooks/use-device-data-records";
+import { formatDateTime } from "@/lib/utils";
 
 interface DeviceDataSearchParams {
 	eventId?: string;
@@ -135,8 +135,8 @@ function DeviceDataPage() {
 	}
 
 	const total = data?.total ?? 0;
-	const page = data?.page ?? (searchParams.page ?? 1);
-	const pageSize = data?.pageSize ?? (searchParams.pageSize ?? 30);
+	const page = data?.page ?? searchParams.page ?? 1;
+	const pageSize = data?.pageSize ?? searchParams.pageSize ?? 30;
 	const totalPages = Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
 
 	return (
@@ -299,9 +299,7 @@ function DeviceDataRow({ record }: { record: DeviceDataRecord }) {
 				<code className="text-xs bg-muted px-1 py-0.5 rounded break-all">{record.eventId}</code>
 			</TableCell>
 			<TableCell>
-				<Badge variant={record.source === "AUTO" ? "default" : "secondary"}>
-					{record.source}
-				</Badge>
+				<Badge variant={record.source === "AUTO" ? "default" : "secondary"}>{record.source}</Badge>
 			</TableCell>
 			<TableCell>{record.runNo ?? "-"}</TableCell>
 			<TableCell className="max-w-[200px] break-all">{record.unitSn ?? "-"}</TableCell>
