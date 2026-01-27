@@ -41,6 +41,9 @@ export type LoadingRecord = {
 	loadedBy: string;
 	unloadedAt: string | null;
 	unloadedBy: string | null;
+	// Phase 1: 物料校验信息
+	materialKnown?: boolean;
+	materialName?: string | null;
 };
 
 export type FeederSlot = {
@@ -132,6 +135,12 @@ export function useVerifyLoading() {
 			} else if (data.verifyResult === "WARNING") {
 				toast.warning("上料验证警告");
 			}
+			// Phase 1: 物料校验警告
+			if (data.materialKnown === false) {
+				toast.warning("物料编码未在主数据中", {
+					description: `物料 ${data.materialCode} 不在 ERP 物料主数据中，请核实`,
+				});
+			}
 			queryClient.invalidateQueries({
 				queryKey: ["mes", "loading", "expectations", variables.runNo],
 			});
@@ -165,8 +174,14 @@ export function useReplaceLoading() {
 			const response = await client.api.loading.replace.post(data);
 			return unwrap(response);
 		},
-		onSuccess: (_data, variables) => {
+		onSuccess: (data, variables) => {
 			toast.success("换料成功");
+			// Phase 1: 物料校验警告
+			if (data.materialKnown === false) {
+				toast.warning("物料编码未在主数据中", {
+					description: `物料 ${data.materialCode} 不在 ERP 物料主数据中，请核实`,
+				});
+			}
 			queryClient.invalidateQueries({
 				queryKey: ["mes", "loading", "expectations", variables.runNo],
 			});
