@@ -211,6 +211,11 @@ export const navMain: NavItem[] = [
 				permissions: [Permission.ROUTE_READ],
 			},
 			{
+				title: "物料批次",
+				url: "/mes/material-lots",
+				permissions: [Permission.ROUTE_READ],
+			},
+			{
 				title: "BOM",
 				url: "/mes/boms",
 				permissions: [Permission.ROUTE_READ],
