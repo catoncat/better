@@ -23,6 +23,9 @@ export type ProductionExceptionRecordQuery = {
 type ProductionExceptionCreateInput = Parameters<
 	(typeof client.api)["production-exception-records"]["post"]
 >[0];
+type ProductionExceptionConfirmInput = Parameters<
+	ReturnType<(typeof client.api)["production-exception-records"]>["confirm"]["post"]
+>[0];
 
 export function useProductionExceptionRecordList(query: ProductionExceptionRecordQuery) {
 	return useQuery<ProductionExceptionRecordListData>({
@@ -50,5 +53,24 @@ export function useCreateProductionExceptionRecord() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "production-exception-records"] });
 		},
 		onError: (error: unknown) => showError("创建生产异常记录失败", error),
+	});
+}
+
+export function useConfirmProductionExceptionRecord() {
+	const queryClient = useQueryClient();
+	const showError = useApiError();
+
+	return useMutation({
+		mutationFn: async ({ id, data }: { id: string; data: ProductionExceptionConfirmInput }) => {
+			const response = await client.api["production-exception-records"]({
+				exceptionId: id,
+			}).confirm.post(data);
+			return unwrap(response);
+		},
+		onSuccess: () => {
+			toast.success("生产异常已确认");
+			queryClient.invalidateQueries({ queryKey: ["mes", "production-exception-records"] });
+		},
+		onError: (error: unknown) => showError("确认生产异常失败", error),
 	});
 }
