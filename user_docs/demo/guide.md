@@ -34,14 +34,16 @@
 |------|------|--------|----------|
 | 1 | 准备数据并登录 | 路由版本为 READY | 3.0 |
 | 2 | 下发工单并创建 Run | Run=PREP | 3.1 |
-| 3 | Readiness 正式检查 | Readiness=PASSED | 3.2 |
-| 4 | 加载站位表并上料验证 | 站位 LOADED | 3.3 |
-| 5 | 创建/启动 FAI | FAI=INSPECTING | 3.4 |
-| 6 | 首件试产 + 记录检验项 | FAI=PASS | 3.4 |
-| 7 | 授权生产 | Run=AUTHORIZED | 3.5 |
-| 8 | 批量执行 TrackIn/TrackOut | Unit DONE/OUT_FAILED | 3.6 |
-| 9 | Run 收尾 + OQC/MRB | Run COMPLETED/ON_HOLD | 3.7 |
-| 10 | 工单收尾 + 追溯 | Trace 数据完整 | 3.8 |
+| 3 | 准备记录录入（钢网清洗/刮刀点检） | 记录保存成功 | 3.2.0 |
+| 4 | Readiness 正式检查 | Readiness=PASSED | 3.2 |
+| 5 | 加载站位表并上料验证 | 站位 LOADED | 3.3 |
+| 6 | 创建/启动 FAI | FAI=INSPECTING | 3.4 |
+| 7 | 首件试产 + 记录检验项 | FAI=PASS | 3.4 |
+| 8 | FAI 签字确认 | 已签字 | 3.4.6 |
+| 9 | 授权生产 | Run=AUTHORIZED | 3.5 |
+| 10 | 批量执行 TrackIn/TrackOut | Unit DONE/OUT_FAILED | 3.6 |
+| 11 | Run 收尾 + OQC/MRB | Run COMPLETED/ON_HOLD | 3.7 |
+| 12 | 工单收尾 + 追溯 | Trace 数据完整 | 3.8 |
 
 可选：演示失败分支与恢复路径（第 4 章）。
 
@@ -213,6 +215,50 @@
 - Run.lineId 正确
 
 技术细节：`smt_playbook/03_run_flow/01_work_order_to_run.md`
+
+---
+
+### 3.2.0 准备记录录入（新增）
+
+**页面**：`/mes/stencil-cleaning` + `/mes/squeegee-usage`
+
+在进行 Readiness 检查之前，需要录入相关准备记录。
+
+#### 钢网清洗记录录入
+
+1. 导航至 `/mes/stencil-cleaning`
+2. 点击 **新建记录**
+3. 填写信息：
+   - 钢网编号
+   - 清洗方式（自动/手动/超声波）
+   - 清洗结果
+4. 确认提交
+
+**期望结果**
+- 记录保存成功
+- PREP_STENCIL_CLEAN 检查项可通过
+
+#### 刮刀点检记录录入
+
+1. 导航至 `/mes/squeegee-usage`
+2. 点击 **新建记录**
+3. 填写信息：
+   - 刮刀编号
+   - 表面状态检查：OK
+   - 刀口状态检查：OK
+   - 平整度检查：OK
+4. 确认提交
+
+**期望结果**
+- 记录保存成功
+- PREP_SCRAPER 检查项可通过
+
+#### 时间规则查看（可选）
+
+若演示锡膏暴露时间规则：
+1. 在锡膏扫码时系统自动创建时间规则实例
+2. 在看板或 Run 详情页查看规则状态
+3. 观察预警通知（接近 24 小时时）
 
 ---
 
@@ -469,6 +515,37 @@ FAI FAIL → [是否可修复?]
 ```
 
 技术细节：`smt_playbook/03_run_flow/04_fai_flow.md`
+
+#### 3.4.6 FAI 签字确认（新增）
+
+FAI 判定 PASS 后，需要签字确认才能授权生产：
+
+1. 在 `/mes/fai` 找到状态为 PASS 的 FAI
+2. 点击 **签字**
+3. 填写签字备注（可选）
+4. 确认签字
+
+**期望结果**
+- FAI 显示签字人和签字时间
+- Run 可以授权
+
+**签字门禁验证**
+- 若不签字直接尝试授权 → 授权被阻断
+- 提示：FAI 需要签字确认
+
+#### 3.4.7 豁免演示（可选）
+
+演示 Readiness 检查项豁免流程：
+
+1. 模拟一个检查项失败（如 PREP_SCRAPER）
+2. 使用质量角色登录
+3. 在失败检查项旁点击 **豁免**
+4. 填写豁免原因
+5. 确认豁免
+
+**期望结果**
+- 检查项状态变为 WAIVED
+- Readiness 整体通过
 
 ---
 

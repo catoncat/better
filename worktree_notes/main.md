@@ -683,3 +683,15 @@
 - Error: bun run db:migrate -- --name add_fixture_usage_record failed due to drift (ReflowProfile tables). Need alternate migration approach without resetting DB.
 - Next: try create-only migration or use db:migrate with --create-only and expect drift handling.
 - Progress: generated migration using temp DATABASE_URL=file:/tmp/better_fixture_migration.db to avoid drift.
+
+## 2026-01-27 (Slice 8: Daily QC stats + exception closure)
+- Findings: `apps/server/src/modules/mes/smt-basic/routes.ts` exposes list/create APIs for `daily-qc-records` and `production-exception-records` gated by `Permission.QUALITY_OQC`; no stats/closure endpoints yet.
+- Plan: inspect smt-basic schema/service + web pages to add shift/time-bucket stats and exception closure flow.
+- Findings: `smt-basic/schema.ts` defines rich daily QC fields (shiftCode, timeWindow, defectSummary, rates, correctiveAction, reviewedBy/At) and production exception fields (description, correctiveAction, confirmedBy/At).
+- Findings: `smt-basic/service.ts` only supports list/create; no update/confirm/close actions or aggregation endpoints. list filters by lineCode/jobNo/customer/shiftCode/inspectedAt (daily QC) and lineCode/jobNo/customer/issuedAt (exceptions).
+- Findings: `apps/web/src/routes/_authenticated/mes/daily-qc-records/index.tsx` uses `DataListLayout` with filters and a create dialog; no stats or exception closure UI yet.
+
+## 2026-01-27 06:45Z
+- Ran claim-task flow: no pending slices in `.scratch/task-queue.md` (all pending=0).
+- Current branch: `main`.
+- Next: report task-queue state to user and ask how to proceed since nothing to claim.

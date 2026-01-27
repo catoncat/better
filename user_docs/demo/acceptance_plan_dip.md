@@ -89,7 +89,8 @@ bun run dev
 |------|------|----------|------|
 | 2.1 | 在 Readiness 卡片点击「正式检查」 | 显示检查结果 | [ ] |
 | 2.2 | 若失败，按需走「豁免」或 `/mes/integration/manual-entry` 手动录入/绑定 | 可将失败项变为 WAIVED 或恢复为 PASSED | [ ] |
-| 2.3 | 确认 Readiness 状态为 PASSED | 绿色通过标识 | [ ] |
+| 2.3 | （可选）验证豁免需要填写原因，豁免后记录 waivedBy/waiveReason | 豁免记录完整 | [ ] |
+| 2.4 | 确认 Readiness 状态为 PASSED | 绿色通过标识 | [ ] |
 
 ### 阶段 3：FAI（可选）+ 授权前试产（4.3）
 **页面**: `/mes/runs/{runNo}` + `/mes/fai` + `/mes/execution`
@@ -100,10 +101,12 @@ bun run dev
 | 3.1 | 若 Run 详情页提示需要 FAI：点击「创建 FAI」，并在 `/mes/fai` 点击「开始」 | FAI 状态变为 INSPECTING | [ ] |
 | 3.2 | 在 `/mes/execution` 选择 DIP 首工位 `ST-DIP-INS-01` 完成一次 TrackIn/TrackOut(PASS) | 试产过站成功 | [ ] |
 | 3.3 | 回到 `/mes/fai` 记录检验项并「完成」为 PASS | FAI 状态变为 PASS | [ ] |
+| 3.4 | 在 `/mes/fai` 点击「签字」确认 FAI | FAI 显示签字人和签字时间 | [ ] |
 
 > 注意：
 > - FAI 开始前需要先生成单件（阶段 1.5）。若当前账号无权限生成单件，请切回 `planner@example.com` 操作。
 > - 授权前试产只允许首工序；Run=PREP 时操作非首工位可能返回 `FAI_TRIAL_STEP_NOT_ALLOWED`。
+> - **新增**：FAI 判定 PASS 后需要签字确认，未签字无法授权 Run。
 
 ### 阶段 4：Run 授权（4.4）
 **页面**: `/mes/runs/{runNo}`
