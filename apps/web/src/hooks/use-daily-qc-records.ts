@@ -9,6 +9,12 @@ export type DailyQcRecordListResponse = Awaited<
 export type DailyQcRecordListData = NonNullable<DailyQcRecordListResponse>["data"];
 export type DailyQcRecord = DailyQcRecordListData["items"][number];
 
+export type DailyQcStatsResponse = Awaited<
+	ReturnType<(typeof client.api)["daily-qc-records"]["stats"]["get"]>
+>["data"];
+export type DailyQcStatsData = NonNullable<DailyQcStatsResponse>["data"];
+export type DailyQcStatsItem = DailyQcStatsData["items"][number];
+
 export type DailyQcRecordQuery = {
 	lineCode?: string;
 	jobNo?: string;
@@ -21,6 +27,14 @@ export type DailyQcRecordQuery = {
 	pageSize?: number;
 };
 
+export type DailyQcStatsQuery = {
+	lineCode?: string;
+	shiftCode?: string;
+	timeWindow?: string;
+	inspectedFrom?: string;
+	inspectedTo?: string;
+};
+
 type DailyQcCreateInput = Parameters<(typeof client.api)["daily-qc-records"]["post"]>[0];
 
 export function useDailyQcRecordList(query: DailyQcRecordQuery) {
@@ -31,6 +45,18 @@ export function useDailyQcRecordList(query: DailyQcRecordQuery) {
 			return unwrap(response);
 		},
 		placeholderData: (previousData: DailyQcRecordListData | undefined) => previousData,
+		staleTime: 10_000,
+	});
+}
+
+export function useDailyQcStats(query: DailyQcStatsQuery, options?: { enabled?: boolean }) {
+	return useQuery<DailyQcStatsData>({
+		queryKey: ["mes", "daily-qc-records", "stats", query],
+		enabled: options?.enabled ?? true,
+		queryFn: async () => {
+			const response = await client.api["daily-qc-records"].stats.get({ query });
+			return unwrap(response);
+		},
 		staleTime: 10_000,
 	});
 }

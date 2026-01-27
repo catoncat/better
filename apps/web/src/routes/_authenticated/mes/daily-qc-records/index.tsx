@@ -9,6 +9,7 @@ import {
 	type DailyQcRecord,
 	useCreateDailyQcRecord,
 	useDailyQcRecordList,
+	useDailyQcStats,
 } from "@/hooks/use-daily-qc-records";
 import { useQueryPresets } from "@/hooks/use-query-presets";
 import {
@@ -17,6 +18,7 @@ import {
 } from "@/routes/_authenticated/mes/daily-qc-records/-components/daily-qc-dialog";
 import { DailyQcCard } from "./-components/daily-qc-card";
 import { dailyQcColumns } from "./-components/daily-qc-columns";
+import { DailyQcStats } from "./-components/daily-qc-stats";
 
 interface DailyQcFilters {
 	lineCode: string;
@@ -200,6 +202,20 @@ function DailyQcPage() {
 		inspectedTo: filters.inspectedTo,
 	});
 
+	const statsQuery = useDailyQcStats({
+		lineCode: filters.lineCode || undefined,
+		shiftCode: filters.shiftCode || undefined,
+		inspectedFrom: filters.inspectedFrom,
+		inspectedTo: filters.inspectedTo,
+	});
+
+	const statsError =
+		statsQuery.error instanceof Error
+			? statsQuery.error.message
+			: statsQuery.error
+				? "未知错误"
+				: null;
+
 	const handlePaginationChange = useCallback(
 		(next: { pageIndex: number; pageSize: number }) => {
 			setPageIndex(next.pageIndex);
@@ -239,6 +255,13 @@ function DailyQcPage() {
 							加载失败：{error instanceof Error ? error.message : "未知错误"}
 						</div>
 					) : null
+				}
+				beforeList={
+					<DailyQcStats
+						data={statsQuery.data}
+						isLoading={statsQuery.isLoading}
+						error={statsError}
+					/>
 				}
 				header={
 					<div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">

@@ -1,16 +1,21 @@
+import { Permission } from "@better-app/db/permissions";
+import { Can } from "@/components/ability/can";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { ProductionExceptionRecord } from "@/hooks/use-production-exception-records";
 import { productionExceptionFieldMeta } from "./production-exception-field-meta";
 
 interface ProductionExceptionCardProps {
 	record: ProductionExceptionRecord;
+	onConfirm?: (record: ProductionExceptionRecord) => void;
 }
 
-export function ProductionExceptionCard({ record }: ProductionExceptionCardProps) {
+export function ProductionExceptionCard({ record, onConfirm }: ProductionExceptionCardProps) {
 	const primaryField = productionExceptionFieldMeta.find((field) => field.cardPrimary);
 	const secondaryField = productionExceptionFieldMeta.find((field) => field.cardSecondary);
 	const badgeField = productionExceptionFieldMeta.find((field) => field.cardBadge);
 	const detailFields = productionExceptionFieldMeta.filter((field) => field.cardDetail);
+	const canConfirm = !record.confirmedAt && onConfirm;
 
 	return (
 		<Card>
@@ -28,6 +33,15 @@ export function ProductionExceptionCard({ record }: ProductionExceptionCardProps
 						</div>
 					))}
 				</div>
+				{canConfirm ? (
+					<div className="mt-4">
+						<Can permissions={Permission.QUALITY_OQC}>
+							<Button size="sm" variant="secondary" onClick={() => onConfirm?.(record)}>
+								确认闭环
+							</Button>
+						</Can>
+					</div>
+				) : null}
 			</CardContent>
 		</Card>
 	);
