@@ -1,5 +1,5 @@
-import type { IntegrationSource, Prisma, PrismaClient } from "@better-app/db";
-import { TrackSource } from "@better-app/db";
+import type { IntegrationSource, PrismaClient } from "@better-app/db";
+import { Prisma, TrackSource } from "@better-app/db";
 import type { Static } from "elysia";
 import type { deviceDataReceiveSchema } from "./device-data-schema";
 import { parseDate, toJsonValue } from "./utils";
@@ -136,9 +136,8 @@ export const receiveDeviceData = async (
 	const businessKey = `device-data:${input.eventId}`;
 	const dedupeKey = `device-data:${input.eventId}`;
 
-	const existing = await db.integrationMessage.findFirst({
-		where: { dedupeKey, status: "SUCCESS" },
-		orderBy: { createdAt: "desc" },
+	const existing = await db.deviceDataRecord.findUnique({
+		where: { eventId: input.eventId },
 	});
 
 	if (existing) {
@@ -154,19 +153,13 @@ export const receiveDeviceData = async (
 			},
 		});
 
-		const payload =
-			existing.payload && typeof existing.payload === "object"
-				? (existing.payload as Record<string, unknown>)
-				: null;
-
 		return {
 			id: existing.id,
 			eventId: input.eventId,
-			trackId: typeof payload?.trackId === "string" ? payload.trackId : null,
-			carrierTrackId: typeof payload?.carrierTrackId === "string" ? payload.carrierTrackId : null,
-			dataValuesCreated:
-				typeof payload?.dataValuesCreated === "number" ? payload.dataValuesCreated : 0,
-			receivedAt: existing.createdAt.toISOString(),
+			trackId: existing.trackId,
+			carrierTrackId: existing.carrierTrackId,
+			dataValuesCreated: existing.dataValuesCreated,
+			receivedAt: existing.receivedAt.toISOString(),
 			isDuplicate: true,
 		};
 	}
@@ -185,6 +178,9 @@ export const receiveDeviceData = async (
 
 	let resolvedTrackId = input.trackId ?? null;
 	const resolvedCarrierTrackId = input.carrierTrackId ?? null;
+	let resolvedRunNo = input.runNo ?? null;
+	let resolvedUnitSn = input.unitSn ?? null;
+	let resolvedStationCode = input.stationCode ?? null;
 	let resolvedOperationId = input.operationId ?? null;
 	let boundSpecIds: string[] = [];
 	let stepNo = input.stepNo ?? null;
@@ -194,21 +190,29 @@ export const receiveDeviceData = async (
 	if (resolvedTrackId) {
 		const track = await db.track.findUnique({
 			where: { id: resolvedTrackId },
-			include: { unit: { include: { run: { include: { routeVersion: true } } } } },
+			include: {
+				station: { select: { code: true } },
+				unit: { include: { run: { include: { routeVersion: true } } } },
+			},
 		});
 		if (!track) {
 			throw new Error(`Track not found: ${resolvedTrackId}`);
 		}
 		stepNo = stepNo ?? track.stepNo;
 		runSnapshot = track.unit.run?.routeVersion?.snapshotJson ?? null;
+		resolvedRunNo = resolvedRunNo ?? track.unit.run?.runNo ?? null;
+		resolvedUnitSn = resolvedUnitSn ?? track.unit.sn;
+		resolvedStationCode = resolvedStationCode ?? track.station?.code ?? null;
 	} else if (resolvedCarrierTrackId) {
 		const carrierTrack = await db.carrierTrack.findUnique({
 			where: { id: resolvedCarrierTrackId },
+			include: { station: { select: { code: true } } },
 		});
 		if (!carrierTrack) {
 			throw new Error(`Carrier track not found: ${resolvedCarrierTrackId}`);
 		}
 		stepNo = stepNo ?? carrierTrack.stepNo;
+		resolvedStationCode = resolvedStationCode ?? carrierTrack.station?.code ?? null;
 	} else {
 		if (!input.runNo || !input.unitSn || !input.stationCode || !input.stepNo) {
 			throw new Error(
@@ -241,6 +245,9 @@ export const receiveDeviceData = async (
 			);
 		}
 		resolvedTrackId = track.id;
+		resolvedRunNo = input.runNo;
+		resolvedUnitSn = input.unitSn;
+		resolvedStationCode = input.stationCode;
 		stepNo = track.stepNo;
 		runSnapshot = run.routeVersion?.snapshotJson ?? null;
 	}
@@ -296,38 +303,90 @@ export const receiveDeviceData = async (
 		};
 	});
 
-	const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
-		if (dataValues.length > 0) {
-			await tx.dataValue.createMany({ data: dataValues });
-		}
-
-		const message = await tx.integrationMessage.create({
-			data: {
-				direction: "IN",
-				system: SOURCE_SYSTEM,
-				entityType: ENTITY_TYPE,
-				businessKey,
-				dedupeKey,
-				status: "SUCCESS",
-				payload: toJsonValue({
-					input,
+	try {
+		const record = await db.$transaction(async (tx: Prisma.TransactionClient) => {
+			const created = await tx.deviceDataRecord.create({
+				data: {
+					eventId: input.eventId,
+					eventTime,
+					source: input.source as IntegrationSource,
+					runNo: resolvedRunNo,
+					unitSn: resolvedUnitSn,
+					stationCode: resolvedStationCode,
+					stepNo,
 					trackId: resolvedTrackId,
 					carrierTrackId: resolvedCarrierTrackId,
+					operationId: resolvedOperationId,
+					equipmentId: input.equipmentId ?? null,
+					operatorId: input.operatorId ?? null,
+					data: toJsonValue(input.data),
+					meta: input.meta === undefined ? undefined : toJsonValue(input.meta),
 					dataValuesCreated: dataValues.length,
-				}),
-			},
+				},
+			});
+
+			if (dataValues.length > 0) {
+				await tx.dataValue.createMany({ data: dataValues });
+			}
+
+			await tx.integrationMessage.create({
+				data: {
+					direction: "IN",
+					system: SOURCE_SYSTEM,
+					entityType: ENTITY_TYPE,
+					businessKey,
+					dedupeKey,
+					status: "SUCCESS",
+					payload: toJsonValue({
+						input,
+						recordId: created.id,
+						trackId: resolvedTrackId,
+						carrierTrackId: resolvedCarrierTrackId,
+						dataValuesCreated: dataValues.length,
+					}),
+				},
+			});
+
+			return created;
 		});
+		return {
+			id: record.id,
+			eventId: input.eventId,
+			trackId: record.trackId,
+			carrierTrackId: record.carrierTrackId,
+			dataValuesCreated: dataValues.length,
+			receivedAt: record.receivedAt.toISOString(),
+			isDuplicate: false,
+		};
+	} catch (error) {
+		if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+			const existingRecord = await db.deviceDataRecord.findUnique({
+				where: { eventId: input.eventId },
+			});
+			if (existingRecord) {
+				await db.integrationMessage.create({
+					data: {
+						direction: "IN",
+						system: SOURCE_SYSTEM,
+						entityType: ENTITY_TYPE,
+						businessKey,
+						dedupeKey,
+						status: "DUPLICATE",
+						payload: toJsonValue({ input, existingId: existingRecord.id }),
+					},
+				});
 
-		return message;
-	});
-
-	return {
-		id: result.id,
-		eventId: input.eventId,
-		trackId: resolvedTrackId,
-		carrierTrackId: resolvedCarrierTrackId,
-		dataValuesCreated: dataValues.length,
-		receivedAt: result.createdAt.toISOString(),
-		isDuplicate: false,
-	};
+				return {
+					id: existingRecord.id,
+					eventId: input.eventId,
+					trackId: existingRecord.trackId,
+					carrierTrackId: existingRecord.carrierTrackId,
+					dataValuesCreated: existingRecord.dataValuesCreated,
+					receivedAt: existingRecord.receivedAt.toISOString(),
+					isDuplicate: true,
+				};
+			}
+		}
+		throw error;
+	}
 };

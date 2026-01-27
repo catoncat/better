@@ -64,7 +64,7 @@
 | 批量执行 (Run=IN_PROGRESS) | - | - | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
 | TrackIn (Unit=IN_STATION) | `POST /api/stations/:stationCode/track-in` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
 | 数据采集(可选) | `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
-| 设备数采接入 (POC) | `POST /api/integration/device-data` | `apps/server/src/modules/mes/integration/device-data-service.ts` | - |
+| 设备数采接入 (POC) | `POST /api/integration/device-data`, `GET /api/integration/device-data` | `apps/server/src/modules/mes/integration/device-data-service.ts` | `apps/web/src/routes/_authenticated/mes/integration/device-data.tsx` |
 | TrackOut | `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
 | 推进路由 (Unit=QUEUED) | `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
 | 单件完成 (Unit=DONE) | `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
@@ -75,7 +75,9 @@
 | 隔离 (Unit=ON_HOLD) | `POST /api/defects/:defectId/disposition`, `POST /api/defects/:defectId/release` | `apps/server/src/modules/mes/defect/service.ts` | `apps/web/src/routes/_authenticated/mes/defects.tsx` |
 | 处置评审 | `POST /api/defects/:defectId/disposition` | `apps/server/src/modules/mes/defect/service.ts` | `apps/web/src/routes/_authenticated/mes/defects.tsx` |
 | 日常 QC 记录 | `GET /api/daily-qc-records`, `POST /api/daily-qc-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/daily-qc-records/index.tsx` |
+| 日常 QC 统计 | `GET /api/daily-qc-records/stats` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/daily-qc-records/index.tsx` |
 | 生产异常记录 | `GET /api/production-exception-records`, `POST /api/production-exception-records` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/production-exception-records/index.tsx` |
+| 生产异常闭环确认 | `POST /api/production-exception-records/:exceptionId/confirm` | `apps/server/src/modules/mes/smt-basic/service.ts` | `apps/web/src/routes/_authenticated/mes/production-exception-records/index.tsx` |
 | 创建末件检查 (FQC=PENDING) | `POST /api/fqc/run/:runNo` | `apps/server/src/modules/mes/fqc/service.ts` | `apps/web/src/routes/_authenticated/mes/fqc/index.tsx` |
 | 开始末件检查 | `POST /api/fqc/:fqcId/start` | `apps/server/src/modules/mes/fqc/service.ts` | `apps/web/src/routes/_authenticated/mes/fqc/index.tsx` |
 | 记录末件检验项 | `POST /api/fqc/:fqcId/items` | `apps/server/src/modules/mes/fqc/service.ts` | `apps/web/src/routes/_authenticated/mes/fqc/index.tsx` |

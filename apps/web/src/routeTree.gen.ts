@@ -60,6 +60,7 @@ import { Route as AuthenticatedMesOqcRulesRouteImport } from './routes/_authenti
 import { Route as AuthenticatedMesLoadingSlotConfigRouteImport } from './routes/_authenticated/mes/loading/slot-config'
 import { Route as AuthenticatedMesIntegrationStatusRouteImport } from './routes/_authenticated/mes/integration/status'
 import { Route as AuthenticatedMesIntegrationManualEntryRouteImport } from './routes/_authenticated/mes/integration/manual-entry'
+import { Route as AuthenticatedMesIntegrationDeviceDataRouteImport } from './routes/_authenticated/mes/integration/device-data'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -357,6 +358,12 @@ const AuthenticatedMesIntegrationManualEntryRoute =
     path: '/mes/integration/manual-entry',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedMesIntegrationDeviceDataRoute =
+  AuthenticatedMesIntegrationDeviceDataRouteImport.update({
+    id: '/mes/integration/device-data',
+    path: '/mes/integration/device-data',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
@@ -381,6 +388,7 @@ export interface FileRoutesByFullPath {
   '/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/mes': typeof AuthenticatedMesIndexRoute
   '/system': typeof AuthenticatedSystemIndexRoute
+  '/mes/integration/device-data': typeof AuthenticatedMesIntegrationDeviceDataRoute
   '/mes/integration/manual-entry': typeof AuthenticatedMesIntegrationManualEntryRoute
   '/mes/integration/status': typeof AuthenticatedMesIntegrationStatusRoute
   '/mes/loading/slot-config': typeof AuthenticatedMesLoadingSlotConfigRoute
@@ -432,6 +440,7 @@ export interface FileRoutesByTo {
   '/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/mes': typeof AuthenticatedMesIndexRoute
   '/system': typeof AuthenticatedSystemIndexRoute
+  '/mes/integration/device-data': typeof AuthenticatedMesIntegrationDeviceDataRoute
   '/mes/integration/manual-entry': typeof AuthenticatedMesIntegrationManualEntryRoute
   '/mes/integration/status': typeof AuthenticatedMesIntegrationStatusRoute
   '/mes/loading/slot-config': typeof AuthenticatedMesLoadingSlotConfigRoute
@@ -486,6 +495,7 @@ export interface FileRoutesById {
   '/_authenticated/system/user-management': typeof AuthenticatedSystemUserManagementRoute
   '/_authenticated/mes/': typeof AuthenticatedMesIndexRoute
   '/_authenticated/system/': typeof AuthenticatedSystemIndexRoute
+  '/_authenticated/mes/integration/device-data': typeof AuthenticatedMesIntegrationDeviceDataRoute
   '/_authenticated/mes/integration/manual-entry': typeof AuthenticatedMesIntegrationManualEntryRoute
   '/_authenticated/mes/integration/status': typeof AuthenticatedMesIntegrationStatusRoute
   '/_authenticated/mes/loading/slot-config': typeof AuthenticatedMesLoadingSlotConfigRoute
@@ -540,6 +550,7 @@ export interface FileRouteTypes {
     | '/system/user-management'
     | '/mes'
     | '/system'
+    | '/mes/integration/device-data'
     | '/mes/integration/manual-entry'
     | '/mes/integration/status'
     | '/mes/loading/slot-config'
@@ -591,6 +602,7 @@ export interface FileRouteTypes {
     | '/system/user-management'
     | '/mes'
     | '/system'
+    | '/mes/integration/device-data'
     | '/mes/integration/manual-entry'
     | '/mes/integration/status'
     | '/mes/loading/slot-config'
@@ -644,6 +656,7 @@ export interface FileRouteTypes {
     | '/_authenticated/system/user-management'
     | '/_authenticated/mes/'
     | '/_authenticated/system/'
+    | '/_authenticated/mes/integration/device-data'
     | '/_authenticated/mes/integration/manual-entry'
     | '/_authenticated/mes/integration/status'
     | '/_authenticated/mes/loading/slot-config'
@@ -1038,6 +1051,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesIntegrationManualEntryRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/mes/integration/device-data': {
+      id: '/_authenticated/mes/integration/device-data'
+      path: '/mes/integration/device-data'
+      fullPath: '/mes/integration/device-data'
+      preLoaderRoute: typeof AuthenticatedMesIntegrationDeviceDataRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -1080,6 +1100,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSystemUserManagementRoute: typeof AuthenticatedSystemUserManagementRoute
   AuthenticatedMesIndexRoute: typeof AuthenticatedMesIndexRoute
   AuthenticatedSystemIndexRoute: typeof AuthenticatedSystemIndexRoute
+  AuthenticatedMesIntegrationDeviceDataRoute: typeof AuthenticatedMesIntegrationDeviceDataRoute
   AuthenticatedMesIntegrationManualEntryRoute: typeof AuthenticatedMesIntegrationManualEntryRoute
   AuthenticatedMesIntegrationStatusRoute: typeof AuthenticatedMesIntegrationStatusRoute
   AuthenticatedMesLoadingSlotConfigRoute: typeof AuthenticatedMesLoadingSlotConfigRoute
@@ -1133,6 +1154,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedSystemUserManagementRoute,
   AuthenticatedMesIndexRoute: AuthenticatedMesIndexRoute,
   AuthenticatedSystemIndexRoute: AuthenticatedSystemIndexRoute,
+  AuthenticatedMesIntegrationDeviceDataRoute:
+    AuthenticatedMesIntegrationDeviceDataRoute,
   AuthenticatedMesIntegrationManualEntryRoute:
     AuthenticatedMesIntegrationManualEntryRoute,
   AuthenticatedMesIntegrationStatusRoute:

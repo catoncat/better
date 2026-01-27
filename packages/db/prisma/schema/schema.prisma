@@ -2107,6 +2107,37 @@ model InspectionResultRecord {
 }
 
 // ==========================================
+// Device Data Gateway Record (POC)
+// ==========================================
+
+model DeviceDataRecord {
+  id             String            @id @default(cuid())
+  eventId         String            @unique
+  eventTime       DateTime
+  source          IntegrationSource
+  runNo           String?
+  unitSn          String?
+  stationCode     String?
+  stepNo          Int?
+  trackId         String?
+  carrierTrackId  String?
+  operationId     String?
+  equipmentId     String?
+  operatorId      String?
+  data            Json
+  meta            Json?
+  dataValuesCreated Int             @default(0)
+  receivedAt      DateTime          @default(now())
+
+  @@index([runNo])
+  @@index([unitSn])
+  @@index([stationCode])
+  @@index([eventTime])
+  @@index([trackId])
+  @@index([carrierTrackId])
+}
+
+// ==========================================
 // Time Rule Models (SMT Gap Phase 2)
 // ==========================================
 

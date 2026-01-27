@@ -18,6 +18,7 @@ Aligned with `agent_docs/03_backend/api_patterns.md` (envelope + error format + 
 - `POST /api/integration/work-orders` (receive push)
 - `POST /api/integration/stencil-status`
 - `POST /api/integration/solder-paste-status`
+- `GET /api/integration/device-data`
 - `POST /api/integration/device-data`
 - `POST /api/integration/lines/:lineId/stencil/bind`
 - `POST /api/integration/lines/:lineId/stencil/unbind`

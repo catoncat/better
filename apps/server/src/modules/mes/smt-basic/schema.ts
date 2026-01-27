@@ -461,6 +461,42 @@ export const dailyQcResponseSchema = t.Object({
 	data: dailyQcRecordSchema,
 });
 
+export const dailyQcStatsQuerySchema = t.Object({
+	lineCode: t.Optional(t.String()),
+	shiftCode: t.Optional(t.String()),
+	timeWindow: t.Optional(t.String()),
+	inspectedFrom: t.Optional(t.String({ format: "date-time" })),
+	inspectedTo: t.Optional(t.String({ format: "date-time" })),
+});
+
+export const dailyQcStatsItemSchema = t.Object({
+	shiftCode: t.Union([t.String(), t.Null()]),
+	timeWindow: t.Union([t.String(), t.Null()]),
+	totalRecords: t.Number(),
+	totalParts: t.Number(),
+	inspectedQty: t.Number(),
+	defectBoardQty: t.Number(),
+	defectBoardRate: t.Union([t.Number(), t.Null()]),
+	defectQty: t.Number(),
+	defectRate: t.Union([t.Number(), t.Null()]),
+});
+
+export const dailyQcStatsResponseSchema = t.Object({
+	ok: t.Boolean(),
+	data: t.Object({
+		items: t.Array(dailyQcStatsItemSchema),
+		totals: t.Object({
+			totalRecords: t.Number(),
+			totalParts: t.Number(),
+			inspectedQty: t.Number(),
+			defectBoardQty: t.Number(),
+			defectBoardRate: t.Union([t.Number(), t.Null()]),
+			defectQty: t.Number(),
+			defectRate: t.Union([t.Number(), t.Null()]),
+		}),
+	}),
+});
+
 export const productionExceptionRecordSchema = t.Object({
 	id: t.String(),
 	lineId: t.Union([t.String(), t.Null()]),
@@ -532,4 +568,22 @@ export const productionExceptionListResponseSchema = t.Object({
 export const productionExceptionResponseSchema = t.Object({
 	ok: t.Boolean(),
 	data: productionExceptionRecordSchema,
+});
+
+export const productionExceptionIdParamSchema = t.Object({
+	exceptionId: t.String({ minLength: 1 }),
+});
+
+export const productionExceptionConfirmSchema = t.Object({
+	confirmedBy: t.String({ minLength: 1 }),
+	correctiveAction: t.Optional(t.String()),
+	remark: t.Optional(t.String()),
+});
+
+export const errorResponseSchema = t.Object({
+	ok: t.Literal(false),
+	error: t.Object({
+		code: t.String(),
+		message: t.String(),
+	}),
 });

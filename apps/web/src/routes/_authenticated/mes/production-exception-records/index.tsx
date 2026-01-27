@@ -7,16 +7,24 @@ import { DataListLayout, type SystemPreset } from "@/components/data-list";
 import { Button } from "@/components/ui/button";
 import {
 	type ProductionExceptionRecord,
+	useConfirmProductionExceptionRecord,
 	useCreateProductionExceptionRecord,
 	useProductionExceptionRecordList,
 } from "@/hooks/use-production-exception-records";
 import { useQueryPresets } from "@/hooks/use-query-presets";
 import {
+	ProductionExceptionConfirmDialog,
+	type ProductionExceptionConfirmFormValues,
+} from "@/routes/_authenticated/mes/production-exception-records/-components/production-exception-confirm-dialog";
+import {
 	ProductionExceptionDialog,
 	type ProductionExceptionFormValues,
 } from "@/routes/_authenticated/mes/production-exception-records/-components/production-exception-dialog";
 import { ProductionExceptionCard } from "./-components/production-exception-card";
-import { productionExceptionColumns } from "./-components/production-exception-columns";
+import {
+	type ProductionExceptionTableMeta,
+	productionExceptionColumns,
+} from "./-components/production-exception-columns";
 
 interface ProductionExceptionFilters {
 	lineCode: string;
@@ -58,7 +66,10 @@ function ProductionExceptionPage() {
 	const locationSearch = typeof window !== "undefined" ? window.location.search : "";
 
 	const [dialogOpen, setDialogOpen] = useState(false);
+	const [confirmOpen, setConfirmOpen] = useState(false);
+	const [confirmTarget, setConfirmTarget] = useState<ProductionExceptionRecord | null>(null);
 	const createRecord = useCreateProductionExceptionRecord();
+	const confirmRecord = useConfirmProductionExceptionRecord();
 
 	const filters: ProductionExceptionFilters = useMemo(
 		() => ({
@@ -210,6 +221,25 @@ function ProductionExceptionPage() {
 		await createRecord.mutateAsync(values);
 	};
 
+	const handleConfirm = async (values: ProductionExceptionConfirmFormValues) => {
+		if (!confirmTarget) return;
+		await confirmRecord.mutateAsync({ id: confirmTarget.id, data: values });
+		setConfirmOpen(false);
+		setConfirmTarget(null);
+	};
+
+	const openConfirmDialog = useCallback((record: ProductionExceptionRecord) => {
+		setConfirmTarget(record);
+		setConfirmOpen(true);
+	}, []);
+
+	const tableMeta: ProductionExceptionTableMeta = useMemo(
+		() => ({
+			onConfirm: openConfirmDialog,
+		}),
+		[openConfirmDialog],
+	);
+
 	return (
 		<div className="space-y-6">
 			<DataListLayout
@@ -221,6 +251,7 @@ function ProductionExceptionPage() {
 				initialPageIndex={(searchParams.page || 1) - 1}
 				initialPageSize={searchParams.pageSize || 30}
 				locationSearch={locationSearch}
+				tableMeta={tableMeta}
 				isLoading={isLoading}
 				error={
 					error ? (
@@ -280,7 +311,7 @@ function ProductionExceptionPage() {
 				dataListViewProps={{
 					viewPreferencesKey,
 					renderCard: (record: ProductionExceptionRecord) => (
-						<ProductionExceptionCard record={record} />
+						<ProductionExceptionCard record={record} onConfirm={openConfirmDialog} />
 					),
 				}}
 			/>
@@ -290,6 +321,16 @@ function ProductionExceptionPage() {
 				onOpenChange={setDialogOpen}
 				onSubmit={handleCreate}
 				isSubmitting={createRecord.isPending}
+			/>
+			<ProductionExceptionConfirmDialog
+				open={confirmOpen}
+				onOpenChange={(open) => {
+					setConfirmOpen(open);
+					if (!open) setConfirmTarget(null);
+				}}
+				record={confirmTarget}
+				onSubmit={handleConfirm}
+				isSubmitting={confirmRecord.isPending}
 			/>
 		</div>
 	);
