@@ -30,7 +30,7 @@ touchPoints:
 ## Slices
 - [x] Confirm semantics + mapping
 - [x] Confirm auto-write pipeline exists
-- [ ] Add tests + tick plan + verify
+- [x] Add tests + tick plan + verify
 
 <!-- AUTO:BEGIN status -->
 
@@ -66,3 +66,8 @@ touchPoints:
   - resolves Track by `trackId` (preferred) or by `runNo+unitSn+stationCode+stepNo` lookup
   - resolves spec by `specId` or by `specName` + `operationId` / route snapshot step binding
   - writes `DataValue` with `TrackSource.AUTO|MANUAL` and stores `DeviceDataRecord`
+
+## Progress
+- Added integration regression: `apps/server/src/testing/integration/mes-device-data.test.ts` (trackId path + resolve-by-fields path).
+- Marked plan checkbox complete: `domain_docs/mes/plan/smt_gap_task_breakdown.md`.
+- Ran: `bun run db:generate`, `bun test ./apps/server/src/testing/integration/mes-device-data.test.ts --max-concurrency=1`, `bun scripts/smart-verify.ts --force`.
