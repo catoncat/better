@@ -44,6 +44,8 @@ export type LoadingRecord = {
 	// Phase 1: 物料校验信息
 	materialKnown?: boolean;
 	materialName?: string | null;
+	// Phase 2: 物料校验状态（持久化）
+	materialValidation?: string | null;
 };
 
 export type FeederSlot = {

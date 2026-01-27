@@ -598,6 +598,7 @@ model LoadingRecord {
   reviewedAt           DateTime?
   unloadedAt           DateTime?
   unloadedBy           String?
+  materialValidation   String?             /// KNOWN | UNKNOWN | null (Phase 2: 物料校验状态)
 
   meta                 Json?
   createdAt            DateTime            @default(now())

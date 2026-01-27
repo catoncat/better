@@ -49,6 +49,8 @@ type LoadingRecordDetail = {
 	// Phase 1: 物料校验信息
 	materialKnown?: boolean;
 	materialName?: string | null;
+	// Phase 2: 物料校验状态（持久化）
+	materialValidation?: string | null;
 };
 
 type RunSlotExpectationDetail = {
@@ -203,6 +205,7 @@ const mapLoadingRecord = (
 		loadedBy: string;
 		unloadedAt: Date | null;
 		unloadedBy: string | null;
+		materialValidation?: string | null;
 	},
 	options?: { isIdempotent?: boolean },
 ): LoadingRecordDetail => ({
@@ -227,6 +230,7 @@ const mapLoadingRecord = (
 	loadedBy: record.loadedBy,
 	unloadedAt: record.unloadedAt ? record.unloadedAt.toISOString() : null,
 	unloadedBy: record.unloadedBy,
+	materialValidation: record.materialValidation,
 });
 
 const mapExpectation = (expectation: {
@@ -677,6 +681,13 @@ export async function verifyLoading(
 			});
 		}
 
+		// Phase 1/2: 查询物料主数据，判断是否为已知物料
+		const material = await tx.material.findUnique({
+			where: { code: materialCode },
+			select: { name: true },
+		});
+		const materialValidation = material ? "KNOWN" : "UNKNOWN";
+
 		const record = await tx.loadingRecord.create({
 			data: {
 				runId: run.id,
@@ -693,18 +704,13 @@ export async function verifyLoading(
 				packageQty: input.packageQty ?? null,
 				reviewedBy,
 				reviewedAt,
+				materialValidation,
 			},
 			include: {
 				run: { select: { runNo: true } },
 				slot: { select: { id: true, slotCode: true, slotName: true, position: true } },
 				materialLot: { select: { id: true, lotNo: true, materialCode: true } },
 			},
-		});
-
-		// Phase 1: 查询物料主数据，判断是否为已知物料
-		const material = await tx.material.findUnique({
-			where: { code: materialCode },
-			select: { name: true },
 		});
 
 		return {
@@ -1008,6 +1014,13 @@ export async function replaceLoading(
 			});
 		}
 
+		// Phase 1/2: 查询物料主数据，判断是否为已知物料
+		const material = await tx.material.findUnique({
+			where: { code: materialCode },
+			select: { name: true },
+		});
+		const materialValidation = material ? "KNOWN" : "UNKNOWN";
+
 		const record = await tx.loadingRecord.create({
 			data: {
 				runId: run.id,
@@ -1028,18 +1041,13 @@ export async function replaceLoading(
 				reviewedBy,
 				reviewedAt,
 				meta: { replaceReason: input.reason },
+				materialValidation,
 			},
 			include: {
 				run: { select: { runNo: true } },
 				slot: { select: { id: true, slotCode: true, slotName: true, position: true } },
 				materialLot: { select: { id: true, lotNo: true, materialCode: true } },
 			},
-		});
-
-		// Phase 1: 查询物料主数据，判断是否为已知物料
-		const material = await tx.material.findUnique({
-			where: { code: materialCode },
-			select: { name: true },
 		});
 
 		return {

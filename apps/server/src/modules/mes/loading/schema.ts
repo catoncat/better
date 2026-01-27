@@ -87,6 +87,8 @@ const loadingRecordSchema = t.Object({
 	// Phase 1: 物料校验信息
 	materialKnown: t.Optional(t.Boolean()),
 	materialName: t.Optional(t.Union([t.String(), t.Null()])),
+	// Phase 2: 物料校验状态（持久化）
+	materialValidation: t.Optional(t.Union([t.String(), t.Null()])),
 });
 
 export const verifyLoadingResponseSchema = t.Object({
