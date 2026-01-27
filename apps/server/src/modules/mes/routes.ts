@@ -17,6 +17,7 @@ import {
 } from "./loading/routes";
 import { maintenanceRoutes } from "./maintenance/routes";
 import { masterDataModule } from "./master-data/routes";
+import { materialLotModule } from "./material-lot/routes";
 import { operationModule } from "./operation/routes";
 import { mrbRoutes } from "./oqc/mrb-routes";
 import { oqcRoutes } from "./oqc/routes";
@@ -71,4 +72,6 @@ export const mesModule = new Elysia()
 	// Time Rules (SMT Gap Phase 2)
 	.use(timeRuleRoutes)
 	// Maintenance (SMT Gap Phase 3)
-	.use(maintenanceRoutes);
+	.use(maintenanceRoutes)
+	// Material Lot Management (Phase 3)
+	.use(materialLotModule);

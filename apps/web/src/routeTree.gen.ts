@@ -44,6 +44,7 @@ import { Route as AuthenticatedMesProductionExceptionRecordsIndexRouteImport } f
 import { Route as AuthenticatedMesOvenProgramRecordsIndexRouteImport } from './routes/_authenticated/mes/oven-program-records/index'
 import { Route as AuthenticatedMesOqcIndexRouteImport } from './routes/_authenticated/mes/oqc/index'
 import { Route as AuthenticatedMesMaterialsIndexRouteImport } from './routes/_authenticated/mes/materials/index'
+import { Route as AuthenticatedMesMaterialLotsIndexRouteImport } from './routes/_authenticated/mes/material-lots/index'
 import { Route as AuthenticatedMesMaintenanceRecordsIndexRouteImport } from './routes/_authenticated/mes/maintenance-records/index'
 import { Route as AuthenticatedMesLoadingIndexRouteImport } from './routes/_authenticated/mes/loading/index'
 import { Route as AuthenticatedMesLinesIndexRouteImport } from './routes/_authenticated/mes/lines/index'
@@ -262,6 +263,12 @@ const AuthenticatedMesMaterialsIndexRoute =
     path: '/mes/materials/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedMesMaterialLotsIndexRoute =
+  AuthenticatedMesMaterialLotsIndexRouteImport.update({
+    id: '/mes/material-lots/',
+    path: '/mes/material-lots/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMesMaintenanceRecordsIndexRoute =
   AuthenticatedMesMaintenanceRecordsIndexRouteImport.update({
     id: '/mes/maintenance-records/',
@@ -405,6 +412,7 @@ export interface FileRoutesByFullPath {
   '/mes/lines': typeof AuthenticatedMesLinesIndexRoute
   '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
   '/mes/maintenance-records': typeof AuthenticatedMesMaintenanceRecordsIndexRoute
+  '/mes/material-lots': typeof AuthenticatedMesMaterialLotsIndexRoute
   '/mes/materials': typeof AuthenticatedMesMaterialsIndexRoute
   '/mes/oqc': typeof AuthenticatedMesOqcIndexRoute
   '/mes/oven-program-records': typeof AuthenticatedMesOvenProgramRecordsIndexRoute
@@ -457,6 +465,7 @@ export interface FileRoutesByTo {
   '/mes/lines': typeof AuthenticatedMesLinesIndexRoute
   '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
   '/mes/maintenance-records': typeof AuthenticatedMesMaintenanceRecordsIndexRoute
+  '/mes/material-lots': typeof AuthenticatedMesMaterialLotsIndexRoute
   '/mes/materials': typeof AuthenticatedMesMaterialsIndexRoute
   '/mes/oqc': typeof AuthenticatedMesOqcIndexRoute
   '/mes/oven-program-records': typeof AuthenticatedMesOvenProgramRecordsIndexRoute
@@ -512,6 +521,7 @@ export interface FileRoutesById {
   '/_authenticated/mes/lines/': typeof AuthenticatedMesLinesIndexRoute
   '/_authenticated/mes/loading/': typeof AuthenticatedMesLoadingIndexRoute
   '/_authenticated/mes/maintenance-records/': typeof AuthenticatedMesMaintenanceRecordsIndexRoute
+  '/_authenticated/mes/material-lots/': typeof AuthenticatedMesMaterialLotsIndexRoute
   '/_authenticated/mes/materials/': typeof AuthenticatedMesMaterialsIndexRoute
   '/_authenticated/mes/oqc/': typeof AuthenticatedMesOqcIndexRoute
   '/_authenticated/mes/oven-program-records/': typeof AuthenticatedMesOvenProgramRecordsIndexRoute
@@ -567,6 +577,7 @@ export interface FileRouteTypes {
     | '/mes/lines'
     | '/mes/loading'
     | '/mes/maintenance-records'
+    | '/mes/material-lots'
     | '/mes/materials'
     | '/mes/oqc'
     | '/mes/oven-program-records'
@@ -619,6 +630,7 @@ export interface FileRouteTypes {
     | '/mes/lines'
     | '/mes/loading'
     | '/mes/maintenance-records'
+    | '/mes/material-lots'
     | '/mes/materials'
     | '/mes/oqc'
     | '/mes/oven-program-records'
@@ -673,6 +685,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/lines/'
     | '/_authenticated/mes/loading/'
     | '/_authenticated/mes/maintenance-records/'
+    | '/_authenticated/mes/material-lots/'
     | '/_authenticated/mes/materials/'
     | '/_authenticated/mes/oqc/'
     | '/_authenticated/mes/oven-program-records/'
@@ -939,6 +952,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesMaterialsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/mes/material-lots/': {
+      id: '/_authenticated/mes/material-lots/'
+      path: '/mes/material-lots'
+      fullPath: '/mes/material-lots'
+      preLoaderRoute: typeof AuthenticatedMesMaterialLotsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/mes/maintenance-records/': {
       id: '/_authenticated/mes/maintenance-records/'
       path: '/mes/maintenance-records'
@@ -1116,6 +1136,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesLinesIndexRoute: typeof AuthenticatedMesLinesIndexRoute
   AuthenticatedMesLoadingIndexRoute: typeof AuthenticatedMesLoadingIndexRoute
   AuthenticatedMesMaintenanceRecordsIndexRoute: typeof AuthenticatedMesMaintenanceRecordsIndexRoute
+  AuthenticatedMesMaterialLotsIndexRoute: typeof AuthenticatedMesMaterialLotsIndexRoute
   AuthenticatedMesMaterialsIndexRoute: typeof AuthenticatedMesMaterialsIndexRoute
   AuthenticatedMesOqcIndexRoute: typeof AuthenticatedMesOqcIndexRoute
   AuthenticatedMesOvenProgramRecordsIndexRoute: typeof AuthenticatedMesOvenProgramRecordsIndexRoute
@@ -1179,6 +1200,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMesLoadingIndexRoute: AuthenticatedMesLoadingIndexRoute,
   AuthenticatedMesMaintenanceRecordsIndexRoute:
     AuthenticatedMesMaintenanceRecordsIndexRoute,
+  AuthenticatedMesMaterialLotsIndexRoute:
+    AuthenticatedMesMaterialLotsIndexRoute,
   AuthenticatedMesMaterialsIndexRoute: AuthenticatedMesMaterialsIndexRoute,
   AuthenticatedMesOqcIndexRoute: AuthenticatedMesOqcIndexRoute,
   AuthenticatedMesOvenProgramRecordsIndexRoute:
