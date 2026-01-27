@@ -30,7 +30,6 @@ import { Route as AuthenticatedMesReworkTasksRouteImport } from './routes/_authe
 import { Route as AuthenticatedMesReadinessExceptionsRouteImport } from './routes/_authenticated/mes/readiness-exceptions'
 import { Route as AuthenticatedMesReadinessConfigRouteImport } from './routes/_authenticated/mes/readiness-config'
 import { Route as AuthenticatedMesFaiRouteImport } from './routes/_authenticated/mes/fai'
-import { Route as AuthenticatedMesFqcIndexRouteImport } from './routes/_authenticated/mes/fqc/index'
 import { Route as AuthenticatedMesExecutionRouteImport } from './routes/_authenticated/mes/execution'
 import { Route as AuthenticatedMesDefectsRouteImport } from './routes/_authenticated/mes/defects'
 import { Route as AuthenticatedMesWorkCentersIndexRouteImport } from './routes/_authenticated/mes/work-centers/index'
@@ -48,6 +47,7 @@ import { Route as AuthenticatedMesMaterialsIndexRouteImport } from './routes/_au
 import { Route as AuthenticatedMesMaintenanceRecordsIndexRouteImport } from './routes/_authenticated/mes/maintenance-records/index'
 import { Route as AuthenticatedMesLoadingIndexRouteImport } from './routes/_authenticated/mes/loading/index'
 import { Route as AuthenticatedMesLinesIndexRouteImport } from './routes/_authenticated/mes/lines/index'
+import { Route as AuthenticatedMesFqcIndexRouteImport } from './routes/_authenticated/mes/fqc/index'
 import { Route as AuthenticatedMesEquipmentInspectionsIndexRouteImport } from './routes/_authenticated/mes/equipment-inspections/index'
 import { Route as AuthenticatedMesDataCollectionSpecsIndexRouteImport } from './routes/_authenticated/mes/data-collection-specs/index'
 import { Route as AuthenticatedMesDailyQcRecordsIndexRouteImport } from './routes/_authenticated/mes/daily-qc-records/index'
@@ -178,12 +178,6 @@ const AuthenticatedMesFaiRoute = AuthenticatedMesFaiRouteImport.update({
   path: '/mes/fai',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedMesFqcIndexRoute =
-  AuthenticatedMesFqcIndexRouteImport.update({
-    id: '/mes/fqc/',
-    path: '/mes/fqc/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedMesExecutionRoute =
   AuthenticatedMesExecutionRouteImport.update({
     id: '/mes/execution',
@@ -285,6 +279,12 @@ const AuthenticatedMesLinesIndexRoute =
     path: '/mes/lines/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedMesFqcIndexRoute =
+  AuthenticatedMesFqcIndexRouteImport.update({
+    id: '/mes/fqc/',
+    path: '/mes/fqc/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMesEquipmentInspectionsIndexRoute =
   AuthenticatedMesEquipmentInspectionsIndexRouteImport.update({
     id: '/mes/equipment-inspections/',
@@ -366,7 +366,6 @@ export interface FileRoutesByFullPath {
   '/mes/defects': typeof AuthenticatedMesDefectsRoute
   '/mes/execution': typeof AuthenticatedMesExecutionRoute
   '/mes/fai': typeof AuthenticatedMesFaiRoute
-  '/mes/fqc': typeof AuthenticatedMesFqcIndexRoute
   '/mes/readiness-config': typeof AuthenticatedMesReadinessConfigRoute
   '/mes/readiness-exceptions': typeof AuthenticatedMesReadinessExceptionsRoute
   '/mes/rework-tasks': typeof AuthenticatedMesReworkTasksRoute
@@ -394,6 +393,7 @@ export interface FileRoutesByFullPath {
   '/mes/daily-qc-records': typeof AuthenticatedMesDailyQcRecordsIndexRoute
   '/mes/data-collection-specs': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
   '/mes/equipment-inspections': typeof AuthenticatedMesEquipmentInspectionsIndexRoute
+  '/mes/fqc': typeof AuthenticatedMesFqcIndexRoute
   '/mes/lines': typeof AuthenticatedMesLinesIndexRoute
   '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
   '/mes/maintenance-records': typeof AuthenticatedMesMaintenanceRecordsIndexRoute
@@ -418,7 +418,6 @@ export interface FileRoutesByTo {
   '/mes/defects': typeof AuthenticatedMesDefectsRoute
   '/mes/execution': typeof AuthenticatedMesExecutionRoute
   '/mes/fai': typeof AuthenticatedMesFaiRoute
-  '/mes/fqc': typeof AuthenticatedMesFqcIndexRoute
   '/mes/readiness-config': typeof AuthenticatedMesReadinessConfigRoute
   '/mes/readiness-exceptions': typeof AuthenticatedMesReadinessExceptionsRoute
   '/mes/rework-tasks': typeof AuthenticatedMesReworkTasksRoute
@@ -445,6 +444,7 @@ export interface FileRoutesByTo {
   '/mes/daily-qc-records': typeof AuthenticatedMesDailyQcRecordsIndexRoute
   '/mes/data-collection-specs': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
   '/mes/equipment-inspections': typeof AuthenticatedMesEquipmentInspectionsIndexRoute
+  '/mes/fqc': typeof AuthenticatedMesFqcIndexRoute
   '/mes/lines': typeof AuthenticatedMesLinesIndexRoute
   '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
   '/mes/maintenance-records': typeof AuthenticatedMesMaintenanceRecordsIndexRoute
@@ -471,7 +471,6 @@ export interface FileRoutesById {
   '/_authenticated/mes/defects': typeof AuthenticatedMesDefectsRoute
   '/_authenticated/mes/execution': typeof AuthenticatedMesExecutionRoute
   '/_authenticated/mes/fai': typeof AuthenticatedMesFaiRoute
-  '/_authenticated/mes/fqc/': typeof AuthenticatedMesFqcIndexRoute
   '/_authenticated/mes/readiness-config': typeof AuthenticatedMesReadinessConfigRoute
   '/_authenticated/mes/readiness-exceptions': typeof AuthenticatedMesReadinessExceptionsRoute
   '/_authenticated/mes/rework-tasks': typeof AuthenticatedMesReworkTasksRoute
@@ -499,6 +498,7 @@ export interface FileRoutesById {
   '/_authenticated/mes/daily-qc-records/': typeof AuthenticatedMesDailyQcRecordsIndexRoute
   '/_authenticated/mes/data-collection-specs/': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
   '/_authenticated/mes/equipment-inspections/': typeof AuthenticatedMesEquipmentInspectionsIndexRoute
+  '/_authenticated/mes/fqc/': typeof AuthenticatedMesFqcIndexRoute
   '/_authenticated/mes/lines/': typeof AuthenticatedMesLinesIndexRoute
   '/_authenticated/mes/loading/': typeof AuthenticatedMesLoadingIndexRoute
   '/_authenticated/mes/maintenance-records/': typeof AuthenticatedMesMaintenanceRecordsIndexRoute
@@ -525,7 +525,6 @@ export interface FileRouteTypes {
     | '/mes/defects'
     | '/mes/execution'
     | '/mes/fai'
-    | '/mes/fqc'
     | '/mes/readiness-config'
     | '/mes/readiness-exceptions'
     | '/mes/rework-tasks'
@@ -553,6 +552,7 @@ export interface FileRouteTypes {
     | '/mes/daily-qc-records'
     | '/mes/data-collection-specs'
     | '/mes/equipment-inspections'
+    | '/mes/fqc'
     | '/mes/lines'
     | '/mes/loading'
     | '/mes/maintenance-records'
@@ -577,7 +577,6 @@ export interface FileRouteTypes {
     | '/mes/defects'
     | '/mes/execution'
     | '/mes/fai'
-    | '/mes/fqc'
     | '/mes/readiness-config'
     | '/mes/readiness-exceptions'
     | '/mes/rework-tasks'
@@ -604,6 +603,7 @@ export interface FileRouteTypes {
     | '/mes/daily-qc-records'
     | '/mes/data-collection-specs'
     | '/mes/equipment-inspections'
+    | '/mes/fqc'
     | '/mes/lines'
     | '/mes/loading'
     | '/mes/maintenance-records'
@@ -629,7 +629,6 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/defects'
     | '/_authenticated/mes/execution'
     | '/_authenticated/mes/fai'
-    | '/_authenticated/mes/fqc/'
     | '/_authenticated/mes/readiness-config'
     | '/_authenticated/mes/readiness-exceptions'
     | '/_authenticated/mes/rework-tasks'
@@ -657,6 +656,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/daily-qc-records/'
     | '/_authenticated/mes/data-collection-specs/'
     | '/_authenticated/mes/equipment-inspections/'
+    | '/_authenticated/mes/fqc/'
     | '/_authenticated/mes/lines/'
     | '/_authenticated/mes/loading/'
     | '/_authenticated/mes/maintenance-records/'
@@ -828,13 +828,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesFaiRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/mes/fqc/': {
-      id: '/_authenticated/mes/fqc/'
-      path: '/mes/fqc'
-      fullPath: '/mes/fqc'
-      preLoaderRoute: typeof AuthenticatedMesFqcIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/mes/execution': {
       id: '/_authenticated/mes/execution'
       path: '/mes/execution'
@@ -954,6 +947,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesLinesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/mes/fqc/': {
+      id: '/_authenticated/mes/fqc/'
+      path: '/mes/fqc'
+      fullPath: '/mes/fqc'
+      preLoaderRoute: typeof AuthenticatedMesFqcIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/mes/equipment-inspections/': {
       id: '/_authenticated/mes/equipment-inspections/'
       path: '/mes/equipment-inspections'
@@ -1065,7 +1065,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesDefectsRoute: typeof AuthenticatedMesDefectsRoute
   AuthenticatedMesExecutionRoute: typeof AuthenticatedMesExecutionRoute
   AuthenticatedMesFaiRoute: typeof AuthenticatedMesFaiRoute
-  AuthenticatedMesFqcIndexRoute: typeof AuthenticatedMesFqcIndexRoute
   AuthenticatedMesReadinessConfigRoute: typeof AuthenticatedMesReadinessConfigRoute
   AuthenticatedMesReadinessExceptionsRoute: typeof AuthenticatedMesReadinessExceptionsRoute
   AuthenticatedMesReworkTasksRoute: typeof AuthenticatedMesReworkTasksRoute
@@ -1092,6 +1091,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesDailyQcRecordsIndexRoute: typeof AuthenticatedMesDailyQcRecordsIndexRoute
   AuthenticatedMesDataCollectionSpecsIndexRoute: typeof AuthenticatedMesDataCollectionSpecsIndexRoute
   AuthenticatedMesEquipmentInspectionsIndexRoute: typeof AuthenticatedMesEquipmentInspectionsIndexRoute
+  AuthenticatedMesFqcIndexRoute: typeof AuthenticatedMesFqcIndexRoute
   AuthenticatedMesLinesIndexRoute: typeof AuthenticatedMesLinesIndexRoute
   AuthenticatedMesLoadingIndexRoute: typeof AuthenticatedMesLoadingIndexRoute
   AuthenticatedMesMaintenanceRecordsIndexRoute: typeof AuthenticatedMesMaintenanceRecordsIndexRoute
@@ -1115,7 +1115,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMesDefectsRoute: AuthenticatedMesDefectsRoute,
   AuthenticatedMesExecutionRoute: AuthenticatedMesExecutionRoute,
   AuthenticatedMesFaiRoute: AuthenticatedMesFaiRoute,
-  AuthenticatedMesFqcIndexRoute: AuthenticatedMesFqcIndexRoute,
   AuthenticatedMesReadinessConfigRoute: AuthenticatedMesReadinessConfigRoute,
   AuthenticatedMesReadinessExceptionsRoute:
     AuthenticatedMesReadinessExceptionsRoute,
@@ -1152,6 +1151,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedMesDataCollectionSpecsIndexRoute,
   AuthenticatedMesEquipmentInspectionsIndexRoute:
     AuthenticatedMesEquipmentInspectionsIndexRoute,
+  AuthenticatedMesFqcIndexRoute: AuthenticatedMesFqcIndexRoute,
   AuthenticatedMesLinesIndexRoute: AuthenticatedMesLinesIndexRoute,
   AuthenticatedMesLoadingIndexRoute: AuthenticatedMesLoadingIndexRoute,
   AuthenticatedMesMaintenanceRecordsIndexRoute:
