@@ -1,8 +1,8 @@
 # Development Plan & Milestones
 
-> **更新时间**: 2026-01-14
-> **状态**: M1~M3 已落地，M4 规划中（草案）
-> **当前紧急**: 先跑 UI 全流程验收（尤其前端集成），见 `user_docs/demo/acceptance_plan.md`（SMT）与 `user_docs/demo/acceptance_plan_dip.md`（DIP）；问题记录在 `user_docs/demo/acceptance_issues.md`。
+> **更新时间**: 2026-01-27
+> **状态**: M1~M4 已落地 ✅，未来方向为出站集成（TBD）
+> **验收状态**: DIP + SMT 脚本验收通过 (2026-01-27)，P0 全部覆盖
 
 ## 1. Milestone Overview
 
@@ -78,14 +78,18 @@ This document outlines the development milestones for the MES system, focusing o
 * **Plan**:
   - `domain_docs/mes/plan/phase3_tasks.md`
 
-### M4: Ingest and Batch Processing (POST GO-LIVE)
+### M4: Ingest and Batch Processing (DONE, 2026-01-27)
 * **Goal**: Extend the system to handle automated and batch processing scenarios.
 * **Features**: Automatic/BATCH/TEST event ingest, equipment integration for auto track-in/out, batch data collection.
 * **Acceptance Criteria**: System handles auto/batch/test events with consistent routing and data validation.
 * **Plan**:
   - `domain_docs/mes/plan/phase4_tasks.md`
+* **Acceptance Results** (2026-01-27):
+  - DIP script acceptance: PASSED (all steps)
+  - SMT script acceptance: PASSED (33/33 steps)
+  - P0 criteria verified: WO/Run/Loading/FAI/Execution/Trace/OQC
 * **Notes**:
-  - Outbound feedback (ERP/TPM) is tracked as an optional (TBD) workstream in the Phase 4 plan.
+  - Outbound feedback (ERP/TPM) moved to Future (TBD).
 
 ## Future (Optional / TBD)
 
