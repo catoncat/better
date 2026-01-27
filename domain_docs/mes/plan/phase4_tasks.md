@@ -116,7 +116,7 @@ P0（必须）：
 | T4.6.11.1 | 日常 QC 统计与异常闭环（WP-10 后续） | ✅ | T4.6.11 | 班次/时间段统计可生成 |
 | T4.6.12 | 其它 SMT 表单确认与拆分 | ✅ | - | 已确认：`spec/process/compair/smt_form_collection_matrix.md`；后续任务见 T4.6.12.1-2 |
 | T4.6.12.1 | 维修记录表单化（QR-Pro-012） | ✅ | - | 扫 SN 录入维修原因/措施/结果；对齐 Defect/ReworkTask |
-| T4.6.12.2 | 设备数采（可选）：生产数据/出入数（贴片机） | ⬜ | - | 对接设备数采或以 Track/DataValue 报表化 |
+| T4.6.12.2 | 设备数采（可选）：生产数据/出入数（贴片机） | ✅ | - | 对接设备数采或以 Track/DataValue 报表化（as-built：DeviceDataRecord + list UI） |
 
 ### 3.7 产线管理
 

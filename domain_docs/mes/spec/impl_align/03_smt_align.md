@@ -64,7 +64,7 @@
 | 批量执行 (Run=IN_PROGRESS) | - | - | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
 | TrackIn (Unit=IN_STATION) | `POST /api/stations/:stationCode/track-in` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
 | 数据采集(可选) | `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
-| 设备数采接入 (POC) | `POST /api/integration/device-data` | `apps/server/src/modules/mes/integration/device-data-service.ts` | - |
+| 设备数采接入 (POC) | `POST /api/integration/device-data`, `GET /api/integration/device-data` | `apps/server/src/modules/mes/integration/device-data-service.ts` | `apps/web/src/routes/_authenticated/mes/integration/device-data.tsx` |
 | TrackOut | `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
 | 推进路由 (Unit=QUEUED) | `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |
 | 单件完成 (Unit=DONE) | `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/execution.tsx` |

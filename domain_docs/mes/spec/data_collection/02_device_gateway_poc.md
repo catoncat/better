@@ -63,6 +63,7 @@
 ## 3. Storage
 
 - **DataValue**：写入 `source=TrackSource.AUTO`（或 MANUAL）。
+- **DeviceDataRecord**：保存结构化事件字段（runNo/unitSn/station/step/trackId 等）与原始 data，用于查询/报表。
 - **IntegrationMessage**：写入原始事件用于追溯与去重。
 
 ## 4. Notes

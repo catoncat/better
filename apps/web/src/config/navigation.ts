@@ -233,6 +233,11 @@ export const navMain: NavItem[] = [
 				permissions: [Permission.SYSTEM_INTEGRATION],
 			},
 			{
+				title: "设备数采",
+				url: "/mes/integration/device-data",
+				permissions: [Permission.SYSTEM_INTEGRATION],
+			},
+			{
 				title: "耗材状态录入",
 				url: "/mes/integration/manual-entry",
 				permissions: [Permission.SYSTEM_INTEGRATION],
