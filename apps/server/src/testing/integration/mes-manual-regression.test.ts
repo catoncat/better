@@ -392,19 +392,25 @@ describe("integration: mes MANUAL execution regression", () => {
 			});
 
 			// TrackIn
-			const trackInRes = await client.post<{ ok: boolean }>(`/api/stations/${stationCode}/track-in`, {
-				sn,
-				woNo,
-				runNo,
-			});
+			const trackInRes = await client.post<{ ok: boolean }>(
+				`/api/stations/${stationCode}/track-in`,
+				{
+					sn,
+					woNo,
+					runNo,
+				},
+			);
 			expect(trackInRes.res.status).toBe(200);
 
 			// TrackOut with FAIL
-			const trackOutRes = await client.post<{ ok: boolean }>(`/api/stations/${stationCode}/track-out`, {
-				sn,
-				runNo,
-				result: "FAIL",
-			});
+			const trackOutRes = await client.post<{ ok: boolean }>(
+				`/api/stations/${stationCode}/track-out`,
+				{
+					sn,
+					runNo,
+					result: "FAIL",
+				},
+			);
 			expect(trackOutRes.res.status).toBe(200);
 			expect(trackOutRes.data?.ok).toBe(true);
 
