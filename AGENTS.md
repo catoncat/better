@@ -11,6 +11,7 @@
   - Any code/config change → run `bun run lint` + `bun run check-types`
   - Override: `bun scripts/smart-verify.ts --force`
 - Start each task/turn with `git status` (if not clean and will be conflict with your next move, call it out before proceeding).
+- **Never auto-stash**: Do NOT run `git stash` automatically. If stashing is needed, explain the situation and wait for explicit user approval before executing any stash command.
 - **Update Docs with Code**: If implementation diverges from specs (in `agent_docs` or `domain_docs`), update the documentation *before* or *during* the PR. Docs must reflect reality.
 - This is a greenfield system; do not assume legacy/transition behavior.
 - If unsure whether something is legacy-related, check existing implementation or database data first; ask only if still unclear.
