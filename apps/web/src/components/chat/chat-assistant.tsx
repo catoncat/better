@@ -41,14 +41,30 @@ export function ChatAssistant() {
 		currentPath,
 	});
 
-	// Fetch suggestions only when chat is open and no messages yet
+	const lastAssistantMessage = useMemo(() => {
+		for (let i = messages.length - 1; i >= 0; i -= 1) {
+			const message = messages[i];
+			if (message?.role === "assistant") {
+				return message;
+			}
+		}
+		return null;
+	}, [messages]);
+
+	const suggestionReply =
+		lastAssistantMessage && !lastAssistantMessage.isStreaming
+			? lastAssistantMessage.content
+			: null;
+
+	// Fetch suggestions based on the latest assistant reply
 	const {
 		suggestions,
 		isLoading: suggestionsLoading,
 		refresh: refreshSuggestions,
 	} = useSuggestions({
 		currentPath,
-		enabled: isOpen && messages.length === 0,
+		reply: suggestionReply,
+		enabled: isOpen && !isHistoryOpen && !!suggestionReply,
 	});
 
 	const handleSend = useCallback(
@@ -209,19 +225,19 @@ export function ChatAssistant() {
 							/>
 						) : (
 							<>
-								{/* Suggestions - show only when no messages */}
-								{messages.length === 0 && (
+								{/* Messages */}
+								<ChatMessages messages={messages} className="flex-1" />
+
+								{/* Suggestions - show after assistant reply */}
+								{suggestionReply && (
 									<ChatSuggestions
 										suggestions={suggestions}
 										isLoading={suggestionsLoading}
 										onSelect={handleSuggestionSelect}
 										onRefresh={refreshSuggestions}
-										className="border-b"
+										className="border-t"
 									/>
 								)}
-
-								{/* Messages */}
-								<ChatMessages messages={messages} className="flex-1" />
 
 								{/* Input */}
 								<ChatInput

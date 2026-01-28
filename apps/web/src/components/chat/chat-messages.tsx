@@ -169,7 +169,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 										if (isInline) {
 											return (
 												<code className="bg-muted-foreground/20 rounded px-1 py-0.5 text-xs">
-													{children}
+													{linkifyRouteChildren(children)}
 												</code>
 											);
 										}

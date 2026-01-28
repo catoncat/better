@@ -8,6 +8,7 @@ export type SuggestionItem = {
 
 type UseSuggestionsOptions = {
 	currentPath: string;
+	reply?: string | null;
 	enabled?: boolean;
 };
 
@@ -22,15 +23,27 @@ const BASE_URL = import.meta.env.VITE_SERVER_URL
 	? `${import.meta.env.VITE_SERVER_URL.replace(/\/$/, "")}/api`
 	: "/api";
 
-// Cache suggestions per path to avoid repeated API calls
-const suggestionsCache = new Map<string, SuggestionItem[]>();
+type SuggestionCacheEntry = {
+	signature: string;
+	suggestions: SuggestionItem[];
+};
+
+// Cache suggestions per route to avoid repeated API calls
+const suggestionsCache = new Map<string, SuggestionCacheEntry>();
+
+function getReplySignature(reply?: string | null): string {
+	if (!reply) return "";
+	const trimmed = reply.trim();
+	return `${trimmed.length}:${trimmed.slice(0, 64)}:${trimmed.slice(-64)}`;
+}
 
 /**
  * Custom hook for fetching suggested questions based on current page
  */
 export function useSuggestions(options: UseSuggestionsOptions): UseSuggestionsReturn {
-	const { currentPath, enabled = true } = options;
+	const { currentPath, reply, enabled = true } = options;
 	const cacheKey = useMemo(() => getRouteCacheKey(currentPath), [currentPath]);
+	const replySignature = useMemo(() => getReplySignature(reply), [reply]);
 	const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -40,17 +53,24 @@ export function useSuggestions(options: UseSuggestionsOptions): UseSuggestionsRe
 			if (!enabled) return;
 
 			// Check cache first (unless force refresh)
-			if (!force && suggestionsCache.has(cacheKey)) {
-				setSuggestions(suggestionsCache.get(cacheKey) || []);
-				return;
+			if (!force) {
+				const cached = suggestionsCache.get(cacheKey);
+				if (cached && cached.signature === replySignature) {
+					setSuggestions(cached.suggestions);
+					return;
+				}
 			}
 
 			setIsLoading(true);
 			setError(null);
 
 			try {
+				const params = new URLSearchParams({ path: cacheKey });
+				if (reply) {
+					params.set("reply", reply);
+				}
 				const response = await fetch(
-					`${BASE_URL}/chat/suggestions?path=${encodeURIComponent(cacheKey)}`,
+					`${BASE_URL}/chat/suggestions?${params.toString()}`,
 					{
 						method: "GET",
 						credentials: "include",
@@ -67,7 +87,10 @@ export function useSuggestions(options: UseSuggestionsOptions): UseSuggestionsRe
 					const fetchedSuggestions = data.suggestions as SuggestionItem[];
 					setSuggestions(fetchedSuggestions);
 					// Cache the result
-					suggestionsCache.set(cacheKey, fetchedSuggestions);
+					suggestionsCache.set(cacheKey, {
+						signature: replySignature,
+						suggestions: fetchedSuggestions,
+					});
 				} else {
 					setSuggestions([]);
 				}
@@ -79,7 +102,7 @@ export function useSuggestions(options: UseSuggestionsOptions): UseSuggestionsRe
 				setIsLoading(false);
 			}
 		},
-		[cacheKey, enabled],
+		[cacheKey, enabled, reply, replySignature],
 	);
 
 	// Fetch suggestions when path changes

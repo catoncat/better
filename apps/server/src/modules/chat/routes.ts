@@ -198,9 +198,10 @@ export const chatModule = new Elysia({
 			}
 
 			const currentPath = query.path || "/";
+			const reply = query.reply;
 
 			try {
-				const suggestions = await generateSuggestions(currentPath);
+				const suggestions = await generateSuggestions(currentPath, reply);
 				return {
 					ok: true,
 					suggestions,
@@ -217,6 +218,7 @@ export const chatModule = new Elysia({
 			isAuth: true,
 			query: t.Object({
 				path: t.Optional(t.String()),
+				reply: t.Optional(t.String()),
 			}),
 			detail: {
 				tags: ["Chat"],

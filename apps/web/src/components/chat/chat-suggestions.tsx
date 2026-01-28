@@ -36,7 +36,7 @@ export function ChatSuggestions({
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
 					<Sparkles className="size-3" />
-					<span>建议问题</span>
+					<span>下一步建议</span>
 				</div>
 				{onRefresh && (
 					<Button

@@ -273,17 +273,22 @@ ${context.actions.map((action) => `- ${action}`).join("\n")}
  * Generate prompt for suggestions generation
  * @param currentPath - Current page route
  */
-export function generateSuggestionsPrompt(currentPath: string): { system: string; user: string } {
+export function generateSuggestionsPrompt(
+	currentPath: string,
+	reply?: string,
+): { system: string; user: string } {
 	const context = getRouteContext(currentPath);
+	const normalizedReply = reply?.trim();
 
-	const system = `你是 Better MES 系统的 AI 助手。你的任务是根据用户当前所在的页面，生成 3-5 个用户可能想问的问题建议。
+	const system = `你是 Better MES 系统的 AI 助手。你的任务是根据用户当前所在的页面，以及助手刚刚的回复内容，生成 3-5 个“下一步可问”的问题建议。
 
 规则：
 1. 问题必须与当前页面功能直接相关
 2. 问题应该简短清晰（不超过 20 个字）
 3. 问题应该覆盖页面的主要操作场景
 4. 优先生成操作指导类问题（如"怎么做XXX"）
-5. 返回 JSON 数组格式
+5. 若有回复内容，问题要跟随回复给出的信息延展（下一步/细节/入口/操作）
+6. 返回 JSON 数组格式
 
 返回格式：
 [
@@ -300,6 +305,7 @@ action 说明：
 路径：${currentPath}
 页面说明：${context.description}
 可用操作：${context.actions.join("、")}
+${normalizedReply ? `\n助手回复：\n${normalizedReply}\n` : ""}
 
 请生成 3-5 个与这个页面相关的建议问题。`;
 

@@ -301,9 +301,12 @@ export type SuggestionItem = {
  * Generate suggested questions based on the current page
  * Uses a fast, cheap model for quick responses
  */
-export async function generateSuggestions(currentPath: string): Promise<SuggestionItem[]> {
+export async function generateSuggestions(
+	currentPath: string,
+	reply?: string,
+): Promise<SuggestionItem[]> {
 	const client = getClient();
-	const prompt = generateSuggestionsPrompt(currentPath);
+	const prompt = generateSuggestionsPrompt(currentPath, reply);
 	const suggestionsModel = getSuggestionsModel();
 
 	try {
