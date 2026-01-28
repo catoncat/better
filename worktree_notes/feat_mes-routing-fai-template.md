@@ -26,7 +26,7 @@ task:
 - [x] Slice 2: DB Schema + Migration（FAI 模板 + 路由绑定）
 - [x] Slice 3: Server 路由/模板/门禁（API + 快照 + FAI items）
 - [x] Slice 4: ERP 工单路由解析与覆盖
-- [ ] Slice 5: Web 管理与执行（模板管理/路由绑定/FAI 录入）
+- [x] Slice 5: Web 管理与执行（模板管理/路由绑定/FAI 录入）
 - [ ] Slice 6: 测试 + Align 文档
 
 <!-- AUTO:BEGIN status -->
@@ -50,6 +50,12 @@ task:
 - 路由来源：SMT 使用 MES 自建路由；ERP 路由只读保留。
 - FAI 形态：结构化模板。
 - 绑定范围：路由级单一 FAI 模板（Run 级门禁）。
+
+## Findings
+- UI 规范：仅使用语义色变量（bg-background/bg-card/text-foreground 等），表单控件需 `w-full`，列表页走 FilterToolbar + QueryPresetBar 模式。
+- 现有 FAI 页面使用“记录检验项”弹窗新增 item（`apps/web/src/routes/_authenticated/mes/fai.tsx`），无模板项编辑逻辑；需新增更新接口调用。
+- 路由详情页 `apps/web/src/routes/_authenticated/mes/routes/$routingCode.tsx` 已有步骤列表（含 `requiresFAI`），可在路由信息卡附近加入模板绑定 UI。
+- `apps/web/src/routes/_authenticated/mes/data-collection-specs/index.tsx` 是 DataListLayout 标准范例，可复用其过滤/预设/卡片结构做 FAI 模板管理页。
 
 ## Open Questions
 -
