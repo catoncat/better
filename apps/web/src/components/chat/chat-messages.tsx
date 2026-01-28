@@ -1,4 +1,4 @@
-import { Bot, Loader2, MessageSquareText, User } from "lucide-react";
+import { Bot, Loader2, User } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";

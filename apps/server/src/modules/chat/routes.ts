@@ -232,6 +232,64 @@ export const chatModule = new Elysia({
 				description: "Get AI-generated suggested questions based on current page",
 			},
 		},
+	)
+	// Get chat feedbacks list (admin only)
+	.get(
+		"/feedbacks",
+		async ({ user, query, db }) => {
+			// Check if user has permission
+			const hasPermission = await userHasAnyPermission(db, user.id, [
+				Permission.SYSTEM_CHAT_FEEDBACK,
+			]);
+			if (!hasPermission) {
+				return { ok: false, error: "Forbidden" };
+			}
+
+			const page = Number(query.page) || 1;
+			const pageSize = Number(query.pageSize) || 20;
+			const skip = (page - 1) * pageSize;
+
+			const [total, items] = await Promise.all([
+				db.chatFeedback.count(),
+				db.chatFeedback.findMany({
+					skip,
+					take: pageSize,
+					orderBy: { createdAt: "desc" },
+					include: {
+						user: {
+							select: {
+								id: true,
+								name: true,
+								username: true,
+							},
+						},
+					},
+				}),
+			]);
+
+			return {
+				ok: true,
+				data: items,
+				pagination: {
+					total,
+					page,
+					pageSize,
+					pageCount: Math.ceil(total / pageSize),
+				},
+			};
+		},
+		{
+			isAuth: true,
+			query: t.Object({
+				page: t.Optional(t.String()),
+				pageSize: t.Optional(t.String()),
+			}),
+			detail: {
+				tags: ["Chat"],
+				summary: "List chat feedbacks",
+				description: "List chat feedbacks with pagination (admin only)",
+			},
+		},
 	);
 
 // Submit feedback for a chat response
