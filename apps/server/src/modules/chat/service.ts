@@ -178,16 +178,21 @@ export async function* streamChatCompletion(
 			}
 		}
 
-		// If no tool calls, we're done
-		if (toolCalls.length === 0 || toolCalls.every((tc) => !tc.id)) {
+		// Filter out incomplete tool calls (missing id or name)
+		const validToolCalls = toolCalls.filter((tc) => tc.id && tc.name);
+
+		// If no valid tool calls, we're done
+		if (validToolCalls.length === 0) {
 			break;
 		}
+
+		console.log("[Chat] Tool calls:", JSON.stringify(validToolCalls, null, 2));
 
 		// Execute tool calls and add results to messages
 		apiMessages.push({
 			role: "assistant",
 			content: assistantContent || null,
-			tool_calls: toolCalls.map((tc) => ({
+			tool_calls: validToolCalls.map((tc) => ({
 				id: tc.id,
 				type: "function" as const,
 				function: {
@@ -198,15 +203,16 @@ export async function* streamChatCompletion(
 		});
 
 		// Process each tool call
-		for (const toolCall of toolCalls) {
-			if (!toolCall.id || !toolCall.name) continue;
+		for (const toolCall of validToolCalls) {
 
 			// Indicate to user that we're fetching info
 			yield `\n\n🔍 *正在查询代码库...*\n\n`;
 
 			try {
 				const args = JSON.parse(toolCall.arguments || "{}");
+				console.log(`[Chat] Executing tool: ${toolCall.name}`, args);
 				const result = await executeTool(toolCall.name, args);
+				console.log(`[Chat] Tool result (${result.length} chars):`, result.slice(0, 200));
 
 				apiMessages.push({
 					role: "tool",

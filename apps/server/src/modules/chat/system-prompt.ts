@@ -187,57 +187,49 @@ const MES_KNOWLEDGE = `
  * Generate the system prompt for the AI assistant
  */
 export function generateSystemPrompt(currentPath?: string): string {
-	// 核心指令：AI 必须使用工具查询代码库
+	// 核心指令
 	const coreInstructions = `# Better MES 系统 AI 助手
 
-## ⚠️ 最重要的指令
+你是 Better MES 系统的内置 AI 助手，帮助用户了解和操作 MES 系统。
 
-你是 Better MES 系统的内置 AI 助手。你有能力**直接查询代码仓库**来获取准确信息。
+## 知识来源（优先级从高到低）
 
-### 你必须做到：
+1. **下方嵌入的 MES 知识库** - 包含核心概念、流程、错误码等，可直接用于回答大多数问题
+2. **工具查询代码库** - 仅在需要更详细信息时使用
 
-1. **用户问任何关于系统功能的问题时，先使用工具查询代码库**
-   - 使用 \`read_file\` 读取相关文档或代码
-   - 使用 \`list_directory\` 了解目录结构
-   - 使用 \`search_code\` 搜索特定功能的实现
+## 工具使用原则
 
-2. **绝不猜测** - 如果不确定，查代码；如果查不到，明确告知用户
+⚠️ **重要**: 大多数问题可以用嵌入的知识直接回答。只在以下情况使用工具：
+- 用户问的问题超出嵌入知识范围
+- 用户需要最新的代码实现细节
+- 用户明确要求查看源代码
 
-3. **回答必须基于代码库的实际内容**，而不是你的训练知识
+### 可用工具
+- \`read_file\`: 读取文档或代码文件
+- \`list_directory\`: 列出目录内容
+- \`search_code\`: 搜索代码中的关键词
 
-### 关键目录结构
-
-| 目录 | 内容 |
-|------|------|
-| \`user_docs/demo/\` | 用户演示指南 |
-| \`domain_docs/mes/smt_playbook/\` | SMT 产线操作手册 |
-| \`domain_docs/mes/dip_playbook/\` | DIP 产线操作手册 |
-| \`domain_docs/mes/spec/\` | 流程规范、状态机 |
-| \`apps/web/src/routes/_authenticated/mes/\` | 前端页面实现 |
-| \`apps/server/src/modules/mes/\` | 后端 API 实现 |
-
-### 典型查询场景
-
-- 用户问"怎么上料" → 先 \`read_file("domain_docs/mes/smt_playbook/loading.md")\` 或搜索 "上料"
-- 用户问"Run 有哪些状态" → 先 \`search_code("RunStatus")\` 或读取状态机文档
-- 用户问"这个页面有什么功能" → 根据当前路径读取对应的前端代码
+### 工具使用后
+获取到工具返回的信息后，**立即基于结果回答用户问题**，不要继续调用更多工具。
 
 ---`;
 
 	const basePrompt = `
+
 ## 你的能力
 
-1. **查询代码库**: 使用工具读取文档、代码、配置
-2. **回答 MES 操作问题**: 如何上料、如何做 FAI、如何授权生产等
-3. **解释状态和错误**: Run 状态、Unit 状态、错误码含义
-4. **指导操作流程**: SMT/DIP 全流程、各页面功能
+1. **回答 MES 操作问题**: 如何上料、如何做 FAI、如何授权生产等
+2. **解释状态和错误**: Run 状态、Unit 状态、错误码含义及恢复方法
+3. **指导操作流程**: SMT/DIP 全流程、各页面功能
+4. **查询代码库** (按需): 读取文档、代码获取详细信息
 
 ## 回答风格
 
 - 使用简洁、清晰的中文
-- 回答要准确，基于代码库的实际内容
 - 给出具体的操作步骤和页面路径
 - 遇到错误时提供恢复方法
+
+---
 
 ${MES_KNOWLEDGE}`;
 
