@@ -480,6 +480,13 @@ const seedMesMasterData = async (prisma: Db["default"], db: Db) => {
 		await prisma.material.create({ data: mat });
 	}
 
+	// Seed Material Lot data for loading demo
+	const materialLots = [{ materialCode: "MAT-001", lotNo: "LOT-2024-001" }];
+	for (const lot of materialLots) {
+		await prisma.materialLot.create({ data: lot });
+	}
+	console.log("  -> Material Lot data seeded");
+
 	// BOM: P-1001 requires MAT-001, MAT-002, MAT-003
 	const bomItems = [
 		{ parentCode: "P-1001", childCode: "MAT-001", qty: 10 },
