@@ -517,6 +517,7 @@ export const updateWorkOrderRouting = async (
 	db: PrismaClient,
 	woNo: string,
 	routingCode: string,
+	updatedBy?: string,
 ): Promise<ServiceResult<Prisma.WorkOrderGetPayload<Prisma.WorkOrderDefaultArgs>>> => {
 	const wo = await db.workOrder.findUnique({ where: { woNo } });
 	if (!wo) {
@@ -557,18 +558,22 @@ export const updateWorkOrderRouting = async (
 		};
 	}
 
-	if (wo.routingId && wo.routingId !== routing.id) {
-		return {
-			success: false,
-			code: "WORK_ORDER_ROUTING_ALREADY_SET",
-			message: "工单已关联路由，无法修改",
-			status: 400,
-		};
-	}
+	const baseMeta = isJsonObject(wo.meta) ? wo.meta : {};
 
 	const updated = await db.workOrder.update({
 		where: { woNo },
-		data: { routingId: routing.id },
+		data: {
+			routingId: routing.id,
+			meta: {
+				...baseMeta,
+				routingOverride: {
+					routingId: routing.id,
+					routingCode: routing.code,
+					updatedBy: updatedBy ?? null,
+					updatedAt: new Date().toISOString(),
+				},
+			},
+		},
 	});
 	return { success: true, data: updated };
 };

@@ -33,9 +33,21 @@ const mapWorkOrderStatus = (erpStatus: string | undefined) => {
 // ==========================================
 
 type RoutingResolution = {
-	routing: { id: string; code: string } | null;
+	routing: { id: string; code: string; sourceSystem: string } | null;
 	mode: "routing_code" | "product_code" | "ambiguous" | "not_found";
+	sourceSystem?: "MES" | "ERP";
 	candidateCodes?: string[];
+};
+
+const isJsonObject = (value: unknown): value is Record<string, unknown> =>
+	Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+const getRoutingOverrideId = (meta: unknown): string | null => {
+	if (!isJsonObject(meta)) return null;
+	const override = meta.routingOverride;
+	if (!isJsonObject(override)) return null;
+	const routingId = override.routingId;
+	return typeof routingId === "string" ? routingId : null;
 };
 
 const resolveRoutingForWorkOrder = async (
@@ -45,34 +57,60 @@ const resolveRoutingForWorkOrder = async (
 	if (item.routingCode) {
 		const routing = await tx.routing.findUnique({
 			where: { code: item.routingCode },
-			select: { id: true, code: true },
+			select: { id: true, code: true, sourceSystem: true },
 		});
-		return { routing: routing || null, mode: routing ? "routing_code" : "not_found" };
+		return {
+			routing: routing || null,
+			mode: routing ? "routing_code" : "not_found",
+			sourceSystem: routing
+				? routing.sourceSystem === "ERP"
+					? "ERP"
+					: "MES"
+				: undefined,
+		};
 	}
 
 	const now = new Date();
-	const candidates = await tx.routing.findMany({
-		where: {
-			productCode: item.productCode,
-			isActive: true,
-			AND: [
-				{ OR: [{ effectiveFrom: null }, { effectiveFrom: { lte: now } }] },
-				{ OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }] },
-			],
-		},
-		orderBy: [{ effectiveFrom: "desc" }, { updatedAt: "desc" }, { id: "desc" }],
-		select: { id: true, code: true },
-		take: 2,
-	});
 
-	if (candidates.length === 1) {
-		return { routing: candidates[0] ?? null, mode: "product_code" };
+	const findCandidates = async (sourceSystem: "MES" | "ERP") =>
+		tx.routing.findMany({
+			where: {
+				sourceSystem,
+				productCode: item.productCode,
+				isActive: true,
+				AND: [
+					{ OR: [{ effectiveFrom: null }, { effectiveFrom: { lte: now } }] },
+					{ OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }] },
+				],
+			},
+			orderBy: [{ effectiveFrom: "desc" }, { updatedAt: "desc" }, { id: "desc" }],
+			select: { id: true, code: true, sourceSystem: true },
+			take: 2,
+		});
+
+	const mesCandidates = await findCandidates("MES");
+	if (mesCandidates.length === 1) {
+		return { routing: mesCandidates[0] ?? null, mode: "product_code", sourceSystem: "MES" };
 	}
-	if (candidates.length > 1) {
+	if (mesCandidates.length > 1) {
 		return {
 			routing: null,
 			mode: "ambiguous",
-			candidateCodes: candidates.map((candidate: { code: string }) => candidate.code),
+			sourceSystem: "MES",
+			candidateCodes: mesCandidates.map((candidate) => candidate.code),
+		};
+	}
+
+	const erpCandidates = await findCandidates("ERP");
+	if (erpCandidates.length === 1) {
+		return { routing: erpCandidates[0] ?? null, mode: "product_code", sourceSystem: "ERP" };
+	}
+	if (erpCandidates.length > 1) {
+		return {
+			routing: null,
+			mode: "ambiguous",
+			sourceSystem: "ERP",
+			candidateCodes: erpCandidates.map((candidate) => candidate.code),
 		};
 	}
 
@@ -109,9 +147,19 @@ export const applyWorkOrders = async (
 			mode: routingResolution.mode,
 			routingCode: item.routingCode ?? null,
 			resolvedCode: routing?.code ?? null,
+			resolvedSourceSystem: routing?.sourceSystem ?? null,
+			sourceSystem: routingResolution.sourceSystem ?? null,
 			candidateCodes: routingResolution.candidateCodes ?? null,
 		};
+		// B5 Fix: Use item.plannedQty directly without Math.round()
+		const mappedStatus = mapWorkOrderStatus(item.status);
+		const existing = await tx.workOrder.findUnique({
+			where: { woNo: item.woNo },
+			select: { status: true, meta: true, routingId: true },
+		});
+		const baseMeta = isJsonObject(existing?.meta) ? existing?.meta : {};
 		const erpMeta = toJsonValue({
+			...baseMeta,
 			erpStatus: item.status,
 			erpPickStatus: item.pickStatus,
 			erpRouting: routingMeta,
@@ -131,24 +179,20 @@ export const applyWorkOrders = async (
 				scrapQty: item.scrapQty,
 			},
 		});
-
-		// B5 Fix: Use item.plannedQty directly without Math.round()
-		const mappedStatus = mapWorkOrderStatus(item.status);
-		const existing = await tx.workOrder.findUnique({
-			where: { woNo: item.woNo },
-			select: { status: true },
-		});
 		const status =
 			existing?.status === WorkOrderStatus.COMPLETED && mappedStatus !== WorkOrderStatus.COMPLETED
 				? WorkOrderStatus.COMPLETED
 				: mappedStatus;
+
+		const overrideRoutingId = getRoutingOverrideId(existing?.meta);
+		const resolvedRoutingId = overrideRoutingId ?? routing?.id ?? existing?.routingId ?? null;
 
 		await tx.workOrder.upsert({
 			where: { woNo: item.woNo },
 			update: {
 				productCode: item.productCode,
 				plannedQty: item.plannedQty, // B5 Fix: Preserve decimal precision
-				routingId: routing?.id,
+				routingId: resolvedRoutingId,
 				dueDate: parseDate(item.dueDate),
 				status,
 				erpStatus: item.status,
@@ -159,7 +203,7 @@ export const applyWorkOrders = async (
 				woNo: item.woNo,
 				productCode: item.productCode,
 				plannedQty: item.plannedQty, // B5 Fix: Preserve decimal precision
-				routingId: routing?.id,
+				routingId: resolvedRoutingId ?? routing?.id,
 				dueDate: parseDate(item.dueDate),
 				status,
 				erpStatus: item.status,

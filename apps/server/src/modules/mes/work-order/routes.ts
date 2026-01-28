@@ -197,7 +197,7 @@ export const workOrderModule = new Elysia({
 			const actor = buildAuditActor(user);
 			const requestMeta = buildAuditRequestMeta(request);
 			const before = await db.workOrder.findUnique({ where: { woNo } });
-			const result = await updateWorkOrderRouting(db, woNo, body.routingCode);
+			const result = await updateWorkOrderRouting(db, woNo, body.routingCode, user?.id);
 			if (!result.success) {
 				await recordAuditEvent(db, {
 					entityType: AuditEntityType.WORK_ORDER,
