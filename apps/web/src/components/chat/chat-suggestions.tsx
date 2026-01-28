@@ -1,4 +1,4 @@
-import { RefreshCw } from "lucide-react";
+import { MessageSquareText, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SuggestionItem } from "./use-suggestions";

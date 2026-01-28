@@ -13,7 +13,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "./use-chat";
@@ -319,12 +318,11 @@ export function ChatFeedbackDialog({
 				</DialogHeader>
 				<DialogBody className="space-y-4">
 					<div className="grid gap-2">
-						<Label htmlFor="chat-feedback-note">备注</Label>
 						<Textarea
 							id="chat-feedback-note"
 							value={note}
 							onChange={(event) => setNote(event.target.value)}
-							placeholder="描述你遇到的问题或建议（可选）"
+							placeholder="描述你的疑问，遇到的问题或建议（可选）"
 							rows={4}
 						/>
 					</div>

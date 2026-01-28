@@ -9,7 +9,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ChatFeedbackItem } from "@/hooks/use-chat-feedbacks";
 
 interface ChatFeedbackDialogProps {
@@ -49,7 +48,7 @@ export function ChatFeedbackDialog({ item, open, onOpenChange }: ChatFeedbackDia
 					)}
 				</div>
 
-				<ScrollArea className="flex-1 -mx-6 px-6">
+				<div className="flex-1 overflow-y-auto -mx-6 px-6">
 					<div className="space-y-6 py-4">
 						{item.feedback && (
 							<div className="space-y-2">
@@ -78,7 +77,7 @@ export function ChatFeedbackDialog({ item, open, onOpenChange }: ChatFeedbackDia
 							</div>
 						</div>
 					</div>
-				</ScrollArea>
+				</div>
 			</DialogContent>
 		</Dialog>
 	);
