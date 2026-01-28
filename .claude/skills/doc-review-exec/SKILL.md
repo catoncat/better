@@ -9,7 +9,7 @@ description: 'MES 文档系统性 review 的“执行”助手。用于按“轮
 
 把“文档为真源”的 review 从 meta 规则落到**可追踪的执行产出**：
 - 产出 `roundN_*.md`：对齐矩阵 + 偏差清单 + 证据链
-- 更新 `00_status.md`：轮次状态/Owner/Updated/Links
+- 更新 `00_status.md`：轮次状态/Owner/Updated/Links + Commits（把本轮产出/修复对应的 git commit 记录进去）
 
 > 本 skill 只做 **review 执行记录**，默认不做“修文档/改实现”。修复属于后续开发/文档修订任务。
 
@@ -96,6 +96,7 @@ description: 'MES 文档系统性 review 的“执行”助手。用于按“轮
 - Status：`in_progress` 或 `completed`
 - Owner：用户给的 owner 或 `-`
 - Updated：当天日期（YYYY-MM-DD）
+- Commits：写本轮相关提交短 hash，格式：`<review>` → `<fix/close>`（示例：`de6519c` → `a99c9d5`）。若只完成 review 产出（尚未修复/关闭），右侧用 `-` 占位，后续补齐并更新该行。
 - Links：填 `roundN_{scope}.md` 相对路径
 
 ### Step 6)（可选）高风险误导点 `99_high_risk_findings.md`
@@ -114,5 +115,4 @@ description: 'MES 文档系统性 review 的“执行”助手。用于按“轮
 最终交付必须满足：
 - `roundN_{scope}.md` 中至少 5 行对齐矩阵（除非用户明确要求“只做快照/占位”）
 - 每条偏差都有证据链（Doc/API/UI 至少两项）
-- `00_status.md` 更新了对应轮次的 Scope/Status/Updated/Links
-
+- `00_status.md` 更新了对应轮次的 Scope/Status/Updated/Commits/Links（Commits 用短 hash，符合表头格式）

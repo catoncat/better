@@ -834,3 +834,5 @@
 - Resumed doc-review-exec loop; pending commit for round7 defects/rework doc fixes and status update.
 - Next: commit round7 fixes, then start next scope review per backlog.
 - Backlog remaining scopes: Integration, Routing, Work Orders/Runs, Readiness, Loading, Traceability. Next planned: Integration.
+- 2026-01-28: user requested new worktree for Trace material-lot API + Trace UI detail enhancements (tasks 1&2).
+- 2026-01-28: committing pending review skill + UX review status updates on main per user request.

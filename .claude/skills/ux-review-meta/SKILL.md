@@ -71,5 +71,4 @@ description: 'MES 产品交互/UX 系统性 review 的 meta 助手：定义 revi
 - 规则/准则：`00_review_method.md`
 - 模板：`00_interaction_matrix_template.md`、`round1_template.md`
 - 范围清单：`00_review_backlog.md`
-- 共享状态：`00_status.md`
-
+- 共享状态：`00_status.md`（如表格包含 `Commits` 列，必须同步维护：用短 hash 记录本次变更对应的 git commit，必要时按 `review → fix/close` 形式写两段）

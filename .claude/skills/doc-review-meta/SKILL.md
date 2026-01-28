@@ -87,7 +87,7 @@ C 更新规则/方法或模板
 
 - 任务清单 / Backlog：改 `doc_review_tasks.md` / `00_review_backlog.md`（不做实现级修复）。
 - 方法/模板：只在用户明确要求“改规则/改模板”时，改 `00_review_method.md` / `00_alignment_matrix_template.md`。
-- 共享状态：改 `00_status.md`（字段以文件内表头为准；轮次可保持占位 TBD）。
+- 共享状态：改 `00_status.md`（字段以文件内表头为准；轮次可保持占位 TBD）。如表格包含 `Commits` 列，必须同步维护：用短 hash 记录本次变更对应的 git commit（必要时按 `review → fix/close` 形式写两段）。
 - 运行时切片：需要多人协作/并行时才写 `.scratch/task-queue.md`（不入 Git）。
 - 关键决策：如确有流程/规则变更需要留档，用 `bun scripts/conversation-new.ts "<topic>" --persist` 写入 `conversation/` 并提交。
 
