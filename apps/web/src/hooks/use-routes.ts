@@ -93,3 +93,23 @@ export function useUpdateRouteProcessType(routingCode: string) {
 		onError: (error: unknown) => showError("更新路由工艺失败", error),
 	});
 }
+
+export function useUpdateRouteFaiTemplate(routingCode: string) {
+	const queryClient = useQueryClient();
+	const showError = useApiError();
+
+	return useMutation({
+		mutationFn: async ({ faiTemplateId }: { faiTemplateId: string | null }) => {
+			const response = await client.api.routes({ routingCode })["fai-template"].patch({
+				faiTemplateId,
+			});
+			return unwrap(response);
+		},
+		onSuccess: () => {
+			toast.success("FAI 模板已更新");
+			queryClient.invalidateQueries({ queryKey: ["mes", "route-detail", routingCode] });
+			queryClient.invalidateQueries({ queryKey: ["mes", "routes"] });
+		},
+		onError: (error: unknown) => showError("更新 FAI 模板失败", error),
+	});
+}

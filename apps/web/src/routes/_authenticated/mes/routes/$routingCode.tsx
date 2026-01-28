@@ -1,7 +1,7 @@
 import { Permission } from "@better-app/db/permissions";
 import { useForm } from "@tanstack/react-form";
 import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useParams } from "@tanstack/react-router";
+import { Link, createFileRoute, useParams } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { Edit2, PlusCircle, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -41,6 +41,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAbility } from "@/hooks/use-ability";
+import { useFaiTemplateList } from "@/hooks/use-fai-templates";
 import {
 	type ExecutionConfig,
 	useCreateExecutionConfig,
@@ -48,7 +49,11 @@ import {
 	useUpdateExecutionConfig,
 } from "@/hooks/use-execution-configs";
 import { useCompileRouteVersion } from "@/hooks/use-route-versions";
-import { useRouteDetail, useUpdateRouteProcessType } from "@/hooks/use-routes";
+import {
+	useRouteDetail,
+	useUpdateRouteFaiTemplate,
+	useUpdateRouteProcessType,
+} from "@/hooks/use-routes";
 import { useStations } from "@/hooks/use-station-execution";
 import { useStationGroups } from "@/hooks/use-station-groups";
 import { PROCESS_TYPE_MAP } from "@/lib/constants";
@@ -130,6 +135,8 @@ function RouteDetailPage() {
 	const canViewRoutes = hasPermission(Permission.ROUTE_READ);
 	const canViewDataSpecs =
 		hasPermission(Permission.DATA_SPEC_READ) && hasPermission(Permission.DATA_SPEC_CONFIG);
+	const canViewFaiTemplates = hasPermission(Permission.QUALITY_FAI);
+	const canConfigureRoute = hasPermission(Permission.ROUTE_CONFIGURE);
 
 	const {
 		data: routeDetail,
@@ -139,6 +146,7 @@ function RouteDetailPage() {
 		enabled: canViewRoutes,
 	});
 	const updateProcessType = useUpdateRouteProcessType(routingCode);
+	const updateFaiTemplate = useUpdateRouteFaiTemplate(routingCode);
 	const { data: configs, isLoading: configsLoading } = useExecutionConfigs(routingCode, {
 		enabled: canViewRoutes,
 	});
@@ -146,14 +154,28 @@ function RouteDetailPage() {
 	const { data: stationGroups } = useStationGroups({ enabled: canViewRoutes });
 	const { mutateAsync: compileRoute, isPending: isCompiling } = useCompileRouteVersion();
 
+	const { data: faiTemplateList, isLoading: isFaiTemplateLoading } = useFaiTemplateList(
+		{
+			page: 1,
+			pageSize: 50,
+			productCode: routeDetail?.route.productCode ?? undefined,
+			processType: routeDetail?.route.processType ?? undefined,
+			isActive: "true",
+		},
+		{ enabled: canViewFaiTemplates && Boolean(routeDetail?.route) },
+	);
+
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editingConfig, setEditingConfig] = useState<ExecutionConfig | null>(null);
 	const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
 	const [processType, setProcessType] = useState<ProcessType | "">("");
 	const [processTypeDirty, setProcessTypeDirty] = useState(false);
+	const [faiTemplateId, setFaiTemplateId] = useState("");
+	const [faiTemplateDirty, setFaiTemplateDirty] = useState(false);
 
 	const steps = routeDetail?.steps ?? [];
 	const executionConfigs = configs ?? [];
+	const requiresFai = steps.some((step) => step.requiresFAI);
 	const stationOptions: StationOption[] =
 		stationList?.items.map((item) => ({
 			id: item.id,
@@ -174,6 +196,28 @@ function RouteDetailPage() {
 		}
 		return map;
 	}, [stationOptions]);
+
+	const templateOptions = useMemo(() => {
+		const options =
+			faiTemplateList?.items.map((template) => ({
+				value: template.id,
+				label: `${template.name} (${template.code}) · ${template.productCode}${
+					template.version ? ` · ${template.version}` : ""
+				}`,
+			})) ?? [];
+
+		const boundTemplate = routeDetail?.route.faiTemplate;
+		if (boundTemplate && !options.some((option) => option.value === boundTemplate.id)) {
+			options.unshift({
+				value: boundTemplate.id,
+				label: `${boundTemplate.name} (${boundTemplate.code}) · ${boundTemplate.productCode}${
+					boundTemplate.version ? ` · ${boundTemplate.version}` : ""
+				}${boundTemplate.isActive ? "" : " · 已停用"}`,
+			});
+		}
+
+		return options;
+	}, [faiTemplateList?.items, routeDetail?.route.faiTemplate]);
 
 	const stepOptions = useMemo(
 		() =>
@@ -206,6 +250,12 @@ function RouteDetailPage() {
 		}
 	}, [routeDetail?.route.processType]);
 
+	useEffect(() => {
+		const currentTemplateId = routeDetail?.route.faiTemplate?.id ?? "";
+		setFaiTemplateId(currentTemplateId);
+		setFaiTemplateDirty(false);
+	}, [routeDetail?.route.faiTemplate?.id]);
+
 	const handleProcessTypeChange = (value: string) => {
 		setProcessType(value as ProcessType);
 		setProcessTypeDirty(true);
@@ -215,6 +265,21 @@ function RouteDetailPage() {
 		if (!processType) return;
 		await updateProcessType.mutateAsync({ processType });
 		setProcessTypeDirty(false);
+	};
+
+	const handleFaiTemplateChange = (value: string) => {
+		setFaiTemplateId(value);
+		setFaiTemplateDirty(value !== (routeDetail?.route.faiTemplate?.id ?? ""));
+	};
+
+	const handleClearFaiTemplate = () => {
+		setFaiTemplateId("");
+		setFaiTemplateDirty(true);
+	};
+
+	const handleSaveFaiTemplate = async () => {
+		await updateFaiTemplate.mutateAsync({ faiTemplateId: faiTemplateId || null });
+		setFaiTemplateDirty(false);
 	};
 
 	const executionSemanticsStatus = useMemo(() => {
@@ -497,6 +562,75 @@ function RouteDetailPage() {
 							{format(new Date(routeDetail.route.updatedAt), "yyyy-MM-dd HH:mm")}
 						</p>
 					</div>
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader>
+					<CardTitle>首件检验模板</CardTitle>
+					<CardDescription>用于首件检验项目的模板绑定。</CardDescription>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					<div className="grid gap-4 md:grid-cols-[1fr_auto]">
+						<div className="space-y-2">
+							<p className="text-sm text-muted-foreground">模板选择</p>
+							{canViewFaiTemplates ? (
+								<Combobox
+									options={templateOptions}
+									value={faiTemplateId}
+									onValueChange={handleFaiTemplateChange}
+									placeholder={isFaiTemplateLoading ? "加载中..." : "选择 FAI 模板"}
+									searchPlaceholder="搜索模板"
+									emptyText={isFaiTemplateLoading ? "加载中..." : "暂无可用模板"}
+									disabled={!canConfigureRoute}
+								/>
+							) : (
+								<p className="text-sm text-muted-foreground">需要首件检验权限才能选择模板。</p>
+							)}
+							{routeDetail.route.faiTemplate ? (
+								<p className="text-xs text-muted-foreground">
+									当前绑定：{routeDetail.route.faiTemplate.name}（{routeDetail.route.faiTemplate.code}）
+								</p>
+							) : (
+								<p className="text-xs text-muted-foreground">当前未绑定模板</p>
+							)}
+						</div>
+						<div className="flex items-center gap-2 md:justify-end">
+							{faiTemplateId ? (
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={handleClearFaiTemplate}
+									disabled={!canConfigureRoute}
+								>
+									清空绑定
+								</Button>
+							) : null}
+							<Can permissions={Permission.ROUTE_CONFIGURE}>
+								<Button
+									size="sm"
+									onClick={handleSaveFaiTemplate}
+									disabled={!faiTemplateDirty || updateFaiTemplate.isPending}
+								>
+									{updateFaiTemplate.isPending ? "保存中..." : "保存模板"}
+								</Button>
+							</Can>
+						</div>
+					</div>
+					{requiresFai && !routeDetail.route.faiTemplate && (
+						<div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+							该路由包含需要首件检验的步骤，请先绑定模板并重新编译。
+							<Link
+								to="/mes/fai-templates"
+								className="ml-2 text-amber-900 underline underline-offset-4"
+							>
+								去配置模板
+							</Link>
+						</div>
+					)}
+					{!requiresFai && (
+						<p className="text-xs text-muted-foreground">当前步骤未要求 FAI，可按需绑定模板。</p>
+					)}
 				</CardContent>
 			</Card>
 
