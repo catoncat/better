@@ -84,6 +84,12 @@ type DemoSeedDialogProps = {
 	onSubmit: (payload: DemoSeedPayload) => Promise<void>;
 };
 
+const defaultValues: DemoSeedFormValues = {
+	mode: "append",
+	datasets: ["mgmt_demo", "loading_config", "data_collection"],
+	confirmReset: false,
+};
+
 export function DemoSeedDialog({
 	open,
 	onOpenChange,
@@ -91,11 +97,7 @@ export function DemoSeedDialog({
 	isSubmitting = false,
 }: DemoSeedDialogProps) {
 	const form = useForm({
-		defaultValues: {
-			mode: "append",
-			datasets: ["mgmt_demo", "loading_config", "data_collection"],
-			confirmReset: false,
-		} satisfies DemoSeedFormValues,
+		defaultValues,
 		validators: {
 			onSubmit: formSchema,
 		},
@@ -109,11 +111,7 @@ export function DemoSeedDialog({
 
 	useEffect(() => {
 		if (!open) {
-			form.reset({
-				mode: "append",
-				datasets: ["mgmt_demo", "loading_config", "data_collection"],
-				confirmReset: false,
-			});
+			form.reset(defaultValues);
 		}
 	}, [open, form]);
 
@@ -151,7 +149,10 @@ export function DemoSeedDialog({
 						description="追加模式保留现有数据；覆盖模式会清空数据库并重建。"
 					>
 						{(field) => (
-							<Select value={field.state.value} onValueChange={field.handleChange}>
+							<Select
+								value={field.state.value}
+								onValueChange={(value) => field.handleChange(value as DemoSeedMode)}
+							>
 								<SelectTrigger className="w-full">
 									<SelectValue placeholder="选择模式" />
 								</SelectTrigger>
@@ -184,9 +185,10 @@ export function DemoSeedDialog({
 												id={inputId}
 												checked={checked}
 												onCheckedChange={(value) => {
-													const next = value
-														? [...field.state.value, option.value]
-														: field.state.value.filter((item) => item !== option.value);
+													const next =
+														value === true
+															? [...field.state.value, option.value]
+															: field.state.value.filter((item) => item !== option.value);
 													field.handleChange(next);
 												}}
 												disabled={disabled}
