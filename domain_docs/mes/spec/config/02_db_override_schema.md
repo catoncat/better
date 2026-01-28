@@ -63,7 +63,7 @@
 
 - 配置变更：`system:config` 或独立的 `config:manage`
 - 配置审批：`system:config` + 质量角色复核（可选）
-- 豁免执行权限仍由 `prep:waive` / `time_rule:override` 控制
+- 豁免执行权限仍由 `readiness:override` 控制
 
 ## 7. 参考
 

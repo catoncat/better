@@ -100,7 +100,7 @@
 - [ ] 规则状态显示正确（ACTIVE/EXPIRED）
 - [ ] 接近超时时显示预警
 - [ ] 超时后 Readiness 检查失败
-- [ ] 豁免需要 `time_rule:override` 权限
+- [ ] 豁免需要 `readiness:override` 权限
 
 ---
 

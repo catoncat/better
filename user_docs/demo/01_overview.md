@@ -108,17 +108,17 @@
 | 检查项 | 说明 | 数据来源 |
 |--------|------|----------|
 | PREP_BAKE | PCB 烘烤确认 | BakeRecord |
-| PREP_PASTE | 锡膏准备 | 锡膏批次状态 |
+| PREP_PASTE | 锡膏准备 | SolderPasteUsageRecord |
 | PREP_STENCIL_CLEAN | 钢网清洗准备 | StencilCleaningRecord |
 | PREP_SCRAPER | 刮刀点检准备 | SqueegeeUsageRecord |
 | PREP_FIXTURE | 夹具寿命准备 | FixtureUsageRecord |
-| PREP_PROGRAM | 炉温程式一致性 | ReflowProfile |
+| PREP_PROGRAM | 炉温程式检查（期望程式可用） | ReflowProfile |
 | TIME_RULE | 时间规则状态 | TimeRuleInstance |
 
 ### 4.2 豁免机制
 
 当准备检查项失败但生产需要继续时，可进行豁免：
-- 需要 `prep:waive` 或 `time_rule:override` 权限
+- 需要 `readiness:override` 权限
 - 必须填写豁免原因
 - 豁免记录保留完整审计追踪
 

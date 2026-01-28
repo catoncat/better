@@ -74,7 +74,7 @@
 
 **恢复方式**：
 1. 完成所有站位的上料验证
-2. 重新执行 Formal Check
+2. 重新执行预检以刷新结果；授权时会自动补做 Formal
 
 ### 2.2 外部系统状态异常
 
@@ -83,7 +83,7 @@
 **恢复方式**：
 - 方式一：修复实际问题后重新检查
 - 方式二：使用 `/mes/integration/manual-entry` 手动录入状态
-- 方式三：使用豁免功能（需要 `prep:waive` 权限）
+- 方式三：使用豁免功能（需要 `readiness:override` 权限）
 
 ### 2.3 准备记录缺失
 
@@ -93,7 +93,7 @@
 1. 去对应页面录入准备记录
    - 钢网清洗：`/mes/stencil-cleaning`
    - 刮刀点检：`/mes/squeegee-usage`
-2. 重新执行 Formal Check
+2. 重新执行预检以刷新结果；授权时会自动补做 Formal
 
 ### 2.4 时间规则超时
 
@@ -101,7 +101,7 @@
 
 **恢复方式**：
 - 方式一：更换新物料
-- 方式二：使用豁免功能（需要 `time_rule:override` 权限）
+- 方式二：使用豁免功能（需要 `readiness:override` 权限）
 
 ---
 
@@ -111,7 +111,7 @@
 
 | 错误码 | 原因 | 恢复方式 |
 |--------|------|----------|
-| READINESS_NOT_PASSED | 就绪检查未通过 | 通过 Readiness 后重试 |
+| READINESS_CHECK_NOT_PASSED | 就绪检查未通过 | 通过 Readiness 后重试 |
 | INSUFFICIENT_UNITS | Unit 数量不足 | 生成足够 Unit |
 | FAI_ALREADY_EXISTS | 已存在未完成 FAI | 完成或取消现有 FAI |
 
@@ -218,7 +218,7 @@
 | 上料 | MATERIAL_LOT_NOT_FOUND | 物料批次不存在 | 检查条码或预注册批次 |
 | 上料 | SLOT_ALREADY_LOADED | 站位已上料 | 使用换料流程 |
 | 上料 | BARCODE_PARSE_ERROR | 条码格式错误 | 检查格式 |
-| 就绪 | READINESS_NOT_PASSED | 就绪未通过 | 修复或豁免失败项 |
+| 就绪 | READINESS_CHECK_FAILED | 就绪未通过 | 修复或豁免失败项 |
 | FAI | FAI_ALREADY_EXISTS | 已有未完成 FAI | 完成或取消现有 FAI |
 | FAI | INSUFFICIENT_UNITS | Unit 数量不足 | 生成足够 Unit |
 | 授权 | FAI_GATE_BLOCKED | FAI 未 PASS/未签字 | 完成 FAI 且签字 |

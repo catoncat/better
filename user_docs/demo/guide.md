@@ -35,7 +35,7 @@
 | 1 | 准备数据并登录 | 路由版本为 READY | 3.0 |
 | 2 | 下发工单并创建 Run | Run=PREP | 3.1 |
 | 3 | 准备记录录入（钢网清洗/刮刀点检） | 记录保存成功 | 3.2.0 |
-| 4 | Readiness 正式检查 | Readiness=PASSED | 3.2 |
+| 4 | Readiness 预检刷新 | Readiness=PASSED | 3.2 |
 | 5 | 加载站位表并上料验证 | 站位 LOADED | 3.3 |
 | 6 | 创建/启动 FAI | FAI=INSPECTING | 3.4 |
 | 7 | 首件试产 + 记录检验项 | FAI=PASS | 3.4 |
@@ -143,7 +143,7 @@
 | 上料 | MATERIAL_MISMATCH | 物料不匹配 | 扫正确物料条码 |
 | 上料 | SLOT_ALREADY_LOADED | 站位已上料 | 使用“换料”功能 |
 | 上料 | BARCODE_PARSE_ERROR | 条码格式错误 | 检查条码格式 |
-| 就绪 | READINESS_NOT_PASSED | 就绪检查未通过 | 修复或豁免失败项 |
+| 就绪 | READINESS_CHECK_FAILED | 就绪检查未通过 | 修复或豁免失败项 |
 | FAI | FAI_ALREADY_EXISTS | 已存在未完成 FAI | 完成或取消现有 FAI |
 | FAI | INSUFFICIENT_UNITS | Unit 数量不足 | 生成足够 Unit |
 | 授权 | FAI_GATE_BLOCKED | FAI 未通过 | 完成 FAI 且 PASS |
@@ -268,25 +268,25 @@
 
 #### 3.2.1 检查项 6 项详解
 
-| 检查项 | 含义 | 数据来源 | 通过条件 | 可豁免 |
-|--------|------|----------|----------|--------|
-| ROUTE | 路由版本可用 | 路由编译状态 | 绑定版本 = READY | 否 |
-| STENCIL | 钢网已绑定 | 线体钢网绑定 | 状态正常、在有效期内 | 是 |
-| SOLDER_PASTE | 锡膏已扫码 | 锡膏状态记录 | 未过期、已回温 | 是 |
-| EQUIPMENT | 设备状态正常 | TPM/设备状态 | 贴片机 = normal | 是 |
-| MATERIAL | 物料齐套 | BOM + 物料主数据 | 关键物料已领料 | 是 |
-| LOADING | 上料完成 | RunSlotExpectation | 全部站位 = LOADED | 否 |
+| 检查项 | 含义 | 数据来源 | 通过条件 |
+|--------|------|----------|----------|
+| ROUTE | 路由版本可用 | 路由编译状态 | 绑定版本 = READY |
+| STENCIL | 钢网已绑定 | 线体钢网绑定 | 状态正常、在有效期内 |
+| SOLDER_PASTE | 锡膏已扫码 | 锡膏状态记录 | 未过期、已回温 |
+| EQUIPMENT | 设备状态正常 | TPM/设备状态 | 贴片机 = normal |
+| MATERIAL | 物料齐套 | BOM + 物料主数据 | 关键物料已领料 |
+| LOADING | 上料完成 | RunSlotExpectation | 全部站位 = LOADED |
 
 #### 3.2.2 Precheck vs Formal 区别
 
-- Precheck：用于快速预览当前 Readiness 状态（不产生新的检查记录）。
-- Formal：点击“正式检查”会触发后端校验并写入检查记录，是 Run 授权的门禁依据。
+- Precheck：Run 详情页在 PREP 状态会自动触发，写入 PRECHECK 记录，仅用于预警。
+- Formal：授权时自动触发（若尚未执行），也可通过接口手动触发。
 
-#### 3.2.3 操作演示：正式检查
+#### 3.2.3 操作演示：预检刷新
 
-1. 在 Readiness 卡片点击“正式检查”
+1. 在 Readiness 卡片点击刷新按钮
 2. 查看每项检查结果与失败原因
-3. 失败项修复或豁免后，再次点击“正式检查”
+3. 失败项修复或豁免后，重新执行预检以刷新结果
 
 **期望结果**
 - Readiness 状态变为 PASSED
@@ -294,7 +294,7 @@
 
 #### 3.2.4 操作演示：豁免（Waive）流程
 
-**前置条件**：当前用户具有 READINESS_WAIVE 权限（quality 角色）
+**前置条件**：当前用户具有 `readiness:override` 权限（quality 角色）
 
 1. 找到失败的检查项（如 STENCIL）
 2. 点击该项右侧“豁免”按钮
@@ -309,7 +309,7 @@
 #### 3.2.5 失败分支演示
 
 - 示例：LOADING 未完成 → Readiness FAIL
-- 处理：完成上料验证后重新 Formal Check
+- 处理：完成上料验证后重新执行预检
 - 若钢网/锡膏/设备状态未同步，可使用 `/mes/integration/manual-entry` 手动录入后再检查
 
 技术细节：`smt_playbook/03_run_flow/02_readiness_and_prep.md`
@@ -448,7 +448,7 @@
 
 **前置条件**
 - Run 状态为 PREP
-- 就绪检查（Formal）已通过
+- 就绪检查 Formal 已通过（可通过接口触发）
 - 已生成足够 Unit（>= sampleQty）
 
 **操作步骤**
@@ -463,7 +463,7 @@
 
 | 错误码 | 原因 | 恢复方式 |
 |--------|------|----------|
-| READINESS_NOT_PASSED | 就绪检查未通过 | 通过 Readiness 后重试 |
+| READINESS_CHECK_NOT_PASSED | 就绪检查未通过 | 通过 Readiness 后重试 |
 | INSUFFICIENT_UNITS | Unit 数量不足 | 生成足够 Unit |
 | FAI_ALREADY_EXISTS | 已存在未完成 FAI | 完成或取消现有 FAI |
 
@@ -564,7 +564,7 @@ FAI 判定 PASS 后，需要签字确认才能授权生产：
 
 | 错误码 | 原因 | 恢复方式 |
 |--------|------|----------|
-| READINESS_NOT_PASSED | Readiness 未通过 | 通过 Readiness 后重试 |
+| READINESS_CHECK_FAILED | Readiness 未通过 | 通过 Readiness 后重试 |
 | FAI_GATE_BLOCKED | FAI 未 PASS | 完成 FAI 且 PASS |
 | INVALID_RUN_STATUS | Run 状态不允许授权 | 确认 Run 为 PREP |
 
@@ -793,8 +793,8 @@ FAIL → Run ON_HOLD → MRB 决策
 
 ### 5.2 Readiness（产前检查）
 
-1. 在 Run 详情页点击“正式检查”
-2. 失败项可豁免或手动录入
+1. 在 Run 详情页点击刷新按钮触发预检
+2. 失败项可豁免或手动录入（Formal 可通过接口触发）
 
 **期望结果**
 - Readiness 状态 PASSED
@@ -845,7 +845,7 @@ FAIL → Run ON_HOLD → MRB 决策
 
 ### 5.8 验证检查点汇总
 
-- Readiness Formal Check 写入记录且为 PASSED
+- Readiness 检查记录写入且为 PASSED
 - FAI（如要求）通过后可授权
 - TrackIn/TrackOut 状态流转正确
 - OQC/MRB 决策影响 Run 终态
@@ -952,7 +952,7 @@ FAIL → Run ON_HOLD → MRB 决策
 | 上料 | MATERIAL_LOT_AMBIGUOUS | 条码不唯一 | 修正批次或清理数据 |
 | 上料 | SLOT_ALREADY_LOADED | 站位已上料 | 使用换料流程 |
 | 上料 | BARCODE_PARSE_ERROR | 条码格式错误 | 检查格式 |
-| 就绪 | READINESS_NOT_PASSED | 就绪未通过 | 修复或豁免失败项 |
+| 就绪 | READINESS_CHECK_FAILED | 就绪未通过 | 修复或豁免失败项 |
 | FAI | FAI_ALREADY_EXISTS | 已有未完成 FAI | 完成或取消现有 FAI |
 | FAI | INSUFFICIENT_UNITS | Unit 数量不足 | 生成足够 Unit |
 | 授权 | FAI_GATE_BLOCKED | FAI 未 PASS | 完成 FAI 且 PASS |
@@ -970,7 +970,7 @@ FAIL → Run ON_HOLD → MRB 决策
 
 **Readiness**
 - 6 项检查状态与数据来源一致
-- Formal Check 写入记录与审计
+- Readiness 检查写入记录与审计
 - Waive 需要权限并记录原因
 
 **Loading**
@@ -1008,7 +1008,7 @@ FAIL → Run ON_HOLD → MRB 决策
 |------|--------|----------|----------|
 | 0-3 min | 启动与准备 | 登录，确认 READY 路由 | 说明流程范围与角色权限 |
 | 3-6 min | 工单与 Run | 下发工单、创建 Run | 解释 PREP 状态与 Readiness |
-| 6-10 min | Readiness | Formal Check + 可选 Waive | 说明 6 项检查与门禁逻辑 |
+| 6-10 min | Readiness | 预检刷新 + 可选 Waive | 说明 6 项检查与门禁逻辑 |
 | 10-15 min | 上料防错 | load-table + PASS/WARNING/FAIL | 展示锁定/解锁/换料 |
 | 15-20 min | FAI | 创建/启动/试产/判定 | 强调 FAI gate 阻断 |
 | 20-23 min | 授权 | 授权成功 | 说明授权前自动 Readiness |

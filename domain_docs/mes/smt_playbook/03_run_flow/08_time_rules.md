@@ -184,7 +184,7 @@ EventProcessor 处理
 ### 7.1 豁免权限
 | 权限 | 说明 | 典型角色 |
 |------|------|----------|
-| `time_rule:override` | 豁免时间规则 | 厂长、质量经理 |
+| `readiness:override` | 豁免时间规则 | 具备 readiness:override 权限的角色 |
 
 ### 7.2 豁免 API
 ```

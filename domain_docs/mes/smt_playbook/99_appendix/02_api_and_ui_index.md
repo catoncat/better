@@ -23,7 +23,7 @@
 | `POST /api/work-orders/:woNo/runs` | `POST /work-orders/:woNo/runs` | OK 一致 | 创建批次 |
 | `POST /api/runs/:runNo/generate-units` | `POST /runs/:runNo/generate-units` | OK 一致 | 生成 Unit |
 | `POST /api/runs/:runNo/readiness/check` | `POST /runs/:runNo/readiness/check` | OK 一致 | Formal 就绪检查 |
-| `POST /api/runs/:runNo/readiness/precheck` | `POST /runs/:runNo/readiness/precheck` | OK 一致 | Precheck（文档未提及） |
+| `POST /api/runs/:runNo/readiness/precheck` | `POST /runs/:runNo/readiness/precheck` | OK 一致 | Precheck（见准备流程说明） |
 | `GET /api/runs/:runNo/readiness/latest` | `GET /runs/:runNo/readiness/latest` | OK 一致 | 获取最新检查 |
 | `POST /api/runs/:runNo/authorize` | `POST /runs/:runNo/authorize` | OK 一致 | 授权批次 |
 

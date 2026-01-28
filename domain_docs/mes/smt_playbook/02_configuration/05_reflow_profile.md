@@ -66,27 +66,23 @@ RoutingStep:
     expectedProfileId: "profile-xxx"  # 期望的炉温程式
 ```
 
-## 4. 程式一致性校验
+## 4. 程式校验（当前实现）
 
 ### 4.1 校验时机
-程式一致性校验在以下时机触发：
-1. **Readiness 检查**：Run 授权前检查 PREP_PROGRAM 项
-2. **执行时校验**：TrackIn 回流焊工位时实时校验
+当前仅在 Readiness 检查时生成 PREP_PROGRAM 项（Run 授权前会自动触发 Formal 检查）。
 
 ### 4.2 校验逻辑
 ```
-1. 读取设备当前程式名（actualProgramName）
-2. 与 RoutingStep.expectedProfileId 对应的 ReflowProfile.code 比对
-3. 若不匹配，创建 PREP_PROGRAM 检查项 FAIL
-4. 写入 ReflowProfileUsage 记录
+1. 读取 RoutingStep.expectedProfileId 对应的 ReflowProfile
+2. 若 ReflowProfile 状态非 ACTIVE，创建 PREP_PROGRAM 检查项 FAIL
+3. 否则 PASS（当前不校验设备实际程式）
 ```
 
 ### 4.3 校验结果
 | 结果 | 说明 | 后续动作 |
 |------|------|----------|
-| MATCHED | 程式匹配 | 通过，继续执行 |
-| MISMATCHED | 程式不匹配 | BLOCK，需调整设备程式 |
-| NOT_VERIFIED | 未验证 | 警告，可手动确认 |
+| PASS | 期望程式可用 | 通过，继续执行 |
+| FAIL | 期望程式不可用 | 调整路由或程式配置 |
 
 ### 4.4 BLOCK 门禁
 程式不匹配时的处理：

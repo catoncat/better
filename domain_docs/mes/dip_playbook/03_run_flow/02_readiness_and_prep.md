@@ -162,24 +162,24 @@ BOM 需求
 
 就绪检查区域显示：
 - 检查项列表及状态
-- 一键检查按钮
+- 刷新按钮（预检）
 - 手动确认复选框
 - 检查失败原因
 
 ### 8.2 操作流程
 1. 进入批次详情页
-2. 点击"就绪检查"
-3. 系统执行自动检查
+2. 点击刷新按钮触发预检
+3. 系统刷新检查结果（PRECHECK）
 4. 处理失败项或手动确认
-5. 全部通过后点击"授权"
+5. 全部通过后点击"授权"（授权时会自动触发一次 FORMAL）
 
 ## 9. 相关 API
 
 | 操作 | API | 说明 |
 |------|-----|------|
-| 执行就绪检查 | `POST /api/runs/:runNo/readiness/check` | |
-| 查询检查结果 | `GET /api/runs/:runNo/readiness` | |
-| 手动确认检查项 | `POST /api/runs/:runNo/readiness/confirm` | |
+| 执行预检 | `POST /api/runs/:runNo/readiness/precheck` | |
+| 执行正式检查 | `POST /api/runs/:runNo/readiness/check` | |
+| 查询检查结果 | `GET /api/runs/:runNo/readiness/latest` / `history` | |
 | 分配夹具 | `POST /api/tooling/:id/assign` | 关联到 Run |
 | 豁免检查项 | `POST /api/runs/:runNo/readiness/items/:itemId/waive` | 需权限 |
 
@@ -191,7 +191,7 @@ BOM 需求
 ### 10.2 豁免权限
 | 权限 | 说明 | 典型角色 |
 |------|------|----------|
-| `prep:waive` | 豁免准备项检查 | 线长、工艺工程师 |
+| `readiness:override` | 豁免准备项检查 | 具备 readiness:override 权限的角色 |
 
 ### 10.3 豁免 API
 ```

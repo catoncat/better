@@ -110,7 +110,7 @@ POST /api/runs/:runNo/readiness/items/:itemId/waive
 **约束**：
 - 仅部分检查项支持 waive
 - Waive 记录会写入审计日志
-- 需要 `READINESS_WAIVE` 权限
+- 需要 `readiness:override` 权限
 
 ---
 
@@ -121,7 +121,7 @@ POST /api/runs/:runNo/readiness/items/:itemId/waive
 | 场景 | 错误码 | 恢复方式 |
 |------|--------|---------|
 | Run 非 PREP | `RUN_NOT_IN_PREP` | 无法恢复 |
-| 就绪检查未通过 | `READINESS_NOT_PASSED` | 通过就绪检查后重试 |
+| 就绪检查未通过 | `READINESS_CHECK_NOT_PASSED` | 通过就绪检查后重试 |
 | Unit 数量不足 | `INSUFFICIENT_UNITS` | 生成足够 Unit 后重试 |
 | 已存在未完成 FAI | `FAI_ALREADY_EXISTS` | 完成或取消现有 FAI |
 

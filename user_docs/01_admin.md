@@ -108,8 +108,7 @@
 | 权限代码 | 说明 | 建议角色 |
 |---------|------|----------|
 | `fai:sign` | FAI 签字确认 | 质量工程师 |
-| `prep:waive` | 准备项豁免 | 线长、工艺工程师、质量工程师 |
-| `time_rule:override` | 时间规则豁免 | 厂长、质量经理 |
+| `readiness:override` | 准备项/时间规则豁免 | 质量工程师（默认） |
 | `stencil:cleaning` | 钢网清洗记录 | 操作员 |
 | `squeegee:usage` | 刮刀点检记录 | 操作员 |
 | `maintenance:create` | 创建维修记录 | 操作员、线长 |

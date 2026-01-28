@@ -288,22 +288,22 @@
 
 系统支持以下准备检查项：
 
-| 检查项代码 | 说明 | 数据来源 | 可豁免 |
-|-----------|------|----------|--------|
-| ROUTE | 路由版本可用 | 路由编译状态 | 否 |
-| STENCIL | 钢网已绑定 | 线体钢网绑定 | 是 |
-| SOLDER_PASTE | 锡膏已扫码 | 锡膏状态记录 | 是 |
-| EQUIPMENT | 设备状态正常 | TPM/设备接口 | 是 |
-| MATERIAL | 物料齐套 | 物料主数据+BOM | 是 |
-| LOADING | 上料完成 | 上料记录 | 否 |
-| PREP_BAKE | PCB 烘烤确认 | BakeRecord | 是 |
-| PREP_PASTE | 锡膏准备（开封/回温） | 锡膏批次状态 | 是 |
-| PREP_STENCIL_USAGE | 钢网使用准备 | StencilUsageRecord | 是 |
-| PREP_STENCIL_CLEAN | 钢网清洗准备 | StencilCleaningRecord | 是 |
-| PREP_SCRAPER | 刮刀点检准备 | SqueegeeUsageRecord | 是 |
-| PREP_FIXTURE | 夹具寿命准备 | FixtureUsageRecord | 是 |
-| PREP_PROGRAM | 炉温程式一致性 | ReflowProfile | 是 |
-| TIME_RULE | 时间规则状态 | TimeRuleInstance | 是 |
+| 检查项代码 | 说明 | 数据来源 |
+|-----------|------|----------|
+| ROUTE | 路由版本可用 | 路由编译状态 |
+| STENCIL | 钢网已绑定 | 线体钢网绑定 |
+| SOLDER_PASTE | 锡膏已扫码 | 锡膏状态记录 |
+| EQUIPMENT | 设备状态正常 | TPM/设备接口 |
+| MATERIAL | 物料齐套 | 物料主数据+BOM |
+| LOADING | 上料完成 | 上料记录 |
+| PREP_BAKE | PCB 烘烤确认 | BakeRecord |
+| PREP_PASTE | 锡膏准备（使用记录） | SolderPasteUsageRecord |
+| PREP_STENCIL_USAGE | 钢网使用准备 | StencilUsageRecord |
+| PREP_STENCIL_CLEAN | 钢网清洗准备 | StencilCleaningRecord |
+| PREP_SCRAPER | 刮刀点检准备 | SqueegeeUsageRecord |
+| PREP_FIXTURE | 夹具寿命准备 | FixtureUsageRecord |
+| PREP_PROGRAM | 炉温程式检查（期望程式可用） | ReflowProfile |
+| TIME_RULE | 时间规则状态 | TimeRuleInstance |
 
 #### 4.2 配置产线检查项
 
@@ -311,10 +311,10 @@
 2. 选择目标产线
 3. 在"就绪检查配置"区域：
    - 启用/禁用各检查项
-   - 设置检查项是否可豁免
 4. 保存配置
 
-> **说明**: 某些检查项（如 ROUTE、LOADING）配置为不可豁免，必须满足条件才能授权生产。
+> **说明**: 未配置时默认启用全部检查项；页面同时支持维护工艺类型（用于工单路由匹配校验）。
+> **说明**: 当前系统未限制不可豁免项，豁免权限由 `readiness:override` 控制。
 
 ---
 
@@ -394,13 +394,13 @@
 2. 选择期望的炉温程式
 3. 保存并重新编译路由
 
-#### 6.4 程式一致性校验
+#### 6.4 程式校验（当前实现）
 
-系统在以下时机进行程式校验：
-- **Readiness 检查**: PREP_PROGRAM 检查项
-- **执行时校验**: TrackIn 回流焊工位时
+当前系统仅在 Readiness 检查中生成 PREP_PROGRAM 项：
+- 校验期望程式是否存在且为 ACTIVE
+- 执行时校验设备实际程式未实现
 
-若设备实际程式与期望程式不匹配，将阻断授权或执行。
+若期望程式不可用，PREP_PROGRAM 将 FAIL 并阻断授权。
 
 #### 6.5 程式版本管理
 

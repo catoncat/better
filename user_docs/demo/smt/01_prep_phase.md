@@ -87,27 +87,26 @@
 | PREP_STENCIL_CLEAN | 钢网清洗 | StencilCleaningRecord | 有有效记录 | 是 |
 | PREP_SCRAPER | 刮刀点检 | SqueegeeUsageRecord | 有合格记录 | 是 |
 | PREP_FIXTURE | 夹具状态 | FixtureUsageRecord | 未超寿命 | 是 |
-| PREP_PROGRAM | 炉温程式 | ReflowProfile | 程式一致 | 是 |
+| PREP_PROGRAM | 炉温程式 | ReflowProfile | 期望程式存在且可用 | 是 |
 | TIME_RULE | 时间规则 | TimeRuleInstance | 无超时 | 是 |
 
 ### 3.2 Precheck vs Formal 区别
 
-- **Precheck**：快速预览当前 Readiness 状态（不产生新的检查记录）
-- **Formal**：点击"正式检查"会触发后端校验并写入检查记录，是 Run 授权的门禁依据
+- **Precheck**：Run 详情页在 PREP 状态会自动触发，写入 PRECHECK 记录，仅用于预警。
+- **Formal**：Run 授权时会自动触发（若尚未执行），也可通过接口手动触发，是门禁依据。
 
-### 3.3 正式检查操作
+### 3.3 正式检查触发方式
 
-1. 在 Readiness 卡片点击 **正式检查**
-2. 查看每项检查结果与失败原因
-3. 失败项修复或豁免后，再次点击 **正式检查**
+1. 通过接口 `POST /api/runs/:runNo/readiness/check` 触发 Formal 检查
+2. 或直接执行 Run 授权，系统会自动补做 Formal
 
 **期望结果**：
-- Readiness 状态变为 PASSED
+- Readiness 状态更新
 - 检查结果写入审计记录
 
 ### 3.4 豁免（Waive）流程
 
-**前置条件**：当前用户具有 `prep:waive` 权限（quality 角色）
+**前置条件**：当前用户具有 `readiness:override` 权限（quality 角色）
 
 1. 找到失败的检查项（如 STENCIL）
 2. 点击该项右侧 **豁免** 按钮

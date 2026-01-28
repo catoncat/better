@@ -5,7 +5,7 @@ items:
     recordRequired: true
     confirmMode: MANUAL
     dataSource: MANUAL
-    waivePermission: prep:waive
+    waivePermission: readiness:override
     evidenceRefType: BAKE_RECORD
     notes: "AUTO confirm only when dataSource is reliable"
   - itemCode: PREP_PASTE
@@ -13,6 +13,6 @@ items:
     recordRequired: true
     confirmMode: AUTO
     dataSource: SYSTEM
-    waivePermission: prep:waive
+    waivePermission: readiness:override
     evidenceRefType: SOLDER_PASTE_USAGE
-    notes: "Uses system timestamps and status"
+    notes: "Uses SolderPasteUsageRecord as evidence"

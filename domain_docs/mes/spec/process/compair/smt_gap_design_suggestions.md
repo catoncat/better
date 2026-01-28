@@ -76,7 +76,7 @@
 ### 4.2 豁免机制
 
 建议：
-- **豁免权限归属厂长角色**，明确授予 `prep:waive`/`time_rule:override` 权限
+- **豁免权限归属厂长角色**，明确授予 `readiness:override` 权限
 - 统一 `waive` API：写入 `waivedBy/waiveReason` 并保留原 FAIL 证据
 
 ---
@@ -158,7 +158,7 @@
 | A) 厂长角色专属授权 | 权责清晰，符合实际管理层级 |
 | B) 双人豁免（生产+质量） | 合规性强，但流程更慢 |
 
-**结论**：**豁免权限归属厂长角色**，明确授予 `prep:waive`/`time_rule:override` 权限。
+**结论**：**豁免权限归属厂长角色**，明确授予 `readiness:override` 权限。
 
 ### 9.3 水洗时间规则适用范围
 

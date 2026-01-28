@@ -17,8 +17,8 @@
 - ✓ FAI 签字 (`fai:sign`)
 - ✓ 出货检验 (`quality:oqc`)
 - ✓ 缺陷处置 (`quality:disposition`)
-- ✓ 准备项豁免 (`prep:waive`)
-- ✓ 时间规则豁免 (`time_rule:override`)
+- ✓ 准备项豁免 (`readiness:override`)
+- ✓ 时间规则豁免 (`readiness:override`)
 - ✓ 维修验证 (`maintenance:verify`)
 
 ### 追溯查询
@@ -204,7 +204,7 @@ FAI 判定 PASS 后，需由质量人员进行签字确认，Run 授权前必须
 | PREP_SCRAPER | 刮刀点检 | 紧急生产，点检记录待补录 |
 | TIME_RULE | 时间规则 | 锡膏暴露时间略超，质量已确认 |
 
-> **注意**: ROUTE 和 LOADING 检查项不可豁免，必须满足条件。
+> **注意**: 当前系统未限制不可豁免项；对 ROUTE/LOADING 等关键项建议仅在审批后操作。
 
 #### 4.2 执行豁免操作
 
@@ -228,7 +228,7 @@ FAI 判定 PASS 后，需由质量人员进行签字确认，Run 授权前必须
 3. 填写豁免原因（说明已确认物料/产品质量）
 4. 确认豁免
 
-> **警告**: 时间规则豁免需要 `time_rule:override` 权限，通常由厂长或质量经理操作。
+> **警告**: 时间规则豁免需要 `readiness:override` 权限。
 
 #### 4.4 豁免审计
 

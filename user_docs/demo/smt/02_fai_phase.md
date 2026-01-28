@@ -36,7 +36,7 @@
 
 | 错误码 | 原因 | 恢复方式 |
 |--------|------|----------|
-| READINESS_NOT_PASSED | 就绪检查未通过 | 通过 Readiness 后重试 |
+| READINESS_CHECK_NOT_PASSED | 就绪检查未通过 | 通过 Readiness 后重试 |
 | INSUFFICIENT_UNITS | Unit 数量不足 | 生成足够 Unit |
 | FAI_ALREADY_EXISTS | 已存在未完成 FAI | 完成或取消现有 FAI |
 

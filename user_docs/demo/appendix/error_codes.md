@@ -25,10 +25,8 @@
 
 | 错误码 | 含义 | 快速恢复 |
 |--------|------|----------|
-| READINESS_NOT_PASSED | 就绪检查未通过 | 修复或豁免失败项 |
-| ROUTE_NOT_READY | 路由版本不可用 | 检查路由状态 |
-| LOADING_NOT_COMPLETE | 上料未完成 | 完成所有站位上料 |
-| PREP_CHECK_FAILED | 准备检查项失败 | 录入准备记录或豁免 |
+| READINESS_CHECK_FAILED | 就绪检查未通过 | 修复或豁免失败项 |
+| READINESS_CHECK_NOT_PASSED | 就绪检查未通过（创建 FAI） | 完成 Formal 检查 |
 
 ---
 

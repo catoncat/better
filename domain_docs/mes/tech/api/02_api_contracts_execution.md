@@ -120,7 +120,7 @@ Response SHOULD include routing identity:
 
 **POST** `/api/runs/{runNo}/readiness/check`
 
-- Creates a FORMAL record (blocking); can be used directly from UI.
+- Creates a FORMAL record (blocking); UI 当前默认仅触发 precheck，formal 可通过接口或授权自动触发。
 - Run authorization calls `canAuthorize` and will auto-trigger a FORMAL check if none exists.
 
 Query / exception endpoints:

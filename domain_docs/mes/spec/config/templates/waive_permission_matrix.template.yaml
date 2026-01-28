@@ -2,8 +2,8 @@ version: 1
 roles:
   - roleKey: quality
     permissions:
-      - prep:waive
-      - time_rule:override
+      - readiness:override
+      - readiness:override
 
 dualApproval:
   enabled: false

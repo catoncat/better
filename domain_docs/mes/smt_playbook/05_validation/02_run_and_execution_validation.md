@@ -53,6 +53,7 @@
 
 ## 6. 就绪检查验证
 - 操作：`POST /api/runs/:runNo/readiness/check`
+- 补充：可先执行 `POST /api/runs/:runNo/readiness/precheck` 获取预警结果；授权时若未做 formal，系统会自动触发。
 - 示例请求体：`{}`
 - 期望：
   - 未上料时 LOADING 失败

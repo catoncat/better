@@ -9,7 +9,7 @@ rules:
     endEvent: TRACK_IN
     maxDurationHours: 4
     alertLevel: ALERT
-    waivePermission: time_rule:override
+    waivePermission: readiness:override
     notes: "REFLOW/AOI track-out → WASH track-in; route must include wash step; alert + waive only"
   - ruleCode: SOLDER_PASTE_24H
     scopeType: ROUTING
@@ -19,7 +19,7 @@ rules:
     endEvent: SOLDER_PASTE_USAGE_UNBIND
     maxDurationHours: 24
     alertLevel: ALERT
-    waivePermission: time_rule:override
+    waivePermission: readiness:override
     notes: "Issued to unbind, alert + waive only"
   - ruleCode: SOLDER_PASTE_24H
     scopeType: PRODUCT
@@ -29,5 +29,5 @@ rules:
     endEvent: SOLDER_PASTE_USAGE_UNBIND
     maxDurationHours: 16
     alertLevel: ALERT
-    waivePermission: time_rule:override
+    waivePermission: readiness:override
     notes: "Product override: stricter limit"

@@ -87,7 +87,7 @@ bun run dev
 
 | 步骤 | 操作 | 预期结果 | 状态 |
 |------|------|----------|------|
-| 2.1 | 在 Readiness 卡片点击「正式检查」 | 显示检查结果 | [ ] |
+| 2.1 | 在 Readiness 卡片点击刷新（预检） | 显示检查结果 | [ ] |
 | 2.2 | 若失败，按需走「豁免」或 `/mes/integration/manual-entry` 手动录入/绑定 | 可将失败项变为 WAIVED 或恢复为 PASSED | [ ] |
 | 2.3 | （可选）验证豁免需要填写原因，豁免后记录 waivedBy/waiveReason | 豁免记录完整 | [ ] |
 | 2.4 | 确认 Readiness 状态为 PASSED | 绿色通过标识 | [ ] |

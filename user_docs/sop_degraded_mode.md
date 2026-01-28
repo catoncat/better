@@ -31,8 +31,8 @@
 | PREP_STENCIL_CLEAN | StencilCleaningRecord | 手动录入清洗记录 | 操作员 |
 | PREP_SCRAPER | SqueegeeUsageRecord | 手动录入点检记录 | 操作员 |
 | PREP_FIXTURE | FixtureUsageRecord | 手动录入使用记录 | 操作员 |
-| PREP_PROGRAM | ReflowProfile 校验 | 人工确认程式一致 → 豁免 | 工艺工程师 |
-| TIME_RULE | TimeRuleInstance | 质量确认后豁免 | 质量经理 |
+| PREP_PROGRAM | ReflowProfile（期望程式 ACTIVE） | 确认期望程式配置正确 → 豁免 | 具备 readiness:override 权限的角色 |
+| TIME_RULE | TimeRuleInstance | 质量确认后豁免 | 具备 readiness:override 权限的角色 |
 
 ---
 
@@ -215,7 +215,7 @@
 
 | 操作 | 所需权限 | 拥有角色 |
 |------|----------|----------|
-| 豁免检查项 | `prep:waive` | 产线组长、质量工程师、工艺工程师 |
+| 豁免检查项 | `readiness:override` | 具备 readiness:override 权限的角色 |
 
 ### 6.4 审计要求
 
@@ -254,14 +254,14 @@
 
 | 操作 | 所需权限 | 拥有角色 |
 |------|----------|----------|
-| 豁免时间规则 | `time_rule:override` | 厂长、质量经理 |
+| 豁免时间规则 | `readiness:override` | 具备 readiness:override 权限的角色 |
 
 ### 7.4 豁免后处理
 
 - 锡膏超时豁免后：记录豁免原因，锡膏可继续使用
 - 水洗超时豁免后：记录豁免原因，板可继续流转
 
-> **注意**：时间规则豁免需要更高权限（`time_rule:override`），通常由厂长或质量经理操作。
+> **注意**：时间规则豁免需要 `readiness:override` 权限。
 
 ---
 

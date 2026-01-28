@@ -30,12 +30,12 @@
 | 检查项 | 说明 | 数据来源 |
 |--------|------|----------|
 | PREP_BAKE | PCB 烘烤确认 | BakeRecord（烘烤记录） |
-| PREP_PASTE | 锡膏准备（开封/回温/暴露时间） | 锡膏批次状态 + 暴露规则 |
+| PREP_PASTE | 锡膏准备（使用记录） | SolderPasteUsageRecord（锡膏使用记录） |
 | PREP_STENCIL_USAGE | 钢网使用准备 | StencilUsageRecord + 寿命检查 |
 | PREP_STENCIL_CLEAN | 钢网清洗准备 | StencilCleaningRecord |
 | PREP_SCRAPER | 刮刀点检准备 | SqueegeeUsageRecord（表面/刀口/平整度必填） |
 | PREP_FIXTURE | 夹具寿命准备 | FixtureUsageRecord + 寿命检查 |
-| PREP_PROGRAM | 炉温程式一致性 | ReflowProfile 程式校验 |
+| PREP_PROGRAM | 炉温程式检查（期望程式可用） | ReflowProfile（期望程式 ACTIVE） |
 
 ### 4.3 时间规则检查
 | 检查项 | 说明 | 数据来源 |
@@ -44,6 +44,10 @@
 
 详见 `08_time_rules.md`。
 
+### 4.4 检查类型（PRECHECK / FORMAL）
+- **PRECHECK**：预警用途，不阻塞授权；Run 详情页在 PREP 状态会自动触发以刷新结果。
+- **FORMAL**：阻塞用途；Run 授权时会自动触发一次 FORMAL（如尚未执行），也可通过接口手动触发。
+
 ## 5. 数据如何产生
 | 检查项 | 数据来源 | 产生方式 | 备注 |
 |---|---|---|---|
@@ -51,7 +55,7 @@
 | PREP_STENCIL_CLEAN | StencilCleaningRecord | 手工录入 `/mes/stencil-cleaning` | 用于门禁：要求存在清洗记录 |
 | PREP_STENCIL_USAGE | StencilUsageRecord | 手工录入 | 使用记录 + 寿命检查 |
 | SOLDER_PASTE | 锡膏状态记录 | 扫码/接口写入 | 可关联批次 |
-| PREP_PASTE | 锡膏批次 + TimeRuleInstance | 开封时创建暴露规则实例 | 暴露 24h 限制 |
+| PREP_PASTE | SolderPasteUsageRecord | 手工录入 `/mes/solder-paste-usage` | 以使用记录为准 |
 | EQUIPMENT | 设备状态记录 | TPM/接口同步 | 设备状态正常 |
 | MATERIAL | 物料齐套检查 | 物料主数据 + BOM | 规则需配置 |
 | ROUTE | 路由版本 | 路由编译 | READY 才可用 |
@@ -59,7 +63,7 @@
 | PREP_SCRAPER | SqueegeeUsageRecord | 手工录入 `/mes/squeegee-usage` | 表面/刀口/平整度必填 |
 | PREP_BAKE | BakeRecord | 手工录入 | PCB 烘烤确认 |
 | PREP_FIXTURE | FixtureUsageRecord | 手工/扫码录入 | 寿命超限则 FAIL |
-| PREP_PROGRAM | ReflowProfile + ReflowProfileUsage | 设备程式读取 + 比对 | 程式名必须匹配 |
+| PREP_PROGRAM | ReflowProfile | 路由期望程式存在且 ACTIVE | 当前未校验实际设备程式 |
 | TIME_RULE | TimeRuleInstance | Cron 扫描 + 事件驱动 | 超时则 FAIL |
 
 ## 6. 豁免机制
@@ -70,8 +74,7 @@
 ### 6.2 豁免权限
 | 权限 | 说明 | 典型角色 |
 |------|------|----------|
-| `prep:waive` | 豁免准备项检查 | 线长、工艺工程师 |
-| `time_rule:override` | 豁免时间规则检查 | 厂长、质量经理 |
+| `readiness:override` | 豁免准备项/时间规则检查 | 质量工程师（默认） |
 
 ### 6.3 豁免 API
 ```
@@ -103,12 +106,13 @@ Response:
 - 豁免原因必须填写，不能为空
 - 豁免后检查项状态变为 `WAIVED`，不再阻塞授权
 - 豁免操作会记录操作日志
-- 某些关键检查项（如路由版本）可能配置为不可豁免
+- 当前系统未限制不可豁免项；如需限制，需在策略/权限层补齐
 
 ## 7. 数据如何管理
 - Readiness 检查结果记录在系统历史表中，可追溯。
 - 若某项失败，Run 仍保持 PREP 状态，需要整改后重新检查。
 - Run 授权时会强制触发一次 Formal Readiness 检查（如果未做）。
+- Run 详情页自动触发 PRECHECK 仅用于预警，不替代正式检查。
 - 豁免记录保留在 ReadinessCheckItem 中，可追溯豁免人和原因。
 
 ## 8. 真实例子（中文）
@@ -130,7 +134,8 @@ Response:
 - 准备 1 个豁免案例，验证豁免流程和权限控制。
 
 ## 10. 验证步骤（预览）
-- 在 `/mes/runs/:runNo/readiness/check` 检查返回项，逐一核对。
+- 可先执行 `/mes/runs/:runNo/readiness/precheck` 获取预警结果。
+- 在 `/mes/runs/:runNo/readiness/check` 获取 Formal 检查结果并核对。
 - 在 Run 授权时验证：若未做就绪检查，系统会自动触发。
 - 验证豁免 API 权限控制和记录写入。
 

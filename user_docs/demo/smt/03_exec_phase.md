@@ -26,7 +26,7 @@
 
 | 错误码 | 原因 | 恢复方式 |
 |--------|------|----------|
-| READINESS_NOT_PASSED | Readiness 未通过 | 通过 Readiness 后重试 |
+| READINESS_CHECK_FAILED | Readiness 未通过 | 通过 Readiness 后重试 |
 | FAI_GATE_BLOCKED | FAI 未 PASS 或未签字 | 完成 FAI 且签字 |
 | INVALID_RUN_STATUS | Run 状态不允许授权 | 确认 Run 为 PREP |
 

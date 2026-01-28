@@ -8,7 +8,7 @@ items:
     recordRequired: true
     confirmMode: MANUAL
     dataSource: MANUAL
-    waivePermission: prep:waive
+    waivePermission: readiness:override
     evidenceRefType: BAKE_RECORD
     notes: "Manual bake record required"
   - itemCode: PREP_PASTE
@@ -16,15 +16,15 @@ items:
     recordRequired: true
     confirmMode: AUTO
     dataSource: SYSTEM
-    waivePermission: prep:waive
+    waivePermission: readiness:override
     evidenceRefType: SOLDER_PASTE_USAGE
-    notes: "Auto confirm when paste lifecycle data is available"
+    notes: "Auto confirm when usage record exists"
   - itemCode: PREP_TEMP
     gateType: SOFT
     recordRequired: true
     confirmMode: AUTO
     dataSource: DEVICE
-    waivePermission: prep:waive
+    waivePermission: readiness:override
     evidenceRefType: COLD_STORAGE_TEMP
     notes: "Auto confirm when device temperature data exists"
   - itemCode: PREP_STENCIL_USAGE
@@ -32,7 +32,7 @@ items:
     recordRequired: true
     confirmMode: AUTO
     dataSource: DEVICE
-    waivePermission: prep:waive
+    waivePermission: readiness:override
     evidenceRefType: STENCIL_STATUS
     notes: "Usage count and tension in range"
   - itemCode: PREP_STENCIL_CLEAN
@@ -40,7 +40,7 @@ items:
     recordRequired: true
     confirmMode: MANUAL
     dataSource: MANUAL
-    waivePermission: prep:waive
+    waivePermission: readiness:override
     evidenceRefType: STENCIL_CLEAN
     notes: "Manual clean record until device integration exists"
   - itemCode: PREP_SCRAPER
@@ -48,7 +48,7 @@ items:
     recordRequired: true
     confirmMode: MANUAL
     dataSource: MANUAL
-    waivePermission: prep:waive
+    waivePermission: readiness:override
     evidenceRefType: SCRAPER_CHECK
     notes: "Manual inspection for scraper condition"
   - itemCode: PREP_FIXTURE
@@ -56,6 +56,6 @@ items:
     recordRequired: true
     confirmMode: AUTO
     dataSource: SYSTEM
-    waivePermission: prep:waive
+    waivePermission: readiness:override
     evidenceRefType: FIXTURE_MAINT
     notes: "Auto confirm from TPM maintenance records"
