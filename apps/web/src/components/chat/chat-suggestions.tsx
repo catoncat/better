@@ -34,9 +34,9 @@ export function ChatSuggestions({
 	}
 
 	return (
-		<div className={cn("space-y-2 px-4 py-3", className)}>
+		<div className={cn("space-y-2 px-4 py-2", className)}>
 			<div className="flex items-center justify-between">
-				<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+				<div className="flex items-center gap-1 text-xs text-muted-foreground">
 					<Sparkles className="size-3" />
 					<span>{title}</span>
 				</div>
@@ -59,7 +59,7 @@ export function ChatSuggestions({
 						key={`${suggestion.question}-${index}`}
 						onClick={() => onSelect(suggestion)}
 						className={cn(
-							"inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm transition-colors",
+							"inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm transition-colors cursor-pointer",
 							"bg-background hover:bg-accent hover:text-accent-foreground",
 							"focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
 							suggestion.action === "send" ? "border-primary/30 bg-primary/5" : "border-border",
