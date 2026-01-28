@@ -21,7 +21,8 @@ task:
 ## Slices
 - [x] Slice 0: worktree note context
 - [x] Slice 1: API - material lot reverse lookup endpoint + schema/service
-- [ ] Slice 2: UI - trace page details (steps/inspections/loadingRecords/ingest/carrier)
+- [x] Slice 2: UI - trace page details (steps/inspections/loadingRecords/ingest/carrier)
+- [x] Slice 3: Docs - traceability contracts + user docs alignment
 
 ## Findings
 - 2026-01-28: Trace API currently only implements GET /api/trace/units/:sn; material-lot reverse lookup is doc-only and needs backend route.
