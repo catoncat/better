@@ -53,6 +53,7 @@ touchPoints:
 
 ## Findings
 - Run Detail 页内已有 readiness CTA 分支与模板卡片逻辑，适合集中到统一函数并在原位替换。
+- `/mes/fai` 支持 `runNo` 过滤（若需引导查看 FAI 记录可用）。
 
 ## Open Questions
 - 无
