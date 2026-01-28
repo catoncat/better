@@ -53,6 +53,7 @@ stateDiagram-v2
 - 若路由要求 FAI（`faiRequired=true`），则 Run 授权前必须有 `FAI.status=PASS`
 - 若 FAI FAIL，Run 无法授权，需创建新 FAI 或取消批次
 - **签字门禁**：FAI PASS 后，Run 授权前还需完成 FAI 签字（`signedBy` 不为空）
+- **MRB 例外**：若 Run 为 MRB_OVERRIDE 且 `faiWaiver=true`，FAI gate 视为通过
 
 ## 4. 数据如何产生
 ### 4.1 创建 FAI

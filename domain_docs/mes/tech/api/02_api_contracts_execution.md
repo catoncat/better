@@ -165,6 +165,13 @@ FAI tasks are managed via `/api/fai`:
 }
 ```
 
+**POST** `/api/fai/{faiId}/sign`
+```json
+{
+  "signatureRemark": "首件质量确认"
+}
+```
+
 Query endpoints:
 * `GET /api/fai` (filter by `runNo`, `status`)
 * `GET /api/fai/{faiId}`
@@ -172,6 +179,8 @@ Query endpoints:
 
 Run-level gate (as-built):
 * If any compiled step has `requiresFAI=true`, Run authorization is blocked until the latest FAI is `PASS` (`FAI_NOT_PASSED`).
+* FAI PASS 后仍需完成签字（`signedBy/signedAt`），否则阻断授权（`FAI_NOT_SIGNED`）。
+* 若 Run 为 MRB_OVERRIDE 且 `mrbFaiWaiver=true`，FAI gate 视为已通过（faiPassed/faiSigned=true）。
 * MANUAL TrackIn/TrackOut requires Run status `AUTHORIZED`/`IN_PROGRESS`, so FAI is effectively enforced before the first TrackIn (via authorization), not per-step.
 
 ### 2.3 Authorization (Batch go-ahead)

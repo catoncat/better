@@ -107,7 +107,7 @@
 
 | 权限代码 | 说明 | 建议角色 |
 |---------|------|----------|
-| `fai:sign` | FAI 签字确认 | 质量工程师 |
+| `fai:sign` | FAI 签字确认（当前与 `quality:fai` 共用，fai:sign 预留） | 质量工程师 |
 | `readiness:override` | 准备项/时间规则豁免 | 质量工程师（默认） |
 | `stencil:cleaning` | 钢网清洗记录 | 操作员 |
 | `squeegee:usage` | 刮刀点检记录 | 操作员 |

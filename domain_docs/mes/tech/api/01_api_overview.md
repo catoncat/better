@@ -47,6 +47,7 @@ Aligned with `agent_docs/03_backend/api_patterns.md` (envelope + error format + 
 - `GET /api/runs`
 - `GET /api/runs/:runNo`
 - `POST /api/runs/:runNo/authorize`
+- `POST /api/runs/:runNo/close`
 - `POST /api/runs/:runNo/mrb-decision`
 - `POST /api/runs/:runNo/rework`
 - `GET /api/runs/:runNo/rework-runs`

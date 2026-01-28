@@ -826,3 +826,6 @@
 - UI execution: `/mes/execution` 进/出站表单 + 站点队列；TrackOutDialog 会拉取 data-specs、校验必填、FAIL 必填 defectCode；未见 SOP 或“检测结果录入”入口。
 - API: /api/stations/resolve-unit/:sn (EXEC_TRACK_IN/OUT), /api/stations/:stationCode/unit/:sn/data-specs (EXEC_TRACK_OUT), /track-in, /track-out 均记录审计；queue/列表基于权限与数据范围过滤。
 - 00_status 轮次5 仍为 in_progress；round4 格式显示偏差类型用“行为不一致/缺失”，修复后在备注与偏差清单标注“已修复”。
+- Error: sed failed on apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx (unescaped $). Next: use quoted path or rg -n with escaped \$.
+- Need to inspect completeFqc in apps/server/src/modules/mes/fqc/service.ts for run status impact before documenting FQC behavior.
+- Error: apply_patch failed updating user_docs/04_quality.md (missing "#### 4.1 查看产品履历" line). Next: inspect trace section and patch with correct lines.

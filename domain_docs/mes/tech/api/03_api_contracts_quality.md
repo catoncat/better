@@ -80,11 +80,39 @@
 
 ---
 
-## 4. OQC（出货检验）
+## 4. FQC（末件检验）
+
+权限：`QUALITY_FAI`（当前实现）
+
+FQC 用于末件抽检（Final Quality Check），通常在批次完成后执行。
+
+* `GET  /api/fqc`（列表，可按 `runNo` / `status` 过滤）
+* `GET  /api/fqc/{fqcId}`（详情）
+* `GET  /api/fqc/run/{runNo}`（获取某个 Run 的最新 FQC）
+* `POST /api/fqc/run/{runNo}`（创建 FQC 任务）
+* `POST /api/fqc/{fqcId}/start`（开始检验）
+* `POST /api/fqc/{fqcId}/items`（录入检验项）
+* `POST /api/fqc/{fqcId}/complete`（完成检验：PASS / FAIL）
+* `POST /api/fqc/{fqcId}/sign`（签字确认）
+
+创建 FQC 任务约束：
+- Run 状态需为 `IN_PROGRESS` / `ON_HOLD` / `COMPLETED` / `CLOSED_REWORK` / `SCRAPPED`。
+- 所有 Unit 均为终态（DONE/SCRAPPED）。
+- `sampleQty` 必须在 [1, DONE 数量] 范围内（默认 1）。
+
+完成 FQC 行为：
+- 更新 FQC 状态为 PASS/FAIL（不改变 Run 状态）。
+
+签字：
+- 记录签字人/时间与备注（可选）。
+
+---
+
+## 5. OQC（出货检验）
 
 权限：`QUALITY_OQC`
 
-### 4.1 抽检规则（Sampling Rules）
+### 5.1 抽检规则（Sampling Rules）
 
 用于配置抽检策略（按 `productCode` / `lineId` / `routingId` 维度匹配），并支持优先级与启用/停用。
 
@@ -107,7 +135,7 @@
 }
 ```
 
-### 4.2 OQC 任务（Inspection Task）
+### 5.2 OQC 任务（Inspection Task）
 
 * `GET  /api/oqc`（列表，可按 `runNo` / `status` 过滤）
 * `GET  /api/oqc/{oqcId}`（详情）
@@ -130,7 +158,7 @@
 
 ---
 
-## 5. MRB（批次处置）
+## 6. MRB（批次处置）
 
 权限：`QUALITY_DISPOSITION`
 
