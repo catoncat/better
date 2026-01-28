@@ -1,5 +1,5 @@
 import { Bot, Loader2, MessageSquareText, User } from "lucide-react";
-import { useEffect, useRef, type ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
@@ -59,7 +59,7 @@ function normalizeRouteLines(source: string): string {
 		}
 
 		if (!inCodeBlock && hasRoutePath(line) && /^\s{4,}|\t/.test(line)) {
-  		console.log('匹配路径')
+			console.log("匹配路径");
 			line = line.replace(/^\s+/, "");
 		}
 
@@ -75,11 +75,9 @@ function linkifyRouteChildren(children: ReactNode): ReactNode {
 		return linkifyRoutePaths(children);
 	}
 	if (Array.isArray(children)) {
-		return children.flatMap((child, index) => {
+		return children.flatMap((child) => {
 			if (typeof child === "string") {
-				return linkifyRoutePaths(child).map((node, nodeIndex) => (
-					<span key={`route-text-${index}-${nodeIndex}`}>{node}</span>
-				));
+				return linkifyRoutePaths(child);
 			}
 			return child;
 		});
@@ -177,77 +175,79 @@ function MessageBubble({
 						isUser ? "bg-primary text-primary-foreground" : "bg-muted",
 					)}
 				>
-				{message.content ? (
-					isUser ? (
-						<div className="whitespace-pre-wrap text-sm">{message.content}</div>
-					) : (
-						<div className="prose prose-sm dark:prose-invert max-w-none text-sm [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-							<Markdown
-								remarkPlugins={[remarkGfm]}
-								components={{
-									// Custom link styling
-									a: ({ children, href }) => (
-										<a
-											href={href}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-primary hover:underline"
-										>
-											{children}
-										</a>
-									),
-									// Compact code styling
-									code: ({ children, className }) => {
-										const isInline = !className;
-										if (isInline) {
-											return (
-												<code className="bg-muted-foreground/20 rounded px-1 py-0.5 text-xs">
-													{linkifyRouteChildren(children)}
-												</code>
-											);
-										}
-										const text = Array.isArray(children)
-											? children.join("")
-											: String(children ?? "");
-										return <code className={className}>{linkifyRoutePaths(text)}</code>;
-									},
-									// Compact list styling
-									ul: ({ children }) => (
-										<ul className="my-1 ml-4 list-disc space-y-0.5">{children}</ul>
-									),
-									ol: ({ children }) => (
-										<ol className="my-1 ml-4 list-decimal space-y-0.5">{children}</ol>
-									),
-									li: ({ children }) => (
-										<li className="text-sm">{linkifyRouteChildren(children)}</li>
-									),
-									// Compact paragraph
-									p: ({ children }) => <p className="my-1">{linkifyRouteChildren(children)}</p>,
-									// Table styling
-									table: ({ children }) => (
-										<div className="my-2 overflow-x-auto">
-											<table className="min-w-full border-collapse text-xs">{children}</table>
-										</div>
-									),
-									th: ({ children }) => (
-										<th className="border border-border bg-muted px-2 py-1 text-left font-medium">
-											{linkifyRouteChildren(children)}
-										</th>
-									),
-									td: ({ children }) => (
-										<td className="border border-border px-2 py-1">
-											{linkifyRouteChildren(children)}
-										</td>
-									),
-								}}
-							>
-								{normalizeRouteLines(message.content)}
-							</Markdown>
-						</div>
-					)
-				) : message.isStreaming ? (
-					<Loader2 className="size-4 animate-spin" />
-				) : null}
+					{message.content ? (
+						isUser ? (
+							<div className="whitespace-pre-wrap text-sm">{message.content}</div>
+						) : (
+							<div className="prose prose-sm dark:prose-invert max-w-none text-sm [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+								<Markdown
+									remarkPlugins={[remarkGfm]}
+									components={{
+										// Custom link styling
+										a: ({ children, href }) => (
+											<a
+												href={href}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="text-primary hover:underline"
+											>
+												{children}
+											</a>
+										),
+										// Compact code styling
+										code: ({ children, className }) => {
+											const isInline = !className;
+											if (isInline) {
+												return (
+													<code className="bg-muted-foreground/20 rounded px-1 py-0.5 text-xs">
+														{linkifyRouteChildren(children)}
+													</code>
+												);
+											}
+											const text = Array.isArray(children)
+												? children.join("")
+												: String(children ?? "");
+											return <code className={className}>{linkifyRoutePaths(text)}</code>;
+										},
+										// Compact list styling
+										ul: ({ children }) => (
+											<ul className="my-1 ml-4 list-disc space-y-0.5">{children}</ul>
+										),
+										ol: ({ children }) => (
+											<ol className="my-1 ml-4 list-decimal space-y-0.5">{children}</ol>
+										),
+										li: ({ children }) => (
+											<li className="text-sm">{linkifyRouteChildren(children)}</li>
+										),
+										// Compact paragraph
+										p: ({ children }) => (
+											<p className="my-1">{linkifyRouteChildren(children)}</p>
+										),
+										// Table styling
+										table: ({ children }) => (
+											<div className="my-2 overflow-x-auto">
+												<table className="min-w-full border-collapse text-xs">{children}</table>
+											</div>
+										),
+										th: ({ children }) => (
+											<th className="border border-border bg-muted px-2 py-1 text-left font-medium">
+												{linkifyRouteChildren(children)}
+											</th>
+										),
+										td: ({ children }) => (
+											<td className="border border-border px-2 py-1">
+												{linkifyRouteChildren(children)}
+											</td>
+										),
+									}}
+								>
+									{normalizeRouteLines(message.content)}
+								</Markdown>
+							</div>
+						)
+					) : message.isStreaming ? (
+						<Loader2 className="size-4 animate-spin" />
+					) : null}
 				</div>
 
 				{!isUser && !message.isStreaming && onFeedback && (

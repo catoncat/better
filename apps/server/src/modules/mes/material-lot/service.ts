@@ -16,6 +16,11 @@ type MaterialLotListQuery = {
 	sortOrder?: "asc" | "desc";
 };
 
+type MaterialLotCreateInput = {
+	materialCode: string;
+	lotNo: string;
+};
+
 type MaterialLotDetail = {
 	id: string;
 	materialCode: string;
@@ -124,6 +129,59 @@ export async function listMaterialLots(
 	return {
 		success: true,
 		data: { items, total, offset, limit },
+	};
+}
+
+export async function createMaterialLot(
+	db: PrismaClient,
+	data: MaterialLotCreateInput,
+): Promise<ServiceResult<MaterialLotDetail>> {
+	const materialCode = data.materialCode.trim();
+	const lotNo = data.lotNo.trim();
+	if (!materialCode || !lotNo) {
+		return {
+			success: false,
+			code: "MATERIAL_LOT_INVALID_INPUT",
+			message: "Material code and lot number are required",
+			status: 400,
+		};
+	}
+
+	const existing = await db.materialLot.findUnique({
+		where: { materialCode_lotNo: { materialCode, lotNo } },
+	});
+	if (existing) {
+		return {
+			success: false,
+			code: "MATERIAL_LOT_DUPLICATE",
+			message: "Material lot already exists",
+			status: 409,
+		};
+	}
+
+	const created = await db.materialLot.create({
+		data: { materialCode, lotNo },
+	});
+
+	const material = await db.material.findUnique({
+		where: { code: created.materialCode },
+		select: { name: true },
+	});
+
+	return {
+		success: true,
+		data: {
+			id: created.id,
+			materialCode: created.materialCode,
+			lotNo: created.lotNo,
+			supplier: created.supplier,
+			iqcResult: created.iqcResult,
+			iqcDate: created.iqcDate ? created.iqcDate.toISOString() : null,
+			createdAt: created.createdAt.toISOString(),
+			updatedAt: created.updatedAt.toISOString(),
+			materialName: material?.name ?? null,
+			materialKnown: !!material,
+		},
 	};
 }
 

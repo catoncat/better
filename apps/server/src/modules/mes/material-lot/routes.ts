@@ -3,11 +3,13 @@ import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
 import {
+	materialLotCreateBodySchema,
 	materialLotIdParamSchema,
 	materialLotListQuerySchema,
 	materialLotUpdateBodySchema,
 } from "./schema";
 import {
+	createMaterialLot,
 	getMaterialLot,
 	getMaterialLotUsage,
 	listMaterialLots,
@@ -33,6 +35,25 @@ export const materialLotModule = new Elysia({ prefix: "/material-lots" })
 			isAuth: true,
 			requirePermission: Permission.ROUTE_READ,
 			query: materialLotListQuerySchema,
+			detail: { tags: ["MES - Material Lot"] },
+		},
+	)
+	// 新建
+	.post(
+		"/",
+		async ({ db, body, set }) => {
+			const result = await createMaterialLot(db, body);
+			if (!result.success) {
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			set.status = 201;
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.ROUTE_READ,
+			body: materialLotCreateBodySchema,
 			detail: { tags: ["MES - Material Lot"] },
 		},
 	)

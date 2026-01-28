@@ -69,13 +69,10 @@ export function useSuggestions(options: UseSuggestionsOptions): UseSuggestionsRe
 				if (reply) {
 					params.set("reply", reply);
 				}
-				const response = await fetch(
-					`${BASE_URL}/chat/suggestions?${params.toString()}`,
-					{
-						method: "GET",
-						credentials: "include",
-					},
-				);
+				const response = await fetch(`${BASE_URL}/chat/suggestions?${params.toString()}`, {
+					method: "GET",
+					credentials: "include",
+				});
 
 				if (!response.ok) {
 					throw new Error(`请求失败: ${response.status}`);

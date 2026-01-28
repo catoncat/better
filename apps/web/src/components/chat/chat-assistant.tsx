@@ -55,9 +55,7 @@ export function ChatAssistant() {
 	}, [messages]);
 
 	const suggestionReply =
-		lastAssistantMessage && !lastAssistantMessage.isStreaming
-			? lastAssistantMessage.content
-			: null;
+		lastAssistantMessage && !lastAssistantMessage.isStreaming ? lastAssistantMessage.content : null;
 
 	// Fetch suggestions based on the latest assistant reply
 	const {
@@ -143,10 +141,7 @@ export function ChatAssistant() {
 			lastPath: currentPath,
 		});
 
-		if (
-			derivedTitle &&
-			(activeSession?.title === DEFAULT_SESSION_TITLE || !activeSession?.title)
-		) {
+		if (derivedTitle && (activeSession?.title === DEFAULT_SESSION_TITLE || !activeSession?.title)) {
 			updateSessionMeta(activeSessionId, { title: derivedTitle });
 		}
 	}, [

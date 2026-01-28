@@ -103,3 +103,20 @@ export function useUpdateMaterialLot() {
 		onError: (error: unknown) => showError("更新失败", error),
 	});
 }
+
+export function useCreateMaterialLot() {
+	const queryClient = useQueryClient();
+	const showError = useApiError();
+
+	return useMutation({
+		mutationFn: async (data: { materialCode: string; lotNo: string }) => {
+			const response = await client.api["material-lots"].post(data);
+			return unwrap(response);
+		},
+		onSuccess: () => {
+			toast.success("物料批次创建成功");
+			queryClient.invalidateQueries({ queryKey: ["mes", "material-lots"] });
+		},
+		onError: (error: unknown) => showError("创建失败", error),
+	});
+}
