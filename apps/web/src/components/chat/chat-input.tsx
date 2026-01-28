@@ -1,5 +1,5 @@
 import { Loader2, Send, Square } from "lucide-react";
-import { type KeyboardEvent, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,9 @@ type ChatInputProps = {
 	disabled?: boolean;
 	placeholder?: string;
 	className?: string;
+	// Controlled input support
+	value?: string;
+	onChange?: (value: string) => void;
 };
 
 export function ChatInput({
@@ -20,9 +23,24 @@ export function ChatInput({
 	disabled = false,
 	placeholder = "输入消息...",
 	className,
+	value: controlledValue,
+	onChange: controlledOnChange,
 }: ChatInputProps) {
-	const [value, setValue] = useState("");
+	const [internalValue, setInternalValue] = useState("");
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+	// Use controlled value if provided, otherwise use internal state
+	const isControlled = controlledValue !== undefined;
+	const value = isControlled ? controlledValue : internalValue;
+	const setValue = isControlled ? (controlledOnChange ?? (() => {})) : setInternalValue;
+
+	// Auto-resize when controlledValue changes (for controlled mode)
+	useEffect(() => {
+		if (textareaRef.current && controlledValue !== undefined) {
+			textareaRef.current.style.height = "auto";
+			textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+		}
+	}, [controlledValue]);
 
 	const handleSend = () => {
 		if (value.trim() && !disabled && !isLoading) {

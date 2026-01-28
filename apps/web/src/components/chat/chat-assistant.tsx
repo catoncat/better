@@ -6,11 +6,14 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChatInput } from "./chat-input";
 import { ChatMessages } from "./chat-messages";
+import { ChatSuggestions } from "./chat-suggestions";
 import { getRouteContext } from "./route-context";
 import { useChat } from "./use-chat";
+import { type SuggestionItem, useSuggestions } from "./use-suggestions";
 
 export function ChatAssistant() {
 	const [isOpen, setIsOpen] = useState(false);
+	const [inputValue, setInputValue] = useState("");
 	const location = useLocation();
 	const currentPath = location.pathname;
 	const routeContext = getRouteContext(currentPath);
@@ -19,11 +22,35 @@ export function ChatAssistant() {
 		currentPath,
 	});
 
+	// Fetch suggestions only when chat is open and no messages yet
+	const {
+		suggestions,
+		isLoading: suggestionsLoading,
+		refresh: refreshSuggestions,
+	} = useSuggestions({
+		currentPath,
+		enabled: isOpen && messages.length === 0,
+	});
+
 	const handleSend = useCallback(
 		async (content: string) => {
+			setInputValue("");
 			await sendMessage(content);
 		},
 		[sendMessage],
+	);
+
+	const handleSuggestionSelect = useCallback(
+		(suggestion: SuggestionItem) => {
+			if (suggestion.action === "send") {
+				// Direct send
+				handleSend(suggestion.question);
+			} else {
+				// Fill input for user to modify
+				setInputValue(suggestion.question);
+			}
+		},
+		[handleSend],
 	);
 
 	// Render in a portal to ensure highest z-index (above all Dialogs)
@@ -45,8 +72,10 @@ export function ChatAssistant() {
 			{isOpen && (
 				<>
 					{/* Backdrop */}
-					<div
-						className="fixed inset-0 z-[9998] bg-black/20"
+					<button
+						type="button"
+						aria-label="关闭聊天"
+						className="fixed inset-0 z-[9998] cursor-default bg-black/20"
 						onClick={() => setIsOpen(false)}
 					/>
 
@@ -56,9 +85,7 @@ export function ChatAssistant() {
 						<div className="flex items-center justify-between border-b px-4 py-3">
 							<div className="flex-1">
 								<h2 className="font-semibold">AI 助手</h2>
-								<p className="text-muted-foreground text-xs">
-									当前页面：{routeContext.name}
-								</p>
+								<p className="text-muted-foreground text-xs">当前页面：{routeContext.name}</p>
 							</div>
 							<div className="flex items-center gap-1">
 								{messages.length > 0 && (
@@ -90,6 +117,17 @@ export function ChatAssistant() {
 							</div>
 						)}
 
+						{/* Suggestions - show only when no messages */}
+						{messages.length === 0 && (
+							<ChatSuggestions
+								suggestions={suggestions}
+								isLoading={suggestionsLoading}
+								onSelect={handleSuggestionSelect}
+								onRefresh={refreshSuggestions}
+								className="border-b"
+							/>
+						)}
+
 						{/* Messages */}
 						<ChatMessages messages={messages} className="flex-1" />
 
@@ -99,6 +137,8 @@ export function ChatAssistant() {
 							onStop={stop}
 							isLoading={isLoading}
 							placeholder={`关于"${routeContext.name}"有什么问题？`}
+							value={inputValue}
+							onChange={setInputValue}
 						/>
 					</div>
 				</>

@@ -70,7 +70,7 @@ export async function loadChatConfig(db: PrismaClient): Promise<ChatConfig> {
 			where: { key: CHAT_CONFIG_KEY },
 		});
 
-		if (record && record.value) {
+		if (record?.value) {
 			cachedConfig = record.value as Partial<ChatConfig>;
 		}
 	} catch (error) {

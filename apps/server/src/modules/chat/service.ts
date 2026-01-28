@@ -7,7 +7,7 @@
 import OpenAI from "openai";
 import { getChatConfig, setResetClientCallback } from "./config";
 import type { ChatMessage } from "./schema";
-import { generateSystemPrompt } from "./system-prompt";
+import { generateSuggestionsPrompt, generateSystemPrompt } from "./system-prompt";
 import { chatTools, executeTool } from "./tools";
 
 // Lazy-initialized client (created on first use)
@@ -211,7 +211,6 @@ export async function* streamChatCompletion(
 
 		// Process each tool call
 		for (const toolCall of validToolCalls) {
-
 			// Indicate to user that we're fetching info
 			yield `\n\n🔍 *正在查询代码库...*\n\n`;
 
@@ -270,4 +269,64 @@ export async function chatCompletion(
 	});
 
 	return response.choices[0]?.message?.content || "";
+}
+
+// Model for generating suggestions (fast and cheap)
+const SUGGESTIONS_MODEL = "gpt-5.1-codex-mini";
+
+export type SuggestionItem = {
+	question: string;
+	action: "fill" | "send"; // fill = fill input, send = direct send
+};
+
+/**
+ * Generate suggested questions based on the current page
+ * Uses a fast, cheap model for quick responses
+ */
+export async function generateSuggestions(currentPath: string): Promise<SuggestionItem[]> {
+	const client = getClient();
+	const prompt = generateSuggestionsPrompt(currentPath);
+
+	try {
+		const response = await client.chat.completions.create({
+			model: SUGGESTIONS_MODEL,
+			messages: [
+				{ role: "system", content: prompt.system },
+				{ role: "user", content: prompt.user },
+			],
+			max_tokens: 500,
+			temperature: 0.7,
+		});
+
+		const content = response.choices[0]?.message?.content || "";
+
+		// Parse the response - expecting JSON array
+		// Format: [{"question": "...", "action": "fill|send"}]
+		try {
+			// Try to extract JSON from the response
+			const jsonMatch = content.match(/\[[\s\S]*\]/);
+			if (jsonMatch) {
+				const suggestions = JSON.parse(jsonMatch[0]) as Array<{
+					question: string;
+					action?: string;
+				}>;
+				return suggestions.slice(0, 5).map((s) => ({
+					question: s.question,
+					action: s.action === "send" ? "send" : "fill",
+				}));
+			}
+		} catch {
+			// If JSON parsing fails, try to extract questions line by line
+			const lines = content.split("\n").filter((line) => line.trim());
+			return lines.slice(0, 5).map((line) => ({
+				question: line.replace(/^[-•*\d.)\]]+\s*/, "").trim(),
+				action: "fill" as const,
+			}));
+		}
+
+		return [];
+	} catch (error) {
+		console.error("[Chat] Failed to generate suggestions:", error);
+		return [];
+	}
 }

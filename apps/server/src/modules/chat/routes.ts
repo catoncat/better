@@ -3,15 +3,15 @@
  * Provides SSE streaming endpoint for AI chat
  */
 
-import { Elysia, t } from "elysia";
 import { Permission } from "@better-app/db";
+import { Elysia, t } from "elysia";
 import { userHasAnyPermission } from "../../lib/permissions";
 import { authPlugin } from "../../plugins/auth";
 import { prismaPlugin } from "../../plugins/prisma";
 import { loadChatConfig, saveChatConfig } from "./config";
 import { checkRateLimit, getRateLimitStatus } from "./rate-limit";
 import { type ChatRequest, chatErrorResponseSchema, chatRequestSchema } from "./schema";
-import { isChatEnabled, streamChatCompletion } from "./service";
+import { generateSuggestions, isChatEnabled, streamChatCompletion } from "./service";
 
 export const chatModule = new Elysia({
 	prefix: "/chat",
@@ -177,6 +177,48 @@ export const chatModule = new Elysia({
 				tags: ["Chat"],
 				summary: "AI Chat Completion (SSE)",
 				description: "Stream AI chat responses using Server-Sent Events",
+			},
+		},
+	)
+	// Get suggested questions for current page
+	.get(
+		"/suggestions",
+		async ({ query, set }) => {
+			// Check if chat is enabled
+			if (!isChatEnabled()) {
+				set.status = 503;
+				return {
+					ok: false,
+					error: "AI 聊天助手功能未启用",
+					suggestions: [],
+				};
+			}
+
+			const currentPath = query.path || "/";
+
+			try {
+				const suggestions = await generateSuggestions(currentPath);
+				return {
+					ok: true,
+					suggestions,
+				};
+			} catch (error) {
+				console.error("[Chat] Failed to generate suggestions:", error);
+				return {
+					ok: true,
+					suggestions: [], // Return empty array on error, don't fail
+				};
+			}
+		},
+		{
+			isAuth: true,
+			query: t.Object({
+				path: t.Optional(t.String()),
+			}),
+			detail: {
+				tags: ["Chat"],
+				summary: "Get suggested questions",
+				description: "Get AI-generated suggested questions based on current page",
 			},
 		},
 	);

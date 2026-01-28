@@ -268,3 +268,40 @@ ${context.actions.map((action) => `- ${action}`).join("\n")}
 
 	return coreInstructions + basePrompt;
 }
+
+/**
+ * Generate prompt for suggestions generation
+ * @param currentPath - Current page route
+ */
+export function generateSuggestionsPrompt(currentPath: string): { system: string; user: string } {
+	const context = getRouteContext(currentPath);
+
+	const system = `你是 Better MES 系统的 AI 助手。你的任务是根据用户当前所在的页面，生成 3-5 个用户可能想问的问题建议。
+
+规则：
+1. 问题必须与当前页面功能直接相关
+2. 问题应该简短清晰（不超过 20 个字）
+3. 问题应该覆盖页面的主要操作场景
+4. 优先生成操作指导类问题（如"怎么做XXX"）
+5. 返回 JSON 数组格式
+
+返回格式：
+[
+  {"question": "问题1", "action": "fill"},
+  {"question": "问题2", "action": "send"},
+  ...
+]
+
+action 说明：
+- "fill": 填充到输入框，用户可以修改后发送
+- "send": 直接发送，适合简单明确的问题`;
+
+	const user = `当前页面：${context.name}
+路径：${currentPath}
+页面说明：${context.description}
+可用操作：${context.actions.join("、")}
+
+请生成 3-5 个与这个页面相关的建议问题。`;
+
+	return { system, user };
+}
