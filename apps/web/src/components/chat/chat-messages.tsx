@@ -9,13 +9,11 @@ import {
 	Dialog,
 	DialogBody,
 	DialogContent,
-	DialogDescription,
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "./use-chat";
@@ -241,7 +239,6 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 						<Loader2 className="size-4 animate-spin" />
 					) : null}
 				</div>
-
 			</div>
 		</div>
 	);
@@ -315,20 +312,20 @@ export function ChatThreadFeedback({ messages, onFeedback, className }: ChatThre
 	};
 
 	return (
-		<div className={cn("border-t bg-background px-4 py-2", className)}>
+		<div className={cn("border-t bg-background px-3 py-1.5", className)}>
 			<div className="flex items-center justify-between gap-2">
 				<Button
 					type="button"
 					variant="ghost"
 					size="sm"
-					className="gap-2 text-xs"
+					className="gap-2 text-xs h-7"
 					onClick={() => setOpen(true)}
 					disabled={!onFeedback || selectableMessages.length === 0}
 				>
-					<MessageSquareText className="size-4" />
+					<MessageSquareText className="size-3.5" />
 					我要反馈
 				</Button>
-				<span className="text-xs text-muted-foreground">用于改进系统体验，AI 回复仅作辅助</span>
+				<span className="text-[10px] text-muted-foreground">用于改进系统体验，AI 回复仅作辅助</span>
 			</div>
 
 			<Dialog open={open} onOpenChange={handleOpenChange}>
@@ -366,7 +363,7 @@ export function ChatThreadFeedback({ messages, onFeedback, className }: ChatThre
 						</div>
 
 						<div className="rounded-lg border">
-							<ScrollArea className="max-h-80">
+							<div className="max-h-80 overflow-y-auto">
 								<div className="divide-y">
 									{selectableMessages.map((message, index) => {
 										const checkboxId = `chat-feedback-${message.id}`;
@@ -396,7 +393,10 @@ export function ChatThreadFeedback({ messages, onFeedback, className }: ChatThre
 														</Badge>
 														<span>消息 {index + 1}</span>
 													</div>
-													<Label htmlFor={checkboxId} className="cursor-pointer text-sm font-normal">
+													<Label
+														htmlFor={checkboxId}
+														className="cursor-pointer text-sm font-normal"
+													>
 														<span className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
 															{message.content}
 														</span>
@@ -411,7 +411,7 @@ export function ChatThreadFeedback({ messages, onFeedback, className }: ChatThre
 										</div>
 									)}
 								</div>
-							</ScrollArea>
+							</div>
 						</div>
 
 						<div className="grid gap-2">
@@ -429,7 +429,11 @@ export function ChatThreadFeedback({ messages, onFeedback, className }: ChatThre
 						<Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
 							取消
 						</Button>
-						<Button type="button" onClick={handleSubmit} disabled={selectedCount === 0 || !onFeedback}>
+						<Button
+							type="button"
+							onClick={handleSubmit}
+							disabled={selectedCount === 0 || !onFeedback}
+						>
 							提交反馈
 						</Button>
 					</DialogFooter>

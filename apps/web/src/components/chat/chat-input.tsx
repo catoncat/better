@@ -71,7 +71,7 @@ export function ChatInput({
 	};
 
 	return (
-		<div className={cn("border-t bg-background p-4", className)}>
+		<div className={cn("border-t bg-background p-3 mb-1", className)}>
 			<div className="flex items-end gap-2">
 				<Textarea
 					ref={textareaRef}
@@ -81,11 +81,11 @@ export function ChatInput({
 					onInput={handleInput}
 					placeholder={placeholder}
 					disabled={disabled}
-					className="min-h-[40px] max-h-[120px] resize-none"
+					className="min-h-9 max-h-30 resize-none py-2 text-sm"
 					rows={1}
 				/>
 				{isLoading ? (
-					<Button variant="destructive" size="icon" onClick={onStop} className="shrink-0">
+					<Button variant="destructive" size="icon" onClick={onStop} className="shrink-0 size-9">
 						<Square className="size-4" />
 					</Button>
 				) : (
@@ -93,13 +93,12 @@ export function ChatInput({
 						size="icon"
 						onClick={handleSend}
 						disabled={!value.trim() || disabled}
-						className="shrink-0"
+						className="shrink-0 size-9"
 					>
 						{disabled ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
 					</Button>
 				)}
 			</div>
-			<p className="text-muted-foreground mt-1.5 text-xs">按 Enter 发送，Shift + Enter 换行</p>
 		</div>
 	);
 }
