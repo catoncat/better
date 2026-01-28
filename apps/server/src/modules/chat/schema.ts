@@ -12,6 +12,16 @@ export const chatRequestSchema = t.Object({
 	currentPath: t.Optional(t.String()),
 });
 
+export const chatFeedbackRequestSchema = t.Object({
+	currentPath: t.Optional(t.String()),
+	sessionId: t.Optional(t.String()),
+	userMessage: t.String(),
+	assistantMessage: t.String(),
+	userMessageId: t.Optional(t.String()),
+	assistantMessageId: t.Optional(t.String()),
+	feedback: t.Optional(t.String()),
+});
+
 // --- Response Schemas ---
 export const chatErrorResponseSchema = t.Object({
 	ok: t.Literal(false),
@@ -30,4 +40,14 @@ export type ChatMessage = {
 export type ChatRequest = {
 	messages: ChatMessage[];
 	currentPath?: string;
+};
+
+export type ChatFeedbackRequest = {
+	currentPath?: string;
+	sessionId?: string;
+	userMessage: string;
+	assistantMessage: string;
+	userMessageId?: string;
+	assistantMessageId?: string;
+	feedback?: string;
 };

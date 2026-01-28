@@ -10,7 +10,13 @@ import { authPlugin } from "../../plugins/auth";
 import { prismaPlugin } from "../../plugins/prisma";
 import { loadChatConfig, saveChatConfig } from "./config";
 import { checkRateLimit, getRateLimitStatus } from "./rate-limit";
-import { type ChatRequest, chatErrorResponseSchema, chatRequestSchema } from "./schema";
+import {
+	type ChatFeedbackRequest,
+	type ChatRequest,
+	chatErrorResponseSchema,
+	chatFeedbackRequestSchema,
+	chatRequestSchema,
+} from "./schema";
 import { generateSuggestions, isChatEnabled, streamChatCompletion } from "./service";
 
 export const chatModule = new Elysia({
@@ -227,3 +233,34 @@ export const chatModule = new Elysia({
 			},
 		},
 	);
+
+// Submit feedback for a chat response
+chatModule.post(
+	"/feedback",
+	async ({ body, user, db }) => {
+		const request = body as ChatFeedbackRequest;
+		await db.chatFeedback.create({
+			data: {
+				userId: user.id,
+				currentPath: request.currentPath,
+				sessionId: request.sessionId,
+				userMessage: request.userMessage,
+				assistantMessage: request.assistantMessage,
+				userMessageId: request.userMessageId,
+				assistantMessageId: request.assistantMessageId,
+				feedback: request.feedback?.trim() || null,
+			},
+		});
+
+		return { ok: true };
+	},
+	{
+		isAuth: true,
+		body: chatFeedbackRequestSchema,
+		detail: {
+			tags: ["Chat"],
+			summary: "Submit chat feedback",
+			description: "Collect feedback tied to a specific assistant response",
+		},
+	},
+);
