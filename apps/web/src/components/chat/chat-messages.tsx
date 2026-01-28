@@ -38,6 +38,23 @@ function linkifyRoutePaths(text: string): ReactNode[] {
 	return nodes.length > 0 ? nodes : [text];
 }
 
+function linkifyRouteChildren(children: ReactNode): ReactNode {
+	if (typeof children === "string") {
+		return linkifyRoutePaths(children);
+	}
+	if (Array.isArray(children)) {
+		return children.flatMap((child, index) => {
+			if (typeof child === "string") {
+				return linkifyRoutePaths(child).map((node, nodeIndex) => (
+					<span key={`route-text-${index}-${nodeIndex}`}>{node}</span>
+				));
+			}
+			return child;
+		});
+	}
+	return children;
+}
+
 type ChatMessagesProps = {
 	messages: ChatMessage[];
 	className?: string;
@@ -137,9 +154,11 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 									ol: ({ children }) => (
 										<ol className="my-1 ml-4 list-decimal space-y-0.5">{children}</ol>
 									),
-									li: ({ children }) => <li className="text-sm">{children}</li>,
+									li: ({ children }) => (
+										<li className="text-sm">{linkifyRouteChildren(children)}</li>
+									),
 									// Compact paragraph
-									p: ({ children }) => <p className="my-1">{children}</p>,
+									p: ({ children }) => <p className="my-1">{linkifyRouteChildren(children)}</p>,
 									// Table styling
 									table: ({ children }) => (
 										<div className="my-2 overflow-x-auto">
@@ -148,11 +167,13 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 									),
 									th: ({ children }) => (
 										<th className="border border-border bg-muted px-2 py-1 text-left font-medium">
-											{children}
+											{linkifyRouteChildren(children)}
 										</th>
 									),
 									td: ({ children }) => (
-										<td className="border border-border px-2 py-1">{children}</td>
+										<td className="border border-border px-2 py-1">
+											{linkifyRouteChildren(children)}
+										</td>
 									),
 								}}
 							>
