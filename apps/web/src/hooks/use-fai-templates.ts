@@ -10,7 +10,9 @@ type FaiTemplateListResponse = Awaited<ReturnType<typeof faiTemplatesApi.get>>["
 type FaiTemplateListData = NonNullable<FaiTemplateListResponse>["data"];
 export type FaiTemplateSummary = FaiTemplateListData["items"][number];
 
-type FaiTemplateDetailResponse = Awaited<ReturnType<ReturnType<typeof faiTemplateApi>["get"]>>["data"];
+type FaiTemplateDetailResponse = Awaited<
+	ReturnType<ReturnType<typeof faiTemplateApi>["get"]>
+>["data"];
 export type FaiTemplateDetail = NonNullable<FaiTemplateDetailResponse>["data"];
 
 type FaiTemplateCreateInput = Parameters<typeof faiTemplatesApi.post>[0];
@@ -25,10 +27,7 @@ export interface FaiTemplateListParams {
 	isActive?: "true" | "false";
 }
 
-export function useFaiTemplateList(
-	params: FaiTemplateListParams,
-	options?: { enabled?: boolean },
-) {
+export function useFaiTemplateList(params: FaiTemplateListParams, options?: { enabled?: boolean }) {
 	return useQuery<FaiTemplateListData>({
 		queryKey: ["mes", "fai-templates", params],
 		enabled: options?.enabled ?? true,
@@ -49,7 +48,10 @@ export function useFaiTemplateList(
 	});
 }
 
-export function useFaiTemplateDetail(templateId: string | undefined, options?: { enabled?: boolean }) {
+export function useFaiTemplateDetail(
+	templateId: string | undefined,
+	options?: { enabled?: boolean },
+) {
 	return useQuery<FaiTemplateDetail>({
 		queryKey: ["mes", "fai-templates", "detail", templateId],
 		enabled: Boolean(templateId) && (options?.enabled ?? true),
@@ -85,7 +87,10 @@ export function useUpdateFaiTemplate() {
 	const showError = useApiError();
 
 	return useMutation({
-		mutationFn: async ({ templateId, ...input }: { templateId: string } & FaiTemplateUpdateInput) => {
+		mutationFn: async ({
+			templateId,
+			...input
+		}: { templateId: string } & FaiTemplateUpdateInput) => {
 			const response = await faiTemplateApi(templateId).patch(input);
 			return unwrap(response);
 		},

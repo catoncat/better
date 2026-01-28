@@ -561,7 +561,7 @@ export async function updateFaiItem(
 		itemName: string;
 		itemSpec: string | null;
 		actualValue: string | null;
-		result: string;
+		result: InspectionItemResult;
 		defectCode: string | null;
 		remark: string | null;
 		inspectedBy: string | null;

@@ -769,53 +769,53 @@ function FaiPage() {
 								{faiDetail.items && faiDetail.items.length > 0 && (
 									<div>
 										<h4 className="font-medium mb-2">检验记录</h4>
-											<Table>
-												<TableHeader>
-													<TableRow>
-														<TableHead>检验项</TableHead>
-														<TableHead>规格</TableHead>
-														<TableHead>实测值</TableHead>
-														<TableHead>结果</TableHead>
-														<TableHead>SN</TableHead>
-														<TableHead>时间</TableHead>
-														{canEditItems && <TableHead className="text-right">操作</TableHead>}
-													</TableRow>
-												</TableHeader>
-												<TableBody>
-													{faiDetail.items.map((item) => (
-														<TableRow key={item.id}>
-															<TableCell>{item.itemName}</TableCell>
-															<TableCell>{item.itemSpec ?? "-"}</TableCell>
-															<TableCell>{item.actualValue ?? "-"}</TableCell>
-															<TableCell>
-																<Badge variant={item.result === "PASS" ? "secondary" : "destructive"}>
-																	{item.result === "PASS"
-																		? "通过"
-																		: item.result === "FAIL"
-																			? "不通过"
-																			: "N/A"}
-																</Badge>
+										<Table>
+											<TableHeader>
+												<TableRow>
+													<TableHead>检验项</TableHead>
+													<TableHead>规格</TableHead>
+													<TableHead>实测值</TableHead>
+													<TableHead>结果</TableHead>
+													<TableHead>SN</TableHead>
+													<TableHead>时间</TableHead>
+													{canEditItems && <TableHead className="text-right">操作</TableHead>}
+												</TableRow>
+											</TableHeader>
+											<TableBody>
+												{faiDetail.items.map((item) => (
+													<TableRow key={item.id}>
+														<TableCell>{item.itemName}</TableCell>
+														<TableCell>{item.itemSpec ?? "-"}</TableCell>
+														<TableCell>{item.actualValue ?? "-"}</TableCell>
+														<TableCell>
+															<Badge variant={item.result === "PASS" ? "secondary" : "destructive"}>
+																{item.result === "PASS"
+																	? "通过"
+																	: item.result === "FAIL"
+																		? "不通过"
+																		: "N/A"}
+															</Badge>
+														</TableCell>
+														<TableCell>{item.unitSn ?? "-"}</TableCell>
+														<TableCell>{formatDateTime(item.inspectedAt)}</TableCell>
+														{canEditItems && (
+															<TableCell className="text-right">
+																<Button
+																	size="sm"
+																	variant="outline"
+																	onClick={() => handleEditItem(item)}
+																>
+																	<Edit2 className="mr-1 h-3 w-3" />
+																	{item.result === "NA" ? "录入" : "编辑"}
+																</Button>
 															</TableCell>
-															<TableCell>{item.unitSn ?? "-"}</TableCell>
-															<TableCell>{formatDateTime(item.inspectedAt)}</TableCell>
-															{canEditItems && (
-																<TableCell className="text-right">
-																	<Button
-																		size="sm"
-																		variant="outline"
-																		onClick={() => handleEditItem(item)}
-																	>
-																		<Edit2 className="mr-1 h-3 w-3" />
-																		{item.result === "NA" ? "录入" : "编辑"}
-																	</Button>
-																</TableCell>
-															)}
-														</TableRow>
-													))}
-												</TableBody>
-											</Table>
-										</div>
-									)}
+														)}
+													</TableRow>
+												))}
+											</TableBody>
+										</Table>
+									</div>
+								)}
 								{trialSummary && (
 									<div className="space-y-4">
 										<div>

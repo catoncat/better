@@ -30,8 +30,8 @@ import {
 	listExecutionConfigs,
 	listRoutes,
 	listRouteVersions,
-	updateRouteFaiTemplate,
 	updateExecutionConfig,
+	updateRouteFaiTemplate,
 	updateRouteProcessType,
 } from "./service";
 

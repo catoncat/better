@@ -3,6 +3,7 @@ import { Loader2, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -22,7 +23,6 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
 	type FaiTemplateDetail,
 	useCreateFaiTemplate,
@@ -49,23 +49,27 @@ const baseFormSchema = z.object({
 
 type FormValues = z.infer<typeof baseFormSchema>;
 
-const buildFormValues = (template?: FaiTemplateDetail | null): FormValues => ({
-	code: template?.code ?? "",
-	name: template?.name ?? "",
-	productCode: template?.productCode ?? "",
-	processType: (template?.processType ?? "SMT") as "SMT" | "DIP",
-	version: template?.version ?? "",
-	isActive: template?.isActive ?? true,
-	items:
-		template?.items?.length > 0
-			? template.items.map((item) => ({
-					seq: item.seq,
-					itemName: item.itemName,
-					itemSpec: item.itemSpec ?? "",
-					required: item.required ?? true,
-				}))
-			: [{ seq: 1, itemName: "", itemSpec: "", required: true }],
-});
+const buildFormValues = (template?: FaiTemplateDetail | null): FormValues => {
+	const templateItems = template?.items ?? [];
+
+	return {
+		code: template?.code ?? "",
+		name: template?.name ?? "",
+		productCode: template?.productCode ?? "",
+		processType: (template?.processType ?? "SMT") as "SMT" | "DIP",
+		version: template?.version ?? "",
+		isActive: template?.isActive ?? true,
+		items:
+			templateItems.length > 0
+				? templateItems.map((item) => ({
+						seq: item.seq,
+						itemName: item.itemName,
+						itemSpec: item.itemSpec ?? "",
+						required: item.required ?? true,
+					}))
+				: [{ seq: 1, itemName: "", itemSpec: "", required: true }],
+	};
+};
 
 interface TemplateDialogProps {
 	open: boolean;
@@ -310,15 +314,18 @@ export function TemplateDialog({ open, onOpenChange, template, isLoading }: Temp
 													</div>
 												</div>
 												<div className="flex items-center justify-between">
-													<label className="flex items-center gap-2 text-sm">
+													<div className="flex items-center gap-2 text-sm">
 														<Checkbox
+															id={`fai-template-required-${index}`}
 															checked={item.required}
 															onCheckedChange={(value) =>
 																updateItem(index, { required: Boolean(value) })
 															}
 														/>
-														必填
-													</label>
+														<Label htmlFor={`fai-template-required-${index}`} className="text-sm">
+															必填
+														</Label>
+													</div>
 													<Button
 														type="button"
 														variant="ghost"

@@ -16,7 +16,7 @@ import {
 import { useQueryPresets } from "@/hooks/use-query-presets";
 import { PROCESS_TYPE_MAP } from "@/lib/constants";
 import { FaiTemplateCard } from "./-components/card";
-import { faiTemplateColumns, type FaiTemplateTableMeta } from "./-components/columns";
+import { type FaiTemplateTableMeta, faiTemplateColumns } from "./-components/columns";
 import { TemplateDialog } from "./-components/template-dialog";
 
 interface FaiTemplateFilters {

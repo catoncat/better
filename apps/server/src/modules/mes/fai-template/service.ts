@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from "@better-app/db";
+import { Prisma, type PrismaClient, type ProcessType } from "@better-app/db";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
 import type {
@@ -24,7 +24,7 @@ type FaiTemplateDetail = {
 	code: string;
 	name: string;
 	productCode: string;
-	processType: string;
+	processType: ProcessType;
 	version: string | null;
 	isActive: boolean;
 	meta: Prisma.JsonValue | null;
@@ -48,7 +48,7 @@ type FaiTemplateSummary = {
 	code: string;
 	name: string;
 	productCode: string;
-	processType: string;
+	processType: ProcessType;
 	version: string | null;
 	isActive: boolean;
 	itemCount: number;

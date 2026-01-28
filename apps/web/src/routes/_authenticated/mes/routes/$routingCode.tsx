@@ -1,7 +1,7 @@
 import { Permission } from "@better-app/db/permissions";
 import { useForm } from "@tanstack/react-form";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link, createFileRoute, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { Edit2, PlusCircle, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -41,13 +41,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAbility } from "@/hooks/use-ability";
-import { useFaiTemplateList } from "@/hooks/use-fai-templates";
 import {
 	type ExecutionConfig,
 	useCreateExecutionConfig,
 	useExecutionConfigs,
 	useUpdateExecutionConfig,
 } from "@/hooks/use-execution-configs";
+import { useFaiTemplateList } from "@/hooks/use-fai-templates";
 import { useCompileRouteVersion } from "@/hooks/use-route-versions";
 import {
 	useRouteDetail,
@@ -589,7 +589,8 @@ function RouteDetailPage() {
 							)}
 							{routeDetail.route.faiTemplate ? (
 								<p className="text-xs text-muted-foreground">
-									当前绑定：{routeDetail.route.faiTemplate.name}（{routeDetail.route.faiTemplate.code}）
+									当前绑定：{routeDetail.route.faiTemplate.name}（
+									{routeDetail.route.faiTemplate.code}）
 								</p>
 							) : (
 								<p className="text-xs text-muted-foreground">当前未绑定模板</p>

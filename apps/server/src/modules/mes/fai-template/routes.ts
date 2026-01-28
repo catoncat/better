@@ -13,12 +13,7 @@ import {
 	faiTemplateResponseSchema,
 	faiTemplateUpdateSchema,
 } from "./schema";
-import {
-	createFaiTemplate,
-	getFaiTemplate,
-	listFaiTemplates,
-	updateFaiTemplate,
-} from "./service";
+import { createFaiTemplate, getFaiTemplate, listFaiTemplates, updateFaiTemplate } from "./service";
 
 export const faiTemplateModule = new Elysia({
 	prefix: "/fai-templates",

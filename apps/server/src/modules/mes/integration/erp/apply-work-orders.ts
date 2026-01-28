@@ -62,11 +62,7 @@ const resolveRoutingForWorkOrder = async (
 		return {
 			routing: routing || null,
 			mode: routing ? "routing_code" : "not_found",
-			sourceSystem: routing
-				? routing.sourceSystem === "ERP"
-					? "ERP"
-					: "MES"
-				: undefined,
+			sourceSystem: routing ? (routing.sourceSystem === "ERP" ? "ERP" : "MES") : undefined,
 		};
 	}
 

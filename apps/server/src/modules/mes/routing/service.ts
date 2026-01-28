@@ -94,7 +94,9 @@ const toOptionalJsonValue = (value: unknown) => {
 	return toJsonValue(value);
 };
 
-const toFaiTemplateSnapshot = (template: Prisma.FaiTemplateGetPayload<{ include: { items: true } }>) => ({
+const toFaiTemplateSnapshot = (
+	template: Prisma.FaiTemplateGetPayload<{ include: { items: true } }>,
+) => ({
 	id: template.id,
 	code: template.code,
 	name: template.name,
@@ -763,25 +765,25 @@ export const getRouteDetail = async (
 				id: routing.id,
 				code: routing.code,
 				name: routing.name,
-			sourceSystem: routing.sourceSystem,
-			sourceKey: routing.sourceKey ?? null,
-			productCode: routing.productCode ?? null,
-			faiTemplate: routing.faiTemplate
-				? {
-						id: routing.faiTemplate.id,
-						code: routing.faiTemplate.code,
-						name: routing.faiTemplate.name,
-						productCode: routing.faiTemplate.productCode,
-						processType: routing.faiTemplate.processType,
-						version: routing.faiTemplate.version ?? null,
-						isActive: routing.faiTemplate.isActive,
-					}
-				: null,
-			version: routing.version ?? null,
-			processType: routing.processType,
-			isActive: routing.isActive,
-			effectiveFrom: routing.effectiveFrom?.toISOString() ?? null,
-			effectiveTo: routing.effectiveTo?.toISOString() ?? null,
+				sourceSystem: routing.sourceSystem,
+				sourceKey: routing.sourceKey ?? null,
+				productCode: routing.productCode ?? null,
+				faiTemplate: routing.faiTemplate
+					? {
+							id: routing.faiTemplate.id,
+							code: routing.faiTemplate.code,
+							name: routing.faiTemplate.name,
+							productCode: routing.faiTemplate.productCode,
+							processType: routing.faiTemplate.processType,
+							version: routing.faiTemplate.version ?? null,
+							isActive: routing.faiTemplate.isActive,
+						}
+					: null,
+				version: routing.version ?? null,
+				processType: routing.processType,
+				isActive: routing.isActive,
+				effectiveFrom: routing.effectiveFrom?.toISOString() ?? null,
+				effectiveTo: routing.effectiveTo?.toISOString() ?? null,
 				createdAt: routing.createdAt.toISOString(),
 				updatedAt: routing.updatedAt.toISOString(),
 			},
