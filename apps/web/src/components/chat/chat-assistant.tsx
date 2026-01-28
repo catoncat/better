@@ -55,7 +55,7 @@ export function ChatAssistant() {
 
 	// Render in a portal to ensure highest z-index (above all Dialogs)
 	const chatContent = (
-		<>
+		<div data-chat-assistant-root className="contents">
 			{/* Floating button - always visible when chat is closed */}
 			<Button
 				onClick={() => setIsOpen(true)}
@@ -143,7 +143,7 @@ export function ChatAssistant() {
 					</div>
 				</>
 			)}
-		</>
+		</div>
 	);
 
 	// Use portal to render at document body level (above all other content)

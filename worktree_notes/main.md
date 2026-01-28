@@ -695,3 +695,10 @@
 - Ran claim-task flow: no pending slices in `.scratch/task-queue.md` (all pending=0).
 - Current branch: `main`.
 - Next: report task-queue state to user and ask how to proceed since nothing to claim.
+
+## Context (2026-01-28)
+- 用户反馈：重复输出问题仍未解决；要求生产环境关闭 AI debug 日志。
+- 当前工作区非干净：`apps/web/src/components/chat/chat-assistant.tsx`、`apps/web/src/components/ui/dialog.tsx` 已修改；新增 `conversation/2026-01-28_124441_chat-assistant_dialog_overlay_click_issue.md`。
+
+## Findings (2026-01-28)
+- 待补充。

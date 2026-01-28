@@ -95,6 +95,7 @@ function DialogContent({
 	className,
 	children,
 	showCloseButton = true,
+	onInteractOutside,
 	...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
 	showCloseButton?: boolean;
@@ -114,6 +115,26 @@ function DialogContent({
 		return child;
 	});
 
+	const handleInteractOutside: React.ComponentProps<
+		typeof DialogPrimitive.Content
+	>["onInteractOutside"] = (event) => {
+		onInteractOutside?.(event);
+		if (event.defaultPrevented) {
+			return;
+		}
+		const originalEvent = (
+			event as {
+				detail?: {
+					originalEvent?: Event;
+				};
+			}
+		).detail?.originalEvent;
+		const target = (originalEvent?.target ?? event.target) as Element | null;
+		if (target instanceof Element && target.closest("[data-chat-assistant-root]")) {
+			event.preventDefault();
+		}
+	};
+
 	return (
 		<DialogPortal data-slot="dialog-portal">
 			<DialogOverlay />
@@ -124,6 +145,7 @@ function DialogContent({
 					className,
 				)}
 				{...props}
+				onInteractOutside={handleInteractOutside}
 			>
 				{processedChildren}
 				{showCloseButton && (
