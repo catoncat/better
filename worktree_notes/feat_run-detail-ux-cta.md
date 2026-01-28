@@ -51,5 +51,8 @@ touchPoints:
 - PREP_FIXTURE 入口：`/mes/maintenance-records?entityType=FIXTURE&lineId=...`。
 - TIME_RULE 入口：仅跳 `/mes/time-rules`，不预置 ruleType。
 
+## Findings
+- Run Detail 页内已有 readiness CTA 分支与模板卡片逻辑，适合集中到统一函数并在原位替换。
+
 ## Open Questions
 - 无
