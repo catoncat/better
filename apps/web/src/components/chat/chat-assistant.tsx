@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChatHistory } from "./chat-history";
 import { ChatInput } from "./chat-input";
-import { ChatMessages } from "./chat-messages";
+import { ChatMessages, type ChatFeedbackPayload } from "./chat-messages";
 import { ChatSuggestions } from "./chat-suggestions";
 import { getRouteContext } from "./route-context";
 import { useChat } from "./use-chat";
@@ -14,6 +14,9 @@ import { useChatHistory } from "./use-chat-history";
 import { type SuggestionItem, useSuggestions } from "./use-suggestions";
 
 const DEFAULT_SESSION_TITLE = "新会话";
+const BASE_URL = import.meta.env.VITE_SERVER_URL
+	? `${import.meta.env.VITE_SERVER_URL.replace(/\/$/, "")}/api`
+	: "/api";
 
 export function ChatAssistant() {
 	const [isOpen, setIsOpen] = useState(false);
@@ -88,6 +91,33 @@ export function ChatAssistant() {
 			}
 		},
 		[handleSend],
+	);
+
+	const handleFeedback = useCallback(
+		async (payload: ChatFeedbackPayload) => {
+			if (!payload.assistantMessage) return;
+			try {
+				await fetch(`${BASE_URL}/chat/feedback`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+					body: JSON.stringify({
+						currentPath,
+						sessionId: activeSessionId,
+						userMessage: payload.userMessage ?? "",
+						assistantMessage: payload.assistantMessage,
+						userMessageId: payload.userMessageId,
+						assistantMessageId: payload.assistantMessageId,
+						feedback: payload.feedback,
+					}),
+				});
+			} catch {
+				// Ignore feedback errors to avoid blocking chat UI
+			}
+		},
+		[activeSessionId, currentPath],
 	);
 
 	const derivedTitle = useMemo(() => {
@@ -226,7 +256,11 @@ export function ChatAssistant() {
 						) : (
 							<>
 								{/* Messages */}
-								<ChatMessages messages={messages} className="flex-1" />
+								<ChatMessages
+									messages={messages}
+									className="flex-1"
+									onFeedback={handleFeedback}
+								/>
 
 								{/* Suggestions - show after assistant reply */}
 								{suggestionReply && (

@@ -1,7 +1,8 @@
-import { Bot, Loader2, User } from "lucide-react";
+import { Bot, Loader2, MessageSquareText, User } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "./use-chat";
 
@@ -89,9 +90,18 @@ function linkifyRouteChildren(children: ReactNode): ReactNode {
 type ChatMessagesProps = {
 	messages: ChatMessage[];
 	className?: string;
+	onFeedback?: (payload: ChatFeedbackPayload) => void;
 };
 
-export function ChatMessages({ messages, className }: ChatMessagesProps) {
+export type ChatFeedbackPayload = {
+	userMessage?: string;
+	userMessageId?: string;
+	assistantMessage: string;
+	assistantMessageId: string;
+	feedback?: string;
+};
+
+export function ChatMessages({ messages, className, onFeedback }: ChatMessagesProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	// Auto-scroll to bottom on every render (when messages change)
@@ -115,15 +125,37 @@ export function ChatMessages({ messages, className }: ChatMessagesProps) {
 
 	return (
 		<div ref={containerRef} className={cn("flex-1 space-y-4 overflow-y-auto p-4", className)}>
-			{messages.map((message) => (
-				<MessageBubble key={message.id} message={message} />
+			{messages.map((message, index) => (
+				<MessageBubble
+					key={message.id}
+					message={message}
+					previousMessages={messages.slice(0, index)}
+					onFeedback={onFeedback}
+				/>
 			))}
 		</div>
 	);
 }
 
-function MessageBubble({ message }: { message: ChatMessage }) {
+function getPreviousUserMessage(messages: ChatMessage[]): ChatMessage | undefined {
+	for (let i = messages.length - 1; i >= 0; i -= 1) {
+		const message = messages[i];
+		if (message?.role === "user") return message;
+	}
+	return undefined;
+}
+
+function MessageBubble({
+	message,
+	previousMessages,
+	onFeedback,
+}: {
+	message: ChatMessage;
+	previousMessages: ChatMessage[];
+	onFeedback?: (payload: ChatFeedbackPayload) => void;
+}) {
 	const isUser = message.role === "user";
+	const previousUserMessage = isUser ? undefined : getPreviousUserMessage(previousMessages);
 
 	return (
 		<div className={cn("flex gap-3", isUser ? "flex-row-reverse" : "flex-row")}>
@@ -138,12 +170,13 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 			</div>
 
 			{/* Message bubble */}
-			<div
-				className={cn(
-					"max-w-[80%] rounded-lg px-3 py-2",
-					isUser ? "bg-primary text-primary-foreground" : "bg-muted",
-				)}
-			>
+			<div className="flex max-w-[80%] flex-col gap-2">
+				<div
+					className={cn(
+						"rounded-lg px-3 py-2",
+						isUser ? "bg-primary text-primary-foreground" : "bg-muted",
+					)}
+				>
 				{message.content ? (
 					isUser ? (
 						<div className="whitespace-pre-wrap text-sm">{message.content}</div>
@@ -215,6 +248,30 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 				) : message.isStreaming ? (
 					<Loader2 className="size-4 animate-spin" />
 				) : null}
+				</div>
+
+				{!isUser && !message.isStreaming && onFeedback && (
+					<Button
+						type="button"
+						variant="ghost"
+						size="sm"
+						className="h-7 justify-start gap-1 px-2 text-xs text-muted-foreground"
+						onClick={() => {
+							const feedback = window.prompt("请描述你的问题或补充说明（可选）");
+							if (feedback === null) return;
+							onFeedback({
+								userMessage: previousUserMessage?.content,
+								userMessageId: previousUserMessage?.id,
+								assistantMessage: message.content,
+								assistantMessageId: message.id,
+								feedback: feedback.trim() ? feedback.trim() : undefined,
+							});
+						}}
+					>
+						<MessageSquareText className="size-3" />
+						反馈这个回答
+					</Button>
+				)}
 			</div>
 		</div>
 	);
