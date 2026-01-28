@@ -220,9 +220,7 @@ function MessageBubble({
 											<li className="text-sm">{linkifyRouteChildren(children)}</li>
 										),
 										// Compact paragraph
-										p: ({ children }) => (
-											<p className="my-1">{linkifyRouteChildren(children)}</p>
-										),
+										p: ({ children }) => <p className="my-1">{linkifyRouteChildren(children)}</p>,
 										// Table styling
 										table: ({ children }) => (
 											<div className="my-2 overflow-x-auto">

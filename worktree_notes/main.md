@@ -713,3 +713,44 @@
 
 ## Progress (2026-01-28 update 2)
 - 前端不再对 AI 文本做路径替换；仅在代码块内自动识别路由路径并渲染为链接。
+
+## Update 2026-01-28
+- Findings: `.scratch/task-queue.md` 无相关进行中 slice；当前问题是独立修复。
+- Errors: 试图初始化 worktree note 时文件已存在（已保留原内容）。
+
+## Update 2026-01-28 (db 查找)
+- Findings: Prisma schema 已存在 `model ChatFeedback`，User 模型包含 `chatFeedbacks` 关联。
+
+## Update 2026-01-28 (路由定位)
+- Findings: `/api/chat/feedback` 路由在 `apps/server/src/modules/chat/routes.ts`，直接调用 `db.chatFeedback.create`。
+- Findings: Prisma schema 中 `ChatFeedback` 模型存在，映射表 `chat_feedback`。
+
+## Update 2026-01-28 (Prisma client 查找)
+- Findings: `packages/db/generated` 目录不存在；需要检查实际 Prisma client 输出位置。
+- Errors: `rg` 查询 `packages/db/generated` 报错（目录不存在），已改为检查 `packages/db` 结构。
+
+## Update 2026-01-28 (Prisma client 生成内容)
+- Findings: `packages/db/prisma/generated` 存在，但未找到 `chatFeedback` 相关生成内容（`rg` 无匹配）。
+- Suspicion: Prisma client 可能未重新生成，导致运行时缺少 `chatFeedback` model。
+
+## Update 2026-01-28 (db 包导出)
+- Findings: `@better-app/db` 通过 `packages/db/prisma/generated/client` 导出 PrismaClient。
+- Findings: `packages/db` 提供 `db:generate` 脚本（`prisma generate`）。
+
+## Update 2026-01-28 (生成失败记录)
+- Errors: `bun --cwd packages/db run db:generate` 仅输出 usage（未执行脚本）。
+- Next: 改用 `cd packages/db && bun run db:generate` 重新生成。
+
+## Update 2026-01-28 (生成完成)
+- Progress: 已在 `packages/db` 执行 `bun run db:generate`，Prisma Client 与 prismabox 已重新生成。
+
+## Update 2026-01-28 (脚本/工作流)
+- Findings: 根脚本 `check-types` 会先执行 `db:generate`，但 `apps/server` 的 `dev` 不会自动生成 Prisma client。
+- Insight: 开发环境若未手动运行 `db:generate`，可能导致 Prisma client 过旧，出现 `db.chatFeedback` undefined。
+
+## Update 2026-01-28 (生成验证)
+- Findings: 重新生成后，`packages/db/prisma/generated/client/index.js` 已包含 `ChatFeedback` 模型。
+- Progress: `git status` 显示仅 `worktree_notes/main.md` 与已有前端文件被修改（前端变更非本次操作）。
+
+## Update 2026-01-28 (dev 脚本)
+- Progress: `apps/server/package.json` 新增 `db:generate` 脚本并在 `dev` 前置执行，确保启动前生成 Prisma Client。

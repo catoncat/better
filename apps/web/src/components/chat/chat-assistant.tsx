@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChatHistory } from "./chat-history";
 import { ChatInput } from "./chat-input";
-import { ChatMessages, type ChatFeedbackPayload } from "./chat-messages";
+import { type ChatFeedbackPayload, ChatMessages } from "./chat-messages";
 import { ChatSuggestions } from "./chat-suggestions";
 import { getRouteContext } from "./route-context";
 import { useChat } from "./use-chat";
@@ -57,11 +57,21 @@ export function ChatAssistant() {
 	const suggestionReply =
 		lastAssistantMessage && !lastAssistantMessage.isStreaming ? lastAssistantMessage.content : null;
 
-	// Fetch suggestions based on the latest assistant reply
+	// Fetch page suggestions when chat is open and no messages yet
 	const {
-		suggestions,
-		isLoading: suggestionsLoading,
-		refresh: refreshSuggestions,
+		suggestions: pageSuggestions,
+		isLoading: pageSuggestionsLoading,
+		refresh: refreshPageSuggestions,
+	} = useSuggestions({
+		currentPath,
+		enabled: isOpen && !isHistoryOpen && messages.length === 0,
+	});
+
+	// Fetch next-step suggestions based on the latest assistant reply
+	const {
+		suggestions: replySuggestions,
+		isLoading: replySuggestionsLoading,
+		refresh: refreshReplySuggestions,
 	} = useSuggestions({
 		currentPath,
 		reply: suggestionReply,
@@ -250,20 +260,29 @@ export function ChatAssistant() {
 							/>
 						) : (
 							<>
+								{/* Suggestions - show only when no messages */}
+								{messages.length === 0 && (
+									<ChatSuggestions
+										suggestions={pageSuggestions}
+										isLoading={pageSuggestionsLoading}
+										title="页面建议"
+										onSelect={handleSuggestionSelect}
+										onRefresh={refreshPageSuggestions}
+										className="border-b"
+									/>
+								)}
+
 								{/* Messages */}
-								<ChatMessages
-									messages={messages}
-									className="flex-1"
-									onFeedback={handleFeedback}
-								/>
+								<ChatMessages messages={messages} className="flex-1" onFeedback={handleFeedback} />
 
 								{/* Suggestions - show after assistant reply */}
 								{suggestionReply && (
 									<ChatSuggestions
-										suggestions={suggestions}
-										isLoading={suggestionsLoading}
+										suggestions={replySuggestions}
+										isLoading={replySuggestionsLoading}
+										title="下一步建议"
 										onSelect={handleSuggestionSelect}
-										onRefresh={refreshSuggestions}
+										onRefresh={refreshReplySuggestions}
 										className="border-t"
 									/>
 								)}
