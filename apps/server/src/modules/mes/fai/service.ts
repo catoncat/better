@@ -9,7 +9,7 @@ import {
 } from "@better-app/db";
 import type { Static } from "elysia";
 import type { ServiceResult } from "../../../types/service-result";
-import { getLatestCheck } from "../readiness/service";
+import { getLatestCheck, performCheck } from "../readiness/service";
 import type {
 	completeFaiSchema,
 	createFaiSchema,
@@ -261,12 +261,19 @@ export async function createFai(
 	if (!readinessResult.success) {
 		return readinessResult;
 	}
-	const latestCheck = readinessResult.data;
+	let latestCheck = readinessResult.data;
+	if (!latestCheck || latestCheck.status !== ReadinessCheckStatus.PASSED) {
+		const formalCheck = await performCheck(db, runNo, "FORMAL", _createdBy);
+		if (!formalCheck.success) {
+			return formalCheck;
+		}
+		latestCheck = formalCheck.data;
+	}
 	if (!latestCheck || latestCheck.status !== ReadinessCheckStatus.PASSED) {
 		return {
 			success: false as const,
 			code: "READINESS_CHECK_NOT_PASSED",
-			message: "就绪检查未通过，无法创建 FAI",
+			message: "就绪检查未通过，无法创建 FAI（已自动执行正式检查）",
 			status: 400,
 		};
 	}
