@@ -6,6 +6,11 @@
 
 ## 1. 不良登记
 
+缺陷查询：
+
+* `GET /api/defects`（列表，可按 `unitSn` / `code` / `status` 过滤）
+* `GET /api/defects/{defectId}`（详情）
+
 **POST** `/api/defects`
 
 ### Header
@@ -55,18 +60,41 @@
 }
 ```
 
-## 3. 返修完成
+缺陷放行/解锁（HOLD 释放）：
 
-**POST** `/api/rework/{reworkId}/complete`
+**POST** `/api/defects/{defectId}/release`
+
+```json
+{
+  "reason": "放行原因"
+}
+```
+
+---
+
+## 3. 返工任务
+
+* `GET /api/rework-tasks`（列表，可按 `unitSn` / `status` 过滤）
+* `POST /api/rework-tasks/{taskId}/repair-record`（记录返修过程）
+* `POST /api/rework-tasks/{taskId}/complete`（完成返工）
 
 ### Header
 `Idempotency-Key` (recommended)
 
-### 请求示例
+### 请求示例（完成返工）
 ```json
 {
-  "doneBy": "OP002",
   "remark": "已重焊"
+}
+```
+
+### 请求示例（记录返修过程）
+```json
+{
+  "reason": "焊点虚焊",
+  "action": "返工重焊",
+  "result": "复检通过",
+  "remark": "复检已完成"
 }
 ```
 

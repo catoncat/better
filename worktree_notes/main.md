@@ -829,3 +829,7 @@
 - Error: sed failed on apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx (unescaped $). Next: use quoted path or rg -n with escaped \$.
 - Need to inspect completeFqc in apps/server/src/modules/mes/fqc/service.ts for run status impact before documenting FQC behavior.
 - Error: apply_patch failed updating user_docs/04_quality.md (missing "#### 4.1 查看产品履历" line). Next: inspect trace section and patch with correct lines.
+
+## 2026-01-28
+- Resumed doc-review-exec loop; pending commit for round7 defects/rework doc fixes and status update.
+- Next: commit round7 fixes, then start next scope review per backlog.

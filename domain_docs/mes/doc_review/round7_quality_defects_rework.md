@@ -30,25 +30,24 @@
 
 | 功能点 | 文档（Spec/Playbook/User Docs） | API（路径/字段） | UI（页面/组件） | 偏差类型 | 修复责任 | 备注 |
 |------|-------------------------------|----------------|---------------|---------|---------|------|
-| 缺陷列表/详情 | user_docs/04_quality.md | GET /api/defects<br>GET /api/defects/:defectId<br>apps/server/src/modules/mes/defect/routes.ts | apps/web/src/routes/_authenticated/mes/defects.tsx | 缺失 | 文档 | API 合约未覆盖 GET 缺陷接口 |
+| 缺陷列表/详情 | user_docs/04_quality.md | GET /api/defects<br>GET /api/defects/:defectId<br>apps/server/src/modules/mes/defect/routes.ts | apps/web/src/routes/_authenticated/mes/defects.tsx | 缺失 | 文档 | 已修复：补齐缺陷查询合约 |
 | 缺陷处置判定 | domain_docs/mes/smt_playbook/03_run_flow/07_exception_and_recovery.md；user_docs/04_quality.md | POST /api/defects/:defectId/disposition<br>apps/server/src/modules/mes/defect/routes.ts | apps/web/src/routes/_authenticated/mes/defects.tsx | 无 | - | REWORK 创建返工任务并将 Unit 置为 QUEUED |
-| 缺陷放行/解锁 | TBD | POST /api/defects/:defectId/release<br>apps/server/src/modules/mes/defect/routes.ts | apps/web/src/routes/_authenticated/mes/defects.tsx | 缺失 | 文档 | API 合约未覆盖 release |
-| 返工任务列表 | user_docs/04_quality.md | GET /api/rework-tasks<br>apps/server/src/modules/mes/defect/routes.ts | apps/web/src/routes/_authenticated/mes/rework-tasks.tsx | 缺失 | 文档 | API 合约未覆盖 rework-tasks 列表；User Docs 描述“手动创建”与 UI 不一致 |
-| 返工完成 | user_docs/04_quality.md | POST /api/rework-tasks/:taskId/complete<br>apps/server/src/modules/mes/defect/routes.ts | apps/web/src/routes/_authenticated/mes/rework-tasks.tsx | 命名不一致 | 文档 | 合约写 /api/rework/:reworkId/complete |
-| 返工记录录入 | user_docs/04_quality.md | POST /api/rework-tasks/:taskId/repair-record<br>apps/server/src/modules/mes/defect/routes.ts | apps/web/src/routes/_authenticated/mes/rework-tasks.tsx | 缺失 | 文档 | UI 支持记录返修原因/动作/结果 |
+| 缺陷放行/解锁 | user_docs/04_quality.md | POST /api/defects/:defectId/release<br>apps/server/src/modules/mes/defect/routes.ts | apps/web/src/routes/_authenticated/mes/defects.tsx | 缺失 | 文档 | 已修复：补齐放行/解锁说明 |
+| 返工任务列表 | user_docs/04_quality.md | GET /api/rework-tasks<br>apps/server/src/modules/mes/defect/routes.ts | apps/web/src/routes/_authenticated/mes/rework-tasks.tsx | 缺失 | 文档 | 已修复：补齐 rework-tasks 合约与“自动创建”说明 |
+| 返工完成 | user_docs/04_quality.md | POST /api/rework-tasks/:taskId/complete<br>apps/server/src/modules/mes/defect/routes.ts | apps/web/src/routes/_authenticated/mes/rework-tasks.tsx | 命名不一致 | 文档 | 已修复：合约路径对齐 |
+| 返工记录录入 | user_docs/04_quality.md | POST /api/rework-tasks/:taskId/repair-record<br>apps/server/src/modules/mes/defect/routes.ts | apps/web/src/routes/_authenticated/mes/rework-tasks.tsx | 缺失 | 文档 | 已修复：补齐返修记录说明 |
 
 ---
 
 ## 5. 偏差清单
 
-- **文档缺失**：API 合约未覆盖缺陷查询（GET /api/defects、GET /api/defects/:id）与 release 释放。
-- **命名不一致**：API 合约写 `/api/rework/{reworkId}/complete`，实际为 `/api/rework-tasks/:taskId/complete`。
-- **文档缺失**：API 合约未覆盖 rework-tasks 列表与 repair-record 记录。
-- **行为不一致**：User Docs 说明返工任务可手动创建，但 UI 无入口，实际为处置自动生成。
-- **文档缺失**：User Docs 未描述 HOLD 放行与返修记录录入。
+- 已修复：补齐缺陷查询与 release 放行合约。
+- 已修复：rework 完成接口路径对齐。
+- 已修复：补齐 rework-tasks 与 repair-record 合约。
+- 已修复：User Docs 更新为“返工任务自动创建”并补充放行/返修记录说明。
 
 ---
 
 ## 6. 结论与下一步
 
-- 需补齐质量合约与用户文档（缺陷查询/放行、返工任务与返修记录说明），对齐当前实现后再进入下一轮。
+- 本轮偏差已修复并对齐文档，建议进入下一轮 Review。

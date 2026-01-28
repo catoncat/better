@@ -126,10 +126,12 @@ Aligned with `agent_docs/03_backend/api_patterns.md` (envelope + error format + 
 ### 1.8 Quality (Defects / Rework Tasks)
 
 - `GET /api/defects`
+- `GET /api/defects/:defectId`
 - `POST /api/defects`
 - `POST /api/defects/:defectId/disposition`
 - `POST /api/defects/:defectId/release`
 - `GET /api/rework-tasks`
+- `POST /api/rework-tasks/:taskId/repair-record`
 - `POST /api/rework-tasks/:taskId/complete`
 
 ### 1.9 Traceability

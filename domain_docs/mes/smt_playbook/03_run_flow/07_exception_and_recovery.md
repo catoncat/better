@@ -202,7 +202,7 @@ POST /api/runs/:runNo/authorize
 ```mermaid
 flowchart TD
     A[Unit OUT_FAILED] --> B{处置决策}
-    B -->|返修| C[创建返修工单]
+    B -->|返修| C[创建返工任务]
     C --> D[返修 TrackIn]
     D --> E[返修 TrackOut]
     E --> F{结果}
