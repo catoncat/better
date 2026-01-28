@@ -4,6 +4,7 @@ import { dataCollectionSpecModule } from "./data-collection-spec/routes";
 import { defectRoutes, reworkRoutes } from "./defect/routes";
 import { executionModule } from "./execution/routes";
 import { faiRoutes } from "./fai/routes";
+import { faiTemplateModule } from "./fai-template/routes";
 import { fqcRoutes } from "./fqc/routes";
 import { ingestModule } from "./ingest/routes";
 import { integrationModule } from "./integration/routes";
@@ -62,6 +63,7 @@ export const mesModule = new Elysia()
 	.use(smtBasicRoutes)
 	.use(reflowProfileModuleRoutes)
 	.use(faiRoutes)
+	.use(faiTemplateModule)
 	.use(fqcRoutes)
 	.use(defectRoutes)
 	.use(reworkRoutes)
