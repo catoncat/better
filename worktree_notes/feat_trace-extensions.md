@@ -102,3 +102,8 @@ task:
 
 ## Verification
 - 2026-01-28: `bun scripts/smart-verify.ts` failed due to existing Biome lint in chat components (unused imports/vars) and format suggestions; trace routes import order can be fixed locally, but unrelated chat files require decision.
+
+## Findings
+- 2026-01-28: Lint failures from chat components (unused clearMessages, unused lucide imports) and Biome formatting diffs in chat files and trace page; will fix manually without full-format run.
+- 2026-01-28: Need to adjust chat UI formatting (MessageBubble props multiline) and remove unused icon import in chat-suggestions.
+- 2026-01-28: Added main commit hash c668c79 to doc_review/00_status.md header.
