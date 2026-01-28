@@ -231,76 +231,78 @@ export function ChatAssistant() {
 							</div>
 						</div>
 
-						{/* Error display */}
-						{error && (
-							<div className="mx-4 mt-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-								{error}
-							</div>
-						)}
+						<div className="flex min-h-0 flex-1 flex-col">
+							{/* Error display */}
+							{error && (
+								<div className="mx-4 mt-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+									{error}
+								</div>
+							)}
 
-						{isHistoryOpen ? (
-							<ChatHistory
-								sessions={sessions}
-								activeSessionId={activeSessionId}
-								onSelect={(sessionId) => {
-									stop();
-									selectSession(sessionId);
-									setIsHistoryOpen(false);
-									setInputValue("");
-								}}
-								onCreate={() => {
-									stop();
-									createSession();
-									setIsHistoryOpen(false);
-									setInputValue("");
-								}}
-								onRename={renameSession}
-								onDelete={deleteSession}
-								className="flex-1"
-							/>
-						) : (
-							<>
-								{/* Suggestions - show only when no messages */}
-								{messages.length === 0 && (
-									<ChatSuggestions
-										suggestions={pageSuggestions}
-										isLoading={pageSuggestionsLoading}
-										title="页面建议"
-										onSelect={handleSuggestionSelect}
-										onRefresh={refreshPageSuggestions}
-										className="border-b"
-									/>
-								)}
-
-								{/* Messages */}
-								<ChatMessages messages={messages} className="flex-1" />
-
-								{/* Suggestions - show after assistant reply */}
-								{suggestionReply && (
-									<ChatSuggestions
-										suggestions={replySuggestions}
-										isLoading={replySuggestionsLoading}
-										title="下一步建议"
-										onSelect={handleSuggestionSelect}
-										onRefresh={refreshReplySuggestions}
-										className="border-t"
-									/>
-								)}
-
-								<ChatThreadFeedback messages={messages} onFeedback={handleFeedback} />
-
-								{/* Input */}
-								<ChatInput
-									onSend={handleSend}
-									onStop={stop}
-									isLoading={isLoading}
-									placeholder={`关于"${routeContext.name}"有什么问题？`}
-									value={inputValue}
-									onChange={setInputValue}
-									className="border-t-0"
+							{isHistoryOpen ? (
+								<ChatHistory
+									sessions={sessions}
+									activeSessionId={activeSessionId}
+									onSelect={(sessionId) => {
+										stop();
+										selectSession(sessionId);
+										setIsHistoryOpen(false);
+										setInputValue("");
+									}}
+									onCreate={() => {
+										stop();
+										createSession();
+										setIsHistoryOpen(false);
+										setInputValue("");
+									}}
+									onRename={renameSession}
+									onDelete={deleteSession}
+									className="flex-1 min-h-0"
 								/>
-							</>
-						)}
+							) : (
+								<>
+									{/* Suggestions - show only when no messages */}
+									{messages.length === 0 && (
+										<ChatSuggestions
+											suggestions={pageSuggestions}
+											isLoading={pageSuggestionsLoading}
+											title="页面建议"
+											onSelect={handleSuggestionSelect}
+											onRefresh={refreshPageSuggestions}
+											className="border-b"
+										/>
+									)}
+
+									{/* Messages */}
+									<ChatMessages messages={messages} className="flex-1 min-h-0" />
+
+									{/* Suggestions - show after assistant reply */}
+									{suggestionReply && (
+										<ChatSuggestions
+											suggestions={replySuggestions}
+											isLoading={replySuggestionsLoading}
+											title="下一步建议"
+											onSelect={handleSuggestionSelect}
+											onRefresh={refreshReplySuggestions}
+											className="border-t"
+										/>
+									)}
+
+									<ChatThreadFeedback messages={messages} onFeedback={handleFeedback} />
+
+									{/* Input */}
+									<ChatInput
+										onSend={handleSend}
+										onStop={stop}
+										isLoading={isLoading}
+										placeholder={`关于"${routeContext.name}"有什么问题？`}
+										value={inputValue}
+										onChange={setInputValue}
+										className="border-t-0"
+									/>
+								</>
+							)}
+						</div>
 					</div>
 				</>
 			)}

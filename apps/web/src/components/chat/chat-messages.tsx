@@ -135,7 +135,10 @@ export function ChatMessages({ messages, className }: ChatMessagesProps) {
 	}
 
 	return (
-		<div ref={containerRef} className={cn("flex-1 space-y-4 overflow-y-auto p-4", className)}>
+		<div
+			ref={containerRef}
+			className={cn("flex-1 min-h-0 space-y-4 overflow-y-auto p-4", className)}
+		>
 			{messages.map((message) => (
 				<MessageBubble key={message.id} message={message} />
 			))}
