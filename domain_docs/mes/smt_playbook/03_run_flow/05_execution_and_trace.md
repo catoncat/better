@@ -5,11 +5,14 @@
 
 ## 2. 流程位置（对应 SMT 流程图）
 - Run 授权后进入批量执行（TrackIn → TrackOut → PASS/FAIL）。
+- 若处于 PREP 且满足 FAI 试产门禁，可在首工序进行试产 TrackIn/TrackOut。
 - 执行过程产生追溯数据（tracks/dataValues/inspections/loadingRecords）。
 
 ## 3. 前置条件
-- Run 已授权（AUTHORIZED）
-- 若路由要求 FAI，需 FAI=PASS
+- Run 已授权（AUTHORIZED），或处于 PREP 且 FAI 试产门禁通过（仅允许首工序试产）。
+- 若路由要求 FAI：
+  - 正式批量执行需 FAI=PASS；
+  - 试产阶段需存在 INSPECTING 状态的 FAI 任务。
 - 已生成 Unit（单件 SN）
 
 ## 3.1 Unit 状态流转图
@@ -54,14 +57,18 @@ stateDiagram-v2
   - 必须匹配 Run 绑定的路由版本
   - Station 必须符合路由步骤的 stationType/约束
   - 需要的数据采集项必须齐全
+  - PREP 试产仅允许首工序 TrackIn/TrackOut
+  - 若存在 SPI/AOI 失败记录，TrackOut 结果会被强制为 FAIL
 
-### 4.3 数据采集（可选）
+### 4.3 数据采集
 - TrackOut 时可写入 DataValue（如炉温、AOI 结果）。
+- 若步骤绑定了数据采集规格，则对应项为必填。
 - 结果会进入 Trace 输出。
 
 ### 4.4 质量结果
 - SPI/AOI 检验结果会记录为 InspectionResultRecord。
 - 这些结果会影响 FAI 判定与 Trace 输出。
+- 若检测结果为 FAIL，将在 TrackOut 时强制判定为 FAIL。
 
 ## 5. 数据如何管理
 - Unit + Track + DataValue 属于运行数据，不可随意修改。

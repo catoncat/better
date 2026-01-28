@@ -814,3 +814,15 @@
 - Updated 03_run_flow/07_exception_and_recovery.md error codes and revoke behavior.
 - Updated 06_oqc_closeout.md to document manual closeout trigger and OQC_REQUIRED.
 - Marked Round2 deviations as fixed in round2 review doc.
+
+## Progress (2026-01-28)
+- Doc review cycles in progress; round3 readiness review started with `domain_docs/mes/doc_review/round3_readiness.md` created but not yet completed/committed.
+- Current repo status: untracked `domain_docs/mes/doc_review/round3_readiness.md` awaiting review completion and status update.
+
+## 2026-01-28 doc-review-meta follow-up
+- Reviewed .scratch/doc-review-meta-findings.md: backlog/真源层级/交付物规则已知；无新增限制，仅提示可补齐 backlog 关键接口列。
+- Opened round5_execution.md: matrix/偏差清单/结论仍为 TBD，待补齐（resolve-unit/data-specs/API 合约缺口待核）。
+- user_docs/06_operator.md 描述了“检测结果录入”入口与 SOP 查看，但需核对 UI 是否存在对应按钮/入口；数据采集在出站弹窗描述。
+- UI execution: `/mes/execution` 进/出站表单 + 站点队列；TrackOutDialog 会拉取 data-specs、校验必填、FAIL 必填 defectCode；未见 SOP 或“检测结果录入”入口。
+- API: /api/stations/resolve-unit/:sn (EXEC_TRACK_IN/OUT), /api/stations/:stationCode/unit/:sn/data-specs (EXEC_TRACK_OUT), /track-in, /track-out 均记录审计；queue/列表基于权限与数据范围过滤。
+- 00_status 轮次5 仍为 in_progress；round4 格式显示偏差类型用“行为不一致/缺失”，修复后在备注与偏差清单标注“已修复”。

@@ -262,7 +262,57 @@ Error codes:
 
 ## 3. Station Execution (Manual)
 
-### 3.1 TrackIn
+### 3.1 Resolve Unit by SN
+
+**GET** `/api/stations/resolve-unit/{sn}`
+
+用途：
+- 根据 SN 获取绑定的 `woNo` / `runNo`，用于前端自动填充。
+
+Response example:
+```json
+{
+  "ok": true,
+  "data": { "sn": "SN0001", "woNo": "WO20250101-001", "runNo": "RUN20250101-01" }
+}
+```
+
+Errors:
+- `UNIT_NOT_FOUND`
+
+---
+
+### 3.2 Get Unit Data Specs
+
+**GET** `/api/stations/{stationCode}/unit/{sn}/data-specs`
+
+用途：
+- 获取当前工序的数据采集规格（用于 TrackOut 弹窗渲染与必填校验）。
+
+Response example:
+```json
+{
+  "ok": true,
+  "data": {
+    "sn": "SN0001",
+    "stepNo": 10,
+    "operationCode": "SMT-AOI",
+    "operationName": "AOI",
+    "specs": [
+      { "name": "TEMP", "dataType": "NUMBER", "isRequired": true }
+    ]
+  }
+}
+```
+
+Errors:
+- `STATION_NOT_FOUND`
+- `UNIT_NOT_FOUND`
+- `DATA_SPEC_NOT_FOUND`
+
+---
+
+### 3.3 TrackIn
 
 **POST** `/api/stations/{stationCode}/track-in`
 
@@ -274,10 +324,13 @@ Required inputs:
 
 Guards (minimum):
 
-* WO released
-* Run exists and is valid
+* Run exists and has executable routeVersion
+* Run status is AUTHORIZED/IN_PROGRESS, or PREP with FAI trial gate passed
+* PREP 试产仅允许首工序 TrackIn
 * Unit currentStepNo matches the step that station is allowed to execute (derived from frozen routeVersion snapshot)
 * station allowed for the step
+* station line must match run line (if bound)
+* TPM 设备状态正常，且无维护任务进行中（若绑定设备）
 
 Request example:
 ```json
@@ -298,7 +351,7 @@ Response example:
 }
 ```
 
-### 3.2 TrackOut
+### 3.4 TrackOut
 
 **POST** `/api/stations/{stationCode}/track-out`
 
@@ -307,6 +360,17 @@ Required inputs:
 * `runNo`
 * `sn`
 * `result`: PASS/FAIL
+* `data` (optional): data spec values
+* `defectCode/defectLocation/defectRemark` (optional): when FAIL
+
+Guards (minimum):
+
+* Run exists and has executable routeVersion
+* Run status is AUTHORIZED/IN_PROGRESS, or PREP with FAI trial gate passed
+* PREP 试产仅允许首工序 TrackOut
+* Unit belongs to the run/work order
+* Active TrackIn record exists for this station
+* station allowed for the step
 
 PASS behavior:
 
@@ -339,12 +403,14 @@ Response example:
 {
   "ok": true,
   "data": {
-    "status": "QUEUED"
+    "status": "QUEUED",
+    "inspectionOverride": false
   }
 }
 ```
 
 Note: if the step is the last step in the route, the unit status becomes `DONE`.
+Note: if there is a SPI/AOI FAIL record for the current track, the server will force result = FAIL.
 
 ---
 
