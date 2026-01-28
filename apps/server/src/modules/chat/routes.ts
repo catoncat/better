@@ -4,6 +4,7 @@
  */
 
 import { Elysia, t } from "elysia";
+import { Permission } from "@better-app/db";
 import { userHasAnyPermission } from "../../lib/permissions";
 import { authPlugin } from "../../plugins/auth";
 import { prismaPlugin } from "../../plugins/prisma";
@@ -22,7 +23,7 @@ export const chatModule = new Elysia({
 		"/config",
 		async ({ user, db }) => {
 			// Check if user has admin permission
-			const isAdmin = await userHasAnyPermission(db, user.id, ["SYSTEM_SETTINGS_MANAGE"]);
+			const isAdmin = await userHasAnyPermission(db, user.id, [Permission.SYSTEM_CONFIG]);
 			if (!isAdmin) {
 				return { ok: false, error: "Forbidden" };
 			}
@@ -56,7 +57,7 @@ export const chatModule = new Elysia({
 		"/config",
 		async ({ user, body, db }) => {
 			// Check if user has admin permission
-			const isAdmin = await userHasAnyPermission(db, user.id, ["SYSTEM_SETTINGS_MANAGE"]);
+			const isAdmin = await userHasAnyPermission(db, user.id, [Permission.SYSTEM_CONFIG]);
 			if (!isAdmin) {
 				return { ok: false, error: "Forbidden" };
 			}
