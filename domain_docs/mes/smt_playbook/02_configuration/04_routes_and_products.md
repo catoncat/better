@@ -20,10 +20,10 @@
 - 进入系统位置：Run.routeVersionId。
 
 ## 3. 数据如何管理
-### 3.1 路由选择规则（Run 创建时）
-- 优先使用 WorkOrder 指定的 routingId。
-- 否则根据 productCode、有效期、启用状态等规则匹配。
-- 必须存在 READY 的可执行版本，否则 Run 创建失败。
+### 3.1 路由选择规则（当前实现）
+- 工单必须提前关联 routingId；未关联会导致工单释放失败。
+- Run 创建时使用该 routingId 的最新 READY 可执行版本。
+- 若无 READY 版本，Run 创建失败。
 
 ### 3.2 路由版本冻结
 - Run 创建后会绑定一个固定的 ExecutableRouteVersion。

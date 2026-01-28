@@ -110,23 +110,14 @@ Algorithm:
 
 ## 4. Routing Selection (WorkOrder / Run)
 
-At Run creation (or first execution), determine the routing:
+### Current implementation (MVP)
+- WorkOrder must explicitly specify `routingId` before release.
+- Run creation uses the WorkOrder `routingId` directly (no auto-matching).
+- Select the latest READY `ExecutableRouteVersion` for that routing.
+- If no READY version exists, reject Run creation with `ROUTE_NOT_READY`.
 
-Priority:
-1) If WorkOrder explicitly specifies `routingId`, use it.
-2) Else match by:
-   - `productCode` (required)
-   - `orgCode` / `useOrg` if applicable
-   - `effectiveFrom <= now < effectiveTo` (null bounds treated as open)
-   - `isActive = true`
-3) If multiple match, resolve deterministically:
-   - highest `priority` first (if implemented)
-   - latest `effectiveFrom`
-   - latest `updatedAt`
-   - if still ambiguous, reject and require explicit selection
-
-If no READY executable version exists, reject Run creation:
-- `ROUTE_VERSION_NOT_READY` or `ROUTE_COMPILE_FAILED`
+### Future (planned, not yet implemented)
+- Auto-match by `productCode`, effective range, active flag, and priority.
 
 ---
 
