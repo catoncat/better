@@ -702,3 +702,14 @@
 
 ## Findings (2026-01-28)
 - 待补充。
+
+## Findings (2026-01-28 update)
+- `ChatAssistant` 已增加 `data-chat-assistant-root` 且按钮/面板使用 `z-[9999]`，并通过 portal 渲染到 `document.body`。
+- `DialogContent` 已注入 `onInteractOutside` 拦截，点击 `data-chat-assistant-root` 会 `preventDefault()`，避免 Dialog 被关闭。
+
+## Progress (2026-01-28)
+- `streamChatCompletion` 只在首次触发工具调用时输出“正在查询代码库...”，避免重复输出。
+- 生产环境禁用 Chat 相关 debug 日志（tool calls、执行参数、结果、PROJECT_ROOT）。
+
+## Progress (2026-01-28 update 2)
+- 前端不再对 AI 文本做路径替换；仅在代码块内自动识别路由路径并渲染为链接。

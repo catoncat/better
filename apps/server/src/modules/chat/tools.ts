@@ -41,7 +41,10 @@ function getConfiguredProjectRoot(): string {
 }
 
 const PROJECT_ROOT = getConfiguredProjectRoot();
-console.log("[Chat Tools] PROJECT_ROOT:", PROJECT_ROOT);
+const isChatDebugEnabled = process.env.NODE_ENV !== "production";
+if (isChatDebugEnabled) {
+	console.log("[Chat Tools] PROJECT_ROOT:", PROJECT_ROOT);
+}
 
 /**
  * Tool definitions for OpenAI function calling

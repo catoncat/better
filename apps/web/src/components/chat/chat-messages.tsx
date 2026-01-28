@@ -1,56 +1,41 @@
 import { Bot, Loader2, User } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
-import { getRouteDisplayName } from "./route-context";
 import type { ChatMessage } from "./use-chat";
 
-const ROUTE_PATH_REGEX = /\/(?:(?:mes)|(?:system))(?:\/[a-z0-9-]+)+/gi;
+const ROUTE_PATH_REGEX = /\/(?:(?:mes)|(?:system))(?:\/[A-Za-z0-9._-]+)+/g;
 
-function replacePathsInText(text: string): string {
-	return text.replace(ROUTE_PATH_REGEX, (path, offset, full) => {
-		const before = full.slice(0, offset);
-		if (before.endsWith("](")) {
-			return path;
+function linkifyRoutePaths(text: string): ReactNode[] {
+	const nodes: ReactNode[] = [];
+	let lastIndex = 0;
+
+	for (const match of text.matchAll(ROUTE_PATH_REGEX)) {
+		const path = match[0];
+		const index = match.index ?? 0;
+		if (index > lastIndex) {
+			nodes.push(text.slice(lastIndex, index));
 		}
-		const name = getRouteDisplayName(path);
-		return `[${name}](${path})`;
-	});
-}
-
-function renderWithRouteLinks(source: string): string {
-	let result = "";
-	let inCodeBlock = false;
-	const lines = source.split("\n");
-
-	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i] ?? "";
-		if (line.trim().startsWith("```")) {
-			inCodeBlock = !inCodeBlock;
-			result += line;
-			result += i === lines.length - 1 ? "" : "\n";
-			continue;
-		}
-
-		if (inCodeBlock) {
-			result += line;
-			result += i === lines.length - 1 ? "" : "\n";
-			continue;
-		}
-
-		const parts = line.split("`");
-		for (let idx = 0; idx < parts.length; idx++) {
-			if (idx % 2 === 1) {
-				result += `\`${parts[idx] ?? ""}\``;
-			} else {
-				result += replacePathsInText(parts[idx] ?? "");
-			}
-		}
-		result += i === lines.length - 1 ? "" : "\n";
+		nodes.push(
+			<a
+				key={`${path}-${index}`}
+				href={path}
+				target="_blank"
+				rel="noopener noreferrer"
+				className="text-primary underline underline-offset-2"
+			>
+				{path}
+			</a>,
+		);
+		lastIndex = index + path.length;
 	}
 
-	return result;
+	if (lastIndex < text.length) {
+		nodes.push(text.slice(lastIndex));
+	}
+
+	return nodes.length > 0 ? nodes : [text];
 }
 
 type ChatMessagesProps = {
@@ -133,13 +118,17 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 									// Compact code styling
 									code: ({ children, className }) => {
 										const isInline = !className;
-										return isInline ? (
-											<code className="bg-muted-foreground/20 rounded px-1 py-0.5 text-xs">
-												{children}
-											</code>
-										) : (
-											<code className={className}>{children}</code>
-										);
+										if (isInline) {
+											return (
+												<code className="bg-muted-foreground/20 rounded px-1 py-0.5 text-xs">
+													{children}
+												</code>
+											);
+										}
+										const text = Array.isArray(children)
+											? children.join("")
+											: String(children ?? "");
+										return <code className={className}>{linkifyRoutePaths(text)}</code>;
 									},
 									// Compact list styling
 									ul: ({ children }) => (
@@ -167,7 +156,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 									),
 								}}
 							>
-								{renderWithRouteLinks(message.content)}
+								{message.content}
 							</Markdown>
 						</div>
 					)

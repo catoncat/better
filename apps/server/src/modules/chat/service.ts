@@ -76,6 +76,7 @@ export type StreamChatOptions = {
 
 // Maximum tool call iterations to prevent infinite loops
 const MAX_TOOL_ITERATIONS = 5;
+const isChatDebugEnabled = process.env.NODE_ENV !== "production";
 
 /**
  * Check if tools are enabled.
@@ -139,6 +140,7 @@ export async function* streamChatCompletion(
 
 	// Tools-enabled flow with iteration loop
 	let iteration = 0;
+	let hasAnnouncedToolSearch = false;
 
 	while (iteration < MAX_TOOL_ITERATIONS) {
 		iteration++;
@@ -203,7 +205,9 @@ export async function* streamChatCompletion(
 			break;
 		}
 
-		console.log("[Chat] Tool calls:", JSON.stringify(validToolCalls, null, 2));
+		if (isChatDebugEnabled) {
+			console.log("[Chat] Tool calls:", JSON.stringify(validToolCalls, null, 2));
+		}
 
 		// Execute tool calls and add results to messages
 		apiMessages.push({
@@ -220,15 +224,22 @@ export async function* streamChatCompletion(
 		});
 
 		// Indicate to user that we're fetching info (only once per batch)
-		yield `\n\n🔍 *正在查询代码库...*\n\n`;
+		if (!hasAnnouncedToolSearch) {
+			hasAnnouncedToolSearch = true;
+			yield `\n\n🔍 *正在查询代码库...*\n\n`;
+		}
 
 		// Process each tool call
 		for (const toolCall of validToolCalls) {
 			try {
 				const args = JSON.parse(toolCall.arguments || "{}");
-				console.log(`[Chat] Executing tool: ${toolCall.name}`, args);
+				if (isChatDebugEnabled) {
+					console.log(`[Chat] Executing tool: ${toolCall.name}`, args);
+				}
 				const result = await executeTool(toolCall.name, args);
-				console.log(`[Chat] Tool result (${result.length} chars):`, result.slice(0, 200));
+				if (isChatDebugEnabled) {
+					console.log(`[Chat] Tool result (${result.length} chars):`, result.slice(0, 200));
+				}
 
 				apiMessages.push({
 					role: "tool",
