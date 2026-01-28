@@ -103,9 +103,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
 								if (parsed.done) {
 									setMessages((prev) =>
-										prev.map((m) =>
-											m.id === assistantId ? { ...m, isStreaming: false } : m,
-										),
+										prev.map((m) => (m.id === assistantId ? { ...m, isStreaming: false } : m)),
 									);
 								}
 

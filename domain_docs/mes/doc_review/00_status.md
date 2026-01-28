@@ -4,6 +4,7 @@
 > 规则：每次轮次状态变化或发现高风险偏差时必须更新。
 > 轮次为占位符，Scope 可保持 TBD。
 > 更新时间：2026-01-29
+> Main 最新提交：6e4d664
 > Links：domain_docs/mes/doc_review/00_review_backlog.md，domain_docs/mes/doc_review/round1_template.md，domain_docs/mes/doc_review/round2_work_orders_runs.md
 
 ---

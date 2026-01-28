@@ -730,3 +730,51 @@ export const getUnitTrace = async (
 		},
 	};
 };
+
+export const getUnitsByMaterialLot = async (
+	db: PrismaClient,
+	materialCode: string,
+	lotNo: string,
+): Promise<ServiceResult<{ units: Array<{ sn: string; status: string }> }>> => {
+	const code = materialCode.trim();
+	const lot = lotNo.trim();
+	if (!code || !lot) {
+		return {
+			success: false,
+			code: "TRACE_MATERIAL_LOT_INVALID",
+			message: "Material code and lot number are required",
+			status: 400,
+		};
+	}
+
+	const materialLot = await db.materialLot.findUnique({
+		where: { materialCode_lotNo: { materialCode: code, lotNo: lot } },
+	});
+	if (!materialLot) {
+		return {
+			success: false,
+			code: "TRACE_MATERIAL_LOT_NOT_FOUND",
+			message: "Material lot not found",
+			status: 404,
+		};
+	}
+
+	const uses = await db.materialUse.findMany({
+		where: { materialLotId: materialLot.id },
+		distinct: ["unitId"],
+		include: {
+			unit: { select: { sn: true, status: true } },
+		},
+		orderBy: { createdAt: "desc" },
+	});
+
+	return {
+		success: true,
+		data: {
+			units: uses.map((use) => ({
+				sn: use.unit.sn,
+				status: use.unit.status,
+			})),
+		},
+	};
+};

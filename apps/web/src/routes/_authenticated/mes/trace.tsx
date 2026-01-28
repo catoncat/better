@@ -24,7 +24,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { useAbility } from "@/hooks/use-ability";
-import { useUnitTrace } from "@/hooks/use-trace";
+import { useMaterialLotTraceUnits, useUnitTrace } from "@/hooks/use-trace";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { UNIT_STATUS_MAP } from "@/lib/constants";
 import { formatDateTime } from "@/lib/utils";
@@ -41,11 +41,23 @@ function TracePage() {
 	const navigate = useNavigate({ from: "/mes/trace" });
 	const [sn, setSn] = useState("");
 	const [searchSn, setSearchSn] = useState("");
+	const [queryType, setQueryType] = useState<"sn" | "materialLot">("sn");
+	const [materialCode, setMaterialCode] = useState("");
+	const [lotNo, setLotNo] = useState("");
+	const [searchMaterialCode, setSearchMaterialCode] = useState("");
+	const [searchLotNo, setSearchLotNo] = useState("");
 	const [mode, setMode] = useState<"run" | "latest">("run");
 	const { hasPermission } = useAbility();
 	const canTraceRead = hasPermission(Permission.TRACE_READ);
 
 	const { data, isLoading, error } = useUnitTrace(searchSn, mode, { enabled: canTraceRead });
+	const {
+		data: materialLotUnits,
+		isLoading: isMaterialLotLoading,
+		error: materialLotError,
+	} = useMaterialLotTraceUnits(searchMaterialCode, searchLotNo, {
+		enabled: canTraceRead && queryType === "materialLot",
+	});
 
 	useEffect(() => {
 		if (searchParams.sn && searchParams.sn !== searchSn) {
@@ -62,8 +74,28 @@ function TracePage() {
 		}
 	};
 
+	const handleMaterialLotSearch = () => {
+		const trimmedMaterialCode = materialCode.trim();
+		const trimmedLotNo = lotNo.trim();
+		if (trimmedMaterialCode && trimmedLotNo) {
+			setSearchMaterialCode(trimmedMaterialCode);
+			setSearchLotNo(trimmedLotNo);
+		}
+	};
+
+	const handlePickSn = (selectedSn: string) => {
+		setQueryType("sn");
+		setSn(selectedSn);
+		setSearchSn(selectedSn);
+		navigate({ search: { sn: selectedSn } });
+	};
+
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter") {
+			if (queryType === "materialLot") {
+				handleMaterialLotSearch();
+				return;
+			}
 			handleSearch();
 		}
 	};
@@ -84,6 +116,27 @@ function TracePage() {
 		if (result === "PASS") return <Badge variant="secondary">合格</Badge>;
 		if (result === "FAIL") return <Badge variant="destructive">不合格</Badge>;
 		return <Badge variant="outline">{result}</Badge>;
+	};
+
+	const getInspectionBadge = (status: string) => {
+		if (status === "PASS") return <Badge variant="secondary">PASS</Badge>;
+		if (status === "FAIL") return <Badge variant="destructive">FAIL</Badge>;
+		return <Badge variant="outline">{status}</Badge>;
+	};
+
+	const renderValue = (value: {
+		valueNumber?: number | null;
+		valueText?: string | null;
+		valueBoolean?: boolean | null;
+		valueJson?: unknown | null;
+	}) => {
+		if (value.valueNumber !== null && value.valueNumber !== undefined) return value.valueNumber;
+		if (value.valueText !== null && value.valueText !== undefined) return value.valueText;
+		if (value.valueBoolean !== null && value.valueBoolean !== undefined)
+			return String(value.valueBoolean);
+		if (value.valueJson !== null && value.valueJson !== undefined)
+			return JSON.stringify(value.valueJson);
+		return "-";
 	};
 
 	const header = (
@@ -109,50 +162,159 @@ function TracePage() {
 			<Card>
 				<CardHeader>
 					<CardTitle>查询条件</CardTitle>
-					<CardDescription>输入 SN 后按回车或点击查询按钮。</CardDescription>
+					<CardDescription>支持按 SN 或物料批次进行追溯查询。</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<div className="flex flex-col gap-4 md:flex-row md:items-end">
-						<div className="flex-1">
-							<Label htmlFor="sn-input">产品序列号 (SN)</Label>
-							<Input
-								id="sn-input"
-								className="mt-2"
-								value={sn}
-								onChange={(e) => setSn(e.target.value)}
-								onKeyDown={handleKeyDown}
-								placeholder="请输入或扫描产品序列号..."
-							/>
-						</div>
-						<div className="w-40">
-							<Label>查询模式</Label>
-							<Select value={mode} onValueChange={(v) => setMode(v as "run" | "latest")}>
+					<div className="grid gap-4 md:grid-cols-6">
+						<div className="md:col-span-2">
+							<Label>查询类型</Label>
+							<Select
+								value={queryType}
+								onValueChange={(v) => setQueryType(v as "sn" | "materialLot")}
+							>
 								<SelectTrigger className="mt-2">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="run">批次版本</SelectItem>
-									<SelectItem value="latest">最新版本</SelectItem>
+									<SelectItem value="sn">序列号</SelectItem>
+									<SelectItem value="materialLot">物料批次</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
-						<Button onClick={handleSearch} disabled={!sn.trim() || isLoading}>
-							<Search className="mr-2 h-4 w-4" />
-							查询
-						</Button>
+
+						{queryType === "sn" ? (
+							<>
+								<div className="md:col-span-3">
+									<Label htmlFor="sn-input">产品序列号 (SN)</Label>
+									<Input
+										id="sn-input"
+										className="mt-2"
+										value={sn}
+										onChange={(e) => setSn(e.target.value)}
+										onKeyDown={handleKeyDown}
+										placeholder="请输入或扫描产品序列号..."
+									/>
+								</div>
+								<div className="md:col-span-1">
+									<Label>查询模式</Label>
+									<Select value={mode} onValueChange={(v) => setMode(v as "run" | "latest")}>
+										<SelectTrigger className="mt-2">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="run">批次版本</SelectItem>
+											<SelectItem value="latest">最新版本</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
+							</>
+						) : (
+							<>
+								<div className="md:col-span-2">
+									<Label htmlFor="material-code-input">物料编码</Label>
+									<Input
+										id="material-code-input"
+										className="mt-2"
+										value={materialCode}
+										onChange={(e) => setMaterialCode(e.target.value)}
+										onKeyDown={handleKeyDown}
+										placeholder="例如 MAT-001"
+									/>
+								</div>
+								<div className="md:col-span-2">
+									<Label htmlFor="lot-no-input">批次号</Label>
+									<Input
+										id="lot-no-input"
+										className="mt-2"
+										value={lotNo}
+										onChange={(e) => setLotNo(e.target.value)}
+										onKeyDown={handleKeyDown}
+										placeholder="例如 LOT-2025-001"
+									/>
+								</div>
+							</>
+						)}
+
+						<div className="md:col-span-1 flex items-end">
+							<Button
+								onClick={queryType === "sn" ? handleSearch : handleMaterialLotSearch}
+								disabled={
+									queryType === "sn"
+										? !sn.trim() || isLoading
+										: !materialCode.trim() || !lotNo.trim() || isMaterialLotLoading
+								}
+								className="w-full"
+							>
+								<Search className="mr-2 h-4 w-4" />
+								查询
+							</Button>
+						</div>
 					</div>
 				</CardContent>
 			</Card>
 
-			{error && (
+			{error && queryType === "sn" && (
 				<div className="rounded-md border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
 					查询失败：{getApiErrorMessage(error, "未知错误")}
 				</div>
 			)}
 
-			{isLoading && <div className="text-sm text-muted-foreground">正在查询...</div>}
+			{materialLotError && queryType === "materialLot" && (
+				<div className="rounded-md border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
+					查询失败：{getApiErrorMessage(materialLotError, "未知错误")}
+				</div>
+			)}
 
-			{data && (
+			{isLoading && queryType === "sn" && (
+				<div className="text-sm text-muted-foreground">正在查询...</div>
+			)}
+
+			{isMaterialLotLoading && queryType === "materialLot" && (
+				<div className="text-sm text-muted-foreground">正在查询批次...</div>
+			)}
+
+			{queryType === "materialLot" && materialLotUnits && (
+				<Card>
+					<CardHeader>
+						<CardTitle>批次追溯结果</CardTitle>
+						<CardDescription>共 {materialLotUnits.units.length} 个序列号</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead>序列号</TableHead>
+									<TableHead>状态</TableHead>
+									<TableHead>操作</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{materialLotUnits.units.length === 0 ? (
+									<TableRow>
+										<TableCell colSpan={3} className="text-center text-muted-foreground">
+											未找到关联序列号
+										</TableCell>
+									</TableRow>
+								) : (
+									materialLotUnits.units.map((unit) => (
+										<TableRow key={unit.sn}>
+											<TableCell className="font-medium">{unit.sn}</TableCell>
+											<TableCell>{getStatusBadge(unit.status)}</TableCell>
+											<TableCell>
+												<Button variant="outline" size="sm" onClick={() => handlePickSn(unit.sn)}>
+													查看追溯
+												</Button>
+											</TableCell>
+										</TableRow>
+									))
+								)}
+							</TableBody>
+						</Table>
+					</CardContent>
+				</Card>
+			)}
+
+			{data && queryType === "sn" && (
 				<>
 					<Card>
 						<CardHeader>
@@ -201,6 +363,48 @@ function TracePage() {
 							</div>
 						</CardContent>
 					</Card>
+
+					{data.steps.length > 0 && (
+						<Card>
+							<CardHeader>
+								<CardTitle>工序定义</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>步骤</TableHead>
+											<TableHead>工序ID</TableHead>
+											<TableHead>站位类型</TableHead>
+											<TableHead>站组</TableHead>
+											<TableHead>允许站位</TableHead>
+											<TableHead>FAI</TableHead>
+											<TableHead>授权</TableHead>
+											<TableHead>数据采集</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{data.steps.map((step) => (
+											<TableRow key={`step-${step.stepNo}-${step.operationId}`}>
+												<TableCell className="font-medium">Step {step.stepNo}</TableCell>
+												<TableCell>{step.operationId}</TableCell>
+												<TableCell>{step.stationType}</TableCell>
+												<TableCell>{step.stationGroupId ?? "-"}</TableCell>
+												<TableCell>
+													{step.allowedStationIds.length ? step.allowedStationIds.join(", ") : "-"}
+												</TableCell>
+												<TableCell>{step.requiresFAI ? "是" : "否"}</TableCell>
+												<TableCell>{step.requiresAuthorization ? "是" : "否"}</TableCell>
+												<TableCell>
+													{step.dataSpecIds.length ? step.dataSpecIds.join(", ") : "-"}
+												</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</CardContent>
+						</Card>
+					)}
 
 					<Card>
 						<CardHeader>
@@ -261,11 +465,7 @@ function TracePage() {
 											<TableRow key={`dv-${dv.stepNo}-${dv.name}`}>
 												<TableCell>{dv.stepNo ? `Step ${dv.stepNo}` : "-"}</TableCell>
 												<TableCell>{dv.name}</TableCell>
-												<TableCell>
-													{dv.valueNumber ??
-														dv.valueText ??
-														(dv.valueBoolean !== null ? String(dv.valueBoolean) : "-")}
-												</TableCell>
+												<TableCell>{renderValue(dv)}</TableCell>
 												<TableCell>
 													{dv.judge ? (
 														<Badge variant={dv.judge === "PASS" ? "secondary" : "destructive"}>
@@ -274,6 +474,43 @@ function TracePage() {
 													) : (
 														"-"
 													)}
+												</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</CardContent>
+						</Card>
+					)}
+
+					{data.inspections.length > 0 && (
+						<Card>
+							<CardHeader>
+								<CardTitle>质量检验</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>类型</TableHead>
+											<TableHead>状态</TableHead>
+											<TableHead>开始时间</TableHead>
+											<TableHead>判定时间</TableHead>
+											<TableHead>检验人</TableHead>
+											<TableHead>结果</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{data.inspections.map((inspection) => (
+											<TableRow key={inspection.id}>
+												<TableCell className="font-medium">{inspection.type}</TableCell>
+												<TableCell>{getInspectionBadge(inspection.status)}</TableCell>
+												<TableCell>{formatDateTime(inspection.startedAt)}</TableCell>
+												<TableCell>{formatDateTime(inspection.decidedAt)}</TableCell>
+												<TableCell>{inspection.inspectorId ?? "-"}</TableCell>
+												<TableCell>
+													{inspection.unitItems.pass}/{inspection.unitItems.fail}/
+													{inspection.unitItems.na}
 												</TableCell>
 											</TableRow>
 										))}
@@ -333,6 +570,52 @@ function TracePage() {
 						</Card>
 					)}
 
+					{data.loadingRecords.length > 0 && (
+						<Card>
+							<CardHeader>
+								<CardTitle>上料记录</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>槽位</TableHead>
+											<TableHead>位置</TableHead>
+											<TableHead>物料</TableHead>
+											<TableHead>批次</TableHead>
+											<TableHead>状态</TableHead>
+											<TableHead>校验</TableHead>
+											<TableHead>上料时间</TableHead>
+											<TableHead>下料时间</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{data.loadingRecords.map((record) => (
+											<TableRow key={record.id}>
+												<TableCell className="font-medium">{record.slotCode}</TableCell>
+												<TableCell>{record.position}</TableCell>
+												<TableCell>{record.materialCode}</TableCell>
+												<TableCell>{record.lotNo}</TableCell>
+												<TableCell>
+													<Badge variant="outline">{record.status}</Badge>
+												</TableCell>
+												<TableCell>
+													<Badge
+														variant={record.verifyResult === "PASS" ? "secondary" : "destructive"}
+													>
+														{record.verifyResult}
+													</Badge>
+												</TableCell>
+												<TableCell>{formatDateTime(record.loadedAt)}</TableCell>
+												<TableCell>{formatDateTime(record.unloadedAt)}</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</CardContent>
+						</Card>
+					)}
+
 					{data.materials.length > 0 && (
 						<Card>
 							<CardHeader>
@@ -359,6 +642,142 @@ function TracePage() {
 														<Badge>是</Badge>
 													) : (
 														<span className="text-muted-foreground">否</span>
+													)}
+												</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</CardContent>
+						</Card>
+					)}
+
+					{data.ingestEvents.length > 0 && (
+						<Card>
+							<CardHeader>
+								<CardTitle>Ingest 事件</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>类型</TableHead>
+											<TableHead>来源</TableHead>
+											<TableHead>发生时间</TableHead>
+											<TableHead>载具</TableHead>
+											<TableHead>SN</TableHead>
+											<TableHead>结果</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{data.ingestEvents.map((event) => (
+											<TableRow key={event.id}>
+												<TableCell className="font-medium">{event.eventType}</TableCell>
+												<TableCell>{event.sourceSystem}</TableCell>
+												<TableCell>{formatDateTime(event.occurredAt)}</TableCell>
+												<TableCell>{event.carrierCode ?? "-"}</TableCell>
+												<TableCell>{event.sn ?? event.snList?.join(", ") ?? "-"}</TableCell>
+												<TableCell>{getResultBadge(event.result)}</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</CardContent>
+						</Card>
+					)}
+
+					{data.carrierTracks.length > 0 && (
+						<Card>
+							<CardHeader>
+								<CardTitle>载具过站记录</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>载具号</TableHead>
+											<TableHead>步骤</TableHead>
+											<TableHead>进站时间</TableHead>
+											<TableHead>出站时间</TableHead>
+											<TableHead>结果</TableHead>
+											<TableHead>数据量</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{data.carrierTracks.map((track) => (
+											<TableRow key={track.id}>
+												<TableCell className="font-medium">{track.carrierNo}</TableCell>
+												<TableCell>Step {track.stepNo}</TableCell>
+												<TableCell>{formatDateTime(track.inAt)}</TableCell>
+												<TableCell>{formatDateTime(track.outAt)}</TableCell>
+												<TableCell>{getResultBadge(track.result)}</TableCell>
+												<TableCell>{track.dataValueCount}</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</CardContent>
+						</Card>
+					)}
+
+					{data.carrierLoads.length > 0 && (
+						<Card>
+							<CardHeader>
+								<CardTitle>载具装载记录</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>载具号</TableHead>
+											<TableHead>装载时间</TableHead>
+											<TableHead>卸载时间</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{data.carrierLoads.map((load) => (
+											<TableRow key={load.id}>
+												<TableCell className="font-medium">{load.carrierNo}</TableCell>
+												<TableCell>{formatDateTime(load.loadedAt)}</TableCell>
+												<TableCell>{formatDateTime(load.unloadedAt)}</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</CardContent>
+						</Card>
+					)}
+
+					{data.carrierDataValues.length > 0 && (
+						<Card>
+							<CardHeader>
+								<CardTitle>载具采集数据</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>载具号</TableHead>
+											<TableHead>步骤</TableHead>
+											<TableHead>数据项</TableHead>
+											<TableHead>值</TableHead>
+											<TableHead>判定</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{data.carrierDataValues.map((value, idx) => (
+											<TableRow key={`${value.carrierTrackId ?? "n/a"}-${idx}`}>
+												<TableCell className="font-medium">{value.carrierNo ?? "-"}</TableCell>
+												<TableCell>{value.stepNo ? `Step ${value.stepNo}` : "-"}</TableCell>
+												<TableCell>{value.name}</TableCell>
+												<TableCell>{renderValue(value)}</TableCell>
+												<TableCell>
+													{value.judge ? (
+														<Badge variant={value.judge === "PASS" ? "secondary" : "destructive"}>
+															{value.judge}
+														</Badge>
+													) : (
+														"-"
 													)}
 												</TableCell>
 											</TableRow>
