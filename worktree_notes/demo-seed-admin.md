@@ -29,9 +29,9 @@ touchPoints:
 
 ## Slices
 - [ ] Slice 0: worktree note context
-- [ ] Slice 1: backend schema + routes skeleton for demo seed
-- [ ] Slice 2: backend service + seed refactor (scripts -> callable)
-- [ ] Slice 3: UI settings card + dialog (dataset selection + mode)
+- [x] Slice 1: backend schema + routes skeleton for demo seed
+- [x] Slice 2: backend service + seed refactor (scripts -> callable)
+- [x] Slice 3: UI settings card + dialog (dataset selection + mode)
 - [ ] Slice 4: polish (permissions, audit, docs)
 
 <!-- AUTO:BEGIN status -->
