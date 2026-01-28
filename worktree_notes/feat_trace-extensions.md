@@ -107,3 +107,4 @@ task:
 - 2026-01-28: Lint failures from chat components (unused clearMessages, unused lucide imports) and Biome formatting diffs in chat files and trace page; will fix manually without full-format run.
 - 2026-01-28: Need to adjust chat UI formatting (MessageBubble props multiline) and remove unused icon import in chat-suggestions.
 - 2026-01-28: Added main commit hash c668c79 to doc_review/00_status.md header.
+- 2026-01-28: `bun scripts/smart-verify.ts` passed after fixing trace route typing and lint/format.
