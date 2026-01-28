@@ -8,7 +8,7 @@ import { Permission } from "@better-app/db";
 import { userHasAnyPermission } from "../../lib/permissions";
 import { authPlugin } from "../../plugins/auth";
 import { prismaPlugin } from "../../plugins/prisma";
-import { getChatConfig, updateChatConfig } from "./config";
+import { loadChatConfig, saveChatConfig } from "./config";
 import { checkRateLimit, getRateLimitStatus } from "./rate-limit";
 import { type ChatRequest, chatErrorResponseSchema, chatRequestSchema } from "./schema";
 import { isChatEnabled, streamChatCompletion } from "./service";
@@ -28,7 +28,8 @@ export const chatModule = new Elysia({
 				return { ok: false, error: "Forbidden" };
 			}
 
-			const config = getChatConfig();
+			// Load from database (ensures we have latest persisted config)
+			const config = await loadChatConfig(db);
 			return {
 				ok: true,
 				config: {
@@ -52,7 +53,7 @@ export const chatModule = new Elysia({
 			},
 		},
 	)
-	// Update config at runtime (admin only)
+	// Update config at runtime (admin only, persisted to database)
 	.patch(
 		"/config",
 		async ({ user, body, db }) => {
@@ -62,7 +63,8 @@ export const chatModule = new Elysia({
 				return { ok: false, error: "Forbidden" };
 			}
 
-			const newConfig = updateChatConfig(body);
+			// Save to database
+			const newConfig = await saveChatConfig(db, body, user.id);
 			return {
 				ok: true,
 				config: {
