@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChatHistory } from "./chat-history";
 import { ChatInput } from "./chat-input";
-import { type ChatFeedbackPayload, ChatMessages } from "./chat-messages";
+import { type ChatFeedbackPayload, ChatMessages, ChatThreadFeedback } from "./chat-messages";
 import { ChatSuggestions } from "./chat-suggestions";
 import { getRouteContext } from "./route-context";
 import { useChat } from "./use-chat";
@@ -103,7 +103,7 @@ export function ChatAssistant() {
 
 	const handleFeedback = useCallback(
 		async (payload: ChatFeedbackPayload) => {
-			if (!payload.assistantMessage) return;
+			if (!payload.userMessage && !payload.assistantMessage) return;
 			try {
 				await fetch(`${BASE_URL}/chat/feedback`, {
 					method: "POST",
@@ -273,7 +273,7 @@ export function ChatAssistant() {
 								)}
 
 								{/* Messages */}
-								<ChatMessages messages={messages} className="flex-1" onFeedback={handleFeedback} />
+								<ChatMessages messages={messages} className="flex-1" />
 
 								{/* Suggestions - show after assistant reply */}
 								{suggestionReply && (
@@ -287,6 +287,8 @@ export function ChatAssistant() {
 									/>
 								)}
 
+								<ChatThreadFeedback messages={messages} onFeedback={handleFeedback} />
+
 								{/* Input */}
 								<ChatInput
 									onSend={handleSend}
@@ -295,6 +297,7 @@ export function ChatAssistant() {
 									placeholder={`关于"${routeContext.name}"有什么问题？`}
 									value={inputValue}
 									onChange={setInputValue}
+									className="border-t-0"
 								/>
 							</>
 						)}

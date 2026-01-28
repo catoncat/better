@@ -1,8 +1,22 @@
 import { Bot, Loader2, MessageSquareText, User } from "lucide-react";
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+	Dialog,
+	DialogBody,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "./use-chat";
 
@@ -88,18 +102,17 @@ function linkifyRouteChildren(children: ReactNode): ReactNode {
 type ChatMessagesProps = {
 	messages: ChatMessage[];
 	className?: string;
-	onFeedback?: (payload: ChatFeedbackPayload) => void;
 };
 
 export type ChatFeedbackPayload = {
 	userMessage?: string;
 	userMessageId?: string;
 	assistantMessage: string;
-	assistantMessageId: string;
+	assistantMessageId?: string;
 	feedback?: string;
 };
 
-export function ChatMessages({ messages, className, onFeedback }: ChatMessagesProps) {
+export function ChatMessages({ messages, className }: ChatMessagesProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	// Auto-scroll to bottom on every render (when messages change)
@@ -123,37 +136,15 @@ export function ChatMessages({ messages, className, onFeedback }: ChatMessagesPr
 
 	return (
 		<div ref={containerRef} className={cn("flex-1 space-y-4 overflow-y-auto p-4", className)}>
-			{messages.map((message, index) => (
-				<MessageBubble
-					key={message.id}
-					message={message}
-					previousMessages={messages.slice(0, index)}
-					onFeedback={onFeedback}
-				/>
+			{messages.map((message) => (
+				<MessageBubble key={message.id} message={message} />
 			))}
 		</div>
 	);
 }
 
-function getPreviousUserMessage(messages: ChatMessage[]): ChatMessage | undefined {
-	for (let i = messages.length - 1; i >= 0; i -= 1) {
-		const message = messages[i];
-		if (message?.role === "user") return message;
-	}
-	return undefined;
-}
-
-function MessageBubble({
-	message,
-	previousMessages,
-	onFeedback,
-}: {
-	message: ChatMessage;
-	previousMessages: ChatMessage[];
-	onFeedback?: (payload: ChatFeedbackPayload) => void;
-}) {
+function MessageBubble({ message }: { message: ChatMessage }) {
 	const isUser = message.role === "user";
-	const previousUserMessage = isUser ? undefined : getPreviousUserMessage(previousMessages);
 
 	return (
 		<div className={cn("flex gap-3", isUser ? "flex-row-reverse" : "flex-row")}>
@@ -248,29 +239,203 @@ function MessageBubble({
 					) : null}
 				</div>
 
-				{!isUser && !message.isStreaming && onFeedback && (
-					<Button
-						type="button"
-						variant="ghost"
-						size="sm"
-						className="h-7 justify-start gap-1 px-2 text-xs text-muted-foreground"
-						onClick={() => {
-							const feedback = window.prompt("请描述你的问题或补充说明（可选）");
-							if (feedback === null) return;
-							onFeedback({
-								userMessage: previousUserMessage?.content,
-								userMessageId: previousUserMessage?.id,
-								assistantMessage: message.content,
-								assistantMessageId: message.id,
-								feedback: feedback.trim() ? feedback.trim() : undefined,
-							});
-						}}
-					>
-						<MessageSquareText className="size-3" />
-						反馈这个回答
-					</Button>
-				)}
 			</div>
+		</div>
+	);
+}
+
+const MESSAGE_SEPARATOR = "\n\n---\n\n";
+
+function buildMessageBlock(items: ChatMessage[]): string {
+	return items
+		.map((message) => message.content.trim())
+		.filter(Boolean)
+		.join(MESSAGE_SEPARATOR);
+}
+
+type ChatThreadFeedbackProps = {
+	messages: ChatMessage[];
+	onFeedback?: (payload: ChatFeedbackPayload) => void;
+	className?: string;
+};
+
+export function ChatThreadFeedback({ messages, onFeedback, className }: ChatThreadFeedbackProps) {
+	const [open, setOpen] = useState(false);
+	const [note, setNote] = useState("");
+	const selectableMessages = useMemo(
+		() => messages.filter((message) => message.content.trim().length > 0 && !message.isStreaming),
+		[messages],
+	);
+	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+	useEffect(() => {
+		if (open) {
+			setSelectedIds(new Set(selectableMessages.map((message) => message.id)));
+		}
+	}, [open, selectableMessages]);
+
+	const selectedMessages = selectableMessages.filter((message) => selectedIds.has(message.id));
+	const selectedCount = selectedMessages.length;
+
+	const handleSelectAll = () => {
+		setSelectedIds(new Set(selectableMessages.map((message) => message.id)));
+	};
+
+	const handleClear = () => {
+		setSelectedIds(new Set());
+	};
+
+	const handleOpenChange = (nextOpen: boolean) => {
+		setOpen(nextOpen);
+		if (!nextOpen) {
+			setNote("");
+		}
+	};
+
+	const handleSubmit = () => {
+		if (!onFeedback || selectedMessages.length === 0) return;
+
+		const userMessages = selectedMessages.filter((message) => message.role === "user");
+		const assistantMessages = selectedMessages.filter((message) => message.role === "assistant");
+		const feedback = note.trim();
+
+		onFeedback({
+			userMessage: buildMessageBlock(userMessages),
+			userMessageId: userMessages[0]?.id,
+			assistantMessage: buildMessageBlock(assistantMessages),
+			assistantMessageId: assistantMessages[0]?.id,
+			feedback: feedback ? feedback : undefined,
+		});
+
+		setOpen(false);
+		setNote("");
+	};
+
+	return (
+		<div className={cn("border-t bg-background px-4 py-2", className)}>
+			<div className="flex items-center justify-between gap-2">
+				<Button
+					type="button"
+					variant="ghost"
+					size="sm"
+					className="gap-2 text-xs"
+					onClick={() => setOpen(true)}
+					disabled={!onFeedback || selectableMessages.length === 0}
+				>
+					<MessageSquareText className="size-4" />
+					我要反馈
+				</Button>
+				<span className="text-xs text-muted-foreground">用于改进系统体验，AI 回复仅作辅助</span>
+			</div>
+
+			<Dialog open={open} onOpenChange={handleOpenChange}>
+				<DialogContent className="sm:max-w-[720px]">
+					<DialogHeader>
+						<DialogTitle>我要反馈</DialogTitle>
+						<DialogDescription>请选择需要反馈的消息（默认全选）。</DialogDescription>
+					</DialogHeader>
+					<DialogBody className="space-y-4">
+						<div className="flex items-center justify-between text-xs text-muted-foreground">
+							<span>
+								已选 {selectedCount} / {selectableMessages.length}
+							</span>
+							<div className="flex items-center gap-2">
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									className="h-7 px-2 text-xs"
+									onClick={handleSelectAll}
+									disabled={selectableMessages.length === 0}
+								>
+									全选
+								</Button>
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									className="h-7 px-2 text-xs"
+									onClick={handleClear}
+									disabled={selectedCount === 0}
+								>
+									清空
+								</Button>
+							</div>
+						</div>
+
+						<div className="rounded-lg border">
+							<ScrollArea className="max-h-[280px]">
+								<div className="divide-y">
+									{selectableMessages.map((message, index) => {
+										const checkboxId = `chat-feedback-${message.id}`;
+										const isChecked = selectedIds.has(message.id);
+										const roleLabel = message.role === "user" ? "用户" : "助手";
+										return (
+											<div key={message.id} className="flex items-start gap-3 px-4 py-3">
+												<Checkbox
+													id={checkboxId}
+													checked={isChecked}
+													onCheckedChange={(checked) => {
+														setSelectedIds((prev) => {
+															const next = new Set(prev);
+															if (checked === true) {
+																next.add(message.id);
+															} else {
+																next.delete(message.id);
+															}
+															return next;
+														});
+													}}
+												/>
+												<div className="grid gap-2">
+													<div className="flex items-center gap-2 text-xs text-muted-foreground">
+														<Badge variant={message.role === "user" ? "secondary" : "outline"}>
+															{roleLabel}
+														</Badge>
+														<span>消息 {index + 1}</span>
+													</div>
+													<Label htmlFor={checkboxId} className="cursor-pointer text-sm font-normal">
+														<span className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+															{message.content}
+														</span>
+													</Label>
+												</div>
+											</div>
+										);
+									})}
+									{selectableMessages.length === 0 && (
+										<div className="px-4 py-6 text-center text-sm text-muted-foreground">
+											暂无可反馈的消息
+										</div>
+									)}
+								</div>
+							</ScrollArea>
+						</div>
+
+						<div className="grid gap-2">
+							<Label htmlFor="chat-feedback-note">备注</Label>
+							<Textarea
+								id="chat-feedback-note"
+								value={note}
+								onChange={(event) => setNote(event.target.value)}
+								placeholder="描述你遇到的问题或建议（可选）"
+								rows={4}
+							/>
+							<p className="text-xs text-muted-foreground">
+								可以补充出现的页面、流程或期望的系统行为。
+							</p>
+						</div>
+					</DialogBody>
+					<DialogFooter>
+						<Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+							取消
+						</Button>
+						<Button type="button" onClick={handleSubmit} disabled={selectedCount === 0 || !onFeedback}>
+							提交反馈
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }
