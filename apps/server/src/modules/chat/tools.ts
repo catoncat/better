@@ -7,8 +7,8 @@ import fs from "node:fs";
 import path from "node:path";
 import type OpenAI from "openai";
 
-// Project root directory (relative to this file's location in the built output)
-const PROJECT_ROOT = process.cwd();
+// Project root directory (go up 2 levels from apps/server to project root)
+const PROJECT_ROOT = path.resolve(process.cwd(), "../..");
 
 /**
  * Tool definitions for OpenAI function calling
