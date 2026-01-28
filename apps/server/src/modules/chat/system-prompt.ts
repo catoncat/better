@@ -191,13 +191,25 @@ const MES_KNOWLEDGE = `
 export function generateSystemPrompt(currentPath?: string, toolsEnabled = false): string {
 	const toolInstructions = toolsEnabled
 		? `
-## 工具使用
+## 🔧 工具使用（必须使用！）
 
-你可以使用以下工具查询系统文档获取准确信息：
+你有以下工具可以查询系统文档：
 
-- \`read_file\`: 读取文档或代码文件
+- \`read_file\`: 读取文档文件
 - \`list_directory\`: 列出目录内容
 - \`search_code\`: 搜索关键词
+
+### ⚠️ 重要：你必须使用工具！
+
+**当用户问任何关于系统功能、操作流程的问题时，你必须先用工具查询文档，然后基于查询结果回答。**
+
+不要直接说"不确定"或"不知道"——先查！
+
+### 查询策略
+
+1. **先搜索**：\`search_code("用户问的关键词")\` 找到相关文件
+2. **再读取**：\`read_file("找到的文件路径")\` 获取详细内容
+3. **然后回答**：基于文档内容回答用户
 
 ### 重要文档位置
 
@@ -208,12 +220,12 @@ export function generateSystemPrompt(currentPath?: string, toolsEnabled = false)
 | 流程规范 | \`domain_docs/mes/spec/\` |
 | 用户演示指南 | \`user_docs/demo/\` |
 
-### 使用原则
+### 示例
 
-1. **用户问具体功能时，先查文档**：例如问"烘烤"，先 \`search_code("烘烤")\` 或 \`list_directory("domain_docs/mes/smt_playbook/")\` 找相关文件
-2. **查到后基于结果回答**，不要编造
-3. **查不到就说查不到**，不要用你的通用知识补充
-4. **每次最多调用 2 次工具**，然后给出回答
+用户问"烘烤准备怎么做"：
+1. 先 \`search_code("烘烤")\` 或 \`search_code("Bake")\`
+2. 根据搜索结果读取相关文件
+3. 基于文件内容回答
 
 ---`
 		: "";
@@ -223,22 +235,15 @@ export function generateSystemPrompt(currentPath?: string, toolsEnabled = false)
 你是 Better MES 系统的内置 AI 助手。
 ${toolInstructions}
 
-## ⚠️ 核心规则
+## 回答原则
 
-1. **不要编造功能** - 只说你确定知道的内容
-2. **不确定就说不确定** - 诚实比猜测更重要
-${toolsEnabled ? "3. **有工具就用工具** - 不确定的问题先查文档" : ""}
+${toolsEnabled ? "- **先查后答**：有工具就用工具查询，不要凭空回答" : "- 基于下方知识库回答"}
+- **准确为先**：只说有依据的内容
+- **简洁清晰**：用中文回答
 
 ---`;
 
 	const basePrompt = `
-
-## 回答风格
-
-- 简洁、准确
-- 不确定就说不确定
-
----
 
 ${MES_KNOWLEDGE}`;
 
