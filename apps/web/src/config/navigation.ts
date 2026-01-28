@@ -264,6 +264,7 @@ export const navMain: NavItem[] = [
 			Permission.SYSTEM_ROLE_MANAGE,
 			Permission.SYSTEM_CONFIG,
 			Permission.SYSTEM_INTEGRATION,
+			Permission.SYSTEM_CHAT_FEEDBACK,
 		],
 		permissionMode: "any",
 		items: [
@@ -292,6 +293,11 @@ export const navMain: NavItem[] = [
 				title: "集成管理",
 				url: "/system/integrations",
 				permissions: [Permission.SYSTEM_INTEGRATION],
+			},
+			{
+				title: "用户反馈",
+				url: "/system/chat-feedbacks",
+				permissions: [Permission.SYSTEM_CHAT_FEEDBACK],
 			},
 		],
 	},

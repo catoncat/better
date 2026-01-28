@@ -32,6 +32,7 @@ import { Route as AuthenticatedMesReadinessConfigRouteImport } from './routes/_a
 import { Route as AuthenticatedMesFaiRouteImport } from './routes/_authenticated/mes/fai'
 import { Route as AuthenticatedMesExecutionRouteImport } from './routes/_authenticated/mes/execution'
 import { Route as AuthenticatedMesDefectsRouteImport } from './routes/_authenticated/mes/defects'
+import { Route as AuthenticatedSystemChatFeedbacksIndexRouteImport } from './routes/_authenticated/system/chat-feedbacks/index'
 import { Route as AuthenticatedMesWorkCentersIndexRouteImport } from './routes/_authenticated/mes/work-centers/index'
 import { Route as AuthenticatedMesTimeRulesIndexRouteImport } from './routes/_authenticated/mes/time-rules/index'
 import { Route as AuthenticatedMesStencilUsageIndexRouteImport } from './routes/_authenticated/mes/stencil-usage/index'
@@ -191,6 +192,12 @@ const AuthenticatedMesDefectsRoute = AuthenticatedMesDefectsRouteImport.update({
   path: '/mes/defects',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSystemChatFeedbacksIndexRoute =
+  AuthenticatedSystemChatFeedbacksIndexRouteImport.update({
+    id: '/system/chat-feedbacks/',
+    path: '/system/chat-feedbacks/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMesWorkCentersIndexRoute =
   AuthenticatedMesWorkCentersIndexRouteImport.update({
     id: '/mes/work-centers/',
@@ -425,6 +432,7 @@ export interface FileRoutesByFullPath {
   '/mes/stencil-usage': typeof AuthenticatedMesStencilUsageIndexRoute
   '/mes/time-rules': typeof AuthenticatedMesTimeRulesIndexRoute
   '/mes/work-centers': typeof AuthenticatedMesWorkCentersIndexRoute
+  '/system/chat-feedbacks': typeof AuthenticatedSystemChatFeedbacksIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -478,6 +486,7 @@ export interface FileRoutesByTo {
   '/mes/stencil-usage': typeof AuthenticatedMesStencilUsageIndexRoute
   '/mes/time-rules': typeof AuthenticatedMesTimeRulesIndexRoute
   '/mes/work-centers': typeof AuthenticatedMesWorkCentersIndexRoute
+  '/system/chat-feedbacks': typeof AuthenticatedSystemChatFeedbacksIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -534,6 +543,7 @@ export interface FileRoutesById {
   '/_authenticated/mes/stencil-usage/': typeof AuthenticatedMesStencilUsageIndexRoute
   '/_authenticated/mes/time-rules/': typeof AuthenticatedMesTimeRulesIndexRoute
   '/_authenticated/mes/work-centers/': typeof AuthenticatedMesWorkCentersIndexRoute
+  '/_authenticated/system/chat-feedbacks/': typeof AuthenticatedSystemChatFeedbacksIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -590,6 +600,7 @@ export interface FileRouteTypes {
     | '/mes/stencil-usage'
     | '/mes/time-rules'
     | '/mes/work-centers'
+    | '/system/chat-feedbacks'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -643,6 +654,7 @@ export interface FileRouteTypes {
     | '/mes/stencil-usage'
     | '/mes/time-rules'
     | '/mes/work-centers'
+    | '/system/chat-feedbacks'
   id:
     | '__root__'
     | '/_authenticated'
@@ -698,6 +710,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/stencil-usage/'
     | '/_authenticated/mes/time-rules/'
     | '/_authenticated/mes/work-centers/'
+    | '/_authenticated/system/chat-feedbacks/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -866,6 +879,13 @@ declare module '@tanstack/react-router' {
       path: '/mes/defects'
       fullPath: '/mes/defects'
       preLoaderRoute: typeof AuthenticatedMesDefectsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/system/chat-feedbacks/': {
+      id: '/_authenticated/system/chat-feedbacks/'
+      path: '/system/chat-feedbacks'
+      fullPath: '/system/chat-feedbacks'
+      preLoaderRoute: typeof AuthenticatedSystemChatFeedbacksIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/work-centers/': {
@@ -1148,6 +1168,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesStencilUsageIndexRoute: typeof AuthenticatedMesStencilUsageIndexRoute
   AuthenticatedMesTimeRulesIndexRoute: typeof AuthenticatedMesTimeRulesIndexRoute
   AuthenticatedMesWorkCentersIndexRoute: typeof AuthenticatedMesWorkCentersIndexRoute
+  AuthenticatedSystemChatFeedbacksIndexRoute: typeof AuthenticatedSystemChatFeedbacksIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -1219,6 +1240,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedMesStencilUsageIndexRoute,
   AuthenticatedMesTimeRulesIndexRoute: AuthenticatedMesTimeRulesIndexRoute,
   AuthenticatedMesWorkCentersIndexRoute: AuthenticatedMesWorkCentersIndexRoute,
+  AuthenticatedSystemChatFeedbacksIndexRoute:
+    AuthenticatedSystemChatFeedbacksIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
