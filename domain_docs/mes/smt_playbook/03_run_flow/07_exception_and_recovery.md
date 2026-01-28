@@ -158,9 +158,9 @@ flowchart TD
 
 | 场景 | 错误码 | 恢复方式 |
 |------|--------|---------|
-| FAI 未通过 | `FAI_GATE_BLOCKED` | 完成 FAI 且 PASS |
-| 就绪检查未通过 | `READINESS_NOT_PASSED` | 通过就绪检查 |
-| Run 非 PREP 状态 | `INVALID_RUN_STATUS` | 无法恢复 |
+| FAI 未通过 | `FAI_NOT_PASSED` | 完成 FAI 且 PASS |
+| 就绪检查未通过 | `READINESS_CHECK_FAILED` | 通过就绪检查 |
+| Run 非 PREP 状态 | `RUN_NOT_READY` | 无法恢复 |
 
 ### 5.2 撤销授权
 
@@ -173,8 +173,8 @@ POST /api/runs/:runNo/authorize
 
 **约束**：
 - 需要 `RUN_REVOKE` 权限
-- 若 Run 已进入 IN_PROGRESS（已有 TrackIn），可能无法撤销
-- 撤销后 Run 回到 PREP 状态
+- 仅 Run=AUTHORIZED 时可撤销
+- Run 非 AUTHORIZED 时请求不会变更状态
 
 ---
 

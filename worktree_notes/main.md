@@ -807,3 +807,10 @@
 - Missing user doc coverage for routing update, pick status update, work order closeout.
 - Authorization error codes in exception doc do not match implementation.
 - Closeout requires manual trigger + OQC_REQUIRED path; doc implies auto close.
+- apply_patch failed on round2_work_orders_runs.md when updating 偏差清单/结论; context changed. Next: reopen section and reapply with correct context.
+
+## Progress (2026-01-28, Round2 Fixes)
+- Updated user_docs/02_planner.md to align receive flow, filters, create-run fields, and maintenance actions.
+- Updated 03_run_flow/07_exception_and_recovery.md error codes and revoke behavior.
+- Updated 06_oqc_closeout.md to document manual closeout trigger and OQC_REQUIRED.
+- Marked Round2 deviations as fixed in round2 review doc.

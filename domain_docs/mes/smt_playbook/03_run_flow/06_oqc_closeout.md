@@ -44,6 +44,10 @@ stateDiagram-v2
 3. OQC PASS → Run COMPLETED
 4. OQC FAIL → Run ON_HOLD → MRB 决策
 
+**完工触发**：
+- 通过 Run 详情页点击“收尾”（`POST /api/runs/:runNo/close`）触发完工检查。
+- 若触发 OQC 任务，接口返回 `OQC_REQUIRED`，需完成 OQC 后再次收尾。
+
 ## 4. 数据如何产生
 ### 4.1 抽检规则（OQC Sampling Rule）
 - 入口：`/api/oqc/sampling-rules`（CRUD）
