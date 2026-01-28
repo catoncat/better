@@ -1,5 +1,5 @@
 import { AuditEntityType } from "@better-app/db";
-import Elysia from "elysia";
+import Elysia, { t } from "elysia";
 import { authPlugin } from "../../../plugins/auth";
 import { Permission, permissionPlugin } from "../../../plugins/permission";
 import { prismaPlugin } from "../../../plugins/prisma";
@@ -7,9 +7,12 @@ import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../../
 import {
 	completeFaiSchema,
 	createFaiSchema,
+	faiErrorResponseSchema,
+	faiItemResponseSchema,
 	faiQuerySchema,
 	recordFaiItemSchema,
 	signFaiSchema,
+	updateFaiItemSchema,
 } from "./schema";
 import {
 	checkFaiGate,
@@ -21,6 +24,7 @@ import {
 	recordFaiItem,
 	signFai,
 	startFai,
+	updateFaiItem,
 } from "./service";
 
 export const faiRoutes = new Elysia({ prefix: "/fai" })
@@ -234,6 +238,58 @@ export const faiRoutes = new Elysia({ prefix: "/fai" })
 			requirePermission: Permission.QUALITY_FAI,
 			body: recordFaiItemSchema,
 			detail: { tags: ["MES - FAI"], summary: "Record FAI inspection item" },
+		},
+	)
+	// Update FAI item
+	.patch(
+		"/:faiId/items/:itemId",
+		async ({ db, params, body, set, user, request }) => {
+			const actor = buildAuditActor(user);
+			const meta = buildAuditRequestMeta(request);
+			const before = await db.inspectionItem.findUnique({ where: { id: params.itemId } });
+			const result = await updateFaiItem(db, params.faiId, params.itemId, body, user?.id);
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.INSPECTION,
+					entityId: params.faiId,
+					entityDisplay: `FAI ${params.faiId}`,
+					action: "FAI_ITEM_UPDATE",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					before,
+					payload: body,
+					request: meta,
+				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.INSPECTION,
+				entityId: params.faiId,
+				entityDisplay: `FAI ${params.faiId}`,
+				action: "FAI_ITEM_UPDATE",
+				actor,
+				status: "SUCCESS",
+				before,
+				after: result.data,
+				payload: body,
+				request: meta,
+			});
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.QUALITY_FAI,
+			params: t.Object({ faiId: t.String(), itemId: t.String() }),
+			body: updateFaiItemSchema,
+			response: {
+				200: faiItemResponseSchema,
+				400: faiErrorResponseSchema,
+				404: faiErrorResponseSchema,
+			},
+			detail: { tags: ["MES - FAI"], summary: "Update FAI inspection item" },
 		},
 	)
 	// Complete FAI

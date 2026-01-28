@@ -1,4 +1,5 @@
 import {
+	InspectionItemResult,
 	InspectionResultStatus,
 	InspectionStatus,
 	InspectionType,
@@ -15,10 +16,12 @@ import type {
 	createFaiSchema,
 	recordFaiItemSchema,
 	signFaiSchema,
+	updateFaiItemSchema,
 } from "./schema";
 
 type CreateFaiInput = Static<typeof createFaiSchema>;
 type RecordFaiItemInput = Static<typeof recordFaiItemSchema>;
+type UpdateFaiItemInput = Static<typeof updateFaiItemSchema>;
 type CompleteFaiInput = Static<typeof completeFaiSchema>;
 type SignFaiInput = Static<typeof signFaiSchema>;
 
@@ -54,6 +57,54 @@ type FaiTrialSummary = {
 type FaiDetailRecord = InspectionRecord & { trialSummary: FaiTrialSummary };
 
 const buildInspectionActiveKey = (runId: string, type: InspectionType) => `${runId}:${type}`;
+
+type SnapshotStep = {
+	requiresFAI?: boolean;
+};
+
+type FaiTemplateItemSnapshot = {
+	seq: number;
+	itemName: string;
+	itemSpec: string | null;
+	required: boolean;
+};
+
+const getSnapshotSteps = (snapshot: Prisma.JsonValue | null | undefined): SnapshotStep[] => {
+	if (!snapshot || typeof snapshot !== "object") return [];
+	const record = snapshot as { steps?: unknown };
+	if (!Array.isArray(record.steps)) return [];
+	return record.steps.filter((step): step is SnapshotStep => !!step && typeof step === "object");
+};
+
+const getTemplateItemsFromSnapshot = (
+	snapshot: Prisma.JsonValue | null | undefined,
+): FaiTemplateItemSnapshot[] => {
+	if (!snapshot || typeof snapshot !== "object") return [];
+	const record = snapshot as { route?: unknown };
+	if (!record.route || typeof record.route !== "object") return [];
+	const route = record.route as { faiTemplate?: unknown };
+	if (!route.faiTemplate || typeof route.faiTemplate !== "object") return [];
+	const template = route.faiTemplate as { items?: unknown };
+	if (!Array.isArray(template.items)) return [];
+	const items = template.items
+		.map((item) => {
+			if (!item || typeof item !== "object") return null;
+			const data = item as {
+				seq?: unknown;
+				itemName?: unknown;
+				itemSpec?: unknown;
+				required?: unknown;
+			};
+			if (typeof data.itemName !== "string") return null;
+			const seq = typeof data.seq === "number" ? data.seq : 0;
+			const itemSpec = typeof data.itemSpec === "string" ? data.itemSpec : null;
+			const required = typeof data.required === "boolean" ? data.required : true;
+			return { seq, itemName: data.itemName, itemSpec, required };
+		})
+		.filter((item): item is FaiTemplateItemSnapshot => Boolean(item));
+
+	return items.sort((a, b) => a.seq - b.seq);
+};
 
 const resolveDataValue = (value: {
 	valueNumber?: number | null;
@@ -236,7 +287,10 @@ export async function createFai(
 	data: CreateFaiInput,
 	_createdBy?: string,
 ): Promise<ServiceResult<InspectionRecord>> {
-	const run = await db.run.findUnique({ where: { runNo } });
+	const run = await db.run.findUnique({
+		where: { runNo },
+		include: { routeVersion: true },
+	});
 	if (!run) {
 		return {
 			success: false as const,
@@ -320,6 +374,8 @@ export async function createFai(
 		};
 	}
 
+	const templateItems = getTemplateItemsFromSnapshot(run.routeVersion?.snapshotJson);
+
 	let fai: InspectionRecord;
 	try {
 		fai = await db.$transaction(async (tx) => {
@@ -334,6 +390,15 @@ export async function createFai(
 					passedQty: 0,
 					failedQty: 0,
 					remark: data.remark,
+					items: templateItems.length
+						? {
+								create: templateItems.map((item) => ({
+									itemName: item.itemName,
+									itemSpec: item.itemSpec,
+									result: InspectionItemResult.NA,
+								})),
+							}
+						: undefined,
 				},
 				include: { items: true },
 			});
@@ -477,6 +542,106 @@ export async function recordFaiItem(
 	});
 
 	return { success: true as const, data: { itemId: item.id } };
+}
+
+/**
+ * Update an existing FAI inspection item.
+ */
+export async function updateFaiItem(
+	db: PrismaClient,
+	faiId: string,
+	itemId: string,
+	data: UpdateFaiItemInput,
+	inspectedBy?: string,
+): Promise<
+	ServiceResult<{
+		id: string;
+		inspectionId: string;
+		unitSn: string | null;
+		itemName: string;
+		itemSpec: string | null;
+		actualValue: string | null;
+		result: string;
+		defectCode: string | null;
+		remark: string | null;
+		inspectedBy: string | null;
+		inspectedAt: string | null;
+		createdAt: string;
+		updatedAt: string;
+	}>
+> {
+	const fai = await db.inspection.findUnique({ where: { id: faiId } });
+	if (!fai) {
+		return {
+			success: false as const,
+			code: "FAI_NOT_FOUND",
+			message: "FAI task not found",
+			status: 404,
+		};
+	}
+	if (fai.type !== InspectionType.FAI) {
+		return {
+			success: false as const,
+			code: "NOT_FAI_INSPECTION",
+			message: "This is not a FAI inspection",
+			status: 400,
+		};
+	}
+	if (fai.status !== InspectionStatus.INSPECTING) {
+		return {
+			success: false as const,
+			code: "FAI_NOT_INSPECTING",
+			message: `FAI must be in INSPECTING status to update items`,
+			status: 400,
+		};
+	}
+
+	const item = await db.inspectionItem.findUnique({ where: { id: itemId } });
+	if (!item || item.inspectionId !== faiId) {
+		return {
+			success: false as const,
+			code: "FAI_ITEM_NOT_FOUND",
+			message: "FAI item not found",
+			status: 404,
+		};
+	}
+
+	const updateData: Prisma.InspectionItemUpdateInput = {};
+	if (data.unitSn !== undefined) updateData.unitSn = data.unitSn;
+	if (data.itemSpec !== undefined) updateData.itemSpec = data.itemSpec;
+	if (data.actualValue !== undefined) updateData.actualValue = data.actualValue;
+	if (data.result !== undefined) updateData.result = data.result;
+	if (data.defectCode !== undefined) updateData.defectCode = data.defectCode;
+	if (data.remark !== undefined) updateData.remark = data.remark;
+
+	if (Object.keys(updateData).length > 0) {
+		updateData.inspectedBy = inspectedBy ?? null;
+		updateData.inspectedAt = new Date();
+	}
+
+	const updated = await db.inspectionItem.update({
+		where: { id: itemId },
+		data: updateData,
+	});
+
+	return {
+		success: true as const,
+		data: {
+			id: updated.id,
+			inspectionId: updated.inspectionId,
+			unitSn: updated.unitSn ?? null,
+			itemName: updated.itemName,
+			itemSpec: updated.itemSpec ?? null,
+			actualValue: updated.actualValue ?? null,
+			result: updated.result,
+			defectCode: updated.defectCode ?? null,
+			remark: updated.remark ?? null,
+			inspectedBy: updated.inspectedBy ?? null,
+			inspectedAt: updated.inspectedAt ? updated.inspectedAt.toISOString() : null,
+			createdAt: updated.createdAt.toISOString(),
+			updatedAt: updated.updatedAt.toISOString(),
+		},
+	};
 }
 
 /**
@@ -802,15 +967,7 @@ export async function checkFaiGate(
 	const run = await db.run.findUnique({
 		where: { runNo },
 		include: {
-			routeVersion: {
-				include: {
-					routing: {
-						include: {
-							steps: true,
-						},
-					},
-				},
-			},
+			routeVersion: true,
 		},
 	});
 
@@ -823,8 +980,10 @@ export async function checkFaiGate(
 		};
 	}
 
-	// Check if any step requires FAI
-	const requiresFai = run.routeVersion?.routing?.steps?.some((s) => s.requiresFAI) ?? false;
+	// Check if any compiled step requires FAI
+	const requiresFai = getSnapshotSteps(run.routeVersion?.snapshotJson).some(
+		(step) => step.requiresFAI,
+	);
 
 	if (!requiresFai) {
 		return {
