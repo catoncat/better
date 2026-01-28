@@ -793,3 +793,17 @@
 - Updated `domain_docs/mes/smt_playbook/03_run_flow/03_loading_flow.md` unlock input to reason-only + operatorId from login.
 - Updated `domain_docs/mes/smt_playbook/02_configuration/03_slot_material_mapping.md` to clarify slotId vs slotCode.
 - Marked deviations as fixed in `domain_docs/mes/doc_review/round1_loading.md`.
+
+## Errors (2026-01-28)
+- `sed -n '1,240p' apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` failed because `$runNo` expanded in shell. Next: quote the path to read the file.
+- apply_patch failed on round2_work_orders_runs.md due to mismatched context lines. Next: open the file section and reapply with correct context.
+
+## Progress (2026-01-28, Round2 Review)
+- Created `domain_docs/mes/doc_review/round2_work_orders_runs.md` and filled alignment matrix for Work Orders / Runs.
+- Updated `domain_docs/mes/doc_review/00_status.md` (Round1 completed, Round2 in_progress).
+
+## Findings (2026-01-28, Round2 Review)
+- user_docs/02_planner.md mismatches: receive flow described as list-based; UI is manual input; filters and create-run fields over-specified.
+- Missing user doc coverage for routing update, pick status update, work order closeout.
+- Authorization error codes in exception doc do not match implementation.
+- Closeout requires manual trigger + OQC_REQUIRED path; doc implies auto close.
