@@ -1,11 +1,13 @@
+import { Permission } from "@better-app/db/permissions";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Bell, Bot, HelpCircle, Loader2, RefreshCw, Save, Send, Settings } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import * as z from "zod";
 
+import { Can } from "@/components/ability/can";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -21,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchClient } from "@/lib/api-client";
+import { DemoSeedDialog, type DemoSeedPayload } from "./-components/demo-seed-dialog";
 
 export const Route = createFileRoute("/_authenticated/system/settings")({
 	component: SystemSettingsPage,
@@ -54,6 +57,21 @@ const wecomFormSchema = z
 
 type WecomFormValues = z.infer<typeof wecomFormSchema>;
 
+type DemoSeedResponse = {
+	ok: boolean;
+	data?: {
+		message: string;
+		mode: DemoSeedPayload["mode"];
+		requestedDatasets: DemoSeedPayload["datasets"];
+		executedDatasets: DemoSeedPayload["datasets"];
+		warnings: string[];
+	};
+	error?: {
+		code: string;
+		message: string;
+	};
+};
+
 function SystemSettingsPage() {
 	return (
 		<div className="space-y-8">
@@ -86,8 +104,11 @@ function SystemSettingsPage() {
 					<AIChatSettingsCard />
 				</TabsContent>
 
-				<TabsContent value="general">
+				<TabsContent value="general" className="space-y-6">
 					<AppBrandingSettingsCard />
+					<Can permissions={Permission.SYSTEM_DEMO_SEED}>
+						<DemoSeedSettingsCard />
+					</Can>
 				</TabsContent>
 			</Tabs>
 		</div>
@@ -221,6 +242,63 @@ function AppBrandingSettingsCard() {
 					</div>
 				</form>
 			</CardContent>
+		</Card>
+	);
+}
+
+function DemoSeedSettingsCard() {
+	const [open, setOpen] = useState(false);
+
+	const seedMutation = useMutation({
+		mutationFn: (payload: DemoSeedPayload) =>
+			fetchClient<DemoSeedResponse>("/system/demo-seed", {
+				method: "POST",
+				body: JSON.stringify(payload),
+			}),
+		onSuccess: (result) => {
+			if (!result.ok || !result.data) {
+				toast.error(result.error?.message || "演示数据生成失败");
+				return;
+			}
+			toast.success(result.data.message);
+			if (result.data.warnings?.length) {
+				toast.warning(result.data.warnings.join("；"));
+			}
+			setOpen(false);
+		},
+		onError: (error: Error) => {
+			toast.error(`演示数据生成失败: ${error.message}`);
+		},
+	});
+
+	const handleSubmit = async (payload: DemoSeedPayload) => {
+		await seedMutation.mutateAsync(payload);
+	};
+
+	return (
+		<Card>
+			<CardHeader className="space-y-1">
+				<CardTitle>演示数据管理</CardTitle>
+				<CardDescription>
+					按需生成演示数据集，支持追加或覆盖（需 ALLOW_DEMO_SEED=true）。
+				</CardDescription>
+			</CardHeader>
+			<CardContent className="space-y-4">
+				<div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+					覆盖模式会清空数据库并重建，请谨慎操作。
+				</div>
+				<Button onClick={() => setOpen(true)} disabled={seedMutation.isPending}>
+					{seedMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+					<RefreshCw className="mr-2 h-4 w-4" />
+					生成演示数据
+				</Button>
+			</CardContent>
+			<DemoSeedDialog
+				open={open}
+				onOpenChange={setOpen}
+				onSubmit={handleSubmit}
+				isSubmitting={seedMutation.isPending}
+			/>
 		</Card>
 	);
 }
