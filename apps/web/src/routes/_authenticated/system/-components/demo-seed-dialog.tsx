@@ -12,7 +12,14 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/form-field-wrapper";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 const datasetValues = ["base", "mgmt_demo", "loading_config", "data_collection"] as const;
 export type DemoSeedDataset = (typeof datasetValues)[number];
@@ -127,9 +134,7 @@ export function DemoSeedDialog({
 			<DialogContent className="max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>生成演示数据</DialogTitle>
-					<DialogDescription>
-						选择需要的演示数据集，可追加到现有数据或覆盖重建。
-					</DialogDescription>
+					<DialogDescription>选择需要的演示数据集，可追加到现有数据或覆盖重建。</DialogDescription>
 				</DialogHeader>
 				<form
 					onSubmit={(event) => {
@@ -168,14 +173,15 @@ export function DemoSeedDialog({
 							<div className="space-y-3">
 								{datasetOptions.map((option) => {
 									const checked = field.state.value.includes(option.value);
-									const disabled =
-										form.state.values.mode === "append" && !option.appendable;
+									const disabled = form.state.values.mode === "append" && !option.appendable;
+									const inputId = `demo-seed-${option.value}`;
 									return (
-										<label
+										<div
 											key={option.value}
 											className="flex items-start gap-3 rounded-md border border-transparent p-3 hover:border-border"
 										>
 											<Checkbox
+												id={inputId}
 												checked={checked}
 												onCheckedChange={(value) => {
 													const next = value
@@ -186,15 +192,15 @@ export function DemoSeedDialog({
 												disabled={disabled}
 											/>
 											<div className="space-y-1">
-												<p className="text-sm font-medium">{option.label}</p>
+												<Label htmlFor={inputId} className="text-sm font-medium">
+													{option.label}
+												</Label>
 												<p className="text-xs text-muted-foreground">{option.description}</p>
 												{disabled && (
-													<p className="text-xs text-muted-foreground">
-														追加模式不支持基础数据
-													</p>
+													<p className="text-xs text-muted-foreground">追加模式不支持基础数据</p>
 												)}
 											</div>
-										</label>
+										</div>
 									);
 								})}
 							</div>
@@ -209,15 +215,16 @@ export function DemoSeedDialog({
 							description="覆盖会清空数据库，请确认后再执行。"
 						>
 							{(field) => (
-								<label className="flex items-center gap-3">
+								<div className="flex items-center gap-3">
 									<Checkbox
+										id="demo-seed-confirm-reset"
 										checked={field.state.value ?? false}
 										onCheckedChange={(value) => field.handleChange(Boolean(value))}
 									/>
-									<span className="text-sm text-destructive">
+									<Label htmlFor="demo-seed-confirm-reset" className="text-sm text-destructive">
 										我已知晓覆盖会清空现有数据
-									</span>
-								</label>
+									</Label>
+								</div>
 							)}
 						</Field>
 					)}

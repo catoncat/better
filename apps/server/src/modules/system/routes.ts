@@ -4,7 +4,7 @@ import { AuditEntityType } from "@better-app/db";
 import { Elysia, t } from "elysia";
 import { Jimp } from "jimp";
 import { authPlugin } from "../../plugins/auth";
-import { permissionPlugin, Permission } from "../../plugins/permission";
+import { Permission, permissionPlugin } from "../../plugins/permission";
 import { prismaPlugin } from "../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../audit/service";
 import { demoSeedDatasetLabels, runDemoSeed } from "./demo-seed-service";

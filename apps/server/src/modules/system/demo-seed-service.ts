@@ -1,9 +1,9 @@
 import type { PrismaClient } from "@better-app/db";
-import type { ServiceResult } from "../../types/service-result";
 import { runSeed } from "../../scripts/seed";
+import { runSeedDcDemo } from "../../scripts/seed-dc-demo";
 import { runSeedDemo } from "../../scripts/seed-demo";
 import { runSeedLoadingConfig } from "../../scripts/seed-loading-config";
-import { runSeedDcDemo } from "../../scripts/seed-dc-demo";
+import type { ServiceResult } from "../../types/service-result";
 
 export type DemoSeedMode = "append" | "overwrite";
 export type DemoSeedDataset = "base" | "mgmt_demo" | "loading_config" | "data_collection";
@@ -21,12 +21,7 @@ export type DemoSeedResult = {
 	warnings: string[];
 };
 
-const DATASET_ORDER: DemoSeedDataset[] = [
-	"base",
-	"mgmt_demo",
-	"loading_config",
-	"data_collection",
-];
+const DATASET_ORDER: DemoSeedDataset[] = ["base", "mgmt_demo", "loading_config", "data_collection"];
 
 const DATASET_DEPENDENCIES: Record<DemoSeedDataset, DemoSeedDataset[]> = {
 	base: [],
