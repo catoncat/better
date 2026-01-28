@@ -1,5 +1,5 @@
 import { Bot, Loader2, User } from "lucide-react";
-import { useEffect, useRef, type ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
@@ -58,7 +58,7 @@ function normalizeRouteLines(source: string): string {
 		}
 
 		if (!inCodeBlock && hasRoutePath(line) && /^\s{4,}|\t/.test(line)) {
-  		console.log('匹配路径')
+			console.log("匹配路径");
 			line = line.replace(/^\s+/, "");
 		}
 
@@ -74,11 +74,9 @@ function linkifyRouteChildren(children: ReactNode): ReactNode {
 		return linkifyRoutePaths(children);
 	}
 	if (Array.isArray(children)) {
-		return children.flatMap((child, index) => {
+		return children.flatMap((child) => {
 			if (typeof child === "string") {
-				return linkifyRoutePaths(child).map((node, nodeIndex) => (
-					<span key={`route-text-${index}-${nodeIndex}`}>{node}</span>
-				));
+				return linkifyRoutePaths(child);
 			}
 			return child;
 		});
