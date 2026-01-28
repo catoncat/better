@@ -52,6 +52,13 @@ function getModel(): string {
 }
 
 /**
+ * Get the configured suggestions model
+ */
+function getSuggestionsModel(): string {
+	return getChatConfig().suggestionsModel;
+}
+
+/**
  * Get the configured max tokens
  */
 function getMaxTokens(): number {
@@ -212,11 +219,11 @@ export async function* streamChatCompletion(
 			})),
 		});
 
+		// Indicate to user that we're fetching info (only once per batch)
+		yield `\n\n🔍 *正在查询代码库...*\n\n`;
+
 		// Process each tool call
 		for (const toolCall of validToolCalls) {
-			// Indicate to user that we're fetching info
-			yield `\n\n🔍 *正在查询代码库...*\n\n`;
-
 			try {
 				const args = JSON.parse(toolCall.arguments || "{}");
 				console.log(`[Chat] Executing tool: ${toolCall.name}`, args);
@@ -274,9 +281,6 @@ export async function chatCompletion(
 	return response.choices[0]?.message?.content || "";
 }
 
-// Model for generating suggestions (fast and cheap)
-const SUGGESTIONS_MODEL = "gpt-5.1-codex-mini";
-
 export type SuggestionItem = {
 	question: string;
 	action: "fill" | "send"; // fill = fill input, send = direct send
@@ -289,10 +293,11 @@ export type SuggestionItem = {
 export async function generateSuggestions(currentPath: string): Promise<SuggestionItem[]> {
 	const client = getClient();
 	const prompt = generateSuggestionsPrompt(currentPath);
+	const suggestionsModel = getSuggestionsModel();
 
 	try {
 		const response = await client.chat.completions.create({
-			model: SUGGESTIONS_MODEL,
+			model: suggestionsModel,
 			messages: [
 				{ role: "system", content: prompt.system },
 				{ role: "user", content: prompt.user },

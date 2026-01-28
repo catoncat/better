@@ -50,6 +50,10 @@ const knownRoutes: Record<string, RouteContext> = {
  * Get context for the current route
  * Uses longest prefix matching for best accuracy
  */
+export function getRouteDisplayName(pathname: string): string {
+	return getRouteContext(pathname).name;
+}
+
 export function getRouteContext(pathname: string): RouteContext {
 	// 1. Exact match first
 	if (knownRoutes[pathname]) {

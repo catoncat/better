@@ -10,6 +10,7 @@ export type ChatConfig = {
 	apiKey: string;
 	baseUrl: string;
 	model: string;
+	suggestionsModel: string;
 	maxTokens: number;
 	rateLimitPerMinute: number;
 	toolsEnabled: boolean;
@@ -33,6 +34,7 @@ function getEnvDefaults(): ChatConfig {
 		apiKey: process.env.CHAT_API_KEY ?? "",
 		baseUrl: process.env.CHAT_API_BASE_URL ?? "https://api.openai.com/v1",
 		model: process.env.CHAT_MODEL ?? "gpt-4o-mini",
+		suggestionsModel: process.env.CHAT_SUGGESTIONS_MODEL ?? "gpt-5.1-codex-mini",
 		maxTokens: envMaxTokens > 0 ? envMaxTokens : 2048,
 		rateLimitPerMinute: envRateLimit > 0 ? envRateLimit : 20,
 		toolsEnabled: process.env.CHAT_TOOLS_ENABLED === "true",
@@ -55,6 +57,7 @@ export function getChatConfig(): ChatConfig {
 		apiKey: cachedConfig.apiKey ?? defaults.apiKey,
 		baseUrl: cachedConfig.baseUrl ?? defaults.baseUrl,
 		model: cachedConfig.model ?? defaults.model,
+		suggestionsModel: cachedConfig.suggestionsModel ?? defaults.suggestionsModel,
 		maxTokens: cachedConfig.maxTokens ?? defaults.maxTokens,
 		rateLimitPerMinute: cachedConfig.rateLimitPerMinute ?? defaults.rateLimitPerMinute,
 		toolsEnabled: cachedConfig.toolsEnabled ?? defaults.toolsEnabled,

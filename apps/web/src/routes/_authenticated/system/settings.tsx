@@ -232,6 +232,7 @@ type ChatConfigResponse = {
 		enabled: boolean;
 		baseUrl: string;
 		model: string;
+		suggestionsModel: string;
 		maxTokens: number;
 		rateLimitPerMinute: number;
 		toolsEnabled: boolean;
@@ -245,6 +246,7 @@ const chatFormSchema = z.object({
 	apiKey: z.string().optional(),
 	baseUrl: z.string().min(1, "必填"),
 	model: z.string().min(1, "必填"),
+	suggestionsModel: z.string().min(1, "必填"),
 	maxTokens: z.number().min(100).max(32000),
 	rateLimitPerMinute: z.number().min(1).max(1000),
 	toolsEnabled: z.boolean(),
@@ -267,6 +269,7 @@ function AIChatSettingsCard() {
 			apiKey: "",
 			baseUrl: "https://api.openai.com/v1",
 			model: "gpt-4o-mini",
+			suggestionsModel: "gpt-5.1-codex-mini",
 			maxTokens: 2048,
 			rateLimitPerMinute: 20,
 			toolsEnabled: false,
@@ -288,6 +291,7 @@ function AIChatSettingsCard() {
 				apiKey: "", // Never show the API key
 				baseUrl: data.config.baseUrl,
 				model: data.config.model,
+				suggestionsModel: data.config.suggestionsModel,
 				maxTokens: data.config.maxTokens,
 				rateLimitPerMinute: data.config.rateLimitPerMinute,
 				toolsEnabled: data.config.toolsEnabled,
@@ -388,6 +392,22 @@ function AIChatSettingsCard() {
 										)}
 									</Field>
 								</div>
+								<Field
+									form={form}
+									name="suggestionsModel"
+									label="建议模型"
+									description="用于生成建议问题的模型 ID。"
+								>
+									{(field) => (
+										<Input
+											placeholder="gpt-5.1-codex-mini"
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(e) => field.handleChange(e.target.value)}
+											disabled={!enabled}
+										/>
+									)}
+								</Field>
 
 								<Field
 									form={form}

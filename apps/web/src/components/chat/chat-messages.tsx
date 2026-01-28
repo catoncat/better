@@ -3,7 +3,55 @@ import { useEffect, useRef } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
+import { getRouteDisplayName } from "./route-context";
 import type { ChatMessage } from "./use-chat";
+
+const ROUTE_PATH_REGEX = /\/(?:(?:mes)|(?:system))(?:\/[a-z0-9-]+)+/gi;
+
+function replacePathsInText(text: string): string {
+	return text.replace(ROUTE_PATH_REGEX, (path, offset, full) => {
+		const before = full.slice(0, offset);
+		if (before.endsWith("](")) {
+			return path;
+		}
+		const name = getRouteDisplayName(path);
+		return `[${name}](${path})`;
+	});
+}
+
+function renderWithRouteLinks(source: string): string {
+	let result = "";
+	let inCodeBlock = false;
+	const lines = source.split("\n");
+
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i] ?? "";
+		if (line.trim().startsWith("```")) {
+			inCodeBlock = !inCodeBlock;
+			result += line;
+			result += i === lines.length - 1 ? "" : "\n";
+			continue;
+		}
+
+		if (inCodeBlock) {
+			result += line;
+			result += i === lines.length - 1 ? "" : "\n";
+			continue;
+		}
+
+		const parts = line.split("`");
+		for (let idx = 0; idx < parts.length; idx++) {
+			if (idx % 2 === 1) {
+				result += `\`${parts[idx] ?? ""}\``;
+			} else {
+				result += replacePathsInText(parts[idx] ?? "");
+			}
+		}
+		result += i === lines.length - 1 ? "" : "\n";
+	}
+
+	return result;
+}
 
 type ChatMessagesProps = {
 	messages: ChatMessage[];
@@ -119,7 +167,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 									),
 								}}
 							>
-								{message.content}
+								{renderWithRouteLinks(message.content)}
 							</Markdown>
 						</div>
 					)
