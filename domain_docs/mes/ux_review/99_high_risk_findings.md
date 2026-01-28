@@ -7,3 +7,4 @@
 |---|---|---|---|---|---|
 | Core Execution | Run 收尾触发 `OQC_REQUIRED` 时，被 UI 当作“收尾失败”，缺少明确下一步/交接与入口 | 高概率导致主线卡死或误判流程异常；非质量角色不知道已创建 OQC 任务、应如何推进 | `domain_docs/mes/spec/process/01_end_to_end_flows.md`<br>`apps/server/src/modules/mes/run/service.ts`<br>`apps/web/src/hooks/use-runs.ts` | open | 2026-01-29 |
 | Work Orders & Runs IA | `/mes` 默认重定向到 `/mes/work-orders`，对 material/operator 等无 `wo:read` 角色形成“入口即无权限” | 高概率造成用户误以为无法使用 MES；一线角色入口被阻断，需要依赖“知道正确 URL/侧边栏”才能继续 | `apps/web/src/routes/_authenticated/mes/index.tsx`<br>`domain_docs/mes/permission_audit.md` | open | 2026-01-29 |
+| Loading UX | `slot-config` 页面强依赖 `loading:view` 且 UI 端产线列表 gate 过严（`run:read && run:create`），导致有 `loading:config` 的配置角色也可能无法配置站位/映射 | 站位表/映射无法配置 → load-table 无法通过 → 上料主线无法闭环 | `domain_docs/mes/permission_audit.md`<br>`apps/web/src/routes/_authenticated/mes/loading/slot-config.tsx`<br>`apps/server/src/modules/mes/line/routes.ts` | open | 2026-01-29 |
