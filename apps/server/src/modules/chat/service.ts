@@ -71,9 +71,15 @@ export type StreamChatOptions = {
 const MAX_TOOL_ITERATIONS = 5;
 
 /**
- * Check if tools are enabled (requires compatible API)
+ * Check if tools are enabled (for development only, not production)
+ * Tools require access to project files which don't exist in production builds
  */
 function isToolsEnabled(): boolean {
+	// Tools only work in development with source files available
+	// In production (single binary), there are no project files to query
+	if (process.env.NODE_ENV === "production") {
+		return false;
+	}
 	return getChatConfig().toolsEnabled;
 }
 
