@@ -22,7 +22,7 @@ touchPoints:
 
 ## Slices
 - [x] Slice 0: worktree note context
-- [ ] Slice 1: Server - auto formal readiness check in FAI create
+- [x] Slice 1: Server - auto formal readiness check in FAI create
 
 <!-- AUTO:BEGIN status -->
 
