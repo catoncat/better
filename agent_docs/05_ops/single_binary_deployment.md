@@ -31,6 +31,19 @@ Output: `apps/server/better-app`
 - `HOST=0.0.0.0`
 - `PORT=443` (or use an HTTP port behind a reverse proxy)
 
+## AI Chat Assistant (Production)
+Enable AI chat (OpenAI-compatible):
+- `CHAT_ENABLED=true`
+- `CHAT_API_KEY=<your key>`
+- `CHAT_API_BASE_URL=https://api.openai.com/v1`
+- `CHAT_MODEL=gpt-4o-mini` (or any compatible model)
+
+Tools (code/docs retrieval) in production:
+- `CHAT_TOOLS_ENABLED=true`
+- `CHAT_REPO_ROOT=/absolute/path/to/repo-snapshot`
+  - The directory should contain the paths used by tools, e.g. `domain_docs/`, `user_docs/`, `apps/server/src/`, etc.
+  - In the Fly Docker image, this snapshot is baked into `/app/repo` by default.
+
 ## TLS (Built-In)
 If you want the binary to serve HTTPS directly, set **both**:
 - `APP_TLS_CERT_PATH=/etc/ssl/better-app/fullchain.pem`

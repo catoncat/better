@@ -34,7 +34,13 @@ function getProjectRoot(): string {
 	return path.resolve(process.cwd(), "../..");
 }
 
-const PROJECT_ROOT = getProjectRoot();
+function getConfiguredProjectRoot(): string {
+	const envRoot = process.env.CHAT_REPO_ROOT;
+	if (envRoot) return path.resolve(envRoot);
+	return getProjectRoot();
+}
+
+const PROJECT_ROOT = getConfiguredProjectRoot();
 console.log("[Chat Tools] PROJECT_ROOT:", PROJECT_ROOT);
 
 /**

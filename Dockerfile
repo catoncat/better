@@ -40,6 +40,14 @@ WORKDIR /app
 # Copy the single binary
 COPY --from=builder /app/apps/server/better-app ./better-app
 
+# Copy repo/docs snapshot for AI Chat tools (so production can query code/docs)
+COPY --from=builder /app/agent_docs ./repo/agent_docs
+COPY --from=builder /app/domain_docs ./repo/domain_docs
+COPY --from=builder /app/user_docs ./repo/user_docs
+COPY --from=builder /app/apps/server/src ./repo/apps/server/src
+COPY --from=builder /app/apps/web/src ./repo/apps/web/src
+COPY --from=builder /app/packages ./repo/packages
+
 # Copy database template
 COPY --from=builder /app/data/db.db ./db-template.db
 
@@ -52,6 +60,8 @@ RUN mkdir -p /db
 
 ENV DATABASE_URL=file:/db/db.db
 ENV PORT=8080
+ENV NODE_ENV=production
+ENV CHAT_REPO_ROOT=/app/repo
 
 EXPOSE 8080
 

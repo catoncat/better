@@ -12,6 +12,7 @@ dist
 .vscode
 .idea
 *.log
+.scratch
 
 # Data files
 data/
@@ -22,11 +23,8 @@ data/
 .env*
 !.env.example
 
-# Documentation (not needed in image)
-*.md
+# Documentation (keep internal notes out of images)
 docs/
-agent_docs/
-domain_docs/
 conversation/
 worktree_notes/
 

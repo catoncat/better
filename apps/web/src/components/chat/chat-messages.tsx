@@ -1,6 +1,7 @@
 import { Bot, Loader2, User } from "lucide-react";
 import { useEffect, useRef } from "react";
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "./use-chat";
 
@@ -68,6 +69,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 					) : (
 						<div className="prose prose-sm dark:prose-invert max-w-none text-sm [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
 							<Markdown
+								remarkPlugins={[remarkGfm]}
 								components={{
 									// Custom link styling
 									a: ({ children, href }) => (

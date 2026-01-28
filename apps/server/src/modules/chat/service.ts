@@ -71,16 +71,19 @@ export type StreamChatOptions = {
 const MAX_TOOL_ITERATIONS = 5;
 
 /**
- * Check if tools are enabled (for development only, not production)
- * Tools require access to project files which don't exist in production builds
+ * Check if tools are enabled.
+ * In production, tools require a repo/docs snapshot directory (e.g. baked into the image).
  */
 function isToolsEnabled(): boolean {
-	// Tools only work in development with source files available
-	// In production (single binary), there are no project files to query
+	const enabled = getChatConfig().toolsEnabled;
+	if (!enabled) return false;
+
+	// Avoid confusing UX in prod if the repo/docs snapshot is not configured.
 	if (process.env.NODE_ENV === "production") {
-		return false;
+		return !!process.env.CHAT_REPO_ROOT;
 	}
-	return getChatConfig().toolsEnabled;
+
+	return true;
 }
 
 /**

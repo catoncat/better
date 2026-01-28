@@ -11,6 +11,8 @@ primary_region = 'sin'
 [env]
   PORT = '8080'
   DATABASE_URL = 'file:/db/db.db'
+  NODE_ENV = 'production'
+  CHAT_REPO_ROOT = '/app/repo'
 
 [http_service]
   internal_port = 8080
