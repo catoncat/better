@@ -12,7 +12,7 @@
 
 | 轮次 | Scope | Status | Owner | Updated | Notes | Links |
 |------|-------|--------|-------|---------|-------|-------|
-| 轮次1 | TBD | pending | - | - | - | - |
+| 轮次1 | Loading | in_progress | 我 | 2026-01-28 | - | domain_docs/mes/doc_review/round1_loading.md |
 | 轮次2 | TBD | pending | - | - | - | - |
 | 轮次3 | TBD | pending | - | - | - | - |
 
