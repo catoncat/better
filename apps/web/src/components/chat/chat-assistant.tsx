@@ -77,6 +77,7 @@ export function ChatAssistant() {
 		currentPath,
 		reply: suggestionReply,
 		enabled: isOpen && !isHistoryOpen && !!suggestionReply && !isLoading,
+		autoFetch: false,
 	});
 
 	const handleSend = useCallback(

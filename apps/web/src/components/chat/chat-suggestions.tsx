@@ -1,4 +1,4 @@
-import { Loader2, MessageSquareText, RefreshCw } from "lucide-react";
+import { Loader2, MessageSquareText, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SuggestionItem } from "./use-suggestions";
@@ -23,6 +23,28 @@ export function ChatSuggestions({
 	return (
 		<div className={cn("px-3 py-1.5", className)}>
 			<div className="flex flex-wrap gap-1.5 items-center">
+				{suggestions.length === 0 && onRefresh && !isLoading && (
+					<button
+						type="button"
+						onClick={onRefresh}
+						className={cn(
+							"inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors cursor-pointer",
+							"bg-primary/5 border-primary/30 text-primary hover:bg-primary/10",
+							"focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+						)}
+					>
+						<Sparkles className="size-3" />
+						<span>获取 AI 建议...</span>
+					</button>
+				)}
+
+				{isLoading && suggestions.length === 0 && (
+					<div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs text-muted-foreground">
+						<Loader2 className="size-3 animate-spin" />
+						<span>正在生成建议...</span>
+					</div>
+				)}
+
 				{suggestions.map((suggestion, index) => (
 					<button
 						type="button"

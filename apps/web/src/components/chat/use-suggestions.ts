@@ -10,6 +10,7 @@ type UseSuggestionsOptions = {
 	currentPath: string;
 	reply?: string | null;
 	enabled?: boolean;
+	autoFetch?: boolean;
 };
 
 type UseSuggestionsReturn = {
@@ -40,7 +41,7 @@ function getReplySignature(reply?: string | null): string {
  * Custom hook for fetching suggested questions based on current page
  */
 export function useSuggestions(options: UseSuggestionsOptions): UseSuggestionsReturn {
-	const { currentPath, reply, enabled = true } = options;
+	const { currentPath, reply, enabled = true, autoFetch = true } = options;
 	const routeKey = useMemo(() => getRouteCacheKey(currentPath), [currentPath]);
 	const replySignature = useMemo(() => getReplySignature(reply), [reply]);
 	const cacheKey = useMemo(
@@ -101,8 +102,10 @@ export function useSuggestions(options: UseSuggestionsOptions): UseSuggestionsRe
 
 	// Fetch suggestions when path changes
 	useEffect(() => {
-		fetchSuggestions();
-	}, [fetchSuggestions]);
+		if (autoFetch) {
+			fetchSuggestions();
+		}
+	}, [fetchSuggestions, autoFetch]);
 
 	const refresh = useCallback(() => {
 		fetchSuggestions(true);
