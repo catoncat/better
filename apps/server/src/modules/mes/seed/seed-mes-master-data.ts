@@ -508,6 +508,16 @@ export const seedMesMasterData = async ({
 		});
 	}
 
+	const materialLots = [{ materialCode: "MAT-001", lotNo: "LOT-2024-001" }];
+	for (const lot of materialLots) {
+		await prisma.materialLot.upsert({
+			where: { materialCode_lotNo: { materialCode: lot.materialCode, lotNo: lot.lotNo } },
+			update: {},
+			create: lot,
+		});
+	}
+	console.log("  -> Material Lot data ensured");
+
 	const bomItems = [
 		{ parentCode: "P-1001", childCode: "MAT-001", qty: 10 },
 		{ parentCode: "P-1001", childCode: "MAT-002", qty: 5 },
