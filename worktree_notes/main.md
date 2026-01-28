@@ -774,3 +774,22 @@
 
 ## Findings (2026-01-28 doc-review verify)
 - Verified backlog table now lists 9 API domains with endpoints/docs/UI paths; doc_review_tasks includes Backlog 依据; 00_status header includes Links to backlog and round template.
+
+## Context (2026-01-28)
+- Task: Fix Loading doc deviations (user_docs/05_material.md + SMT playbook docs) per round1 review.
+
+## Findings (2026-01-28)
+- Deviations in round1_loading: user_docs missing error/exception coverage; replace flow mismatch with UI; playbook unlock input mismatch; slotId meaning mismatch in slot mapping doc.
+- Target files to edit: `user_docs/05_material.md`, `domain_docs/mes/smt_playbook/03_run_flow/03_loading_flow.md`, `domain_docs/mes/smt_playbook/02_configuration/03_slot_material_mapping.md`.
+
+## Plan (2026-01-28)
+- [ ] Update user material guide with load-table failure cases + proper replace UI path.
+- [ ] Align loading flow playbook unlock input with API behavior.
+- [ ] Clarify slot mapping doc: slotId refers to FeederSlot id (show slotCode separately).
+- [ ] Optionally update round1_loading review notes to mark fixes.
+
+## Progress (2026-01-28)
+- Updated `user_docs/05_material.md` with load-table failure handling, verify exceptions, barcode format, and replace via "换料模式".
+- Updated `domain_docs/mes/smt_playbook/03_run_flow/03_loading_flow.md` unlock input to reason-only + operatorId from login.
+- Updated `domain_docs/mes/smt_playbook/02_configuration/03_slot_material_mapping.md` to clarify slotId vs slotCode.
+- Marked deviations as fixed in `domain_docs/mes/doc_review/round1_loading.md`.

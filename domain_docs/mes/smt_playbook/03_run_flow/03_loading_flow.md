@@ -122,7 +122,8 @@ stateDiagram-v2
 
 ## 7. 解锁站位
 - 触发接口：`POST /api/feeder-slots/:slotId/unlock`
-- 必填：`reason` + `operatorId`
+- 必填：`reason`
+- `operatorId` 由登录用户自动记录。
 - 系统会清零失败次数并记录解锁历史。
 
 ## 8. 真实例子（中文）

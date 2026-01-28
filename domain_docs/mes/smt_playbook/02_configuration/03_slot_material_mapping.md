@@ -10,7 +10,7 @@
 ## 3. 关键字段含义
 | 字段 | 含义 | 示例 |
 |---|---|---|
-| `slotId` | 站位 | 2F-46 |
+| `slotId` | 站位 ID（FeederSlot id，非站位码） | cmkxxxxxx |
 | `materialCode` | 物料编码 | 5212090001 |
 | `productCode` | 产品编码（可选） | MB-A |
 | `routingId` | 路由（可选） | SMT-主板A-标准路由 |
@@ -18,6 +18,8 @@
 | `isAlternate` | 是否替代料 | false |
 | `unitConsumption` | 单机用量 | 1 |
 | `isCommonMaterial` | 通用料标记 | false |
+
+> **注意**：创建/更新映射使用 `slotId`（站位 ID）。站位码（如 2F-46）为 UI 展示字段 `slotCode`。
 
 ## 4. 规则匹配逻辑（简化）
 当加载站位表时，系统会：
@@ -27,7 +29,7 @@
 
 ## 5. 与真实表单的对应
 在 **SMT物料上机对照表（QR‑Pro‑121）** 中：
-- “站位”对应 `slotId`
+- “站位”对应 `slotCode`（站位码）
 - “零件 P/N”对应 `materialCode`
 - “单耗/共用料”分别对应 `unitConsumption` / `isCommonMaterial`
 
