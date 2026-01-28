@@ -18,6 +18,10 @@
 - Ask clarifying questions before coding if anything is unclear.
 - When asking for user decisions or open questions, always include: brief context, options, impact/trade-offs, and a recommended choice.
 
+## Quick Reference (Common Pitfalls)
+
+- **RBAC**: Multi-role system, ❌ `user.role === "ADMIN"` ✅ `requirePermission` / `useAbility` → `agent_docs/03_backend/auth_better_auth.md`
+
 ## Quick Start (Local Dev)
 - Read `agent_docs/00_onboarding/setup.md` and follow the steps.
 
@@ -163,8 +167,8 @@ Use the smallest set of docs needed for the task. Skip anything not required.
 ## Backend / API / Auth / Notifications
 - New API endpoint:
   1. `agent_docs/03_backend/api_patterns.md`
-- Auth changes:
-  1. `agent_docs/03_backend/auth_better_auth.md`
+- Auth or permission changes (RBAC, role checks, permission guards):
+  1. `agent_docs/03_backend/auth_better_auth.md` ⚠️ **Multi-role system, NOT `user.role`**
 - Notifications:
   1. `agent_docs/03_backend/notifications.md`
 - Audit logging:
