@@ -1,8 +1,8 @@
 import type { PrismaClient } from "@better-app/db";
-import { runSeed } from "../../scripts/seed";
-import { runSeedDcDemo } from "../../scripts/seed-dc-demo";
-import { runSeedDemo } from "../../scripts/seed-demo";
-import { runSeedLoadingConfig } from "../../scripts/seed-loading-config";
+import { runSeed } from "../../seed/seed";
+import { runSeedDcDemo } from "../../seed/seed-dc-demo";
+import { runSeedDemo } from "../../seed/seed-demo";
+import { runSeedLoadingConfig } from "../../seed/seed-loading-config";
 import type { ServiceResult } from "../../types/service-result";
 
 export type DemoSeedMode = "append" | "overwrite";
@@ -119,25 +119,25 @@ export const runDemoSeed = async (
 
 		if (dataset === "base") {
 			if (input.mode === "append") continue;
-			await runSeed({ allowUnsafeReset: true, loadEnv: false, prisma: db });
+			await runSeed({ allowUnsafeReset: true, prisma: db });
 			executedDatasets.push(dataset);
 			continue;
 		}
 
 		if (dataset === "mgmt_demo") {
-			await runSeedDemo({ loadEnv: false, prisma: db });
+			await runSeedDemo({ prisma: db });
 			executedDatasets.push(dataset);
 			continue;
 		}
 
 		if (dataset === "loading_config") {
-			await runSeedLoadingConfig({ loadEnv: false, prisma: db });
+			await runSeedLoadingConfig({ prisma: db });
 			executedDatasets.push(dataset);
 			continue;
 		}
 
 		if (dataset === "data_collection") {
-			await runSeedDcDemo({ loadEnv: false, prisma: db });
+			await runSeedDcDemo({ prisma: db });
 			executedDatasets.push(dataset);
 		}
 	}
