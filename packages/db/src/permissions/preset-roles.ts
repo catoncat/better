@@ -19,6 +19,7 @@ export const PRESET_ROLES: PresetRole[] = [
 			Permission.SYSTEM_ROLE_MANAGE,
 			Permission.SYSTEM_CONFIG,
 			Permission.SYSTEM_INTEGRATION,
+			Permission.SYSTEM_DEMO_SEED,
 			// Admin can also view everything
 			Permission.WO_READ,
 			Permission.RUN_READ,

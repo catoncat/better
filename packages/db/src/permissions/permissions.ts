@@ -67,6 +67,7 @@ export const Permission = {
 	SYSTEM_ROLE_MANAGE: "system:role_manage",
 	SYSTEM_CONFIG: "system:config",
 	SYSTEM_INTEGRATION: "system:integration",
+	SYSTEM_DEMO_SEED: "system:demo_seed",
 } as const;
 
 export type PermissionKey = keyof typeof Permission;
@@ -172,6 +173,7 @@ export const PERMISSION_GROUPS = {
 			{ value: Permission.SYSTEM_ROLE_MANAGE, label: "角色管理" },
 			{ value: Permission.SYSTEM_CONFIG, label: "系统配置" },
 			{ value: Permission.SYSTEM_INTEGRATION, label: "集成管理" },
+			{ value: Permission.SYSTEM_DEMO_SEED, label: "演示数据生成" },
 		],
 	},
 } as const;
