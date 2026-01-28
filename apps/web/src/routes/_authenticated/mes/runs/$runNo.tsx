@@ -50,6 +50,7 @@ import { useMrbDecision, useOqcByRun } from "@/hooks/use-oqc";
 import {
 	type ReadinessCheckItem,
 	usePerformPrecheck,
+	useReadinessConfig,
 	useReadinessLatest,
 	useWaiveItem,
 } from "@/hooks/use-readiness";
@@ -125,6 +126,9 @@ function RunDetailPage() {
 		isLoading: readinessLoading,
 		refetch: refetchReadiness,
 	} = useReadinessLatest(runNo, undefined, { enabled: canViewReadiness });
+	const { data: readinessConfig } = useReadinessConfig(data?.line?.id, {
+		enabled: canViewReadiness,
+	});
 
 	// FAI hooks
 	const { data: faiGate, isLoading: faiGateLoading } = useFaiGate(runNo, {
@@ -167,6 +171,7 @@ function RunDetailPage() {
 	const [waiveDialogOpen, setWaiveDialogOpen] = useState(false);
 	const [selectedItem, setSelectedItem] = useState<ReadinessCheckItem | null>(null);
 	const [waiveReason, setWaiveReason] = useState("");
+	const readinessCardRef = useRef<HTMLDivElement | null>(null);
 	const readinessItemsByType = useMemo(() => {
 		const map = new Map<string, ReadinessCheckItem[]>();
 		for (const item of readinessData?.items ?? []) {
@@ -176,6 +181,11 @@ function RunDetailPage() {
 		}
 		return map;
 	}, [readinessData?.items]);
+	const readinessConfigLoaded = readinessConfig !== undefined && readinessConfig !== null;
+	const enabledReadinessTypes = useMemo(
+		() => new Set(readinessConfig?.enabled ?? []),
+		[readinessConfig?.enabled],
+	);
 
 	// FAI creation dialog state
 	const [faiDialogOpen, setFaiDialogOpen] = useState(false);
@@ -255,7 +265,137 @@ function RunDetailPage() {
 		return READINESS_ITEM_TYPE_MAP[type] ?? type;
 	};
 
+	type ReadinessAction = {
+		label: string;
+		to: string;
+		params?: Record<string, string>;
+		search?: Record<string, unknown>;
+	};
+
+	type ReadinessItemAction = {
+		primaryAction?: ReadinessAction;
+		secondaryAction?: ReadinessAction;
+		disabledReason?: string;
+	};
+
+	const buildAction = (
+		label: string,
+		to: string,
+		options?: { params?: Record<string, string>; search?: Record<string, unknown> },
+	): ReadinessAction => ({
+		label,
+		to,
+		params: options?.params,
+		search: options?.search,
+	});
+
+	const getReadinessItemAction = (item: ReadinessCheckItem): ReadinessItemAction => {
+		if (!data) return {};
+
+		const lineId = data.line?.id;
+		const lineCode = data.line?.code;
+		const routingCode = data.routeVersion?.route?.code;
+		let primaryAction: ReadinessAction | undefined;
+		let secondaryAction: ReadinessAction | undefined;
+		let disabledReason: string | undefined;
+
+		const setDisabled = (reason?: string) => {
+			if (!disabledReason && reason) disabledReason = reason;
+		};
+
+		switch (item.itemType) {
+			case "LOADING":
+				if (item.itemKey === "SLOT_TABLE") {
+					primaryAction = buildAction("配置站位表", "/mes/loading/slot-config", {
+						search: { lineId },
+					});
+					if (!canConfigLoading) setDisabled("无权限配置站位表");
+					if (!lineId) setDisabled("缺少产线信息");
+				} else {
+					primaryAction = buildAction("前往上料", "/mes/loading", { search: { runNo } });
+					if (!canViewLoading) setDisabled("无权限查看上料");
+				}
+				break;
+			case "ROUTE":
+				primaryAction = routingCode
+					? buildAction("查看路由", "/mes/routes/$routingCode", {
+							params: { routingCode },
+					  })
+					: buildAction("工艺管理", "/mes/routes");
+				if (!canViewRoutes) setDisabled("无权限查看工艺路线");
+				break;
+			case "MATERIAL":
+				primaryAction = buildAction("物料管理", "/mes/materials", {
+					search: { search: item.itemKey },
+				});
+				if (!canViewRoutes) setDisabled("无权限查看物料");
+				break;
+			case "EQUIPMENT":
+				primaryAction = buildAction("设备管理", "/mes/integration/status");
+				if (!canViewIntegration) setDisabled("无权限查看设备状态");
+				break;
+			case "STENCIL":
+				primaryAction = buildAction("钢网管理", "/mes/integration/manual-entry");
+				if (!canViewIntegration) setDisabled("无权限查看钢网");
+				break;
+			case "SOLDER_PASTE":
+				primaryAction = buildAction("锡膏管理", "/mes/integration/manual-entry");
+				if (!canViewIntegration) setDisabled("无权限查看锡膏");
+				break;
+			case "PREP_BAKE":
+				primaryAction = buildAction("烘烤记录", "/mes/bake-records", {
+					search: { runNo: data.run.runNo },
+				});
+				break;
+			case "PREP_PASTE":
+				primaryAction = buildAction("锡膏记录", "/mes/solder-paste-usage", {
+					search: { runNo: data.run.runNo, lineCode },
+				});
+				break;
+			case "PREP_STENCIL_USAGE":
+				primaryAction = buildAction("钢网使用", "/mes/stencil-usage", {
+					search: { runNo: data.run.runNo, lineCode },
+				});
+				break;
+			case "PREP_STENCIL_CLEAN":
+				primaryAction = buildAction("清洗记录", "/mes/stencil-cleaning", {
+					search: { runNo: data.run.runNo, lineCode },
+				});
+				break;
+			case "PREP_SCRAPER":
+				primaryAction = buildAction("刮刀点检", "/mes/squeegee-usage", {
+					search: { runNo: data.run.runNo, lineCode },
+				});
+				break;
+			case "PREP_FIXTURE":
+				primaryAction = buildAction("夹具维护", "/mes/maintenance-records", {
+					search: { entityType: "FIXTURE", lineId },
+				});
+				if (!lineId) setDisabled("缺少产线信息");
+				break;
+			case "PREP_PROGRAM":
+				primaryAction = buildAction("程式记录", "/mes/oven-program-records", {
+					search: { lineCode },
+				});
+				if (!lineCode) setDisabled("缺少产线信息");
+				break;
+			case "TIME_RULE":
+				primaryAction = buildAction("时间规则", "/mes/time-rules");
+				break;
+			default:
+				break;
+		}
+
+		if (!primaryAction) return {};
+		if (runStatus !== "PREP") setDisabled("仅 PREP 阶段可处理");
+
+		return { primaryAction, secondaryAction, disabledReason };
+	};
+
 	const getTemplateStatus = (itemType: string) => {
+		if (readinessConfigLoaded && !enabledReadinessTypes.has(itemType)) {
+			return { status: "DISABLED", count: 0 };
+		}
 		const items = readinessItemsByType.get(itemType) ?? [];
 		if (items.length === 0) {
 			return { status: "UNSET", count: 0 };
@@ -270,6 +410,9 @@ function RunDetailPage() {
 	};
 
 	const getTemplateStatusBadge = (status: string) => {
+		if (status === "DISABLED") {
+			return <Badge variant="outline">未启用</Badge>;
+		}
 		if (status === "UNSET") {
 			return <Badge variant="outline">未检查</Badge>;
 		}
@@ -622,26 +765,114 @@ function RunDetailPage() {
 	);
 	const executionStage = ["IN_PROGRESS", "COMPLETED", "CLOSED_REWORK"].includes(data.run.status);
 	const closeoutStage = ["COMPLETED", "CLOSED_REWORK"].includes(data.run.status);
+	const scrollToReadiness = () => {
+		readinessCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+	};
+	const firstFailedItem = readinessData?.items.find((item) => item.status === "FAILED");
+	const firstFailedAction = firstFailedItem ? getReadinessItemAction(firstFailedItem) : null;
+	const authorizeBlockedReason = (() => {
+		if (canViewReadiness && readinessStatus !== "PASSED") {
+			return "需先处理就绪检查失败项或执行检查";
+		}
+		if (requiresFai && !faiGate?.faiPassed) {
+			return "需先完成 FAI";
+		}
+		if (requiresFai && faiGate?.faiPassed && !faiGate?.faiSigned) {
+			return "需先完成 FAI 签字";
+		}
+		return undefined;
+	})();
 	const nextAction = (() => {
 		if (!canViewReadiness) return null;
-		if (readinessStatus === "FAILED") return "处理就绪检查失败项";
+		if (readinessStatus === "FAILED") {
+			const action = firstFailedAction?.primaryAction;
+			if (action) {
+				return {
+					label: action.label,
+					onClick: () =>
+						navigate({
+							to: action.to,
+							params: action.params,
+							search: action.search,
+						}),
+					disabled: Boolean(firstFailedAction?.disabledReason),
+					disabledReason: firstFailedAction?.disabledReason,
+				};
+			}
+			return { label: "查看就绪检查", onClick: scrollToReadiness };
+		}
 		if (readinessStatus !== "PASSED") {
-			return canCheckReadiness ? "完成就绪检查" : "等待准备检查";
+			if (!canCheckReadiness) {
+				return {
+					label: "等待准备检查",
+					disabled: true,
+					disabledReason: "无执行准备检查权限",
+				};
+			}
+			return {
+				label: "执行准备检查",
+				onClick: async () => {
+					await handleRunCheck();
+					scrollToReadiness();
+				},
+				disabled: performPrecheck.isPending,
+			};
 		}
 		if (canViewFai && (requiresFai || existingFai)) {
-			if (!existingFai) return "创建并开始 FAI";
-			if (existingFai.status === "INSPECTING") return "完成试产并记录检验";
-			if (existingFai.status === "FAIL") return "复核 FAI 失败原因";
-			if (existingFai.status !== "PASS") return "完成 FAI";
+			if (!existingFai) {
+				return {
+					label: "创建并开始试产",
+					onClick: () => {
+						setPendingTrialLaunch(true);
+						setFaiDialogOpen(true);
+					},
+				};
+			}
+			if (existingFai.status === "INSPECTING") {
+				return { label: "试产执行", onClick: handleTrialExecution };
+			}
+			if (existingFai.status === "FAIL") {
+				return {
+					label: "查看 FAI",
+					onClick: () => navigate({ to: "/mes/fai", search: { runNo } }),
+				};
+			}
+			if (existingFai.status !== "PASS") {
+				return {
+					label: "完成 FAI",
+					onClick: () => navigate({ to: "/mes/fai", search: { runNo } }),
+				};
+			}
+			if (requiresFai && faiGate?.faiPassed && !faiGate?.faiSigned) {
+				return { label: "FAI 签字", onClick: () => setFaiSignDialogOpen(true) };
+			}
 		}
-		if (data.run.status === "PREP") return "授权生产";
-		if (data.run.status === "AUTHORIZED") return "开始执行";
-		if (data.run.status === "IN_PROGRESS") return "收尾";
+		if (data.run.status === "PREP") {
+			return {
+				label: "授权生产",
+				onClick: () => handleAuthorize("AUTHORIZE"),
+				disabled: Boolean(authorizeBlockedReason),
+				disabledReason: authorizeBlockedReason,
+			};
+		}
+		if (data.run.status === "AUTHORIZED") {
+			return { label: "开始执行", onClick: navigateToExecution };
+		}
+		if (data.run.status === "IN_PROGRESS") {
+			return { label: "收尾", onClick: () => setCloseoutDialogOpen(true) };
+		}
 		return null;
 	})();
 	const trialCta =
 		canViewFai && data.run.status === "PREP"
 			? (() => {
+					if (canViewReadiness && readinessStatus !== "PASSED") {
+						return {
+							label: "试产执行",
+							disabled: true,
+							disabledReason: "需先通过就绪检查",
+						};
+					}
 					if (faiGateLoading || faiLoading) {
 						return { label: "试产执行", disabled: true };
 					}
@@ -662,18 +893,19 @@ function RunDetailPage() {
 						return { label: "试产执行", disabled: false, onClick: handleTrialExecution };
 					}
 					if (existingFai.status === "FAIL") {
-						return { label: "FAI 未通过", disabled: true };
+						return { label: "FAI 未通过", disabled: true, disabledReason: "FAI 未通过" };
 					}
 					return { label: "等待授权", disabled: true };
 				})()
 			: null;
+	const authorizeDisabled = authorizeRun.isPending || Boolean(authorizeBlockedReason);
 	const canShowFaiSection = canViewFai ? Boolean(faiGate?.requiresFai || existingFai) : true;
 	const canShowOqcSection = canViewOqc ? Boolean(oqcDetail || oqcLoading) : true;
 
 	return (
 		<div className="space-y-6">
-			<div className="flex items-center justify-between">
-				<div className="flex items-center gap-4">
+				<div className="flex items-center justify-between">
+					<div className="flex items-center gap-4">
 					<Button variant="ghost" size="icon" asChild>
 						<Link to="/mes/runs">
 							<ArrowLeft className="h-4 w-4" />
@@ -687,59 +919,68 @@ function RunDetailPage() {
 						<p className="text-muted-foreground">
 							工单: {data.workOrder.woNo} · 产品: {data.workOrder.productCode}
 						</p>
+						</div>
 					</div>
-				</div>
-				<div className="flex items-center gap-2">
-					{data.run.status === "PREP" && (
-						<Can permissions={Permission.RUN_AUTHORIZE}>
-							<Button
-								size="sm"
-								onClick={() => handleAuthorize("AUTHORIZE")}
-								disabled={authorizeRun.isPending}
-							>
-								<CheckCircle2 className="mr-2 h-4 w-4" />
-								授权生产
-							</Button>
-						</Can>
-					)}
-					{data.run.status === "AUTHORIZED" && (
-						<Can permissions={Permission.RUN_AUTHORIZE}>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => handleAuthorize("REVOKE")}
-								disabled={authorizeRun.isPending}
-							>
-								<XCircle className="mr-2 h-4 w-4" />
-								撤销授权
-							</Button>
-						</Can>
-					)}
-					{data.run.status === "IN_PROGRESS" && (
-						<Can permissions={Permission.RUN_CLOSE}>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => setCloseoutDialogOpen(true)}
-								disabled={closeRun.isPending}
-							>
-								<ClipboardCheck className="mr-2 h-4 w-4" />
-								收尾
-							</Button>
-						</Can>
-					)}
-					{trialCta && (
-						<Can permissions={Permission.EXEC_TRACK_IN}>
-							<Button
-								variant="default"
-								size="sm"
-								onClick={trialCta.onClick}
-								disabled={trialCta.disabled}
-							>
-								<Play className="mr-2 h-4 w-4" />
-								{trialCta.label}
-							</Button>
-						</Can>
+					<div className="flex items-center gap-2">
+						{data.run.status === "PREP" && (
+							<Can permissions={Permission.RUN_AUTHORIZE}>
+								<div className="flex flex-col items-start">
+									<Button
+										size="sm"
+										onClick={() => handleAuthorize("AUTHORIZE")}
+										disabled={authorizeDisabled}
+										title={authorizeBlockedReason}
+									>
+										<CheckCircle2 className="mr-2 h-4 w-4" />
+										授权生产
+									</Button>
+									{authorizeBlockedReason && (
+										<span className="mt-1 text-xs text-muted-foreground">
+											{authorizeBlockedReason}
+										</span>
+									)}
+								</div>
+							</Can>
+						)}
+						{data.run.status === "AUTHORIZED" && (
+							<Can permissions={Permission.RUN_AUTHORIZE}>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => handleAuthorize("REVOKE")}
+									disabled={authorizeRun.isPending}
+								>
+									<XCircle className="mr-2 h-4 w-4" />
+									撤销授权
+								</Button>
+							</Can>
+						)}
+						{data.run.status === "IN_PROGRESS" && (
+							<Can permissions={Permission.RUN_CLOSE}>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => setCloseoutDialogOpen(true)}
+									disabled={closeRun.isPending}
+								>
+									<ClipboardCheck className="mr-2 h-4 w-4" />
+									收尾
+								</Button>
+							</Can>
+						)}
+						{trialCta && (
+							<Can permissions={Permission.EXEC_TRACK_IN}>
+								<Button
+									variant="default"
+									size="sm"
+									onClick={trialCta.onClick}
+									disabled={trialCta.disabled}
+									title={trialCta.disabledReason}
+								>
+									<Play className="mr-2 h-4 w-4" />
+									{trialCta.label}
+								</Button>
+							</Can>
 					)}
 					{(data.run.status === "AUTHORIZED" || data.run.status === "IN_PROGRESS") && (
 						<Can permissions={Permission.EXEC_TRACK_IN}>
@@ -806,14 +1047,22 @@ function RunDetailPage() {
 							</Badge>
 						</div>
 					</div>
-					{nextAction && (
-						<div className="flex items-center rounded-md bg-muted/50 px-3 py-2 text-sm">
-							<span className="text-muted-foreground mr-2">下一步</span>
-							<span className="font-medium">{nextAction}</span>
-						</div>
-					)}
-				</div>
-			</CollapsibleCard>
+						{nextAction && (
+							<div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
+								<span className="text-muted-foreground">下一步</span>
+								<Button
+									variant="secondary"
+									size="sm"
+									onClick={nextAction.onClick}
+									disabled={nextAction.disabled}
+									title={nextAction.disabledReason}
+								>
+									{nextAction.label}
+								</Button>
+							</div>
+						)}
+					</div>
+				</CollapsibleCard>
 
 			<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
 				<Card>
@@ -894,15 +1143,49 @@ function RunDetailPage() {
 								<p className="text-sm mt-1">请先完成准备检查以生成模板结果</p>
 							)}
 						</div>
-					) : (
-						<div className="space-y-6">
-							{PREP_CHECKLIST_TEMPLATE.map((section) => (
-								<div key={section.title} className="space-y-2">
-									<p className="text-sm font-medium">{section.title}</p>
-									<div className="grid gap-2 md:grid-cols-2">
-										{section.itemTypes.map((itemType) => {
-											const { status, count } = getTemplateStatus(itemType);
-											return (
+						) : (
+							<div className="space-y-6">
+								{PREP_CHECKLIST_TEMPLATE.map((section) => (
+									<div key={section.title} className="space-y-2">
+										<div className="flex items-center justify-between">
+											<p className="text-sm font-medium">{section.title}</p>
+											{(() => {
+												if (!canShowReadinessActions) return null;
+												const failedItem = section.itemTypes
+													.flatMap((itemType) => readinessItemsByType.get(itemType) ?? [])
+													.find((item) => item.status === "FAILED");
+												if (!failedItem) return null;
+												const action = getReadinessItemAction(failedItem);
+												if (!action.primaryAction) return null;
+												if (action.disabledReason) {
+													return (
+														<Button
+															variant="ghost"
+															size="sm"
+															disabled
+															title={action.disabledReason}
+														>
+															去处理
+														</Button>
+													);
+												}
+												return (
+													<Button variant="ghost" size="sm" asChild>
+														<Link
+															to={action.primaryAction.to}
+															params={action.primaryAction.params}
+															search={action.primaryAction.search}
+														>
+															去处理
+														</Link>
+													</Button>
+												);
+											})()}
+										</div>
+										<div className="grid gap-2 md:grid-cols-2">
+											{section.itemTypes.map((itemType) => {
+												const { status, count } = getTemplateStatus(itemType);
+												return (
 												<div
 													key={itemType}
 													className="flex items-center justify-between rounded-md border px-3 py-2"
@@ -992,290 +1275,184 @@ function RunDetailPage() {
 					)}
 				</CollapsibleCard>
 
-				<Card className="lg:col-span-2">
-					<CardHeader>
-						<div className="flex items-center justify-between">
-							<CardTitle className="flex items-center gap-2">
-								{canViewReadiness ? (
-									readinessLoading ? (
-										<Loader2 className="h-5 w-5 animate-spin" />
-									) : !readinessData ? (
-										<AlertTriangle className="h-5 w-5 text-yellow-600" />
-									) : readinessData.status === "PASSED" ? (
-										<CheckCircle2 className="h-5 w-5 text-green-600" />
-									) : (
-										<XCircle className="h-5 w-5 text-red-600" />
-									)
-								) : (
-									<Shield className="h-5 w-5 text-muted-foreground" />
-								)}
-								准备状态
-							</CardTitle>
-							{canViewReadiness && canShowReadinessActions && (
-								<div className="flex gap-2">
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => handleRunCheck()}
-										disabled={performPrecheck.isPending}
-									>
-										{performPrecheck.isPending ? (
-											<Loader2 className="h-4 w-4 animate-spin" />
+				<div ref={readinessCardRef} className="lg:col-span-2">
+					<Card>
+						<CardHeader>
+							<div className="flex items-center justify-between">
+								<CardTitle className="flex items-center gap-2">
+									{canViewReadiness ? (
+										readinessLoading ? (
+											<Loader2 className="h-5 w-5 animate-spin" />
+										) : !readinessData ? (
+											<AlertTriangle className="h-5 w-5 text-yellow-600" />
+										) : readinessData.status === "PASSED" ? (
+											<CheckCircle2 className="h-5 w-5 text-green-600" />
 										) : (
-											<RefreshCw className="h-4 w-4" />
-										)}
-									</Button>
-									{readinessData?.status === "PASSED" &&
-										(canViewLoading ? (
-											<Button variant="secondary" size="sm" asChild>
-												<Link to="/mes/loading" search={{ runNo }}>
+											<XCircle className="h-5 w-5 text-red-600" />
+										)
+									) : (
+										<Shield className="h-5 w-5 text-muted-foreground" />
+									)}
+									准备状态
+								</CardTitle>
+								{canViewReadiness && canShowReadinessActions && (
+									<div className="flex gap-2">
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() => handleRunCheck()}
+											disabled={performPrecheck.isPending}
+										>
+											{performPrecheck.isPending ? (
+												<Loader2 className="h-4 w-4 animate-spin" />
+											) : (
+												<RefreshCw className="h-4 w-4" />
+											)}
+										</Button>
+										{readinessData?.status === "PASSED" &&
+											(canViewLoading ? (
+												<Button variant="secondary" size="sm" asChild>
+													<Link to="/mes/loading" search={{ runNo }}>
+														<Package className="mr-2 h-4 w-4" />
+														前往上料
+													</Link>
+												</Button>
+											) : (
+												<Button variant="secondary" size="sm" disabled>
 													<Package className="mr-2 h-4 w-4" />
 													前往上料
-												</Link>
-											</Button>
-										) : (
-											<Button variant="secondary" size="sm" disabled>
-												<Package className="mr-2 h-4 w-4" />
-												前往上料
-											</Button>
-										))}
+												</Button>
+											))}
+									</div>
+								)}
+							</div>
+						</CardHeader>
+						<CardContent>
+							{!canViewReadiness ? (
+								<NoAccessCard description="无权限查看准备检查状态。" />
+							) : readinessLoading ? (
+								<p className="text-muted-foreground">加载中...</p>
+							) : !readinessData ? (
+								<div className="py-4 text-center text-muted-foreground">
+									<p>暂无检查记录</p>
+									{canShowReadinessActions && (
+										<p className="text-sm mt-1">点击上方按钮执行准备检查</p>
+									)}
+								</div>
+							) : (
+								<div className="space-y-4">
+									<div className="grid gap-4 md:grid-cols-4">
+										<div>
+											<p className="text-sm text-muted-foreground">检查类型</p>
+											<p className="font-medium">
+												{readinessData.type === "FORMAL" ? "正式检查" : "预检"}
+											</p>
+										</div>
+										<div>
+											<p className="text-sm text-muted-foreground">检查状态</p>
+											{getReadinessStatusBadge(readinessData.status)}
+										</div>
+										<div>
+											<p className="text-sm text-muted-foreground">检查时间</p>
+											<p className="font-medium">{formatDateTime(readinessData.checkedAt)}</p>
+										</div>
+										<div>
+											<p className="text-sm text-muted-foreground">结果汇总</p>
+											<p className="font-medium text-sm">
+												通过: {readinessData.summary.passed} · 失败: {readinessData.summary.failed} ·
+												豁免: {readinessData.summary.waived}
+											</p>
+										</div>
+									</div>
+	
+									{readinessData.items.length > 0 && (
+										<div className="border rounded-lg">
+											<Table>
+												<TableHeader>
+													<TableRow>
+														<TableHead>类型</TableHead>
+														<TableHead>标识</TableHead>
+														<TableHead>状态</TableHead>
+														<TableHead>原因</TableHead>
+														<TableHead>操作</TableHead>
+													</TableRow>
+												</TableHeader>
+												<TableBody>
+													{readinessData.items.map((item) => (
+														<TableRow key={item.id}>
+															<TableCell>{getItemTypeLabel(item.itemType)}</TableCell>
+															<TableCell className="font-mono text-sm">{item.itemKey}</TableCell>
+															<TableCell>{getItemStatusBadge(item.status)}</TableCell>
+															<TableCell className="max-w-xs truncate text-sm text-muted-foreground">
+																{item.failReason ??
+																	(item.waiveReason ? `豁免: ${item.waiveReason}` : "-")}
+															</TableCell>
+															<TableCell>
+																{item.status === "FAILED" && canShowReadinessActions && (
+																	<div className="flex items-center gap-1">
+																		{canWaiveReadiness && (
+																			<Button
+																				variant="ghost"
+																				size="sm"
+																				onClick={() => handleWaive(item)}
+																			>
+																				<Shield className="mr-1 h-3 w-3" />
+																				豁免
+																			</Button>
+																		)}
+																		{(() => {
+																			const action = getReadinessItemAction(item);
+																			const primaryAction = action.primaryAction;
+																			if (!primaryAction) return null;
+																			const ActionIcon =
+																				primaryAction.to === "/mes/loading/slot-config"
+																					? Settings
+																					: ExternalLink;
+																			if (action.disabledReason) {
+																				return (
+																					<Button
+																						variant="ghost"
+																						size="sm"
+																						disabled
+																						title={action.disabledReason}
+																					>
+																						<ActionIcon className="mr-1 h-3 w-3" />
+																						{primaryAction.label}
+																					</Button>
+																				);
+																			}
+																			return (
+																				<Button variant="ghost" size="sm" asChild>
+																					<Link
+																						to={primaryAction.to}
+																						params={primaryAction.params}
+																						search={primaryAction.search}
+																					>
+																						<ActionIcon className="mr-1 h-3 w-3" />
+																						{primaryAction.label}
+																					</Link>
+																				</Button>
+																			);
+																		})()}
+																	</div>
+																)}
+																{item.status === "WAIVED" && item.waivedAt && (
+																	<span className="text-xs text-muted-foreground">
+																		{formatDateTime(item.waivedAt)}
+																	</span>
+																)}
+															</TableCell>
+														</TableRow>
+													))}
+												</TableBody>
+											</Table>
+										</div>
+									)}
 								</div>
 							)}
-						</div>
-					</CardHeader>
-					<CardContent>
-						{!canViewReadiness ? (
-							<NoAccessCard description="无权限查看准备检查状态。" />
-						) : readinessLoading ? (
-							<p className="text-muted-foreground">加载中...</p>
-						) : !readinessData ? (
-							<div className="py-4 text-center text-muted-foreground">
-								<p>暂无检查记录</p>
-								{canShowReadinessActions && (
-									<p className="text-sm mt-1">点击上方按钮执行准备检查</p>
-								)}
-							</div>
-						) : (
-							<div className="space-y-4">
-								<div className="grid gap-4 md:grid-cols-4">
-									<div>
-										<p className="text-sm text-muted-foreground">检查类型</p>
-										<p className="font-medium">
-											{readinessData.type === "FORMAL" ? "正式检查" : "预检"}
-										</p>
-									</div>
-									<div>
-										<p className="text-sm text-muted-foreground">检查状态</p>
-										{getReadinessStatusBadge(readinessData.status)}
-									</div>
-									<div>
-										<p className="text-sm text-muted-foreground">检查时间</p>
-										<p className="font-medium">{formatDateTime(readinessData.checkedAt)}</p>
-									</div>
-									<div>
-										<p className="text-sm text-muted-foreground">结果汇总</p>
-										<p className="font-medium text-sm">
-											通过: {readinessData.summary.passed} · 失败: {readinessData.summary.failed} ·
-											豁免: {readinessData.summary.waived}
-										</p>
-									</div>
-								</div>
-
-								{readinessData.items.length > 0 && (
-									<div className="border rounded-lg">
-										<Table>
-											<TableHeader>
-												<TableRow>
-													<TableHead>类型</TableHead>
-													<TableHead>标识</TableHead>
-													<TableHead>状态</TableHead>
-													<TableHead>原因</TableHead>
-													<TableHead>操作</TableHead>
-												</TableRow>
-											</TableHeader>
-											<TableBody>
-												{readinessData.items.map((item) => (
-													<TableRow key={item.id}>
-														<TableCell>{getItemTypeLabel(item.itemType)}</TableCell>
-														<TableCell className="font-mono text-sm">{item.itemKey}</TableCell>
-														<TableCell>{getItemStatusBadge(item.status)}</TableCell>
-														<TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-															{item.failReason ??
-																(item.waiveReason ? `豁免: ${item.waiveReason}` : "-")}
-														</TableCell>
-														<TableCell>
-															{item.status === "FAILED" && canShowReadinessActions && (
-																<div className="flex items-center gap-1">
-																	{canWaiveReadiness && (
-																		<Button
-																			variant="ghost"
-																			size="sm"
-																			onClick={() => handleWaive(item)}
-																		>
-																			<Shield className="mr-1 h-3 w-3" />
-																			豁免
-																		</Button>
-																	)}
-																	{/* LOADING: 站位表缺失 → 配置站位表 */}
-																	{item.itemType === "LOADING" &&
-																		item.itemKey === "SLOT_TABLE" &&
-																		canConfigLoading && (
-																			<Button variant="ghost" size="sm" asChild>
-																				<Link
-																					to="/mes/loading/slot-config"
-																					search={{ lineId: data.line?.id }}
-																				>
-																					<Settings className="mr-1 h-3 w-3" />
-																					配置站位表
-																				</Link>
-																			</Button>
-																		)}
-																	{/* LOADING: 未上料/物料不匹配 → 前往上料 */}
-																	{item.itemType === "LOADING" &&
-																		item.itemKey !== "SLOT_TABLE" &&
-																		canViewLoading && (
-																			<Button variant="ghost" size="sm" asChild>
-																				<Link to="/mes/loading">
-																					<ExternalLink className="mr-1 h-3 w-3" />
-																					前往上料
-																				</Link>
-																			</Button>
-																		)}
-																	{/* ROUTE: 工艺路线问题 → 工艺管理 */}
-																	{item.itemType === "ROUTE" && canViewRoutes && (
-																		<Button variant="ghost" size="sm" asChild>
-																			<Link to="/mes/routes">
-																				<ExternalLink className="mr-1 h-3 w-3" />
-																				工艺管理
-																			</Link>
-																		</Button>
-																	)}
-																	{/* MATERIAL: 物料主数据问题 → 物料管理 */}
-																	{item.itemType === "MATERIAL" && canViewRoutes && (
-																		<Button variant="ghost" size="sm" asChild>
-																			<Link to="/mes/materials">
-																				<ExternalLink className="mr-1 h-3 w-3" />
-																				物料管理
-																			</Link>
-																		</Button>
-																	)}
-																	{/* EQUIPMENT: 设备问题 → 设备管理 */}
-																	{item.itemType === "EQUIPMENT" && canViewIntegration && (
-																		<Button variant="ghost" size="sm" asChild>
-																			<Link to="/mes/integration/status">
-																				<ExternalLink className="mr-1 h-3 w-3" />
-																				设备管理
-																			</Link>
-																		</Button>
-																	)}
-																	{/* STENCIL: 钢网问题 → 钢网管理 */}
-																	{item.itemType === "STENCIL" && canViewIntegration && (
-																		<Button variant="ghost" size="sm" asChild>
-																			<Link to="/mes/integration/manual-entry">
-																				<ExternalLink className="mr-1 h-3 w-3" />
-																				钢网管理
-																			</Link>
-																		</Button>
-																	)}
-																	{/* PREP_STENCIL_CLEAN: 清洗记录缺失/异常 → 前往清洗记录 */}
-																	{item.itemType === "PREP_STENCIL_CLEAN" && (
-																		<Button variant="ghost" size="sm" asChild>
-																			<Link
-																				to="/mes/stencil-cleaning"
-																				search={{
-																					lineCode: data.line?.code,
-																					runNo: data.run.runNo,
-																				}}
-																			>
-																				<ExternalLink className="mr-1 h-3 w-3" />
-																				清洗记录
-																			</Link>
-																		</Button>
-																	)}
-																	{/* PREP_STENCIL_USAGE: 使用记录缺失/异常 → 前往使用记录 */}
-																	{item.itemType === "PREP_STENCIL_USAGE" && (
-																		<Button variant="ghost" size="sm" asChild>
-																			<Link
-																				to="/mes/stencil-usage"
-																				search={{
-																					lineCode: data.line?.code,
-																					runNo: data.run.runNo,
-																				}}
-																			>
-																				<ExternalLink className="mr-1 h-3 w-3" />
-																				钢网使用
-																			</Link>
-																		</Button>
-																	)}
-																	{/* SOLDER_PASTE: 锡膏问题 → 锡膏管理 */}
-																	{item.itemType === "SOLDER_PASTE" && canViewIntegration && (
-																		<Button variant="ghost" size="sm" asChild>
-																			<Link to="/mes/integration/manual-entry">
-																				<ExternalLink className="mr-1 h-3 w-3" />
-																				锡膏管理
-																			</Link>
-																		</Button>
-																	)}
-																	{/* PREP_PASTE: 锡膏准备项缺失/异常 → 前往使用记录 */}
-																	{item.itemType === "PREP_PASTE" && (
-																		<Button variant="ghost" size="sm" asChild>
-																			<Link
-																				to="/mes/solder-paste-usage"
-																				search={{
-																					lineCode: data.line?.code,
-																					runNo: data.run.runNo,
-																				}}
-																			>
-																				<ExternalLink className="mr-1 h-3 w-3" />
-																				锡膏记录
-																			</Link>
-																		</Button>
-																	)}
-																	{/* PREP_SCRAPER: 刮刀点检缺失/异常 → 前往点检记录 */}
-																	{item.itemType === "PREP_SCRAPER" && (
-																		<Button variant="ghost" size="sm" asChild>
-																			<Link
-																				to="/mes/squeegee-usage"
-																				search={{
-																					lineCode: data.line?.code,
-																					runNo: data.run.runNo,
-																				}}
-																			>
-																				<ExternalLink className="mr-1 h-3 w-3" />
-																				刮刀点检
-																			</Link>
-																		</Button>
-																	)}
-																	{/* PREP_BAKE: 烘烤记录缺失/异常 → 前往烘烤记录 */}
-																	{item.itemType === "PREP_BAKE" && (
-																		<Button variant="ghost" size="sm" asChild>
-																			<Link
-																				to="/mes/bake-records"
-																				search={{ runNo: data.run.runNo }}
-																			>
-																				<ExternalLink className="mr-1 h-3 w-3" />
-																				烘烤记录
-																			</Link>
-																		</Button>
-																	)}
-																</div>
-															)}
-															{item.status === "WAIVED" && item.waivedAt && (
-																<span className="text-xs text-muted-foreground">
-																	{formatDateTime(item.waivedAt)}
-																</span>
-															)}
-														</TableCell>
-													</TableRow>
-												))}
-											</TableBody>
-										</Table>
-									</div>
-								)}
-							</div>
-						)}
-					</CardContent>
-				</Card>
+						</CardContent>
+					</Card>
+				</div>
 			</div>
 
 			{/* FAI Card - show placeholder when lacking permission */}
