@@ -1,4 +1,4 @@
-import { Bot, Loader2, MessageSquareText, User } from "lucide-react";
+import { Bot, Loader2, MessageSquareText, RefreshCw, User } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -99,6 +99,7 @@ function linkifyRouteChildren(children: ReactNode): ReactNode {
 
 type ChatMessagesProps = {
 	messages: ChatMessage[];
+	onReload?: () => void;
 	className?: string;
 };
 
@@ -110,7 +111,7 @@ export type ChatFeedbackPayload = {
 	feedback?: string;
 };
 
-export function ChatMessages({ messages, className }: ChatMessagesProps) {
+export function ChatMessages({ messages, onReload, className }: ChatMessagesProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	// Auto-scroll to bottom on every render (when messages change)
@@ -137,14 +138,23 @@ export function ChatMessages({ messages, className }: ChatMessagesProps) {
 			ref={containerRef}
 			className={cn("flex-1 min-h-0 space-y-4 overflow-y-auto p-4", className)}
 		>
-			{messages.map((message) => (
-				<MessageBubble key={message.id} message={message} />
+			{messages.map((message, index) => (
+				<MessageBubble
+					key={message.id}
+					message={message}
+					isLast={index === messages.length - 1}
+					onReload={onReload}
+				/>
 			))}
 		</div>
 	);
 }
 
-function MessageBubble({ message }: { message: ChatMessage }) {
+function MessageBubble({
+	message,
+	isLast,
+	onReload,
+}: { message: ChatMessage; isLast: boolean; onReload?: () => void }) {
 	const isUser = message.role === "user";
 
 	return (
@@ -160,7 +170,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 			</div>
 
 			{/* Message bubble */}
-			<div className="flex max-w-[80%] flex-col gap-2">
+			<div className="flex max-w-[80%] flex-col gap-1">
 				<div
 					className={cn(
 						"rounded-lg px-3 py-2",
@@ -239,6 +249,19 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 						<Loader2 className="size-4 animate-spin" />
 					) : null}
 				</div>
+				{!isUser && isLast && onReload && !message.isStreaming && (
+					<div className="flex px-1">
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-5 rounded-full text-muted-foreground hover:text-foreground"
+							onClick={onReload}
+							title="重新生成"
+						>
+							<RefreshCw className="size-3" />
+						</Button>
+					</div>
+				)}
 			</div>
 		</div>
 	);

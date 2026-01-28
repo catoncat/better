@@ -226,7 +226,7 @@ export async function* streamChatCompletion(
 		// Indicate to user that we're fetching info (only once per batch)
 		if (!hasAnnouncedToolSearch) {
 			hasAnnouncedToolSearch = true;
-			yield `\n\n🔍 *正在查询代码库...*\n\n`;
+			yield `\n\n🔍 *正在查询文档...*\n\n`;
 		}
 
 		// Process each tool call

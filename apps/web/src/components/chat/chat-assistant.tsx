@@ -41,7 +41,7 @@ export function ChatAssistant() {
 		updateSessionMeta,
 	} = useChatHistory();
 
-	const { messages, isLoading, error, sendMessage, clearMessages, stop, setMessages } = useChat({
+	const { messages, isLoading, error, sendMessage, clearMessages, stop, setMessages, reload } = useChat({
 		currentPath,
 	});
 
@@ -268,7 +268,11 @@ export function ChatAssistant() {
 									)}
 
 									{/* Messages */}
-									<ChatMessages messages={messages} className="flex-1 min-h-0" />
+									<ChatMessages
+										messages={messages}
+										className="flex-1 min-h-0"
+										onReload={reload}
+									/>
 
 									{/* Suggestions - show after assistant reply */}
 									{suggestionReply && (

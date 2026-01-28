@@ -20,6 +20,7 @@ type UseChatReturn = {
 	clearMessages: () => void;
 	stop: () => void;
 	setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
+	reload: () => Promise<void>;
 };
 
 const BASE_URL = import.meta.env.VITE_SERVER_URL
@@ -38,40 +39,18 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
 	const abortControllerRef = useRef<AbortController | null>(null);
 
-	const sendMessage = useCallback(
-		async (content: string) => {
-			if (!content.trim() || isLoading) return;
+	const stop = useCallback(() => {
+		if (abortControllerRef.current) {
+			abortControllerRef.current.abort();
+			abortControllerRef.current = null;
+		}
+	}, []);
 
-			setError(null);
-
-			// Add user message
-			const userMessage: ChatMessage = {
-				id: generateId(),
-				role: "user",
-				content: content.trim(),
-			};
-
-			// Create placeholder for assistant response
-			const assistantMessage: ChatMessage = {
-				id: generateId(),
-				role: "assistant",
-				content: "",
-				isStreaming: true,
-			};
-
-			setMessages((prev) => [...prev, userMessage, assistantMessage]);
-			setIsLoading(true);
-
-			// Create abort controller for cancellation
+	const fetchAndStream = useCallback(
+		async (apiMessages: { role: string; content: string }[], assistantId: string) => {
 			abortControllerRef.current = new AbortController();
 
 			try {
-				// Build messages for API (only role and content)
-				const apiMessages = [...messages, userMessage].map((m) => ({
-					role: m.role,
-					content: m.content,
-				}));
-
 				const response = await fetch(`${BASE_URL}/chat`, {
 					method: "POST",
 					headers: {
@@ -90,7 +69,6 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 					throw new Error(errorData.error?.message || `请求失败: ${response.status}`);
 				}
 
-				// Handle SSE stream
 				const reader = response.body?.getReader();
 				if (!reader) {
 					throw new Error("无法读取响应流");
@@ -106,9 +84,8 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
 					buffer += decoder.decode(value, { stream: true });
 
-					// Process SSE events
 					const lines = buffer.split("\n");
-					buffer = lines.pop() || ""; // Keep incomplete line in buffer
+					buffer = lines.pop() || "";
 
 					for (const line of lines) {
 						if (line.startsWith("data: ")) {
@@ -117,21 +94,17 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 								const parsed = JSON.parse(data);
 
 								if (parsed.content) {
-									// Append content to assistant message
 									setMessages((prev) =>
 										prev.map((m) =>
-											m.id === assistantMessage.id
-												? { ...m, content: m.content + parsed.content }
-												: m,
+											m.id === assistantId ? { ...m, content: m.content + parsed.content } : m,
 										),
 									);
 								}
 
 								if (parsed.done) {
-									// Mark streaming as complete
 									setMessages((prev) =>
 										prev.map((m) =>
-											m.id === assistantMessage.id ? { ...m, isStreaming: false } : m,
+											m.id === assistantId ? { ...m, isStreaming: false } : m,
 										),
 									);
 								}
@@ -140,7 +113,6 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 									throw new Error(parsed.message || "生成回复时发生错误");
 								}
 							} catch (e) {
-								// Ignore JSON parse errors for incomplete data
 								if (e instanceof SyntaxError) continue;
 								throw e;
 							}
@@ -148,41 +120,95 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 					}
 				}
 
-				// Ensure streaming is marked as complete
 				setMessages((prev) =>
-					prev.map((m) => (m.id === assistantMessage.id ? { ...m, isStreaming: false } : m)),
+					prev.map((m) => (m.id === assistantId ? { ...m, isStreaming: false } : m)),
 				);
 			} catch (err) {
 				if (err instanceof Error && err.name === "AbortError") {
-					// User cancelled, just mark as complete
 					setMessages((prev) =>
-						prev.map((m) => (m.id === assistantMessage.id ? { ...m, isStreaming: false } : m)),
+						prev.map((m) => (m.id === assistantId ? { ...m, isStreaming: false } : m)),
 					);
 				} else {
 					const errorMessage = err instanceof Error ? err.message : "发送消息失败";
 					setError(errorMessage);
-
-					// Remove the empty assistant message on error
-					setMessages((prev) => prev.filter((m) => m.id !== assistantMessage.id));
+					setMessages((prev) => prev.filter((m) => m.id !== assistantId));
 				}
 			} finally {
 				setIsLoading(false);
 				abortControllerRef.current = null;
 			}
 		},
-		[isLoading, messages, options.currentPath],
+		[options.currentPath],
 	);
+
+	const sendMessage = useCallback(
+		async (content: string) => {
+			if (!content.trim() || isLoading) return;
+
+			setError(null);
+
+			const userMessage: ChatMessage = {
+				id: generateId(),
+				role: "user",
+				content: content.trim(),
+			};
+
+			const assistantMessage: ChatMessage = {
+				id: generateId(),
+				role: "assistant",
+				content: "",
+				isStreaming: true,
+			};
+
+			setMessages((prev) => [...prev, userMessage, assistantMessage]);
+			setIsLoading(true);
+
+			const apiMessages = [...messages, userMessage].map((m) => ({
+				role: m.role,
+				content: m.content,
+			}));
+
+			await fetchAndStream(apiMessages, assistantMessage.id);
+		},
+		[isLoading, messages, fetchAndStream],
+	);
+
+	const reload = useCallback(async () => {
+		if (isLoading || messages.length === 0) return;
+
+		const lastUserIndex = messages.reduce(
+			(acc, msg, index) => (msg.role === "user" ? index : acc),
+			-1,
+		);
+
+		if (lastUserIndex === -1) return;
+
+		const lastUserMessage = messages[lastUserIndex];
+		const history = messages.slice(0, lastUserIndex);
+
+		setError(null);
+		setIsLoading(true);
+
+		const assistantMessage: ChatMessage = {
+			id: generateId(),
+			role: "assistant",
+			content: "",
+			isStreaming: true,
+		};
+
+		setMessages([...history, lastUserMessage, assistantMessage]);
+
+		const apiMessages = [...history, lastUserMessage].map((m) => ({
+			role: m.role,
+			content: m.content,
+		}));
+
+		await fetchAndStream(apiMessages, assistantMessage.id);
+	}, [isLoading, messages, fetchAndStream]);
 
 	const clearMessages = useCallback(() => {
 		setMessages([]);
 		setError(null);
-	}, []);
-
-	const stop = useCallback(() => {
-		if (abortControllerRef.current) {
-			abortControllerRef.current.abort();
-			abortControllerRef.current = null;
-		}
 	}, []);
 
 	return {
@@ -193,5 +219,6 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 		clearMessages,
 		stop,
 		setMessages,
+		reload,
 	};
 }

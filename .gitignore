@@ -98,3 +98,4 @@ others/
 .factory/
 .task-context.json
 user_docs/demo/screenshots
+.gemini-clipboard
