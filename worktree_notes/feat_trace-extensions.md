@@ -99,3 +99,6 @@ task:
 
 ## Open Questions
 - Verify with `bun scripts/smart-verify.ts` before merge.
+
+## Verification
+- 2026-01-28: `bun scripts/smart-verify.ts` failed due to existing Biome lint in chat components (unused imports/vars) and format suggestions; trace routes import order can be fixed locally, but unrelated chat files require decision.
