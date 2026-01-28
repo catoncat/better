@@ -135,11 +135,11 @@ P0（必须）：
 
 | ID | 任务 | 状态 | 依赖 | 备注 |
 |----|------|------|------|------|
-| T4.8.1 | Schema: FAI 模板 + 路由绑定字段 | ⬜ | - | FaiTemplate/FaiTemplateItem + Routing.faiTemplateId |
-| T4.8.2 | Server: FAI 模板 CRUD + 路由绑定接口 | ⬜ | T4.8.1 | |
-| T4.8.3 | 编译快照携带模板 + FAI 门禁基于快照 | ⬜ | T4.8.2 | |
-| T4.8.4 | ERP 工单路由解析优先级 + 手动覆盖 | ⬜ | - | 同步不覆盖 override |
-| T4.8.5 | Web: 模板管理 + 路由绑定 + FAI 录入 | ⬜ | T4.8.2 | |
+| T4.8.1 | Schema: FAI 模板 + 路由绑定字段 | ✅ | - | FaiTemplate/FaiTemplateItem + Routing.faiTemplateId |
+| T4.8.2 | Server: FAI 模板 CRUD + 路由绑定接口 | ✅ | T4.8.1 | |
+| T4.8.3 | 编译快照携带模板 + FAI 门禁基于快照 | ✅ | T4.8.2 | |
+| T4.8.4 | ERP 工单路由解析优先级 + 手动覆盖 | ✅ | - | 同步不覆盖 override |
+| T4.8.5 | Web: 模板管理 + 路由绑定 + FAI 录入 | ✅ | T4.8.2 | |
 
 状态图例：⬜ 待开发 / 🔄 进行中 / ✅ 已完成
 

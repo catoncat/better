@@ -6,7 +6,7 @@ baseRef: "origin/main"
 dependencies:
   blockedBy: []
   blocks: []
-status: in_progress  # pending | in_progress | completed
+status: completed  # pending | in_progress | completed
 task:
   title: "SMT 路由管理 + FAI 模板绑定"
   planPath: "domain_docs/mes/plan/phase4_tasks.md"
@@ -32,18 +32,14 @@ task:
 <!-- AUTO:BEGIN status -->
 
 ## Status (auto)
-- UpdatedAt: 2026-01-28T10:39:00.800Z
+- UpdatedAt: 2026-01-29T05:17:34+08:00
 - BaseRef: origin/main
-- CommitsAheadOfBase: 5
-- Dirty: true
-- ChangedFiles:
-  - apps/web/src/components/chat/chat-assistant.tsx
-  - apps/web/src/components/chat/chat-input.tsx
-  - apps/web/src/components/chat/chat-messages.tsx
-  - apps/web/src/components/chat/chat-suggestions.tsx
-  - worktree_notes/fix_chat-scroll.md
+- CommitsAheadOfBase: 18
+- Dirty: false
+- ChangedFiles: (none)
 - Next:
-  - Commit worktree note: git add worktree_notes/feat_mes-routing-fai-template.md && git commit -m "docs(worktree): add task context"
+  - Verify: bun scripts/smart-verify.ts --force
+  - Push: git push -u origin feat/mes-routing-fai-template
 <!-- AUTO:END status -->
 
 ## Decisions
