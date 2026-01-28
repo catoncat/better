@@ -43,6 +43,22 @@ type CompiledStep = {
 	ingestMapping: Prisma.JsonValue | null;
 };
 
+type FaiTemplateSnapshot = {
+	id: string;
+	code: string;
+	name: string;
+	productCode: string;
+	processType: string;
+	version: string | null;
+	items: Array<{
+		id: string;
+		seq: number;
+		itemName: string;
+		itemSpec: string | null;
+		required: boolean;
+	}>;
+};
+
 type CompileError = {
 	stepNo?: number;
 	code: string;
@@ -77,6 +93,25 @@ const toOptionalJsonValue = (value: unknown) => {
 	if (value === null) return Prisma.DbNull;
 	return toJsonValue(value);
 };
+
+const toFaiTemplateSnapshot = (template: Prisma.FaiTemplateGetPayload<{ include: { items: true } }>) => ({
+	id: template.id,
+	code: template.code,
+	name: template.name,
+	productCode: template.productCode,
+	processType: template.processType,
+	version: template.version ?? null,
+	items: template.items
+		.slice()
+		.sort((a, b) => a.seq - b.seq)
+		.map((item) => ({
+			id: item.id,
+			seq: item.seq,
+			itemName: item.itemName,
+			itemSpec: item.itemSpec ?? null,
+			required: item.required,
+		})),
+});
 
 const extractSnapshotSignature = (snapshotJson: Prisma.JsonValue | null | undefined) => {
 	if (!snapshotJson || typeof snapshotJson !== "object") return null;
@@ -321,6 +356,17 @@ export const compileRouteExecution = async (
 		return { success: false, code: "ROUTE_NOT_FOUND", message: "Routing not found", status: 404 };
 	}
 
+	let faiTemplateSnapshot: FaiTemplateSnapshot | null = null;
+	if (routing.faiTemplateId) {
+		const template = await db.faiTemplate.findUnique({
+			where: { id: routing.faiTemplateId },
+			include: { items: true },
+		});
+		if (template) {
+			faiTemplateSnapshot = toFaiTemplateSnapshot(template);
+		}
+	}
+
 	const steps = routing.steps
 		.slice()
 		.sort((a, b) => a.stepNo - b.stepNo)
@@ -488,6 +534,7 @@ export const compileRouteExecution = async (
 			code: routing.code,
 			sourceSystem: routing.sourceSystem,
 			sourceKey: routing.sourceKey,
+			faiTemplate: faiTemplateSnapshot,
 		},
 		steps: compiledSteps,
 	};
@@ -661,6 +708,15 @@ export const getRouteDetail = async (
 			sourceSystem: string;
 			sourceKey: string | null;
 			productCode: string | null;
+			faiTemplate: {
+				id: string;
+				code: string;
+				name: string;
+				productCode: string;
+				processType: ProcessType;
+				version: string | null;
+				isActive: boolean;
+			} | null;
 			version: string | null;
 			processType: ProcessType;
 			isActive: boolean;
@@ -685,6 +741,7 @@ export const getRouteDetail = async (
 	const routing = await db.routing.findUnique({
 		where: { code: routingCode },
 		include: {
+			faiTemplate: true,
 			steps: {
 				orderBy: { stepNo: "asc" },
 				include: {
@@ -706,14 +763,25 @@ export const getRouteDetail = async (
 				id: routing.id,
 				code: routing.code,
 				name: routing.name,
-				sourceSystem: routing.sourceSystem,
-				sourceKey: routing.sourceKey ?? null,
-				productCode: routing.productCode ?? null,
-				version: routing.version ?? null,
-				processType: routing.processType,
-				isActive: routing.isActive,
-				effectiveFrom: routing.effectiveFrom?.toISOString() ?? null,
-				effectiveTo: routing.effectiveTo?.toISOString() ?? null,
+			sourceSystem: routing.sourceSystem,
+			sourceKey: routing.sourceKey ?? null,
+			productCode: routing.productCode ?? null,
+			faiTemplate: routing.faiTemplate
+				? {
+						id: routing.faiTemplate.id,
+						code: routing.faiTemplate.code,
+						name: routing.faiTemplate.name,
+						productCode: routing.faiTemplate.productCode,
+						processType: routing.faiTemplate.processType,
+						version: routing.faiTemplate.version ?? null,
+						isActive: routing.faiTemplate.isActive,
+					}
+				: null,
+			version: routing.version ?? null,
+			processType: routing.processType,
+			isActive: routing.isActive,
+			effectiveFrom: routing.effectiveFrom?.toISOString() ?? null,
+			effectiveTo: routing.effectiveTo?.toISOString() ?? null,
 				createdAt: routing.createdAt.toISOString(),
 				updatedAt: routing.updatedAt.toISOString(),
 			},
@@ -744,6 +812,15 @@ export const updateRouteProcessType = async (
 		sourceSystem: string;
 		sourceKey: string | null;
 		productCode: string | null;
+		faiTemplate: {
+			id: string;
+			code: string;
+			name: string;
+			productCode: string;
+			processType: ProcessType;
+			version: string | null;
+			isActive: boolean;
+		} | null;
 		version: string | null;
 		processType: ProcessType;
 		isActive: boolean;
@@ -761,6 +838,7 @@ export const updateRouteProcessType = async (
 	const updated = await db.routing.update({
 		where: { id: routing.id },
 		data: { processType },
+		include: { faiTemplate: true },
 	});
 
 	return {
@@ -772,6 +850,112 @@ export const updateRouteProcessType = async (
 			sourceSystem: updated.sourceSystem,
 			sourceKey: updated.sourceKey ?? null,
 			productCode: updated.productCode ?? null,
+			faiTemplate: updated.faiTemplate
+				? {
+						id: updated.faiTemplate.id,
+						code: updated.faiTemplate.code,
+						name: updated.faiTemplate.name,
+						productCode: updated.faiTemplate.productCode,
+						processType: updated.faiTemplate.processType,
+						version: updated.faiTemplate.version ?? null,
+						isActive: updated.faiTemplate.isActive,
+					}
+				: null,
+			version: updated.version ?? null,
+			processType: updated.processType,
+			isActive: updated.isActive,
+			effectiveFrom: updated.effectiveFrom?.toISOString() ?? null,
+			effectiveTo: updated.effectiveTo?.toISOString() ?? null,
+			createdAt: updated.createdAt.toISOString(),
+			updatedAt: updated.updatedAt.toISOString(),
+		},
+	};
+};
+
+export const updateRouteFaiTemplate = async (
+	db: PrismaClient,
+	routingCode: string,
+	faiTemplateId: string | null,
+): Promise<
+	ServiceResult<{
+		id: string;
+		code: string;
+		name: string;
+		sourceSystem: string;
+		sourceKey: string | null;
+		productCode: string | null;
+		faiTemplate: {
+			id: string;
+			code: string;
+			name: string;
+			productCode: string;
+			processType: ProcessType;
+			version: string | null;
+			isActive: boolean;
+		} | null;
+		version: string | null;
+		processType: ProcessType;
+		isActive: boolean;
+		effectiveFrom: string | null;
+		effectiveTo: string | null;
+		createdAt: string;
+		updatedAt: string;
+	}>
+> => {
+	const routing = await db.routing.findUnique({ where: { code: routingCode } });
+	if (!routing) {
+		return { success: false, code: "ROUTE_NOT_FOUND", message: "Routing not found", status: 404 };
+	}
+
+	if (faiTemplateId) {
+		const template = await db.faiTemplate.findUnique({
+			where: { id: faiTemplateId },
+			select: { id: true, productCode: true },
+		});
+		if (!template) {
+			return {
+				success: false,
+				code: "FAI_TEMPLATE_NOT_FOUND",
+				message: "FAI template not found",
+				status: 404,
+			};
+		}
+		if (routing.productCode && template.productCode !== routing.productCode) {
+			return {
+				success: false,
+				code: "FAI_TEMPLATE_PRODUCT_MISMATCH",
+				message: "FAI template product does not match routing product",
+				status: 400,
+			};
+		}
+	}
+
+	const updated = await db.routing.update({
+		where: { id: routing.id },
+		data: { faiTemplateId },
+		include: { faiTemplate: true },
+	});
+
+	return {
+		success: true,
+		data: {
+			id: updated.id,
+			code: updated.code,
+			name: updated.name,
+			sourceSystem: updated.sourceSystem,
+			sourceKey: updated.sourceKey ?? null,
+			productCode: updated.productCode ?? null,
+			faiTemplate: updated.faiTemplate
+				? {
+						id: updated.faiTemplate.id,
+						code: updated.faiTemplate.code,
+						name: updated.faiTemplate.name,
+						productCode: updated.faiTemplate.productCode,
+						processType: updated.faiTemplate.processType,
+						version: updated.faiTemplate.version ?? null,
+						isActive: updated.faiTemplate.isActive,
+					}
+				: null,
 			version: updated.version ?? null,
 			processType: updated.processType,
 			isActive: updated.isActive,

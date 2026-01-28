@@ -17,6 +17,10 @@ export const routeProcessTypeUpdateSchema = t.Object({
 	processType: Prismabox.ProcessType,
 });
 
+export const routeFaiTemplateUpdateSchema = t.Object({
+	faiTemplateId: t.Union([t.String(), t.Null()]),
+});
+
 const scopeTypeSchema = t.Union([t.Literal("ROUTE"), t.Literal("STEP")]);
 
 export const executionConfigCreateSchema = t.Object({
@@ -89,6 +93,18 @@ const routeDetailSchema = t.Object({
 	sourceSystem: t.String(),
 	sourceKey: t.Union([t.String(), t.Null()]),
 	productCode: t.Union([t.String(), t.Null()]),
+	faiTemplate: t.Union([
+		t.Object({
+			id: t.String(),
+			code: t.String(),
+			name: t.String(),
+			productCode: t.String(),
+			processType: Prismabox.ProcessType,
+			version: t.Union([t.String(), t.Null()]),
+			isActive: t.Boolean(),
+		}),
+		t.Null(),
+	]),
 	version: t.Union([t.String(), t.Null()]),
 	processType: Prismabox.ProcessType,
 	isActive: t.Boolean(),
