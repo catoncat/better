@@ -21,8 +21,8 @@ touchPoints:
 - Risks: 需要确认后端创建接口与字段名/校验规则。
 
 ## Slices
-- [ ] api
-- [ ] ui
+- [x] api
+- [x] ui
 
 <!-- AUTO:BEGIN status -->
 
@@ -70,3 +70,6 @@ touchPoints:
 - material-lot 模块当前只有 list/get/patch/usage；无 create endpoint 或 schema。
 - Prisma `MaterialLot` 仅 `materialCode` + `lotNo` 必填，且组合唯一。
 - `mes/material-lots` 现有页面只有编辑对话框；Header 可扩展按钮（DataListLayout 直接渲染 `header`）。
+
+## Errors
+- `bun scripts/smart-verify.ts` 失败：Biome 报告多处格式/organizeImports/noArrayIndexKey（主要集中在 `apps/web/src/components/chat/*` 等与本改动无关文件）。已修正本次改动内的格式，但仍需处理这些既有问题后才能通过全量 lint。
