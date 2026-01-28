@@ -16,6 +16,7 @@
 | 轮次2 | Work Orders / Runs | completed | 我 | 2026-01-28 | 文档偏差已修复 | domain_docs/mes/doc_review/round2_work_orders_runs.md |
 | 轮次3 | Readiness | completed | 我 | 2026-01-28 | 文档偏差已修复 | domain_docs/mes/doc_review/round3_readiness.md |
 | 轮次4 | Routing | completed | 我 | 2026-01-28 | 文档偏差已修复 | domain_docs/mes/doc_review/round4_routing.md |
+| 轮次5 | Stations / Execution | in_progress | 我 | 2026-01-28 | - | domain_docs/mes/doc_review/round5_execution.md |
 
 状态说明：pending / in_progress / completed
 
