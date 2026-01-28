@@ -27,13 +27,18 @@ DIP 产线的检验配置比 SMT 更复杂，包括：
 | 外观 | 目视检查 | 无划伤/污染/变形 |
 | 功能验证 | 基础功能测试 | 功能正常 |
 
-### 2.3 FAI 配置（FaiConfig）
+### 2.3 FAI 模板（FaiTemplate）
+FAI 采用结构化模板，路由绑定模板后在创建 FAI 时自动生成检验项。
 | 字段 | 说明 | 示例 |
 |------|------|------|
-| routeVersionId | 关联路由版本 | ROUTE-DIP-PRDA-V1 |
-| checkItems | 检验项列表 | JSON 数组 |
-| requiredPhotos | 是否需要拍照 | true |
-| requiredSignoff | 审批人 | 质量主管 |
+| code | 模板编码 | FAI-PRDA-V1 |
+| name | 模板名称 | 产品 A 首件模板 |
+| productCode | 适用产品 | PRD-A |
+| processType | 工艺类型 | DIP |
+| version | 版本 | V1 |
+| isActive | 是否启用 | true |
+| items | 检验项列表 | seq/itemName/itemSpec/required |
+| meta | 扩展信息 | JSON |
 
 ## 3. IPQC 配置
 
