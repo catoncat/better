@@ -12,46 +12,63 @@
  * 前置条件：
  *   - 已运行 bun run db:seed（创建基础数据）
  */
-import path from "node:path";
-import dotenv from "dotenv";
-
-dotenv.config({ path: path.resolve(import.meta.dirname, "../.env") });
-
 type Db = typeof import("@better-app/db");
 
-const NOW = new Date();
-const HOUR = 60 * 60 * 1000;
+type SeedDcDemoOptions = {
+	prisma?: Db["default"];
+	now?: Date;
+	loadEnv?: boolean;
+};
 
-const run = async () => {
+const loadSeedEnv = async () => {
+	const path = await import("node:path");
+	const dotenv = await import("dotenv");
+	dotenv.config({ path: path.resolve(import.meta.dirname, "../.env") });
+};
+
+const resolvePrisma = async (prisma?: Db["default"]) => {
+	if (prisma) return prisma;
+	const db = (await import("@better-app/db")) as Db;
+	return db.default;
+};
+
+export const runSeedDcDemo = async ({ prisma, now, loadEnv }: SeedDcDemoOptions = {}) => {
+	if (loadEnv) {
+		await loadSeedEnv();
+	}
+
+	const NOW = now ?? new Date();
+	const HOUR = 60 * 60 * 1000;
+
 	console.log("Creating DataCollectionSpec demo data...\n");
 
 	const db = (await import("@better-app/db")) as Db;
-	const prisma = db.default;
+	const prismaClient = await resolvePrisma(prisma);
 
 	// 1. 查找必要的基础数据
 	console.log("1. Loading base data...");
 
-	const lineA = await prisma.line.findUnique({ where: { code: "LINE-A" } });
+	const lineA = await prismaClient.line.findUnique({ where: { code: "LINE-A" } });
 	if (!lineA) {
 		throw new Error("Missing LINE-A. Run bun run db:seed first.");
 	}
 
-	const smtRouting = await prisma.routing.findUnique({ where: { code: "PCBA-STD-V1" } });
+	const smtRouting = await prismaClient.routing.findUnique({ where: { code: "PCBA-STD-V1" } });
 	if (!smtRouting) {
 		throw new Error("Missing PCBA-STD-V1 routing. Run bun run db:seed first.");
 	}
 
 	// 获取工序
-	const reflowOp = await prisma.operation.findUnique({ where: { code: "REFLOW" } });
-	const aoiOp = await prisma.operation.findUnique({ where: { code: "AOI" } });
-	const printingOp = await prisma.operation.findUnique({ where: { code: "PRINTING" } });
-	const spiOp = await prisma.operation.findUnique({ where: { code: "SPI" } });
+	const reflowOp = await prismaClient.operation.findUnique({ where: { code: "REFLOW" } });
+	const aoiOp = await prismaClient.operation.findUnique({ where: { code: "AOI" } });
+	const printingOp = await prismaClient.operation.findUnique({ where: { code: "PRINTING" } });
+	const spiOp = await prismaClient.operation.findUnique({ where: { code: "SPI" } });
 
 	if (!reflowOp || !aoiOp || !printingOp || !spiOp) {
 		throw new Error("Missing operations. Run bun run db:seed first.");
 	}
 
-	const smtVersion = await prisma.executableRouteVersion.findFirst({
+	const smtVersion = await prismaClient.executableRouteVersion.findFirst({
 		where: { routingId: smtRouting.id, status: "READY" },
 		orderBy: { versionNo: "desc" },
 	});
@@ -59,13 +76,13 @@ const run = async () => {
 		throw new Error("Missing route version. Run bun run db:seed first.");
 	}
 
-	const smtStations = await prisma.station.findMany({
+	const smtStations = await prismaClient.station.findMany({
 		where: { lineId: lineA.id },
 		orderBy: { code: "asc" },
 	});
 
-	const operatorUser = await prisma.user.findFirst({ where: { email: "operator@example.com" } });
-	const qualityUser = await prisma.user.findFirst({ where: { email: "quality@example.com" } });
+	const operatorUser = await prismaClient.user.findFirst({ where: { email: "operator@example.com" } });
+	const qualityUser = await prismaClient.user.findFirst({ where: { email: "quality@example.com" } });
 
 	console.log("  ✓ Base data loaded\n");
 
@@ -210,10 +227,10 @@ const run = async () => {
 	const createdSpecIds: Record<string, string[]> = {};
 
 	for (const spec of allSpecs) {
-		const operation = await prisma.operation.findUnique({ where: { id: spec.operationId } });
+		const operation = await prismaClient.operation.findUnique({ where: { id: spec.operationId } });
 		const opCode = operation?.code || "UNKNOWN";
 
-		const created = await prisma.dataCollectionSpec.upsert({
+		const created = await prismaClient.dataCollectionSpec.upsert({
 			where: {
 				operationId_name: {
 					operationId: spec.operationId,
@@ -246,7 +263,7 @@ const run = async () => {
 	console.log("3. Creating RouteExecutionConfig bindings...");
 
 	// 查找路由步骤
-	const routingSteps = await prisma.routingStep.findMany({
+	const routingSteps = await prismaClient.routingStep.findMany({
 		where: { routingId: smtRouting.id },
 		include: { operation: true },
 		orderBy: { stepNo: "asc" },
@@ -257,7 +274,7 @@ const run = async () => {
 		const specIds = createdSpecIds[opCode];
 
 		if (specIds && specIds.length > 0) {
-			await prisma.routeExecutionConfig.upsert({
+			await prismaClient.routeExecutionConfig.upsert({
 				where: {
 					id: `rec-${smtRouting.id}-${step.id}`,
 				},
@@ -303,7 +320,7 @@ const run = async () => {
 			}
 		}
 
-		await prisma.executableRouteVersion.update({
+		await prismaClient.executableRouteVersion.update({
 			where: { id: smtVersion.id },
 			data: { snapshotJson: existingSnapshot },
 		});
@@ -326,7 +343,7 @@ const run = async () => {
 		createdAt: new Date(NOW.getTime() - 2 * HOUR),
 	};
 
-	const wo = await prisma.workOrder.upsert({
+	const wo = await prismaClient.workOrder.upsert({
 		where: { woNo: woData.woNo },
 		update: { status: woData.status },
 		create: woData,
@@ -342,18 +359,18 @@ const run = async () => {
 		changeoverNo: "DC-DEMO-001",
 	};
 
-	const demoRun = await prisma.run.upsert({
+	const demoRun = await prismaClient.run.upsert({
 		where: { runNo: runData.runNo },
 		update: { status: runData.status },
 		create: runData,
 	});
 
 	// 创建 FAI 通过记录
-	const existingFai = await prisma.inspection.findFirst({
+	const existingFai = await prismaClient.inspection.findFirst({
 		where: { runId: demoRun.id, type: db.InspectionType.FAI },
 	});
 	if (!existingFai) {
-		await prisma.inspection.create({
+		await prismaClient.inspection.create({
 			data: {
 				runId: demoRun.id,
 				type: db.InspectionType.FAI,
@@ -384,7 +401,7 @@ const run = async () => {
 	];
 
 	for (const unitData of unitStates) {
-		const unit = await prisma.unit.upsert({
+		const unit = await prismaClient.unit.upsert({
 			where: { sn: unitData.sn },
 			update: { status: unitData.status, currentStepNo: unitData.currentStepNo },
 			create: {
@@ -402,7 +419,7 @@ const run = async () => {
 				const station = smtStations[stepNo - 1];
 				if (!station) continue;
 
-				const existingTrack = await prisma.track.findFirst({
+				const existingTrack = await prismaClient.track.findFirst({
 					where: { unitId: unit.id, stepNo },
 				});
 
@@ -410,7 +427,7 @@ const run = async () => {
 					const isCurrentStep = stepNo === unitData.currentStepNo;
 					const inAt = new Date(NOW.getTime() - (unitData.currentStepNo - stepNo + 1) * 20 * 60 * 1000);
 
-					await prisma.track.create({
+					await prismaClient.track.create({
 						data: {
 							unitId: unit.id,
 							stepNo,
@@ -432,13 +449,13 @@ const run = async () => {
 
 	// 5. 统计
 	console.log("\n========== DC Demo Data Summary ==========");
-	const specCount = await prisma.dataCollectionSpec.count({
+	const specCount = await prismaClient.dataCollectionSpec.count({
 		where: { isActive: true },
 	});
-	const configCount = await prisma.routeExecutionConfig.count({
+	const configCount = await prismaClient.routeExecutionConfig.count({
 		where: { dataSpecIds: { not: null } },
 	});
-	const unitCount = await prisma.unit.count({
+	const unitCount = await prismaClient.unit.count({
 		where: { sn: { startsWith: "SN-DC-DEMO" } },
 	});
 
@@ -474,4 +491,16 @@ const run = async () => {
 	console.log("");
 };
 
-await run();
+if (import.meta.main) {
+	await runSeedDcDemo({ loadEnv: true })
+		.then(async () => {
+			const { default: prisma } = (await import("@better-app/db")) as Db;
+			await prisma.$disconnect();
+		})
+		.catch(async (error) => {
+			const { default: prisma } = (await import("@better-app/db")) as Db;
+			console.error("Failed:", error);
+			await prisma.$disconnect();
+			process.exit(1);
+		});
+}

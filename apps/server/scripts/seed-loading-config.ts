@@ -7,12 +7,24 @@
  * 使用方法:
  *   bun apps/server/scripts/seed-loading-config.ts
  */
-import path from "node:path";
-import dotenv from "dotenv";
-
-dotenv.config({ path: path.resolve(import.meta.dirname, "../.env") });
-
 type Db = typeof import("@better-app/db");
+
+type SeedLoadingOptions = {
+	prisma?: Db["default"];
+	loadEnv?: boolean;
+};
+
+const loadSeedEnv = async () => {
+	const path = await import("node:path");
+	const dotenv = await import("dotenv");
+	dotenv.config({ path: path.resolve(import.meta.dirname, "../.env") });
+};
+
+const resolvePrisma = async (prisma?: Db["default"]) => {
+	if (prisma) return prisma;
+	const db = (await import("@better-app/db")) as Db;
+	return db.default;
+};
 
 // 上料站位定义
 const slotDefs = [
@@ -49,19 +61,23 @@ const slotMappings = [
 	{ slotCode: "1F-46", materialCode: "5212098004", priority: 1, isAlternate: false },
 ];
 
-const run = async () => {
+export const runSeedLoadingConfig = async ({ prisma, loadEnv }: SeedLoadingOptions = {}) => {
+	if (loadEnv) {
+		await loadSeedEnv();
+	}
+
 	console.log("Enhancing LINE-A loading configuration...\n");
 
 	const db = (await import("@better-app/db")) as Db;
-	const prisma = db.default;
+	const prismaClient = await resolvePrisma(prisma);
 
 	// 1. 查找 LINE-A 和 SMT 路由
-	const lineA = await prisma.line.findUnique({ where: { code: "LINE-A" } });
+	const lineA = await prismaClient.line.findUnique({ where: { code: "LINE-A" } });
 	if (!lineA) {
 		throw new Error("LINE-A not found. Run 'bun run db:seed' first.");
 	}
 
-	const smtRouting = await prisma.routing.findUnique({ where: { code: "PCBA-STD-V1" } });
+	const smtRouting = await prismaClient.routing.findUnique({ where: { code: "PCBA-STD-V1" } });
 	if (!smtRouting) {
 		throw new Error("PCBA-STD-V1 routing not found. Run 'bun run db:seed' first.");
 	}
@@ -74,7 +90,7 @@ const run = async () => {
 	const slotIdByCode = new Map<string, string>();
 
 	for (const slot of slotDefs) {
-		const created = await prisma.feederSlot.upsert({
+		const created = await prismaClient.feederSlot.upsert({
 			where: { lineId_slotCode: { lineId: lineA.id, slotCode: slot.slotCode } },
 			update: { slotName: slot.slotName, position: slot.position },
 			create: {
@@ -91,7 +107,7 @@ const run = async () => {
 	// 3. 创建物料
 	console.log("\nCreating materials...");
 	for (const material of materialDefs) {
-		await prisma.material.upsert({
+		await prismaClient.material.upsert({
 			where: { code: material.code },
 			update: { name: material.name, category: material.category, unit: material.unit },
 			create: material,
@@ -102,7 +118,7 @@ const run = async () => {
 	// 4. 创建物料批次
 	console.log("\nCreating material lots...");
 	for (const lot of materialLots) {
-		await prisma.materialLot.upsert({
+		await prismaClient.materialLot.upsert({
 			where: { materialCode_lotNo: { materialCode: lot.materialCode, lotNo: lot.lotNo } },
 			update: {},
 			create: { materialCode: lot.materialCode, lotNo: lot.lotNo },
@@ -113,7 +129,7 @@ const run = async () => {
 	// 5. 创建 BOM 关系（物料属于 P-1001 产品）
 	console.log("\nCreating BOM items...");
 	for (const material of materialDefs) {
-		await prisma.bomItem.upsert({
+		await prismaClient.bomItem.upsert({
 			where: {
 				parentCode_childCode: { parentCode: "P-1001", childCode: material.code },
 			},
@@ -131,7 +147,7 @@ const run = async () => {
 			throw new Error(`Slot ${mapping.slotCode} not found`);
 		}
 
-		await prisma.slotMaterialMapping.upsert({
+		await prismaClient.slotMaterialMapping.upsert({
 			where: { slotId_materialCode: { slotId, materialCode: mapping.materialCode } },
 			update: {
 				productCode: "P-1001",
@@ -167,7 +183,7 @@ const run = async () => {
 		},
 	};
 
-	await prisma.line.update({
+	await prismaClient.line.update({
 		where: { id: lineA.id },
 		data: { meta: updatedMeta },
 	});
@@ -175,8 +191,8 @@ const run = async () => {
 
 	// 8. 统计
 	console.log("\n========== Loading Config Summary ==========");
-	const slotCount = await prisma.feederSlot.count({ where: { lineId: lineA.id } });
-	const mappingCount = await prisma.slotMaterialMapping.count({
+	const slotCount = await prismaClient.feederSlot.count({ where: { lineId: lineA.id } });
+	const mappingCount = await prismaClient.slotMaterialMapping.count({
 		where: { slot: { lineId: lineA.id } },
 	});
 	console.log(`  Feeder Slots: ${slotCount}`);
@@ -187,17 +203,19 @@ const run = async () => {
 	console.log("\n上料演示条码:");
 	console.log("  PASS:    5212090007|LOT-20250526-003 (站位 2F-34)");
 	console.log("  WARNING: 5212090001B|LOT-20250526-002 (站位 2F-46，替代料)");
-	console.log("  FAIL:    9999999999|LOT-FAIL-001 (任意站位)");
+console.log("  FAIL:    9999999999|LOT-FAIL-001 (任意站位)");
 };
 
-await run()
-	.then(async () => {
-		const { default: prisma } = (await import("@better-app/db")) as Db;
-		await prisma.$disconnect();
-	})
-	.catch(async (error) => {
-		const { default: prisma } = (await import("@better-app/db")) as Db;
-		console.error("Failed:", error);
-		await prisma.$disconnect();
-		process.exitCode = 1;
-	});
+if (import.meta.main) {
+	await runSeedLoadingConfig({ loadEnv: true })
+		.then(async () => {
+			const { default: prisma } = (await import("@better-app/db")) as Db;
+			await prisma.$disconnect();
+		})
+		.catch(async (error) => {
+			const { default: prisma } = (await import("@better-app/db")) as Db;
+			console.error("Failed:", error);
+			await prisma.$disconnect();
+			process.exitCode = 1;
+		});
+}

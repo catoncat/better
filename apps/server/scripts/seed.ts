@@ -2,8 +2,6 @@ import path from "node:path";
 import dotenv from "dotenv";
 import { seedTimeRules } from "./seed-time-rules";
 
-dotenv.config({ path: path.resolve(import.meta.dirname, "../.env") });
-
 type Db = typeof import("@better-app/db");
 type AuthModule = typeof import("@better-app/auth");
 type RoutingServiceModule = typeof import("../src/modules/mes/routing/service");
@@ -11,10 +9,30 @@ type RoutingServiceModule = typeof import("../src/modules/mes/routing/service");
 const WECOM_CONFIG_KEY = "wecom_notifications";
 const APP_BRANDING_KEY = "app.branding";
 
-const DEFAULT_ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || "admin@example.com";
-const DEFAULT_ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || "ChangeMe123!";
-const DEFAULT_ADMIN_NAME = process.env.SEED_ADMIN_NAME || "Admin";
-const DEFAULT_TEST_PASSWORD = process.env.SEED_TEST_PASSWORD || "Test123!";
+type SeedDefaults = {
+	adminEmail: string;
+	adminPassword: string;
+	adminName: string;
+	testPassword: string;
+};
+
+export type SeedOptions = {
+	loadEnv?: boolean;
+	allowUnsafeReset?: boolean;
+	skipReset?: boolean;
+	prisma?: Db["default"];
+};
+
+const loadSeedEnv = () => {
+	dotenv.config({ path: path.resolve(import.meta.dirname, "../.env") });
+};
+
+const getSeedDefaults = (): SeedDefaults => ({
+	adminEmail: process.env.SEED_ADMIN_EMAIL || "admin@example.com",
+	adminPassword: process.env.SEED_ADMIN_PASSWORD || "ChangeMe123!",
+	adminName: process.env.SEED_ADMIN_NAME || "Admin",
+	testPassword: process.env.SEED_TEST_PASSWORD || "Test123!",
+});
 
 const routingCodes = ["PCBA-STD-V1", "PCBA-DIP-V1"] as const;
 
@@ -26,7 +44,7 @@ const resolveDbFilePath = (databaseUrl: string) => {
 	return path.resolve(process.cwd(), filePath);
 };
 
-const assertSafeToReset = () => {
+const assertSafeToReset = (allowUnsafeReset?: boolean) => {
 	const databaseUrl = process.env.DATABASE_URL?.trim();
 	if (!databaseUrl) throw new Error("DATABASE_URL is required");
 
@@ -36,7 +54,11 @@ const assertSafeToReset = () => {
 	const repoRoot = path.resolve(import.meta.dirname, "../../..");
 	const safeDir = path.resolve(repoRoot, "data") + path.sep;
 	const normalized = path.resolve(filePath);
-	if (!normalized.startsWith(safeDir) && process.env.SEED_ALLOW_UNSAFE_RESET !== "true") {
+	if (
+		!normalized.startsWith(safeDir) &&
+		!allowUnsafeReset &&
+		process.env.SEED_ALLOW_UNSAFE_RESET !== "true"
+	) {
 		throw new Error(
 			`Refusing to reset DB outside ${safeDir} (DATABASE_URL=${databaseUrl}). Set SEED_ALLOW_UNSAFE_RESET=true to override.`,
 		);
@@ -99,32 +121,37 @@ const seedRoles = async (prisma: Db["default"], db: Db) => {
 	console.log(`Seeded ${db.PRESET_ROLES.length} preset roles`);
 };
 
-const ensureAdminUser = async (prisma: Db["default"], auth: AuthModule["auth"], db: Db) => {
+const ensureAdminUser = async (
+	prisma: Db["default"],
+	auth: AuthModule["auth"],
+	db: Db,
+	defaults: SeedDefaults,
+) => {
 	process.env.AUTH_EMAIL_DEV_FALLBACK ||= "true";
 	process.env.APP_URL ||= "http://localhost:3001";
 
 	await auth.api.signUpEmail({
 		body: {
-			email: DEFAULT_ADMIN_EMAIL,
-			password: DEFAULT_ADMIN_PASSWORD,
-			name: DEFAULT_ADMIN_NAME,
+			email: defaults.adminEmail,
+			password: defaults.adminPassword,
+			name: defaults.adminName,
 		},
 	});
 
 	const created = await prisma.user.findUnique({
-		where: { email: DEFAULT_ADMIN_EMAIL },
+		where: { email: defaults.adminEmail },
 	});
 
 	if (!created) {
 		throw new Error("Failed to create admin user");
 	}
 
-	const username = created.username || DEFAULT_ADMIN_EMAIL.split("@")[0] || "admin";
+	const username = created.username || defaults.adminEmail.split("@")[0] || "admin";
 
 	await prisma.user.update({
 		where: { id: created.id },
 		data: {
-			name: DEFAULT_ADMIN_NAME,
+			name: defaults.adminName,
 			username,
 			role: db.UserRole.admin,
 			isActive: true,
@@ -136,7 +163,11 @@ const ensureAdminUser = async (prisma: Db["default"], auth: AuthModule["auth"], 
 	return created.id;
 };
 
-const seedTestUsers = async (prisma: Db["default"], auth: AuthModule["auth"]) => {
+const seedTestUsers = async (
+	prisma: Db["default"],
+	auth: AuthModule["auth"],
+	defaults: SeedDefaults,
+) => {
 	console.log("Seeding test users...");
 
 	const testUsers = [
@@ -205,7 +236,7 @@ const seedTestUsers = async (prisma: Db["default"], auth: AuthModule["auth"]) =>
 		await auth.api.signUpEmail({
 			body: {
 				email: testUser.email,
-				password: DEFAULT_TEST_PASSWORD,
+			password: defaults.testPassword,
 				name: testUser.name,
 			},
 		});
@@ -708,24 +739,34 @@ const seedDemoBusinessData = async (
 	console.log("Demo business data seeded.");
 };
 
-const run = async () => {
-	assertSafeToReset();
+export const runSeed = async (options: SeedOptions = {}) => {
+	if (options.loadEnv) {
+		loadSeedEnv();
+	}
+
+	if (!options.skipReset) {
+		assertSafeToReset(options.allowUnsafeReset);
+	}
 
 	const db = (await import("@better-app/db")) as Db;
 	const authModule = (await import("@better-app/auth")) as AuthModule;
 	const routingService = (await import("../src/modules/mes/routing/service")) as RoutingServiceModule;
 
-	const prisma = db.default;
+	const prisma = options.prisma ?? db.default;
+	const defaults = getSeedDefaults();
 
-	await resetAllTables(prisma);
+	if (!options.skipReset) {
+		await resetAllTables(prisma);
+	}
+
 	await seedRoles(prisma, db);
 	await seedTimeRules();
 	const ids = await seedMesMasterData(prisma, db);
 
-	const adminId = await ensureAdminUser(prisma, authModule.auth, db);
+	const adminId = await ensureAdminUser(prisma, authModule.auth, db, defaults);
 	await seedSystemConfig(prisma, adminId);
 
-	await seedTestUsers(prisma, authModule.auth);
+	await seedTestUsers(prisma, authModule.auth, defaults);
 	const adminRole = await prisma.role.findUnique({ where: { code: "admin" } });
 	if (!adminRole) throw new Error("Missing seeded role: admin");
 	await prisma.userRoleAssignment.create({ data: { userId: adminId, roleId: adminRole.id } });
@@ -734,15 +775,17 @@ const run = async () => {
 	await seedDemoBusinessData(prisma, db, ids);
 };
 
-await run()
-	.then(async () => {
-		const { default: prisma } = (await import("@better-app/db")) as Db;
-		console.log("Seed completed");
-		await prisma.$disconnect();
-	})
-	.catch(async (error) => {
-		const { default: prisma } = (await import("@better-app/db")) as Db;
-		console.error("Seed failed", error);
-		await prisma.$disconnect();
-		process.exitCode = 1;
-	});
+if (import.meta.main) {
+	await runSeed({ loadEnv: true })
+		.then(async () => {
+			const { default: prisma } = (await import("@better-app/db")) as Db;
+			console.log("Seed completed");
+			await prisma.$disconnect();
+		})
+		.catch(async (error) => {
+			const { default: prisma } = (await import("@better-app/db")) as Db;
+			console.error("Seed failed", error);
+			await prisma.$disconnect();
+			process.exitCode = 1;
+		});
+}

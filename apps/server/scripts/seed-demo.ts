@@ -6,41 +6,58 @@
  * 使用方法:
  *   bun apps/server/scripts/seed-demo.ts
  */
-import path from "node:path";
-import dotenv from "dotenv";
-
-dotenv.config({ path: path.resolve(import.meta.dirname, "../.env") });
-
 type Db = typeof import("@better-app/db");
 
-const NOW = new Date();
-const HOUR = 60 * 60 * 1000;
-const DAY = 24 * HOUR;
+type SeedDemoOptions = {
+	prisma?: Db["default"];
+	now?: Date;
+	loadEnv?: boolean;
+};
 
-const run = async () => {
+const loadSeedEnv = async () => {
+	const path = await import("node:path");
+	const dotenv = await import("dotenv");
+	dotenv.config({ path: path.resolve(import.meta.dirname, "../.env") });
+};
+
+const resolvePrisma = async (prisma?: Db["default"]) => {
+	if (prisma) return prisma;
+	const db = (await import("@better-app/db")) as Db;
+	return db.default;
+};
+
+export const runSeedDemo = async ({ prisma, now, loadEnv }: SeedDemoOptions = {}) => {
+	if (loadEnv) {
+		await loadSeedEnv();
+	}
+
+	const NOW = now ?? new Date();
+	const HOUR = 60 * 60 * 1000;
+	const DAY = 24 * HOUR;
+
 	console.log("Creating management demo data...\n");
 
 	const db = (await import("@better-app/db")) as Db;
-	const prisma = db.default;
+	const prismaClient = await resolvePrisma(prisma);
 
 	// 1. 查找必要的基础数据
-	const lineA = await prisma.line.findUnique({ where: { code: "LINE-A" } });
-	const dipLineA = await prisma.line.findUnique({ where: { code: "LINE-DIP-A" } });
+	const lineA = await prismaClient.line.findUnique({ where: { code: "LINE-A" } });
+	const dipLineA = await prismaClient.line.findUnique({ where: { code: "LINE-DIP-A" } });
 	if (!lineA || !dipLineA) {
 		throw new Error("Missing lines. Run bun run db:seed first.");
 	}
 
-	const smtRouting = await prisma.routing.findUnique({ where: { code: "PCBA-STD-V1" } });
-	const dipRouting = await prisma.routing.findUnique({ where: { code: "PCBA-DIP-V1" } });
+	const smtRouting = await prismaClient.routing.findUnique({ where: { code: "PCBA-STD-V1" } });
+	const dipRouting = await prismaClient.routing.findUnique({ where: { code: "PCBA-DIP-V1" } });
 	if (!smtRouting || !dipRouting) {
 		throw new Error("Missing routings. Run bun run db:seed first.");
 	}
 
-	const smtVersion = await prisma.executableRouteVersion.findFirst({
+	const smtVersion = await prismaClient.executableRouteVersion.findFirst({
 		where: { routingId: smtRouting.id, status: "READY" },
 		orderBy: { versionNo: "desc" },
 	});
-	const dipVersion = await prisma.executableRouteVersion.findFirst({
+	const dipVersion = await prismaClient.executableRouteVersion.findFirst({
 		where: { routingId: dipRouting.id, status: "READY" },
 		orderBy: { versionNo: "desc" },
 	});
@@ -49,24 +66,24 @@ const run = async () => {
 	}
 
 	// 获取工位（用于 Track 记录）
-	const smtStations = await prisma.station.findMany({
+	const smtStations = await prismaClient.station.findMany({
 		where: { lineId: lineA.id },
 		orderBy: { code: "asc" },
 	});
-	const dipStations = await prisma.station.findMany({
+	const dipStations = await prismaClient.station.findMany({
 		where: { lineId: dipLineA.id },
 		orderBy: { code: "asc" },
 	});
 
 	// 获取用户
-	const qualityUser = await prisma.user.findFirst({ where: { email: "quality@example.com" } });
-	const operatorUser = await prisma.user.findFirst({ where: { email: "operator@example.com" } });
+	const qualityUser = await prismaClient.user.findFirst({ where: { email: "quality@example.com" } });
+	const operatorUser = await prismaClient.user.findFirst({ where: { email: "operator@example.com" } });
 
 	// 2. 创建多状态工单
 	console.log("Creating demo work orders...");
 
 	// ========== WO-MGMT-SMT-QUEUE: 待分配 ==========
-	await prisma.workOrder.upsert({
+	await prismaClient.workOrder.upsert({
 		where: { woNo: "WO-MGMT-SMT-QUEUE" },
 		update: {},
 		create: {
@@ -91,12 +108,12 @@ const run = async () => {
 		status: db.WorkOrderStatus.RELEASED,
 		createdAt: new Date(NOW.getTime() - 1 * DAY),
 	};
-	const woPrep = await prisma.workOrder.upsert({
+	const woPrep = await prismaClient.workOrder.upsert({
 		where: { woNo: woPrepData.woNo },
 		update: { status: woPrepData.status },
 		create: woPrepData,
 	});
-	await prisma.run.upsert({
+	await prismaClient.run.upsert({
 		where: { runNo: "RUN-MGMT-SMT-PREP" },
 		update: {},
 		create: {
@@ -122,12 +139,12 @@ const run = async () => {
 		status: db.WorkOrderStatus.IN_PROGRESS,
 		createdAt: new Date(NOW.getTime() - 8 * HOUR),
 	};
-	const woAuth = await prisma.workOrder.upsert({
+	const woAuth = await prismaClient.workOrder.upsert({
 		where: { woNo: woAuthData.woNo },
 		update: { status: woAuthData.status },
 		create: woAuthData,
 	});
-	const runAuth = await prisma.run.upsert({
+	const runAuth = await prismaClient.run.upsert({
 		where: { runNo: "RUN-MGMT-SMT-AUTH" },
 		update: { status: db.RunStatus.AUTHORIZED },
 		create: {
@@ -142,11 +159,11 @@ const run = async () => {
 		},
 	});
 	// 创建 FAI 通过记录
-	const existingFaiAuth = await prisma.inspection.findFirst({
+	const existingFaiAuth = await prismaClient.inspection.findFirst({
 		where: { runId: runAuth.id, type: db.InspectionType.FAI },
 	});
 	if (!existingFaiAuth) {
-		await prisma.inspection.create({
+		await prismaClient.inspection.create({
 			data: {
 				runId: runAuth.id,
 				type: db.InspectionType.FAI,
@@ -165,7 +182,7 @@ const run = async () => {
 	// 创建单件
 	for (let i = 1; i <= 5; i++) {
 		const sn = `SN-MGMT-AUTH-${String(i).padStart(4, "0")}`;
-		await prisma.unit.upsert({
+		await prismaClient.unit.upsert({
 			where: { sn },
 			update: {},
 			create: {
@@ -189,12 +206,12 @@ const run = async () => {
 		status: db.WorkOrderStatus.IN_PROGRESS,
 		createdAt: new Date(NOW.getTime() - 4 * HOUR),
 	};
-	const woExec = await prisma.workOrder.upsert({
+	const woExec = await prismaClient.workOrder.upsert({
 		where: { woNo: woExecData.woNo },
 		update: { status: woExecData.status },
 		create: woExecData,
 	});
-	const runExec = await prisma.run.upsert({
+	const runExec = await prismaClient.run.upsert({
 		where: { runNo: "RUN-MGMT-SMT-EXEC" },
 		update: { status: db.RunStatus.IN_PROGRESS },
 		create: {
@@ -209,11 +226,11 @@ const run = async () => {
 		},
 	});
 	// 创建 FAI
-	const existingFaiExec = await prisma.inspection.findFirst({
+	const existingFaiExec = await prismaClient.inspection.findFirst({
 		where: { runId: runExec.id, type: db.InspectionType.FAI },
 	});
 	if (!existingFaiExec) {
-		await prisma.inspection.create({
+		await prismaClient.inspection.create({
 			data: {
 				runId: runExec.id,
 				type: db.InspectionType.FAI,
@@ -237,7 +254,7 @@ const run = async () => {
 		{ sn: "SN-MGMT-EXEC-0005", status: db.UnitStatus.QUEUED, currentStepNo: 1 },
 	];
 	for (const unitData of unitExecStates) {
-		const unit = await prisma.unit.upsert({
+		const unit = await prismaClient.unit.upsert({
 			where: { sn: unitData.sn },
 			update: { status: unitData.status, currentStepNo: unitData.currentStepNo },
 			create: {
@@ -253,7 +270,7 @@ const run = async () => {
 			for (let stepNo = 1; stepNo <= unitData.currentStepNo; stepNo++) {
 				const station = smtStations[stepNo - 1];
 				if (!station) continue;
-				const existingTrack = await prisma.track.findFirst({
+				const existingTrack = await prismaClient.track.findFirst({
 					where: { unitId: unit.id, stepNo },
 				});
 				if (!existingTrack) {
@@ -263,7 +280,7 @@ const run = async () => {
 						unitData.status === db.UnitStatus.DONE
 							? new Date(inAt.getTime() + 20 * 60 * 1000)
 							: null;
-					await prisma.track.create({
+					await prismaClient.track.create({
 						data: {
 							unitId: unit.id,
 							stepNo,
@@ -291,12 +308,12 @@ const run = async () => {
 		status: db.WorkOrderStatus.IN_PROGRESS,
 		createdAt: new Date(NOW.getTime() - 1 * DAY),
 	};
-	const woHold = await prisma.workOrder.upsert({
+	const woHold = await prismaClient.workOrder.upsert({
 		where: { woNo: woHoldData.woNo },
 		update: { status: woHoldData.status },
 		create: woHoldData,
 	});
-	const runHold = await prisma.run.upsert({
+	const runHold = await prismaClient.run.upsert({
 		where: { runNo: "RUN-MGMT-SMT-HOLD" },
 		update: { status: db.RunStatus.ON_HOLD },
 		create: {
@@ -311,11 +328,11 @@ const run = async () => {
 		},
 	});
 	// FAI 通过
-	const existingFaiHold = await prisma.inspection.findFirst({
+	const existingFaiHold = await prismaClient.inspection.findFirst({
 		where: { runId: runHold.id, type: db.InspectionType.FAI },
 	});
 	if (!existingFaiHold) {
-		await prisma.inspection.create({
+		await prismaClient.inspection.create({
 			data: {
 				runId: runHold.id,
 				type: db.InspectionType.FAI,
@@ -330,11 +347,11 @@ const run = async () => {
 		});
 	}
 	// OQC 不合格
-	const existingOqcHold = await prisma.inspection.findFirst({
+	const existingOqcHold = await prismaClient.inspection.findFirst({
 		where: { runId: runHold.id, type: db.InspectionType.OQC },
 	});
 	if (!existingOqcHold) {
-		await prisma.inspection.create({
+		await prismaClient.inspection.create({
 			data: {
 				runId: runHold.id,
 				type: db.InspectionType.OQC,
@@ -353,7 +370,7 @@ const run = async () => {
 	// 创建单件（已完成生产，等待质量决策）
 	for (let i = 1; i <= 8; i++) {
 		const sn = `SN-MGMT-HOLD-${String(i).padStart(4, "0")}`;
-		const unit = await prisma.unit.upsert({
+		const unit = await prismaClient.unit.upsert({
 			where: { sn },
 			update: {},
 			create: {
@@ -368,12 +385,12 @@ const run = async () => {
 		for (let stepNo = 1; stepNo <= 5; stepNo++) {
 			const station = smtStations[stepNo - 1];
 			if (!station) continue;
-			const existingTrack = await prisma.track.findFirst({
+			const existingTrack = await prismaClient.track.findFirst({
 				where: { unitId: unit.id, stepNo },
 			});
 			if (!existingTrack) {
 				const inAt = new Date(NOW.getTime() - 18 * HOUR - (5 - stepNo) * 30 * 60 * 1000);
-				await prisma.track.create({
+				await prismaClient.track.create({
 					data: {
 						unitId: unit.id,
 						stepNo,
@@ -400,12 +417,12 @@ const run = async () => {
 		status: db.WorkOrderStatus.COMPLETED,
 		createdAt: new Date(NOW.getTime() - 3 * DAY),
 	};
-	const woDone = await prisma.workOrder.upsert({
+	const woDone = await prismaClient.workOrder.upsert({
 		where: { woNo: woDoneData.woNo },
 		update: { status: woDoneData.status },
 		create: woDoneData,
 	});
-	const runDone = await prisma.run.upsert({
+	const runDone = await prismaClient.run.upsert({
 		where: { runNo: "RUN-MGMT-SMT-DONE" },
 		update: { status: db.RunStatus.COMPLETED },
 		create: {
@@ -420,11 +437,11 @@ const run = async () => {
 		},
 	});
 	// FAI 通过
-	const existingFaiDone = await prisma.inspection.findFirst({
+	const existingFaiDone = await prismaClient.inspection.findFirst({
 		where: { runId: runDone.id, type: db.InspectionType.FAI },
 	});
 	if (!existingFaiDone) {
-		await prisma.inspection.create({
+		await prismaClient.inspection.create({
 			data: {
 				runId: runDone.id,
 				type: db.InspectionType.FAI,
@@ -439,11 +456,11 @@ const run = async () => {
 		});
 	}
 	// OQC 通过
-	const existingOqcDone = await prisma.inspection.findFirst({
+	const existingOqcDone = await prismaClient.inspection.findFirst({
 		where: { runId: runDone.id, type: db.InspectionType.OQC },
 	});
 	if (!existingOqcDone) {
-		await prisma.inspection.create({
+		await prismaClient.inspection.create({
 			data: {
 				runId: runDone.id,
 				type: db.InspectionType.OQC,
@@ -462,7 +479,7 @@ const run = async () => {
 	// 创建完成的单件
 	for (let i = 1; i <= 5; i++) {
 		const sn = `SN-MGMT-DONE-${String(i).padStart(4, "0")}`;
-		const unit = await prisma.unit.upsert({
+		const unit = await prismaClient.unit.upsert({
 			where: { sn },
 			update: {},
 			create: {
@@ -477,12 +494,12 @@ const run = async () => {
 		for (let stepNo = 1; stepNo <= 5; stepNo++) {
 			const station = smtStations[stepNo - 1];
 			if (!station) continue;
-			const existingTrack = await prisma.track.findFirst({
+			const existingTrack = await prismaClient.track.findFirst({
 				where: { unitId: unit.id, stepNo },
 			});
 			if (!existingTrack) {
 				const inAt = new Date(NOW.getTime() - 2.5 * DAY - (5 - stepNo) * 30 * 60 * 1000);
-				await prisma.track.create({
+				await prismaClient.track.create({
 					data: {
 						unitId: unit.id,
 						stepNo,
@@ -512,12 +529,12 @@ const run = async () => {
 		status: db.WorkOrderStatus.IN_PROGRESS,
 		createdAt: new Date(NOW.getTime() - 6 * HOUR),
 	};
-	const woDipExec = await prisma.workOrder.upsert({
+	const woDipExec = await prismaClient.workOrder.upsert({
 		where: { woNo: woDipExecData.woNo },
 		update: { status: woDipExecData.status },
 		create: woDipExecData,
 	});
-	const runDipExec = await prisma.run.upsert({
+	const runDipExec = await prismaClient.run.upsert({
 		where: { runNo: "RUN-MGMT-DIP-EXEC" },
 		update: { status: db.RunStatus.IN_PROGRESS },
 		create: {
@@ -532,11 +549,11 @@ const run = async () => {
 		},
 	});
 	// FAI
-	const existingFaiDipExec = await prisma.inspection.findFirst({
+	const existingFaiDipExec = await prismaClient.inspection.findFirst({
 		where: { runId: runDipExec.id, type: db.InspectionType.FAI },
 	});
 	if (!existingFaiDipExec) {
-		await prisma.inspection.create({
+		await prismaClient.inspection.create({
 			data: {
 				runId: runDipExec.id,
 				type: db.InspectionType.FAI,
@@ -556,7 +573,7 @@ const run = async () => {
 		const status =
 			i <= 2 ? db.UnitStatus.DONE : i <= 4 ? db.UnitStatus.IN_STATION : db.UnitStatus.QUEUED;
 		const currentStepNo = i <= 2 ? 4 : i <= 4 ? 2 : 1;
-		const unit = await prisma.unit.upsert({
+		const unit = await prismaClient.unit.upsert({
 			where: { sn },
 			update: { status, currentStepNo },
 			create: {
@@ -572,7 +589,7 @@ const run = async () => {
 			for (let stepNo = 1; stepNo <= currentStepNo; stepNo++) {
 				const station = dipStations[stepNo - 1];
 				if (!station) continue;
-				const existingTrack = await prisma.track.findFirst({
+				const existingTrack = await prismaClient.track.findFirst({
 					where: { unitId: unit.id, stepNo },
 				});
 				if (!existingTrack) {
@@ -581,7 +598,7 @@ const run = async () => {
 						stepNo < currentStepNo || status === db.UnitStatus.DONE
 							? new Date(inAt.getTime() + 25 * 60 * 1000)
 							: null;
-					await prisma.track.create({
+					await prismaClient.track.create({
 						data: {
 							unitId: unit.id,
 							stepNo,
@@ -609,12 +626,12 @@ const run = async () => {
 		status: db.WorkOrderStatus.COMPLETED,
 		createdAt: new Date(NOW.getTime() - 2 * DAY),
 	};
-	const woDipDone = await prisma.workOrder.upsert({
+	const woDipDone = await prismaClient.workOrder.upsert({
 		where: { woNo: woDipDoneData.woNo },
 		update: { status: woDipDoneData.status },
 		create: woDipDoneData,
 	});
-	const runDipDone = await prisma.run.upsert({
+	const runDipDone = await prismaClient.run.upsert({
 		where: { runNo: "RUN-MGMT-DIP-DONE" },
 		update: { status: db.RunStatus.COMPLETED },
 		create: {
@@ -629,11 +646,11 @@ const run = async () => {
 		},
 	});
 	// FAI/OQC
-	const existingFaiDipDone = await prisma.inspection.findFirst({
+	const existingFaiDipDone = await prismaClient.inspection.findFirst({
 		where: { runId: runDipDone.id, type: db.InspectionType.FAI },
 	});
 	if (!existingFaiDipDone) {
-		await prisma.inspection.create({
+		await prismaClient.inspection.create({
 			data: {
 				runId: runDipDone.id,
 				type: db.InspectionType.FAI,
@@ -647,11 +664,11 @@ const run = async () => {
 			},
 		});
 	}
-	const existingOqcDipDone = await prisma.inspection.findFirst({
+	const existingOqcDipDone = await prismaClient.inspection.findFirst({
 		where: { runId: runDipDone.id, type: db.InspectionType.OQC },
 	});
 	if (!existingOqcDipDone) {
-		await prisma.inspection.create({
+		await prismaClient.inspection.create({
 			data: {
 				runId: runDipDone.id,
 				type: db.InspectionType.OQC,
@@ -668,7 +685,7 @@ const run = async () => {
 	// 单件
 	for (let i = 1; i <= 10; i++) {
 		const sn = `SN-MGMT-DIP-DONE-${String(i).padStart(4, "0")}`;
-		const unit = await prisma.unit.upsert({
+		const unit = await prismaClient.unit.upsert({
 			where: { sn },
 			update: {},
 			create: {
@@ -683,12 +700,12 @@ const run = async () => {
 		for (let stepNo = 1; stepNo <= 4; stepNo++) {
 			const station = dipStations[stepNo - 1];
 			if (!station) continue;
-			const existingTrack = await prisma.track.findFirst({
+			const existingTrack = await prismaClient.track.findFirst({
 				where: { unitId: unit.id, stepNo },
 			});
 			if (!existingTrack) {
 				const inAt = new Date(NOW.getTime() - 1.6 * DAY - (4 - stepNo) * 40 * 60 * 1000);
-				await prisma.track.create({
+				await prismaClient.track.create({
 					data: {
 						unitId: unit.id,
 						stepNo,
@@ -707,13 +724,13 @@ const run = async () => {
 
 	// 3. 统计
 	console.log("\n========== Demo Data Summary ==========");
-	const woCount = await prisma.workOrder.count({ where: { woNo: { startsWith: "WO-MGMT" } } });
-	const runCount = await prisma.run.count({ where: { runNo: { startsWith: "RUN-MGMT" } } });
-	const unitCount = await prisma.unit.count({ where: { sn: { startsWith: "SN-MGMT" } } });
-	const trackCount = await prisma.track.count({
+	const woCount = await prismaClient.workOrder.count({ where: { woNo: { startsWith: "WO-MGMT" } } });
+	const runCount = await prismaClient.run.count({ where: { runNo: { startsWith: "RUN-MGMT" } } });
+	const unitCount = await prismaClient.unit.count({ where: { sn: { startsWith: "SN-MGMT" } } });
+	const trackCount = await prismaClient.track.count({
 		where: { unit: { sn: { startsWith: "SN-MGMT" } } },
 	});
-	const inspCount = await prisma.inspection.count({
+	const inspCount = await prismaClient.inspection.count({
 		where: { run: { runNo: { startsWith: "RUN-MGMT" } } },
 	});
 
@@ -724,8 +741,20 @@ const run = async () => {
 	console.log(`  Inspections: ${inspCount}`);
 	console.log("========================================\n");
 
-	console.log("Demo data created successfully!");
-	console.log("\nRecommended trace SN for demo: SN-MGMT-DONE-0001");
+console.log("Demo data created successfully!");
+console.log("\nRecommended trace SN for demo: SN-MGMT-DONE-0001");
 };
 
-await run();
+if (import.meta.main) {
+	await runSeedDemo({ loadEnv: true })
+		.then(async () => {
+			const { default: prisma } = (await import("@better-app/db")) as Db;
+			await prisma.$disconnect();
+		})
+		.catch(async (error) => {
+			const { default: prisma } = (await import("@better-app/db")) as Db;
+			console.error("Failed:", error);
+			await prisma.$disconnect();
+			process.exit(1);
+		});
+}
