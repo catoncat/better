@@ -754,3 +754,23 @@
 
 ## Update 2026-01-28 (dev 脚本)
 - Progress: `apps/server/package.json` 新增 `db:generate` 脚本并在 `dev` 前置执行，确保启动前生成 Prisma Client。
+
+## Context (2026-01-28 doc-review)
+- Task: apply doc-review-meta plan to produce actionable backlog and align skill defaults.
+
+## Findings (2026-01-28 doc-review)
+- `domain_docs/mes/tech/api/01_api_overview.md` defines 9 API domains with endpoint lists: Integration, Routing, Work Orders / Runs, Readiness, Loading, Stations / Execution, Quality (FAI/FQC/OQC), Quality (Defects / Rework Tasks), Traceability.
+- UI entry files for these domains are under `apps/web/src/routes/_authenticated/mes/` including integration/*, routes/*, work-orders.tsx, runs/*, readiness-*, loading/*, execution.tsx, fai/fqc/oqc, defects.tsx, rework-tasks.tsx, trace.tsx.
+
+## Findings (2026-01-28 doc-review update)
+- API contract docs exist: `domain_docs/mes/tech/api/02_api_contracts_execution.md`, `03_api_contracts_quality.md`, `04_api_contracts_trace.md`.
+- Traceability spec exists at `domain_docs/mes/spec/traceability/01_traceability_contract.md`.
+
+## Progress (2026-01-28 doc-review)
+- Filled `00_review_backlog.md` with 9 API domains, key endpoints, docs, and UI route file paths.
+- Added Backlog basis note in `doc_review_tasks.md` referencing API overview + contracts.
+- Added Links line in `00_status.md` to backlog + round1 template.
+- Verified `doc-review-meta` skill default path stays “generate tasks” without depth choices.
+
+## Findings (2026-01-28 doc-review verify)
+- Verified backlog table now lists 9 API domains with endpoints/docs/UI paths; doc_review_tasks includes Backlog 依据; 00_status header includes Links to backlog and round template.

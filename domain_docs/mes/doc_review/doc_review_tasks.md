@@ -38,6 +38,8 @@
 - API 接口（路径、字段、契约）
 - UI 位置（页面/组件/路由）
 
+Backlog 依据：API 域索引入口以 `domain_docs/mes/tech/api/01_api_overview.md` 为准，细化合约以 `02~04_api_contracts_*.md` 为证据。
+
 并输出：
 - 对齐矩阵（文档 ↔ API ↔ UI）
 - 偏差类型：缺失 / 命名不一致 / 行为不一致 / 未实现
