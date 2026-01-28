@@ -2,7 +2,7 @@
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { XIcon } from "lucide-react";
-import type * as React from "react";
+import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -38,6 +38,59 @@ function DialogOverlay({
 	);
 }
 
+/**
+ * Wraps form children with DialogBody for proper scrolling.
+ * - DialogHeader and DialogFooter stay outside (fixed)
+ * - All other content goes inside DialogBody (scrollable)
+ */
+function wrapFormChildren(children: React.ReactNode): React.ReactNode {
+	const childArray = React.Children.toArray(children);
+
+	// Check if DialogBody is already present
+	const hasDialogBody = childArray.some(
+		(child) =>
+			React.isValidElement(child) &&
+			(child.props as { "data-slot"?: string })["data-slot"] === "dialog-body",
+	);
+
+	if (hasDialogBody) {
+		return children;
+	}
+
+	// Separate header, footer, and body content
+	const header: React.ReactNode[] = [];
+	const footer: React.ReactNode[] = [];
+	const body: React.ReactNode[] = [];
+
+	for (const child of childArray) {
+		if (React.isValidElement(child)) {
+			const slot = (child.props as { "data-slot"?: string })["data-slot"];
+			if (slot === "dialog-header") {
+				header.push(child);
+			} else if (slot === "dialog-footer") {
+				footer.push(child);
+			} else {
+				body.push(child);
+			}
+		} else {
+			body.push(child);
+		}
+	}
+
+	// If there's body content, wrap it in DialogBody
+	if (body.length > 0) {
+		return (
+			<>
+				{header}
+				<DialogBody>{body}</DialogBody>
+				{footer}
+			</>
+		);
+	}
+
+	return children;
+}
+
 function DialogContent({
 	className,
 	children,
@@ -46,18 +99,33 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
 	showCloseButton?: boolean;
 }) {
+	// Process children to auto-wrap form content
+	const processedChildren = React.Children.map(children, (child) => {
+		if (React.isValidElement(child) && typeof child.type === "string" && child.type === "form") {
+			// Clone the form with wrapped children
+			return React.cloneElement(
+				child as React.ReactElement<{ children?: React.ReactNode }>,
+				{},
+				wrapFormChildren(
+					(child as React.ReactElement<{ children?: React.ReactNode }>).props.children,
+				),
+			);
+		}
+		return child;
+	});
+
 	return (
 		<DialogPortal data-slot="dialog-portal">
 			<DialogOverlay />
 			<DialogPrimitive.Content
 				data-slot="dialog-content"
 				className={cn(
-					"bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 flex flex-col w-full max-w-[calc(100%-2rem)] max-h-[85vh] translate-x-[-50%] translate-y-[-50%] rounded-lg border p-6 shadow-lg duration-200 sm:max-w-2xl",
+					"bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 flex flex-col w-full max-w-[calc(100%-2rem)] max-h-[85vh] translate-x-[-50%] translate-y-[-50%] rounded-lg border p-6 shadow-lg duration-200 sm:max-w-2xl [&>form]:flex [&>form]:flex-col [&>form]:flex-1 [&>form]:min-h-0",
 					className,
 				)}
 				{...props}
 			>
-				{children}
+				{processedChildren}
 				{showCloseButton && (
 					<DialogPrimitive.Close
 						data-slot="dialog-close"
