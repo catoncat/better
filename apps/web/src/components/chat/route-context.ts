@@ -1,6 +1,6 @@
 /**
- * Route context mapping for the chat assistant
- * Maps route paths to human-readable page names
+ * Route context for the chat assistant
+ * Provides page name and description for current route
  */
 
 export type RouteContext = {
@@ -8,47 +8,57 @@ export type RouteContext = {
 	description: string;
 };
 
-const routeContextMap: Record<string, RouteContext> = {
-	// Dashboard
+/**
+ * Known route contexts (for better descriptions)
+ * This is optional - unknown routes will still work with auto-detection
+ */
+const knownRoutes: Record<string, RouteContext> = {
 	"/": { name: "仪表盘", description: "系统首页" },
-
-	// MES
 	"/mes": { name: "MES 模块", description: "制造执行系统" },
-	"/mes/work-orders": { name: "工单管理", description: "管理生产工单" },
-	"/mes/runs": { name: "批次管理", description: "管理生产批次" },
-	"/mes/loading": { name: "上料验证", description: "SMT/DIP 上料验证" },
-	"/mes/fai": { name: "首件检验", description: "FAI 检验" },
-	"/mes/execution": { name: "工位执行", description: "工位级生产执行" },
-	"/mes/routes": { name: "路由管理", description: "生产路由配置" },
-	"/mes/lines": { name: "产线管理", description: "产线和工位配置" },
-	"/mes/materials": { name: "物料管理", description: "物料主数据" },
-	"/mes/products": { name: "产品管理", description: "产品和 BOM" },
-
-	// System
 	"/system": { name: "系统管理", description: "系统配置" },
-	"/system/users": { name: "用户管理", description: "用户和权限" },
-	"/system/audit-logs": { name: "审计日志", description: "操作日志" },
-	"/system/settings": { name: "系统设置", description: "系统参数" },
-
-	// Profile
 	"/profile": { name: "个人资料", description: "个人账户信息" },
 };
 
 /**
  * Get context for the current route
+ * Dynamically detects page name from document title or route path
  */
 export function getRouteContext(pathname: string): RouteContext {
-	// Direct match
-	if (routeContextMap[pathname]) {
-		return routeContextMap[pathname];
+	// 1. Check known routes first
+	if (knownRoutes[pathname]) {
+		return knownRoutes[pathname];
 	}
 
-	// Try prefix matching (for dynamic routes)
-	for (const [route, context] of Object.entries(routeContextMap)) {
+	// 2. Try prefix matching for known routes
+	for (const [route, context] of Object.entries(knownRoutes)) {
 		if (pathname.startsWith(route) && route !== "/") {
 			return context;
 		}
 	}
 
-	return { name: "当前页面", description: "" };
+	// 3. Auto-detect from document title (removes app name suffix if present)
+	if (typeof document !== "undefined" && document.title) {
+		const title = document.title;
+		// Remove common suffixes like " - AppName" or " | AppName"
+		const cleanTitle = title.split(/\s*[-|]\s*/)[0]?.trim();
+		if (cleanTitle && cleanTitle.length > 0 && cleanTitle.length < 30) {
+			return { name: cleanTitle, description: "" };
+		}
+	}
+
+	// 4. Generate from path segments
+	const segments = pathname.split("/").filter(Boolean);
+	if (segments.length > 0) {
+		const lastSegment = segments[segments.length - 1];
+		if (lastSegment) {
+			// Convert kebab-case to readable name
+			const name = lastSegment
+				.split("-")
+				.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+				.join(" ");
+			return { name, description: pathname };
+		}
+	}
+
+	return { name: "当前页面", description: pathname };
 }
