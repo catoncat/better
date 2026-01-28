@@ -23,8 +23,8 @@ task:
 ## Slices
 - [x] Slice 0: worktree note context
 - [x] Slice 1: 规格与计划对齐（routing/inspection/plan）
-- [ ] Slice 2: DB Schema + Migration（FAI 模板 + 路由绑定）
-- [ ] Slice 3: Server 路由/模板/门禁（API + 快照 + FAI items）
+- [x] Slice 2: DB Schema + Migration（FAI 模板 + 路由绑定）
+- [x] Slice 3: Server 路由/模板/门禁（API + 快照 + FAI items）
 - [ ] Slice 4: ERP 工单路由解析与覆盖
 - [ ] Slice 5: Web 管理与执行（模板管理/路由绑定/FAI 录入）
 - [ ] Slice 6: 测试 + Align 文档
@@ -57,3 +57,4 @@ task:
 ## Errors
 - 2026-01-28: apply_patch failed on `domain_docs/mes/spec/routing/03_route_execution_config.md` due to context mismatch when inserting FAI template binding section. Next approach: use scripted insert to add a new section after the FAI gate block.
 - 2026-01-28: python not found when running insert script. Next approach: use python3.
+- 2026-01-28: failed to write `apps/server/src/modules/mes/fai-template/schema.ts` because directory did not exist. Next approach: create folder then write file.
