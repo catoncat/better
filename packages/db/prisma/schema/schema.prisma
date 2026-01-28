@@ -62,6 +62,7 @@ model User {
   accounts                   Account[]
   notifications              Notification[]
   systemLogs                 SystemLog[]
+  chatFeedbacks              ChatFeedback[]
   
   // New RBAC relations
   userRoles              UserRoleAssignment[]
@@ -173,6 +174,23 @@ model SystemLog {
   @@index([action])
   @@index([userId])
   @@map("system_logs")
+}
+
+model ChatFeedback {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId          String?
+  currentPath        String?
+  userMessage        String
+  assistantMessage   String
+  userMessageId      String?
+  assistantMessageId String?
+  feedback           String?
+  createdAt          DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("chat_feedback")
 }
 
 // ==========================================
