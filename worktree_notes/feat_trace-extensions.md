@@ -6,7 +6,7 @@ baseRef: "origin/main"
 dependencies:
   blockedBy: []
   blocks: []
-status: in_progress  # pending | in_progress | completed
+status: completed  # pending | in_progress | completed
 task:
   title: "Trace material-lot API + trace UI detail expansions"
 ---
@@ -98,4 +98,4 @@ task:
 -
 
 ## Open Questions
--
+- Verify with `bun scripts/smart-verify.ts` before merge.
