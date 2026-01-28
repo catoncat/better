@@ -22,8 +22,8 @@ touchPoints:
 
 ## Slices
 - [x] Slice 0: worktree note context
-- [ ] Slice 1: 统一 CTA 生成 + 表格替换
-- [ ] Slice 2: nextAction 主 CTA + 授权门控 + 模板卡片“未启用”
+- [x] Slice 1: 统一 CTA 生成 + 表格替换
+- [x] Slice 2: nextAction 主 CTA + 授权门控 + 模板卡片“未启用”
 
 <!-- AUTO:BEGIN status -->
 
