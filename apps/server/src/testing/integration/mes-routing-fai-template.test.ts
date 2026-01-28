@@ -172,9 +172,8 @@ describe("integration: mes routing + FAI template", () => {
 			data: { id: string };
 		};
 
-		const { res: createTemplateRes, data: createTemplateData } = await quality.post<CreateTemplateResponse>(
-			"/api/fai-templates/",
-			{
+		const { res: createTemplateRes, data: createTemplateData } =
+			await quality.post<CreateTemplateResponse>("/api/fai-templates/", {
 				code: templateCode,
 				name: `FAI Template ${templateCode}`,
 				productCode,
@@ -184,8 +183,7 @@ describe("integration: mes routing + FAI template", () => {
 					{ seq: 1, itemName: "Length", itemSpec: "10±0.5", required: true },
 					{ seq: 2, itemName: "Width", itemSpec: "5±0.2", required: false },
 				],
-			},
-		);
+			});
 
 		expect(createTemplateRes.status).toBe(201);
 		expect(createTemplateData?.ok).toBe(true);
@@ -297,7 +295,9 @@ describe("integration: mes routing + FAI template", () => {
 			ok: boolean;
 			data: { items: Array<{ itemName: string; itemSpec: string | null }> };
 		};
-		const { res: getFaiRes, data: getFaiData } = await quality.get<GetFaiResponse>(`/api/fai/${faiId}`);
+		const { res: getFaiRes, data: getFaiData } = await quality.get<GetFaiResponse>(
+			`/api/fai/${faiId}`,
+		);
 		expect(getFaiRes.status).toBe(200);
 		expect(getFaiData?.ok).toBe(true);
 		expect(getFaiData?.data?.items.map((item) => item.itemName)).toEqual(
