@@ -1,6 +1,6 @@
 ---
 name: doc-review-meta
-description: "MES 文档系统性 review 的 meta 任务拆解、模板/方法维护与共享进度状态。用于制定/更新 doc review 计划与追踪方案。"
+description: "MES 文档系统性 review 的 meta 助手：任务清单/Backlog/模板/方法与共享状态维护。不负责轮次对齐执行（roundN_*.md）；执行请用 doc-review-exec。"
 ---
 
 # Doc Review Meta
@@ -10,6 +10,11 @@ description: "MES 文档系统性 review 的 meta 任务拆解、模板/方法�
 - 需要建立或调整“文档为真源”的系统性 review 方案
 - 需要生成/更新 review 任务清单（meta 级）
 - 需要维护共享进度状态（可提交、可追踪）
+
+## 边界（重要）
+
+- 本 skill（meta）：维护方法/模板/Backlog/共享状态占位，并输出“拟更新内容清单”。
+- 轮次执行（写 `roundN_*.md`、填对齐矩阵、列偏差清单、把某轮次状态置为 in_progress/completed）：请使用 `doc-review-exec`。
 
 ## 工作流对齐（必须遵守）
 
@@ -34,6 +39,9 @@ description: "MES 文档系统性 review 的 meta 任务拆解、模板/方法�
 - **任务/清单/计划/拆解/生成** → 生成/更新 review 任务清单（改 `doc_review_tasks.md` + `00_review_backlog.md`）
 - **进度/状态/推进/完成/卡住** → 维护共享进度（改 `00_status.md`）
 - **模板/结构/方法/规则/流程** → 更新规则/方法或模板（改 `00_review_method.md` / `00_alignment_matrix_template.md` / `doc_review_tasks.md`）
+- **轮次/执行/对齐矩阵/偏差清单/roundN** → 使用 `doc-review-exec`（本 skill 不负责执行产出）
+
+若用户明确要做轮次对齐但误触发本 skill：不要改 meta 文档，直接提示改用 `doc-review-exec`。
 
 若意图仍不明确，只问 **1 个**问题（用户语言）：
 
@@ -69,39 +77,23 @@ C 更新规则/方法或模板
 
 ### 5) 读取策略（降噪）
 
-- 必须读取 `.scratch/`，但只读 **最少必要** 文件（优先读 `index.md` 或最近更新的 note）。\n
+- 必须读取 `.scratch/`，但只读 **最少必要** 文件（优先读 `index.md` 或最近更新的 note）。
 - **除非用户明确要求**，不要读取 `.scratch/task-queue.md`。
 - 不要输出“耗时/进度/步骤说明”，直接给结论与拟更新清单。
 
 ---
 
-## 共享状态方案（标准）
+## 输出与动作（简版）
 
-- **唯一共享状态文件**：`domain_docs/mes/doc_review/00_status.md`
-- **更新时机**：
-  - 轮次状态变化（pending/in_progress/completed）
-  - 高风险偏差新增/关闭
-- **字段要求**：Round、Scope、Status、Owner、Updated、Notes、Links
-
-## Meta 任务执行模板
-
-1) **对齐/校验 meta 规则**
-- 确认真源层级（spec → playbook → user_docs）
-- 确认 API 驱动入口
-
-2) **维护 meta 产出结构**
-- 若缺少模板/方法/Backlog 文档，先补齐再继续
-- 修改时同步更新 `doc_review_tasks.md`
-
-3) **共享状态维护**
-- 每次更新轮次或风险项后，写入 `00_status.md`
-- 若涉及运行时切片，写入 `.scratch/task-queue.md`
-
-4) **记录关键决策**
-- 若产生流程/规则变更，用 `bun scripts/conversation-new.ts` 记录 note
+- 任务清单 / Backlog：改 `doc_review_tasks.md` / `00_review_backlog.md`（不做实现级修复）。
+- 方法/模板：只在用户明确要求“改规则/改模板”时，改 `00_review_method.md` / `00_alignment_matrix_template.md`。
+- 共享状态：改 `00_status.md`（字段以文件内表头为准；轮次可保持占位 TBD）。
+- 运行时切片：需要多人协作/并行时才写 `.scratch/task-queue.md`（不入 Git）。
+- 关键决策：如确有流程/规则变更需要留档，用 `bun scripts/conversation-new.ts "<topic>" --persist` 写入 `conversation/` 并提交。
 
 ## 不做的事（保持 meta 边界）
 
 - 不创建实现级任务或修复项
 - 不判定某个页面/接口/文档的具体正确性
 - 不锁死轮次顺序（除非用户明确要求）
+- 不执行轮次对齐产出（`roundN_*.md`）——交给 `doc-review-exec`
