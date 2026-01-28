@@ -71,7 +71,7 @@ export function ChatInput({
 	};
 
 	return (
-		<div className={cn("border-t bg-background p-3 mb-1", className)}>
+		<div className={cn("border-t bg-background p-3", className)}>
 			<div className="flex items-end gap-2">
 				<Textarea
 					ref={textareaRef}
@@ -81,8 +81,9 @@ export function ChatInput({
 					onInput={handleInput}
 					placeholder={placeholder}
 					disabled={disabled}
-					className="min-h-9 max-h-30 resize-none py-2 text-sm"
+					className="min-h-[36px] max-h-[120px] resize-none py-2 text-sm"
 					rows={1}
+					title="按 Enter 发送，Shift + Enter 换行"
 				/>
 				{isLoading ? (
 					<Button variant="destructive" size="icon" onClick={onStop} className="shrink-0 size-9">

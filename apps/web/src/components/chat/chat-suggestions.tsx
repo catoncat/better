@@ -1,4 +1,4 @@
-import { Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { Loader2, MessageSquareText, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SuggestionItem } from "./use-suggestions";
@@ -6,53 +6,23 @@ import type { SuggestionItem } from "./use-suggestions";
 type ChatSuggestionsProps = {
 	suggestions: SuggestionItem[];
 	isLoading: boolean;
-	title?: string;
 	onSelect: (suggestion: SuggestionItem) => void;
 	onRefresh?: () => void;
+	onFeedback?: () => void;
 	className?: string;
 };
 
 export function ChatSuggestions({
 	suggestions,
 	isLoading,
-	title = "建议问题",
 	onSelect,
 	onRefresh,
+	onFeedback,
 	className,
 }: ChatSuggestionsProps) {
-	if (isLoading) {
-		return (
-			<div className={cn("flex items-center justify-center py-4 text-muted-foreground", className)}>
-				<Loader2 className="mr-2 size-4 animate-spin" />
-				<span className="text-sm">正在生成建议问题...</span>
-			</div>
-		);
-	}
-
-	if (suggestions.length === 0) {
-		return null;
-	}
-
 	return (
-		<div className={cn("space-y-1.5 px-3 py-1.5", className)}>
-			<div className="flex items-center justify-between">
-				<div className="flex items-center gap-1 text-xs text-muted-foreground">
-					<Sparkles className="size-3" />
-					<span>{title}</span>
-				</div>
-				{onRefresh && (
-					<Button
-						variant="ghost"
-						size="icon"
-						className="size-6"
-						onClick={onRefresh}
-						title="刷新建议"
-					>
-						<RefreshCw className="size-3" />
-					</Button>
-				)}
-			</div>
-			<div className="flex flex-wrap gap-1.5">
+		<div className={cn("px-3 py-1.5", className)}>
+			<div className="flex flex-wrap gap-1.5 items-center">
 				{suggestions.map((suggestion, index) => (
 					<button
 						type="button"
@@ -66,11 +36,31 @@ export function ChatSuggestions({
 						)}
 					>
 						<span className="max-w-[200px] truncate">{suggestion.question}</span>
-						{suggestion.action === "send" && (
-							<span className="text-[10px] text-muted-foreground">↵</span>
-						)}
 					</button>
 				))}
+				{onFeedback && (
+					<Button
+						variant="ghost"
+						size="icon"
+						className="size-6 rounded-full text-muted-foreground hover:text-foreground"
+						onClick={onFeedback}
+						title="我要反馈"
+					>
+						<MessageSquareText className="size-3.5" />
+					</Button>
+				)}
+				{onRefresh && (
+					<Button
+						variant="ghost"
+						size="icon"
+						className="size-6 rounded-full text-muted-foreground hover:text-foreground"
+						onClick={onRefresh}
+						title="刷新建议"
+						disabled={isLoading}
+					>
+						<RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
+					</Button>
+				)}
 			</div>
 		</div>
 	);

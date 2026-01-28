@@ -253,14 +253,19 @@ function buildMessageBlock(items: ChatMessage[]): string {
 		.join(MESSAGE_SEPARATOR);
 }
 
-type ChatThreadFeedbackProps = {
+type ChatFeedbackDialogProps = {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
 	messages: ChatMessage[];
 	onFeedback?: (payload: ChatFeedbackPayload) => void;
-	className?: string;
 };
 
-export function ChatThreadFeedback({ messages, onFeedback, className }: ChatThreadFeedbackProps) {
-	const [open, setOpen] = useState(false);
+export function ChatFeedbackDialog({
+	open,
+	onOpenChange,
+	messages,
+	onFeedback,
+}: ChatFeedbackDialogProps) {
 	const [note, setNote] = useState("");
 	const selectableMessages = useMemo(
 		() => messages.filter((message) => message.content.trim().length > 0 && !message.isStreaming),
@@ -286,7 +291,7 @@ export function ChatThreadFeedback({ messages, onFeedback, className }: ChatThre
 	};
 
 	const handleOpenChange = (nextOpen: boolean) => {
-		setOpen(nextOpen);
+		onOpenChange(nextOpen);
 		if (!nextOpen) {
 			setNote("");
 		}
@@ -307,138 +312,117 @@ export function ChatThreadFeedback({ messages, onFeedback, className }: ChatThre
 			feedback: feedback ? feedback : undefined,
 		});
 
-		setOpen(false);
-		setNote("");
+		handleOpenChange(false);
 	};
 
 	return (
-		<div className={cn("border-t bg-background px-3 py-1.5", className)}>
-			<div className="flex items-center justify-between gap-2">
-				<Button
-					type="button"
-					variant="ghost"
-					size="sm"
-					className="gap-2 text-xs h-7"
-					onClick={() => setOpen(true)}
-					disabled={!onFeedback || selectableMessages.length === 0}
-				>
-					<MessageSquareText className="size-3.5" />
-					我要反馈
-				</Button>
-				<span className="text-[10px] text-muted-foreground">用于改进系统体验，AI 回复仅作辅助</span>
-			</div>
-
-			<Dialog open={open} onOpenChange={handleOpenChange}>
-				<DialogContent className="sm:max-w-[720px]">
-					<DialogHeader>
-						<DialogTitle>我要反馈</DialogTitle>
-					</DialogHeader>
-					<DialogBody className="space-y-4">
-						<div className="flex items-center justify-between text-xs text-muted-foreground">
-							<span>
-								已选 {selectedCount} / {selectableMessages.length}
-							</span>
-							<div className="flex items-center gap-2">
-								<Button
-									type="button"
-									variant="ghost"
-									size="sm"
-									className="h-7 px-2 text-xs"
-									onClick={handleSelectAll}
-									disabled={selectableMessages.length === 0}
-								>
-									全选
-								</Button>
-								<Button
-									type="button"
-									variant="ghost"
-									size="sm"
-									className="h-7 px-2 text-xs"
-									onClick={handleClear}
-									disabled={selectedCount === 0}
-								>
-									清空
-								</Button>
-							</div>
+		<Dialog open={open} onOpenChange={handleOpenChange}>
+			<DialogContent className="sm:max-w-[720px]">
+				<DialogHeader>
+					<DialogTitle>我要反馈</DialogTitle>
+				</DialogHeader>
+				<DialogBody className="space-y-4">
+					<div className="flex items-center justify-between text-xs text-muted-foreground">
+						<span>
+							已选 {selectedCount} / {selectableMessages.length}
+						</span>
+						<div className="flex items-center gap-2">
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								className="h-7 px-2 text-xs"
+								onClick={handleSelectAll}
+								disabled={selectableMessages.length === 0}
+							>
+								全选
+							</Button>
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								className="h-7 px-2 text-xs"
+								onClick={handleClear}
+								disabled={selectedCount === 0}
+							>
+								清空
+							</Button>
 						</div>
+					</div>
 
-						<div className="rounded-lg border">
-							<div className="max-h-80 overflow-y-auto">
-								<div className="divide-y">
-									{selectableMessages.map((message, index) => {
-										const checkboxId = `chat-feedback-${message.id}`;
-										const isChecked = selectedIds.has(message.id);
-										const roleLabel = message.role === "user" ? "用户" : "助手";
-										return (
-											<div key={message.id} className="flex items-start gap-3 px-4 py-3">
-												<Checkbox
-													id={checkboxId}
-													checked={isChecked}
-													onCheckedChange={(checked) => {
-														setSelectedIds((prev) => {
-															const next = new Set(prev);
-															if (checked === true) {
-																next.add(message.id);
-															} else {
-																next.delete(message.id);
-															}
-															return next;
-														});
-													}}
-												/>
-												<div className="grid gap-2">
-													<div className="flex items-center gap-2 text-xs text-muted-foreground">
-														<Badge variant={message.role === "user" ? "secondary" : "outline"}>
-															{roleLabel}
-														</Badge>
-														<span>消息 {index + 1}</span>
-													</div>
-													<Label
-														htmlFor={checkboxId}
-														className="cursor-pointer text-sm font-normal"
-													>
-														<span className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-															{message.content}
-														</span>
-													</Label>
+					<div className="rounded-lg border">
+						<div className="max-h-80 overflow-y-auto">
+							<div className="divide-y">
+								{selectableMessages.map((message, index) => {
+									const checkboxId = `chat-feedback-${message.id}`;
+									const isChecked = selectedIds.has(message.id);
+									const roleLabel = message.role === "user" ? "用户" : "助手";
+									return (
+										<div key={message.id} className="flex items-start gap-3 px-4 py-3">
+											<Checkbox
+												id={checkboxId}
+												checked={isChecked}
+												onCheckedChange={(checked) => {
+													setSelectedIds((prev) => {
+														const next = new Set(prev);
+														if (checked === true) {
+															next.add(message.id);
+														} else {
+															next.delete(message.id);
+														}
+														return next;
+													});
+												}}
+											/>
+											<div className="grid gap-2">
+												<div className="flex items-center gap-2 text-xs text-muted-foreground">
+													<Badge variant={message.role === "user" ? "secondary" : "outline"}>
+														{roleLabel}
+													</Badge>
+													<span>消息 {index + 1}</span>
 												</div>
+												<Label htmlFor={checkboxId} className="cursor-pointer text-sm font-normal">
+													<span className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+														{message.content}
+													</span>
+												</Label>
 											</div>
-										);
-									})}
-									{selectableMessages.length === 0 && (
-										<div className="px-4 py-6 text-center text-sm text-muted-foreground">
-											暂无可反馈的消息
 										</div>
-									)}
-								</div>
+									);
+								})}
+								{selectableMessages.length === 0 && (
+									<div className="px-4 py-6 text-center text-sm text-muted-foreground">
+										暂无可反馈的消息
+									</div>
+								)}
 							</div>
 						</div>
+					</div>
 
-						<div className="grid gap-2">
-							<Label htmlFor="chat-feedback-note">备注</Label>
-							<Textarea
-								id="chat-feedback-note"
-								value={note}
-								onChange={(event) => setNote(event.target.value)}
-								placeholder="描述你遇到的问题或建议（可选）"
-								rows={4}
-							/>
-						</div>
-					</DialogBody>
-					<DialogFooter>
-						<Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
-							取消
-						</Button>
-						<Button
-							type="button"
-							onClick={handleSubmit}
-							disabled={selectedCount === 0 || !onFeedback}
-						>
-							提交反馈
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
-		</div>
+					<div className="grid gap-2">
+						<Label htmlFor="chat-feedback-note">备注</Label>
+						<Textarea
+							id="chat-feedback-note"
+							value={note}
+							onChange={(event) => setNote(event.target.value)}
+							placeholder="描述你遇到的问题或建议（可选）"
+							rows={4}
+						/>
+					</div>
+				</DialogBody>
+				<DialogFooter>
+					<Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+						取消
+					</Button>
+					<Button
+						type="button"
+						onClick={handleSubmit}
+						disabled={selectedCount === 0 || !onFeedback}
+					>
+						提交反馈
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	);
 }

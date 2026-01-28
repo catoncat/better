@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChatHistory } from "./chat-history";
 import { ChatInput } from "./chat-input";
-import { type ChatFeedbackPayload, ChatMessages, ChatThreadFeedback } from "./chat-messages";
+import { ChatFeedbackDialog, type ChatFeedbackPayload, ChatMessages } from "./chat-messages";
 import { ChatSuggestions } from "./chat-suggestions";
 import { getRouteContext } from "./route-context";
 import { useChat } from "./use-chat";
@@ -21,6 +21,7 @@ const BASE_URL = import.meta.env.VITE_SERVER_URL
 export function ChatAssistant() {
 	const [isOpen, setIsOpen] = useState(false);
 	const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+	const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 	const [inputValue, setInputValue] = useState("");
 	const location = useLocation();
 	const currentPath = location.pathname;
@@ -75,7 +76,7 @@ export function ChatAssistant() {
 	} = useSuggestions({
 		currentPath,
 		reply: suggestionReply,
-		enabled: isOpen && !isHistoryOpen && !!suggestionReply,
+		enabled: isOpen && !isHistoryOpen && !!suggestionReply && !isLoading,
 	});
 
 	const handleSend = useCallback(
@@ -89,14 +90,8 @@ export function ChatAssistant() {
 
 	const handleSuggestionSelect = useCallback(
 		(suggestion: SuggestionItem) => {
-			if (suggestion.action === "send") {
-				// Direct send
-				handleSend(suggestion.question);
-			} else {
-				// Fill input for user to modify
-				setInputValue(suggestion.question);
-				setIsHistoryOpen(false);
-			}
+			// Direct send for all suggestions
+			handleSend(suggestion.question);
 		},
 		[handleSend],
 	);
@@ -266,7 +261,6 @@ export function ChatAssistant() {
 										<ChatSuggestions
 											suggestions={pageSuggestions}
 											isLoading={pageSuggestionsLoading}
-											title="页面建议"
 											onSelect={handleSuggestionSelect}
 											onRefresh={refreshPageSuggestions}
 											className="border-b"
@@ -281,14 +275,19 @@ export function ChatAssistant() {
 										<ChatSuggestions
 											suggestions={replySuggestions}
 											isLoading={replySuggestionsLoading}
-											title="下一步建议"
 											onSelect={handleSuggestionSelect}
 											onRefresh={refreshReplySuggestions}
+											onFeedback={() => setIsFeedbackOpen(true)}
 											className="border-t"
 										/>
 									)}
 
-									<ChatThreadFeedback messages={messages} onFeedback={handleFeedback} />
+									<ChatFeedbackDialog
+										open={isFeedbackOpen}
+										onOpenChange={setIsFeedbackOpen}
+										messages={messages}
+										onFeedback={handleFeedback}
+									/>
 
 									{/* Input */}
 									<ChatInput
