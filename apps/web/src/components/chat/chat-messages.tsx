@@ -332,7 +332,6 @@ export function ChatThreadFeedback({ messages, onFeedback, className }: ChatThre
 				<DialogContent className="sm:max-w-[720px]">
 					<DialogHeader>
 						<DialogTitle>我要反馈</DialogTitle>
-						<DialogDescription>请选择需要反馈的消息（默认全选）。</DialogDescription>
 					</DialogHeader>
 					<DialogBody className="space-y-4">
 						<div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -364,7 +363,7 @@ export function ChatThreadFeedback({ messages, onFeedback, className }: ChatThre
 						</div>
 
 						<div className="rounded-lg border">
-							<ScrollArea className="max-h-[280px]">
+							<ScrollArea className="max-h-80">
 								<div className="divide-y">
 									{selectableMessages.map((message, index) => {
 										const checkboxId = `chat-feedback-${message.id}`;
@@ -421,9 +420,6 @@ export function ChatThreadFeedback({ messages, onFeedback, className }: ChatThre
 								placeholder="描述你遇到的问题或建议（可选）"
 								rows={4}
 							/>
-							<p className="text-xs text-muted-foreground">
-								可以补充出现的页面、流程或期望的系统行为。
-							</p>
 						</div>
 					</DialogBody>
 					<DialogFooter>

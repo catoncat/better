@@ -173,7 +173,7 @@ export function ChatAssistant() {
 				onClick={() => setIsOpen(true)}
 				size="lg"
 				className={cn(
-					"fixed right-6 bottom-6 z-[9999] size-14 rounded-full shadow-lg transition-transform hover:scale-105",
+					"fixed right-6 bottom-6 z-20 size-14 rounded-full shadow-lg transition-transform hover:scale-105",
 					isOpen && "scale-0 pointer-events-none",
 				)}
 			>
@@ -187,12 +187,12 @@ export function ChatAssistant() {
 					<button
 						type="button"
 						aria-label="关闭聊天"
-						className="fixed inset-0 z-[9998] cursor-default bg-black/20"
+						className="fixed inset-0 z-19 cursor-default bg-black/20"
 						onClick={() => setIsOpen(false)}
 					/>
 
 					{/* Chat panel */}
-					<div className="fixed top-0 right-0 z-[9999] flex h-full w-full flex-col bg-background shadow-xl sm:max-w-md animate-in slide-in-from-right duration-300">
+					<div className="fixed top-0 right-0 z-20 flex h-full w-full flex-col bg-background shadow-xl sm:max-w-md animate-in slide-in-from-right duration-300">
 						{/* Header */}
 						<div className="flex items-center justify-between border-b px-4 py-3">
 							<div className="flex-1">
