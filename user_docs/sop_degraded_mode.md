@@ -42,13 +42,13 @@
 
 **症状**：
 - Readiness 检查的"钢网就绪"项显示"无法获取状态"
-- 集成监控页 `/mes/integration/monitor` 显示 TPM 连接失败
+- 集成监控页 `/mes/integration/status` 显示 TPM 连接失败
 
 ### 2.2 降级操作
 
 | 步骤 | 操作 | 操作人 | 页面路径 |
 |------|------|--------|----------|
-| 1 | 确认 TPM 系统不可用 | 产线组长 | `/mes/integration/monitor` |
+| 1 | 确认 TPM 系统不可用 | 产线组长 | `/mes/integration/status` |
 | 2 | 进入手动录入页面 | 产线组长 | `/mes/integration/manual-entry` |
 | 3 | 选择"钢网状态"录入类型 | 产线组长 | - |
 | 4 | 填写：钢网编号 + 确认状态（READY/NOT_READY） | 产线组长 | - |
@@ -100,7 +100,7 @@
 
 | 步骤 | 操作 | 操作人 | 页面路径 |
 |------|------|--------|----------|
-| 1 | 确认 WMS 系统不可用 | 产线组长 | `/mes/integration/monitor` |
+| 1 | 确认 WMS 系统不可用 | 产线组长 | `/mes/integration/status` |
 | 2 | 进入手动录入页面 | 产线组长 | `/mes/integration/manual-entry` |
 | 3 | 选择"锡膏状态"录入类型 | 产线组长 | - |
 | 4 | 填写：锡膏批次号 + 确认状态（COMPLIANT/NON_COMPLIANT） | 产线组长 | - |
@@ -328,7 +328,7 @@
 
 ### 8.1 集成状态监控
 
-- **监控页面**：`/mes/integration/monitor`
+- **监控页面**：`/mes/integration/status`
 - **刷新频率**：实时
 - **显示内容**：
   - 各外部系统连接状态（在线/离线）

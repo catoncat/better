@@ -46,7 +46,7 @@
 |------|-------------------------------|----------------|---------------|---------|---------|------|
 | 集成状态总览 | domain_docs/mes/tech/api/01_api_overview.md | GET /api/integration/status<br>apps/server/src/modules/mes/integration/routes.ts | apps/web/src/routes/_authenticated/mes/integration/status.tsx | 无 | - | UI 展示定时同步与游标 |
 | 集成同步管理入口 | user_docs/01_admin.md<br>user_docs/03_engineer.md | GET /api/integration/status | apps/web/src/routes/_authenticated/system/integrations.tsx | 无 | - | 文档路由与实现一致 |
-| 集成监控页路径 | user_docs/sop_degraded_mode.md | GET /api/integration/status | apps/web/src/routes/_authenticated/mes/integration/status.tsx | 命名不一致 | 文档 | 文档写 `/mes/integration/monitor` |
+| 集成监控页路径 | user_docs/sop_degraded_mode.md | GET /api/integration/status | apps/web/src/routes/_authenticated/mes/integration/status.tsx | 命名不一致 | 文档 | 已修复：SOP 更新为 `/mes/integration/status` |
 | ERP 路由同步 | domain_docs/mes/tech/api/01_api_overview.md | POST /api/integration/erp/routes/sync<br>apps/server/src/modules/mes/integration/routes.ts | apps/web/src/routes/_authenticated/system/integrations.tsx | 无 | - | 手动同步入口 |
 | ERP 工单同步 | domain_docs/mes/tech/api/01_api_overview.md | POST /api/integration/erp/work-orders/sync<br>apps/server/src/modules/mes/integration/routes.ts | apps/web/src/routes/_authenticated/system/integrations.tsx | 无 | - | 手动同步入口 |
 | ERP 物料/BOM/工位同步 | domain_docs/mes/tech/api/01_api_overview.md | POST /api/integration/erp/materials/sync<br>POST /api/integration/erp/boms/sync<br>POST /api/integration/erp/work-centers/sync<br>apps/server/src/modules/mes/integration/routes.ts | apps/web/src/routes/_authenticated/system/integrations.tsx | 无 | - | 手动同步入口 |
@@ -54,21 +54,19 @@
 | 外部推送工单 | domain_docs/mes/tech/api/01_api_overview.md | POST /api/integration/work-orders<br>apps/server/src/modules/mes/integration/routes.ts | apps/web/src/routes/_authenticated/mes/-components/work-order-receive-dialog.tsx | 无 | - | 入口在工单页（Work Orders） |
 | 钢网/锡膏绑定状态推送 | domain_docs/mes/tech/api/01_api_overview.md | POST /api/integration/stencil-status<br>POST /api/integration/solder-paste-status<br>apps/server/src/modules/mes/integration/routes.ts | apps/web/src/routes/_authenticated/mes/integration/manual-entry.tsx | 无 | - | 手动录入耗材状态 |
 | 设备数据查询 | domain_docs/mes/tech/api/01_api_overview.md | GET /api/integration/device-data<br>apps/server/src/modules/mes/integration/routes.ts | apps/web/src/routes/_authenticated/mes/integration/device-data.tsx | 无 | - | 列表/筛选查询 |
-| 设备数据写入 | domain_docs/mes/tech/api/01_api_overview.md | POST /api/integration/device-data<br>apps/server/src/modules/mes/integration/routes.ts | - | 未实现 | 文档 | 当前仅有查询 UI；写入为外部系统推送 |
+| 设备数据写入 | domain_docs/mes/tech/api/01_api_overview.md | POST /api/integration/device-data<br>apps/server/src/modules/mes/integration/routes.ts | - | 未实现 | 文档 | 已修复：API overview 说明“写入为外部系统推送” |
 | 线体钢网/锡膏绑定 | domain_docs/mes/tech/api/01_api_overview.md | POST /api/integration/lines/:lineId/stencil/bind<br>POST /api/integration/lines/:lineId/stencil/unbind<br>POST /api/integration/lines/:lineId/solder-paste/bind<br>POST /api/integration/lines/:lineId/solder-paste/unbind<br>apps/server/src/modules/mes/integration/routes.ts | apps/web/src/routes/_authenticated/mes/integration/manual-entry.tsx | 无 | - | 线体绑定操作在手动录入页 |
-| 出站事件回传 | domain_docs/mes/tech/api/01_api_overview.md | POST /api/integration/outbound/erp/runs/:runNo/completion<br>GET /api/integration/outbound/events<br>POST /api/integration/outbound/events/:eventId/retry<br>apps/server/src/modules/mes/integration/routes.ts | - | 未实现 | 文档 | 未见 UI 入口；仅状态页展示同步概览 |
+| 出站事件回传 | domain_docs/mes/tech/api/01_api_overview.md | POST /api/integration/outbound/erp/runs/:runNo/completion<br>GET /api/integration/outbound/events<br>POST /api/integration/outbound/events/:eventId/retry<br>apps/server/src/modules/mes/integration/routes.ts | - | 未实现 | 文档 | 已修复：API overview 标注为运维/系统对接接口 |
 
 ---
 
 ## 5. 偏差清单
 
-- [ ] Severity: Medium | 设备数据写入无 UI 入口（仅查询页） | 证据：domain_docs/mes/tech/api/01_api_overview.md；apps/web/src/routes/_authenticated/mes/integration/device-data.tsx | 建议归属：文档 | 下一步：补充说明“写入由外部系统推送，UI 仅查询”
-- [ ] Severity: Medium | 出站事件回传无 UI 入口 | 证据：domain_docs/mes/tech/api/01_api_overview.md；未发现 apps/web 对应页面 | 建议归属：文档/暂缓 | 下一步：标注文档为系统对接/运维 API
-- [ ] Severity: Low | SOP 文档监控页路径错误（`/mes/integration/monitor`） | 证据：user_docs/sop_degraded_mode.md；实际页面 apps/web/src/routes/_authenticated/mes/integration/status.tsx | 建议归属：文档 | 下一步：修正文档路径
+- 已修复：SOP 监控页路径更正为 `/mes/integration/status`。
+- 已修复：API overview 补充设备数据写入与出站回传“无 UI 入口/系统对接”说明。
 
 ---
 
 ## 6. 结论与下一步
 
-- Integration 域主路径已覆盖（状态监控、ERP/TPM 手动同步、耗材状态与线体绑定、设备数据查询）。
-- 需修正文档：SOP 页面路径与“写入类接口无 UI 入口”说明。
+- 本轮偏差已修复并对齐文档，可进入下一轮 Review。

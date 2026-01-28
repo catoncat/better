@@ -28,6 +28,10 @@ Aligned with `agent_docs/03_backend/api_patterns.md` (envelope + error format + 
 - `GET /api/integration/outbound/events`
 - `POST /api/integration/outbound/events/:eventId/retry`
 
+> Notes:
+> - `POST /api/integration/device-data` 为外部系统推送入口，当前 UI 仅提供查询页（`/mes/integration/device-data`）。
+> - 出站回传与重试接口为运维/系统对接使用，暂未提供 UI 入口。
+
 ### 1.2 Routing (Read + Execution Config + Compile)
 
 - `GET /api/routes`
