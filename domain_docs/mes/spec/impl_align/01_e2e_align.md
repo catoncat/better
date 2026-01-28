@@ -13,6 +13,8 @@
 | 映射校验/补全 (Operation/WorkCenter) | `POST /api/integration/erp/routes/sync` | `apps/server/src/modules/mes/integration/erp/apply-routes.ts` | - |
 | 产线主数据管理 | `GET/POST/PATCH/DELETE /api/lines` | `apps/server/src/modules/mes/line/routes.ts` | `apps/web/src/routes/_authenticated/mes/lines/index.tsx` |
 | 配置执行语义 (RouteExecutionConfig) | `GET/POST/PATCH /api/routes/:routingCode/execution-config` | `apps/server/src/modules/mes/routing/service.ts` | `apps/web/src/routes/_authenticated/mes/routes/$routingCode.tsx` |
+| FAI 模板管理 | `GET/POST/PATCH /api/fai-templates` | `apps/server/src/modules/mes/fai-template/service.ts` | `apps/web/src/routes/_authenticated/mes/fai-templates/index.tsx` |
+| 绑定 FAI 模板 | `PATCH /api/routes/:routingCode/fai-template` | `apps/server/src/modules/mes/routing/service.ts` | `apps/web/src/routes/_authenticated/mes/routes/$routingCode.tsx` |
 | 编译可执行版本 (ExecutableRouteVersion=READY) | `POST /api/routes/:routingCode/compile`, `GET /api/routes/:routingCode/versions` | `apps/server/src/modules/mes/routing/service.ts` | `apps/web/src/routes/_authenticated/mes/route-versions.tsx` |
 
 ## 外部系统集成
@@ -44,7 +46,7 @@
 | 报警/锁定/重试 | `POST /api/loading/verify`, `POST /api/loading/replace` | `apps/server/src/modules/mes/loading/service.ts` | `apps/web/src/routes/_authenticated/mes/loading/-components/scan-panel.tsx` |
 | 创建 FAI (FAI=PENDING) | `POST /api/fai/run/:runNo` | `apps/server/src/modules/mes/fai/service.ts` | `apps/web/src/routes/_authenticated/mes/fai.tsx` |
 | FAI 试产 | `POST /api/fai/:faiId/start` | `apps/server/src/modules/mes/fai/service.ts` | `apps/web/src/routes/_authenticated/mes/fai.tsx` |
-| FAI 记录/判定 | `POST /api/fai/:faiId/items`, `POST /api/fai/:faiId/complete` | `apps/server/src/modules/mes/fai/service.ts` | `apps/web/src/routes/_authenticated/mes/fai.tsx` |
+| FAI 记录/判定 | `POST /api/fai/:faiId/items`, `PATCH /api/fai/:faiId/items/:itemId`, `POST /api/fai/:faiId/complete` | `apps/server/src/modules/mes/fai/service.ts` | `apps/web/src/routes/_authenticated/mes/fai.tsx` |
 | FAI 详情/试产证据 | `GET /api/fai/:faiId` | `apps/server/src/modules/mes/fai/service.ts` | `apps/web/src/routes/_authenticated/mes/fai.tsx` |
 | Run 授权 (Run=AUTHORIZED) | `POST /api/runs/:runNo/authorize` | `apps/server/src/modules/mes/run/service.ts` | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` |
 
