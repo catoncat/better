@@ -833,3 +833,4 @@
 ## 2026-01-28
 - Resumed doc-review-exec loop; pending commit for round7 defects/rework doc fixes and status update.
 - Next: commit round7 fixes, then start next scope review per backlog.
+- Backlog remaining scopes: Integration, Routing, Work Orders/Runs, Readiness, Loading, Traceability. Next planned: Integration.

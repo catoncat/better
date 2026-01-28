@@ -19,6 +19,7 @@
 | 轮次5 | Stations / Execution | completed | 我 | 2026-01-28 | 文档偏差已修复 | domain_docs/mes/doc_review/round5_execution.md |
 | 轮次6 | Quality (FAI / FQC / OQC) | completed | 我 | 2026-01-28 | 文档偏差已修复 | domain_docs/mes/doc_review/round6_quality_fai_fqc_oqc.md |
 | 轮次7 | Quality (Defects / Rework Tasks) | completed | 我 | 2026-01-28 | - | domain_docs/mes/doc_review/round7_quality_defects_rework.md |
+| 轮次8 | Integration | in_progress | 我 | 2026-01-28 | - | domain_docs/mes/doc_review/round8_integration.md |
 
 状态说明：pending / in_progress / completed
 
