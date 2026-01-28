@@ -4,4 +4,9 @@
 
 | 功能域（API） | 关键接口/合约 | 关联文档 | UI 入口 | 轮次 | 状态 | 备注 |
 |------------|--------------|---------|--------|------|------|------|
-| TBD | TBD | TBD | TBD | TBD | pending | - |
+| Trace | TBD | TBD | TBD | TBD | pending | - |
+| Loading | TBD | TBD | TBD | TBD | pending | - |
+| Execution | TBD | TBD | TBD | TBD | pending | - |
+| Quality | TBD | TBD | TBD | TBD | pending | - |
+| Runs | TBD | TBD | TBD | TBD | pending | - |
+| Routes | TBD | TBD | TBD | TBD | pending | - |
