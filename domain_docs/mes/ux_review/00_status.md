@@ -11,7 +11,7 @@
 | 轮次 | Scope | Status | Owner | Updated | Commits (review → fix/close) | Notes | Links |
 |------|-------|--------|-------|---------|-----------------------------|-------|-------|
 | 轮次1 | Core Execution | completed | 我 | 2026-01-29 | - | - | `domain_docs/mes/ux_review/round1_core_execution.md` |
-| 轮次2 | TBD | pending | - | - | - | - | - |
+| 轮次2 | Work Orders & Runs IA | completed | 我 | 2026-01-29 | - | - | `domain_docs/mes/ux_review/round2_work_orders_runs_ia.md` |
 | 轮次3 | TBD | pending | - | - | - | - | - |
 
 状态说明：pending / in_progress / completed

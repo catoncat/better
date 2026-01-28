@@ -6,3 +6,4 @@
 | Scope | 问题结论 | 影响 | 证据 | 状态 | Updated |
 |---|---|---|---|---|---|
 | Core Execution | Run 收尾触发 `OQC_REQUIRED` 时，被 UI 当作“收尾失败”，缺少明确下一步/交接与入口 | 高概率导致主线卡死或误判流程异常；非质量角色不知道已创建 OQC 任务、应如何推进 | `domain_docs/mes/spec/process/01_end_to_end_flows.md`<br>`apps/server/src/modules/mes/run/service.ts`<br>`apps/web/src/hooks/use-runs.ts` | open | 2026-01-29 |
+| Work Orders & Runs IA | `/mes` 默认重定向到 `/mes/work-orders`，对 material/operator 等无 `wo:read` 角色形成“入口即无权限” | 高概率造成用户误以为无法使用 MES；一线角色入口被阻断，需要依赖“知道正确 URL/侧边栏”才能继续 | `apps/web/src/routes/_authenticated/mes/index.tsx`<br>`domain_docs/mes/permission_audit.md` | open | 2026-01-29 |
