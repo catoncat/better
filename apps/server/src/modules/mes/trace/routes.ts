@@ -54,7 +54,13 @@ export const traceModule = new Elysia({
 		async ({ db, params }) => {
 			const result = await getUnitsByMaterialLot(db, params.materialCode, params.lotNo);
 			if (!result.success) {
-				return status(result.status ?? 400, {
+				if (result.status === 404) {
+					return status(404, {
+						ok: false,
+						error: { code: result.code, message: result.message },
+					});
+				}
+				return status(400, {
 					ok: false,
 					error: { code: result.code, message: result.message },
 				});
