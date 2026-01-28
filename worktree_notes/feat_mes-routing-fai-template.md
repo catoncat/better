@@ -27,7 +27,7 @@ task:
 - [x] Slice 3: Server 路由/模板/门禁（API + 快照 + FAI items）
 - [x] Slice 4: ERP 工单路由解析与覆盖
 - [x] Slice 5: Web 管理与执行（模板管理/路由绑定/FAI 录入）
-- [ ] Slice 6: 测试 + Align 文档
+- [x] Slice 6: 测试 + Align 文档
 
 <!-- AUTO:BEGIN status -->
 
