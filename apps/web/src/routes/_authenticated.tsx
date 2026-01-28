@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { ChatAssistant } from "@/components/chat/chat-assistant";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { fetchSession, type SessionQueryResult, sessionQueryKey } from "@/lib/session-query";
 
@@ -43,6 +44,7 @@ function AuthenticatedLayout() {
 	return (
 		<DashboardLayout user={user}>
 			<Outlet />
+			<ChatAssistant />
 		</DashboardLayout>
 	);
 }

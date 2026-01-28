@@ -1,7 +1,7 @@
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Bell, HelpCircle, Loader2, RefreshCw, Save, Send, Settings } from "lucide-react";
+import { Bell, Bot, HelpCircle, Loader2, RefreshCw, Save, Send, Settings } from "lucide-react";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import * as z from "zod";
@@ -63,10 +63,14 @@ function SystemSettingsPage() {
 			</div>
 
 			<Tabs defaultValue="notifications" className="space-y-6">
-				<TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+				<TabsList className="grid w-full grid-cols-3 lg:w-[500px]">
 					<TabsTrigger value="notifications" className="gap-2">
 						<Bell className="h-4 w-4" />
 						通知设置
+					</TabsTrigger>
+					<TabsTrigger value="ai-chat" className="gap-2">
+						<Bot className="h-4 w-4" />
+						AI 助手
 					</TabsTrigger>
 					<TabsTrigger value="general" className="gap-2">
 						<Settings className="h-4 w-4" />
@@ -76,6 +80,10 @@ function SystemSettingsPage() {
 
 				<TabsContent value="notifications" className="space-y-6">
 					<WeComSettingsCard />
+				</TabsContent>
+
+				<TabsContent value="ai-chat" className="space-y-6">
+					<AIChatSettingsCard />
 				</TabsContent>
 
 				<TabsContent value="general">
@@ -208,6 +216,264 @@ function AppBrandingSettingsCard() {
 						>
 							<RefreshCw className="mr-2 h-4 w-4" />
 							撤销修改
+						</Button>
+						{isRefetching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+					</div>
+				</form>
+			</CardContent>
+		</Card>
+	);
+}
+
+// AI Chat config types
+type ChatConfigResponse = {
+	ok: boolean;
+	config?: {
+		enabled: boolean;
+		baseUrl: string;
+		model: string;
+		maxTokens: number;
+		rateLimitPerMinute: number;
+		toolsEnabled: boolean;
+		hasApiKey: boolean;
+	};
+	error?: string;
+};
+
+const chatFormSchema = z.object({
+	enabled: z.boolean(),
+	apiKey: z.string().optional(),
+	baseUrl: z.string().min(1, "必填"),
+	model: z.string().min(1, "必填"),
+	maxTokens: z.number().min(100).max(32000),
+	rateLimitPerMinute: z.number().min(1).max(1000),
+	toolsEnabled: z.boolean(),
+});
+
+type ChatFormValues = z.infer<typeof chatFormSchema>;
+
+function AIChatSettingsCard() {
+	const queryClient = useQueryClient();
+
+	const { data, isLoading, isRefetching, error } = useQuery({
+		queryKey: ["chat", "config"],
+		queryFn: () => fetchClient<ChatConfigResponse>("/chat/config"),
+		retry: false,
+	});
+
+	const form = useForm({
+		defaultValues: {
+			enabled: false,
+			apiKey: "",
+			baseUrl: "https://api.openai.com/v1",
+			model: "gpt-4o-mini",
+			maxTokens: 2048,
+			rateLimitPerMinute: 20,
+			toolsEnabled: false,
+		} as ChatFormValues,
+		validators: {
+			onSubmit: chatFormSchema,
+		},
+		onSubmit: async ({ value }) => {
+			// Only send apiKey if it was changed (not empty)
+			const payload = value.apiKey ? value : { ...value, apiKey: undefined };
+			saveMutation.mutate(payload);
+		},
+	});
+
+	useEffect(() => {
+		if (data?.config) {
+			form.reset({
+				enabled: data.config.enabled,
+				apiKey: "", // Never show the API key
+				baseUrl: data.config.baseUrl,
+				model: data.config.model,
+				maxTokens: data.config.maxTokens,
+				rateLimitPerMinute: data.config.rateLimitPerMinute,
+				toolsEnabled: data.config.toolsEnabled,
+			});
+		}
+	}, [data, form]);
+
+	const saveMutation = useMutation({
+		mutationFn: (values: Partial<ChatFormValues>) =>
+			fetchClient<ChatConfigResponse>("/chat/config", {
+				method: "PATCH",
+				body: JSON.stringify(values),
+			}),
+		onSuccess: () => {
+			toast.success("AI 助手配置已保存");
+			queryClient.invalidateQueries({ queryKey: ["chat", "config"] });
+		},
+		onError: (error: Error) => {
+			toast.error(`保存失败: ${error.message}`);
+		},
+	});
+
+	if (isLoading) {
+		return (
+			<Card>
+				<CardContent className="flex justify-center p-6">
+					<Loader2 className="h-6 w-6 animate-spin" />
+				</CardContent>
+			</Card>
+		);
+	}
+
+	// Check if user has permission
+	if (error || data?.error === "Forbidden") {
+		return (
+			<Card>
+				<CardContent className="p-6">
+					<p className="text-muted-foreground">您没有权限访问此设置。需要管理员权限。</p>
+				</CardContent>
+			</Card>
+		);
+	}
+
+	return (
+		<Card>
+			<CardHeader className="space-y-1">
+				<CardTitle>AI 聊天助手</CardTitle>
+				<CardDescription>配置系统内置的 AI 聊天助手，支持任意 OpenAI 兼容 API。</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<form
+					onSubmit={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						form.handleSubmit();
+					}}
+					className="space-y-6"
+				>
+					<Field
+						form={form}
+						name="enabled"
+						label="启用 AI 助手"
+						description="开启后，用户可以在页面右下角使用 AI 助手。"
+					>
+						{(field) => <Switch checked={field.state.value} onCheckedChange={field.handleChange} />}
+					</Field>
+
+					<form.Subscribe selector={(state) => state.values.enabled}>
+						{(enabled) => (
+							<div className="space-y-4">
+								<div className="grid gap-4 md:grid-cols-2">
+									<Field
+										form={form}
+										name="baseUrl"
+										label="API 地址"
+										description="OpenAI 兼容 API 的 Base URL。"
+									>
+										{(field) => (
+											<Input
+												placeholder="https://api.openai.com/v1"
+												value={field.state.value}
+												onBlur={field.handleBlur}
+												onChange={(e) => field.handleChange(e.target.value)}
+												disabled={!enabled}
+											/>
+										)}
+									</Field>
+
+									<Field form={form} name="model" label="模型名称" description="使用的模型 ID。">
+										{(field) => (
+											<Input
+												placeholder="gpt-4o-mini"
+												value={field.state.value}
+												onBlur={field.handleBlur}
+												onChange={(e) => field.handleChange(e.target.value)}
+												disabled={!enabled}
+											/>
+										)}
+									</Field>
+								</div>
+
+								<Field
+									form={form}
+									name="apiKey"
+									label="API Key"
+									description={
+										data?.config?.hasApiKey
+											? "已配置。留空保持不变，填写新值则更新。"
+											: "尚未配置。请填写 API Key。"
+									}
+								>
+									{(field) => (
+										<Input
+											type="password"
+											placeholder={data?.config?.hasApiKey ? "••••••••" : "sk-..."}
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(e) => field.handleChange(e.target.value)}
+											disabled={!enabled}
+										/>
+									)}
+								</Field>
+
+								<div className="grid gap-4 md:grid-cols-2">
+									<Field
+										form={form}
+										name="maxTokens"
+										label="最大 Tokens"
+										description="单次回复的最大 token 数。"
+									>
+										{(field) => (
+											<Input
+												type="number"
+												min={100}
+												max={32000}
+												value={field.state.value}
+												onBlur={field.handleBlur}
+												onChange={(e) => field.handleChange(Number(e.target.value))}
+												disabled={!enabled}
+											/>
+										)}
+									</Field>
+
+									<Field
+										form={form}
+										name="rateLimitPerMinute"
+										label="速率限制"
+										description="每用户每分钟最大请求数。"
+									>
+										{(field) => (
+											<Input
+												type="number"
+												min={1}
+												max={1000}
+												value={field.state.value}
+												onBlur={field.handleBlur}
+												onChange={(e) => field.handleChange(Number(e.target.value))}
+												disabled={!enabled}
+											/>
+										)}
+									</Field>
+								</div>
+
+								<Field
+									form={form}
+									name="toolsEnabled"
+									label="启用代码库查询"
+									description="允许 AI 读取项目代码和文档来回答问题。需要模型支持 Function Calling（如 GPT-4o）。"
+								>
+									{(field) => (
+										<Switch
+											checked={field.state.value}
+											onCheckedChange={field.handleChange}
+											disabled={!enabled}
+										/>
+									)}
+								</Field>
+							</div>
+						)}
+					</form.Subscribe>
+
+					<div className="flex flex-wrap items-center gap-3">
+						<Button type="submit" disabled={saveMutation.isPending}>
+							{saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+							<Save className="mr-2 h-4 w-4" />
+							保存配置
 						</Button>
 						{isRefetching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
 					</div>

@@ -1,0 +1,1 @@
+export { chatModule } from "./routes";

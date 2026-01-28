@@ -4,6 +4,7 @@ import { openapi } from "@elysiajs/openapi";
 import { Elysia } from "elysia";
 import * as z from "zod";
 import { auditModule } from "./modules/audit";
+import { chatModule } from "./modules/chat";
 import { mesModule } from "./modules/mes";
 import { metaModule } from "./modules/meta";
 import { notificationModule } from "./modules/notifications";
@@ -171,6 +172,7 @@ export const createApi = (options?: CreateApiOptions) => {
 			detail: { tags: ["System - Health"] },
 		})
 		.use(auditModule)
+		.use(chatModule)
 		.use(mesModule)
 		.use(notificationModule)
 		.use(metaModule)
