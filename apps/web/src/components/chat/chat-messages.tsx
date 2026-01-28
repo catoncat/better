@@ -97,6 +97,64 @@ function linkifyRouteChildren(children: ReactNode): ReactNode {
 	return children;
 }
 
+function ChatMarkdown({ content }: { content: string }) {
+	return (
+		<div className="prose prose-sm dark:prose-invert max-w-none text-sm [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+			<Markdown
+				remarkPlugins={[remarkGfm]}
+				components={{
+					// Custom link styling
+					a: ({ children, href }) => (
+						<a
+							href={href}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="text-primary hover:underline"
+						>
+							{children}
+						</a>
+					),
+					// Compact code styling
+					code: ({ children, className }) => {
+						const isInline = !className;
+						if (isInline) {
+							return (
+								<code className="bg-muted-foreground/20 rounded px-1 py-0.5 text-xs">
+									{linkifyRouteChildren(children)}
+								</code>
+							);
+						}
+						const text = Array.isArray(children) ? children.join("") : String(children ?? "");
+						return <code className={className}>{linkifyRoutePaths(text)}</code>;
+					},
+					// Compact list styling
+					ul: ({ children }) => <ul className="my-1 ml-4 list-disc space-y-0.5">{children}</ul>,
+					ol: ({ children }) => <ol className="my-1 ml-4 list-decimal space-y-0.5">{children}</ol>,
+					li: ({ children }) => <li className="text-sm">{linkifyRouteChildren(children)}</li>,
+					// Compact paragraph
+					p: ({ children }) => <p className="my-1">{linkifyRouteChildren(children)}</p>,
+					// Table styling
+					table: ({ children }) => (
+						<div className="my-2 overflow-x-auto">
+							<table className="min-w-full border-collapse text-xs">{children}</table>
+						</div>
+					),
+					th: ({ children }) => (
+						<th className="border border-border bg-muted px-2 py-1 text-left font-medium">
+							{linkifyRouteChildren(children)}
+						</th>
+					),
+					td: ({ children }) => (
+						<td className="border border-border px-2 py-1">{linkifyRouteChildren(children)}</td>
+					),
+				}}
+			>
+				{normalizeRouteLines(content)}
+			</Markdown>
+		</div>
+	);
+}
+
 type ChatMessagesProps = {
 	messages: ChatMessage[];
 	className?: string;
@@ -171,69 +229,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 						isUser ? (
 							<div className="whitespace-pre-wrap text-sm">{message.content}</div>
 						) : (
-							<div className="prose prose-sm dark:prose-invert max-w-none text-sm [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-								<Markdown
-									remarkPlugins={[remarkGfm]}
-									components={{
-										// Custom link styling
-										a: ({ children, href }) => (
-											<a
-												href={href}
-												target="_blank"
-												rel="noopener noreferrer"
-												className="text-primary hover:underline"
-											>
-												{children}
-											</a>
-										),
-										// Compact code styling
-										code: ({ children, className }) => {
-											const isInline = !className;
-											if (isInline) {
-												return (
-													<code className="bg-muted-foreground/20 rounded px-1 py-0.5 text-xs">
-														{linkifyRouteChildren(children)}
-													</code>
-												);
-											}
-											const text = Array.isArray(children)
-												? children.join("")
-												: String(children ?? "");
-											return <code className={className}>{linkifyRoutePaths(text)}</code>;
-										},
-										// Compact list styling
-										ul: ({ children }) => (
-											<ul className="my-1 ml-4 list-disc space-y-0.5">{children}</ul>
-										),
-										ol: ({ children }) => (
-											<ol className="my-1 ml-4 list-decimal space-y-0.5">{children}</ol>
-										),
-										li: ({ children }) => (
-											<li className="text-sm">{linkifyRouteChildren(children)}</li>
-										),
-										// Compact paragraph
-										p: ({ children }) => <p className="my-1">{linkifyRouteChildren(children)}</p>,
-										// Table styling
-										table: ({ children }) => (
-											<div className="my-2 overflow-x-auto">
-												<table className="min-w-full border-collapse text-xs">{children}</table>
-											</div>
-										),
-										th: ({ children }) => (
-											<th className="border border-border bg-muted px-2 py-1 text-left font-medium">
-												{linkifyRouteChildren(children)}
-											</th>
-										),
-										td: ({ children }) => (
-											<td className="border border-border px-2 py-1">
-												{linkifyRouteChildren(children)}
-											</td>
-										),
-									}}
-								>
-									{normalizeRouteLines(message.content)}
-								</Markdown>
-							</div>
+							<ChatMarkdown content={message.content} />
 						)
 					) : message.isStreaming ? (
 						<Loader2 className="size-4 animate-spin" />
@@ -322,6 +318,17 @@ export function ChatFeedbackDialog({
 					<DialogTitle>我要反馈</DialogTitle>
 				</DialogHeader>
 				<DialogBody className="space-y-4">
+					<div className="grid gap-2">
+						<Label htmlFor="chat-feedback-note">备注</Label>
+						<Textarea
+							id="chat-feedback-note"
+							value={note}
+							onChange={(event) => setNote(event.target.value)}
+							placeholder="描述你遇到的问题或建议（可选）"
+							rows={4}
+						/>
+					</div>
+
 					<div className="flex items-center justify-between text-xs text-muted-foreground">
 						<span>
 							已选 {selectedCount} / {selectableMessages.length}
@@ -357,8 +364,23 @@ export function ChatFeedbackDialog({
 									const checkboxId = `chat-feedback-${message.id}`;
 									const isChecked = selectedIds.has(message.id);
 									const roleLabel = message.role === "user" ? "用户" : "助手";
+									const toggleSelection = () => {
+										setSelectedIds((prev) => {
+											const next = new Set(prev);
+											if (next.has(message.id)) {
+												next.delete(message.id);
+											} else {
+												next.add(message.id);
+											}
+											return next;
+										});
+									};
+
 									return (
-										<div key={message.id} className="flex items-start gap-3 px-4 py-3">
+										<div
+											key={message.id}
+											className="flex items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+										>
 											<Checkbox
 												id={checkboxId}
 												checked={isChecked}
@@ -373,19 +395,26 @@ export function ChatFeedbackDialog({
 														return next;
 													});
 												}}
+												className="mt-1"
 											/>
-											<div className="grid gap-2">
+											{/* biome-ignore lint/a11y/noStaticElementInteractions: Intentionally interactive row for convenience */}
+											<div
+												className="grid gap-2 w-full min-w-0 cursor-pointer"
+												onClick={toggleSelection}
+											>
 												<div className="flex items-center gap-2 text-xs text-muted-foreground">
 													<Badge variant={message.role === "user" ? "secondary" : "outline"}>
 														{roleLabel}
 													</Badge>
 													<span>消息 {index + 1}</span>
 												</div>
-												<Label htmlFor={checkboxId} className="cursor-pointer text-sm font-normal">
-													<span className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-														{message.content}
-													</span>
-												</Label>
+												<div className="text-sm font-normal">
+													{message.role === "user" ? (
+														<div className="whitespace-pre-wrap text-sm">{message.content}</div>
+													) : (
+														<ChatMarkdown content={message.content} />
+													)}
+												</div>
 											</div>
 										</div>
 									);
@@ -397,17 +426,6 @@ export function ChatFeedbackDialog({
 								)}
 							</div>
 						</div>
-					</div>
-
-					<div className="grid gap-2">
-						<Label htmlFor="chat-feedback-note">备注</Label>
-						<Textarea
-							id="chat-feedback-note"
-							value={note}
-							onChange={(event) => setNote(event.target.value)}
-							placeholder="描述你遇到的问题或建议（可选）"
-							rows={4}
-						/>
 					</div>
 				</DialogBody>
 				<DialogFooter>
