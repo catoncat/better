@@ -4,11 +4,15 @@ import { AuditEntityType } from "@better-app/db";
 import { Elysia, t } from "elysia";
 import { Jimp } from "jimp";
 import { authPlugin } from "../../plugins/auth";
+import { Permission, permissionPlugin } from "../../plugins/permission";
 import { prismaPlugin } from "../../plugins/prisma";
 import { buildAuditActor, buildAuditRequestMeta, recordAuditEvent } from "../audit/service";
+import { demoSeedDatasetLabels, runDemoSeed } from "./demo-seed-service";
 import {
 	appBrandingResponseSchema,
 	appBrandingSchema,
+	demoSeedRequestSchema,
+	demoSeedResponseSchema,
 	saveConfigResponseSchema,
 	systemErrorResponseSchema,
 	uploadResponseSchema,
@@ -47,6 +51,7 @@ export const systemModule = new Elysia({
 })
 	.use(prismaPlugin)
 	.use(authPlugin)
+	.use(permissionPlugin)
 	.get(
 		"/app-branding",
 		async ({ db, set }) => {
@@ -112,6 +117,62 @@ export const systemModule = new Elysia({
 			body: appBrandingSchema,
 			response: {
 				200: appBrandingResponseSchema,
+				400: systemErrorResponseSchema,
+			},
+			detail: { tags: ["System"] },
+		},
+	)
+	.post(
+		"/demo-seed",
+		async ({ db, body, user, request, set }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+
+			const result = await runDemoSeed(db, body);
+
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.SYSTEM,
+					entityId: "demo-seed",
+					entityDisplay: "demo-seed",
+					action: "SYSTEM_DEMO_SEED",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					request: requestMeta,
+					payload: {
+						input: body,
+					},
+				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.SYSTEM,
+				entityId: "demo-seed",
+				entityDisplay: "demo-seed",
+				action: "SYSTEM_DEMO_SEED",
+				actor,
+				status: "SUCCESS",
+				request: requestMeta,
+				payload: {
+					input: body,
+					executedDatasets: result.data.executedDatasets,
+					executedLabels: demoSeedDatasetLabels(result.data.executedDatasets),
+					warnings: result.data.warnings,
+				},
+			});
+
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.SYSTEM_DEMO_SEED,
+			body: demoSeedRequestSchema,
+			response: {
+				200: demoSeedResponseSchema,
 				400: systemErrorResponseSchema,
 			},
 			detail: { tags: ["System"] },

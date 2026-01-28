@@ -68,6 +68,7 @@ export const Permission = {
 	SYSTEM_CONFIG: "system:config",
 	SYSTEM_INTEGRATION: "system:integration",
 	SYSTEM_CHAT_FEEDBACK: "system:chat_feedback",
+	SYSTEM_DEMO_SEED: "system:demo_seed",
 } as const;
 
 export type PermissionKey = keyof typeof Permission;
@@ -174,6 +175,7 @@ export const PERMISSION_GROUPS = {
 			{ value: Permission.SYSTEM_CONFIG, label: "系统配置" },
 			{ value: Permission.SYSTEM_INTEGRATION, label: "集成管理" },
 			{ value: Permission.SYSTEM_CHAT_FEEDBACK, label: "查看 AI 反馈" },
+			{ value: Permission.SYSTEM_DEMO_SEED, label: "演示数据生成" },
 		],
 	},
 } as const;
