@@ -49,6 +49,7 @@ import { useCreateFai, useFaiByRun, useFaiGate, useSignFai, useStartFai } from "
 import { useMrbDecision, useOqcByRun } from "@/hooks/use-oqc";
 import {
 	type ReadinessCheckItem,
+	type ReadinessItemType,
 	usePerformPrecheck,
 	useReadinessConfig,
 	useReadinessLatest,
@@ -183,7 +184,7 @@ function RunDetailPage() {
 	}, [readinessData?.items]);
 	const readinessConfigLoaded = readinessConfig !== undefined && readinessConfig !== null;
 	const enabledReadinessTypes = useMemo(
-		() => new Set(readinessConfig?.enabled ?? []),
+		() => new Set<ReadinessItemType>(readinessConfig?.enabled ?? []),
 		[readinessConfig?.enabled],
 	);
 
@@ -320,7 +321,7 @@ function RunDetailPage() {
 				primaryAction = routingCode
 					? buildAction("查看路由", "/mes/routes/$routingCode", {
 							params: { routingCode },
-					  })
+						})
 					: buildAction("工艺管理", "/mes/routes");
 				if (!canViewRoutes) setDisabled("无权限查看工艺路线");
 				break;
@@ -392,7 +393,7 @@ function RunDetailPage() {
 		return { primaryAction, secondaryAction, disabledReason };
 	};
 
-	const getTemplateStatus = (itemType: string) => {
+	const getTemplateStatus = (itemType: ReadinessItemType) => {
 		if (readinessConfigLoaded && !enabledReadinessTypes.has(itemType)) {
 			return { status: "DISABLED", count: 0 };
 		}
@@ -904,8 +905,8 @@ function RunDetailPage() {
 
 	return (
 		<div className="space-y-6">
-				<div className="flex items-center justify-between">
-					<div className="flex items-center gap-4">
+			<div className="flex items-center justify-between">
+				<div className="flex items-center gap-4">
 					<Button variant="ghost" size="icon" asChild>
 						<Link to="/mes/runs">
 							<ArrowLeft className="h-4 w-4" />
@@ -919,68 +920,68 @@ function RunDetailPage() {
 						<p className="text-muted-foreground">
 							工单: {data.workOrder.woNo} · 产品: {data.workOrder.productCode}
 						</p>
-						</div>
 					</div>
-					<div className="flex items-center gap-2">
-						{data.run.status === "PREP" && (
-							<Can permissions={Permission.RUN_AUTHORIZE}>
-								<div className="flex flex-col items-start">
-									<Button
-										size="sm"
-										onClick={() => handleAuthorize("AUTHORIZE")}
-										disabled={authorizeDisabled}
-										title={authorizeBlockedReason}
-									>
-										<CheckCircle2 className="mr-2 h-4 w-4" />
-										授权生产
-									</Button>
-									{authorizeBlockedReason && (
-										<span className="mt-1 text-xs text-muted-foreground">
-											{authorizeBlockedReason}
-										</span>
-									)}
-								</div>
-							</Can>
-						)}
-						{data.run.status === "AUTHORIZED" && (
-							<Can permissions={Permission.RUN_AUTHORIZE}>
+				</div>
+				<div className="flex items-center gap-2">
+					{data.run.status === "PREP" && (
+						<Can permissions={Permission.RUN_AUTHORIZE}>
+							<div className="flex flex-col items-start">
 								<Button
-									variant="outline"
 									size="sm"
-									onClick={() => handleAuthorize("REVOKE")}
-									disabled={authorizeRun.isPending}
+									onClick={() => handleAuthorize("AUTHORIZE")}
+									disabled={authorizeDisabled}
+									title={authorizeBlockedReason}
 								>
-									<XCircle className="mr-2 h-4 w-4" />
-									撤销授权
+									<CheckCircle2 className="mr-2 h-4 w-4" />
+									授权生产
 								</Button>
-							</Can>
-						)}
-						{data.run.status === "IN_PROGRESS" && (
-							<Can permissions={Permission.RUN_CLOSE}>
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() => setCloseoutDialogOpen(true)}
-									disabled={closeRun.isPending}
-								>
-									<ClipboardCheck className="mr-2 h-4 w-4" />
-									收尾
-								</Button>
-							</Can>
-						)}
-						{trialCta && (
-							<Can permissions={Permission.EXEC_TRACK_IN}>
-								<Button
-									variant="default"
-									size="sm"
-									onClick={trialCta.onClick}
-									disabled={trialCta.disabled}
-									title={trialCta.disabledReason}
-								>
-									<Play className="mr-2 h-4 w-4" />
-									{trialCta.label}
-								</Button>
-							</Can>
+								{authorizeBlockedReason && (
+									<span className="mt-1 text-xs text-muted-foreground">
+										{authorizeBlockedReason}
+									</span>
+								)}
+							</div>
+						</Can>
+					)}
+					{data.run.status === "AUTHORIZED" && (
+						<Can permissions={Permission.RUN_AUTHORIZE}>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => handleAuthorize("REVOKE")}
+								disabled={authorizeRun.isPending}
+							>
+								<XCircle className="mr-2 h-4 w-4" />
+								撤销授权
+							</Button>
+						</Can>
+					)}
+					{data.run.status === "IN_PROGRESS" && (
+						<Can permissions={Permission.RUN_CLOSE}>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setCloseoutDialogOpen(true)}
+								disabled={closeRun.isPending}
+							>
+								<ClipboardCheck className="mr-2 h-4 w-4" />
+								收尾
+							</Button>
+						</Can>
+					)}
+					{trialCta && (
+						<Can permissions={Permission.EXEC_TRACK_IN}>
+							<Button
+								variant="default"
+								size="sm"
+								onClick={trialCta.onClick}
+								disabled={trialCta.disabled}
+								title={trialCta.disabledReason}
+							>
+								<Play className="mr-2 h-4 w-4" />
+								{trialCta.label}
+							</Button>
+						</Can>
 					)}
 					{(data.run.status === "AUTHORIZED" || data.run.status === "IN_PROGRESS") && (
 						<Can permissions={Permission.EXEC_TRACK_IN}>
@@ -1047,22 +1048,22 @@ function RunDetailPage() {
 							</Badge>
 						</div>
 					</div>
-						{nextAction && (
-							<div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
-								<span className="text-muted-foreground">下一步</span>
-								<Button
-									variant="secondary"
-									size="sm"
-									onClick={nextAction.onClick}
-									disabled={nextAction.disabled}
-									title={nextAction.disabledReason}
-								>
-									{nextAction.label}
-								</Button>
-							</div>
-						)}
-					</div>
-				</CollapsibleCard>
+					{nextAction && (
+						<div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
+							<span className="text-muted-foreground">下一步</span>
+							<Button
+								variant="secondary"
+								size="sm"
+								onClick={nextAction.onClick}
+								disabled={nextAction.disabled}
+								title={nextAction.disabledReason}
+							>
+								{nextAction.label}
+							</Button>
+						</div>
+					)}
+				</div>
+			</CollapsibleCard>
 
 			<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
 				<Card>
@@ -1143,49 +1144,44 @@ function RunDetailPage() {
 								<p className="text-sm mt-1">请先完成准备检查以生成模板结果</p>
 							)}
 						</div>
-						) : (
-							<div className="space-y-6">
-								{PREP_CHECKLIST_TEMPLATE.map((section) => (
-									<div key={section.title} className="space-y-2">
-										<div className="flex items-center justify-between">
-											<p className="text-sm font-medium">{section.title}</p>
-											{(() => {
-												if (!canShowReadinessActions) return null;
-												const failedItem = section.itemTypes
-													.flatMap((itemType) => readinessItemsByType.get(itemType) ?? [])
-													.find((item) => item.status === "FAILED");
-												if (!failedItem) return null;
-												const action = getReadinessItemAction(failedItem);
-												if (!action.primaryAction) return null;
-												if (action.disabledReason) {
-													return (
-														<Button
-															variant="ghost"
-															size="sm"
-															disabled
-															title={action.disabledReason}
-														>
-															去处理
-														</Button>
-													);
-												}
+					) : (
+						<div className="space-y-6">
+							{PREP_CHECKLIST_TEMPLATE.map((section) => (
+								<div key={section.title} className="space-y-2">
+									<div className="flex items-center justify-between">
+										<p className="text-sm font-medium">{section.title}</p>
+										{(() => {
+											if (!canShowReadinessActions) return null;
+											const failedItem = section.itemTypes
+												.flatMap((itemType) => readinessItemsByType.get(itemType) ?? [])
+												.find((item) => item.status === "FAILED");
+											if (!failedItem) return null;
+											const action = getReadinessItemAction(failedItem);
+											if (!action.primaryAction) return null;
+											if (action.disabledReason) {
 												return (
-													<Button variant="ghost" size="sm" asChild>
-														<Link
-															to={action.primaryAction.to}
-															params={action.primaryAction.params}
-															search={action.primaryAction.search}
-														>
-															去处理
-														</Link>
+													<Button variant="ghost" size="sm" disabled title={action.disabledReason}>
+														去处理
 													</Button>
 												);
-											})()}
-										</div>
-										<div className="grid gap-2 md:grid-cols-2">
-											{section.itemTypes.map((itemType) => {
-												const { status, count } = getTemplateStatus(itemType);
-												return (
+											}
+											return (
+												<Button variant="ghost" size="sm" asChild>
+													<Link
+														to={action.primaryAction.to}
+														params={action.primaryAction.params}
+														search={action.primaryAction.search}
+													>
+														去处理
+													</Link>
+												</Button>
+											);
+										})()}
+									</div>
+									<div className="grid gap-2 md:grid-cols-2">
+										{section.itemTypes.map((itemType) => {
+											const { status, count } = getTemplateStatus(itemType);
+											return (
 												<div
 													key={itemType}
 													className="flex items-center justify-between rounded-md border px-3 py-2"
@@ -1359,12 +1355,12 @@ function RunDetailPage() {
 										<div>
 											<p className="text-sm text-muted-foreground">结果汇总</p>
 											<p className="font-medium text-sm">
-												通过: {readinessData.summary.passed} · 失败: {readinessData.summary.failed} ·
-												豁免: {readinessData.summary.waived}
+												通过: {readinessData.summary.passed} · 失败: {readinessData.summary.failed}{" "}
+												· 豁免: {readinessData.summary.waived}
 											</p>
 										</div>
 									</div>
-	
+
 									{readinessData.items.length > 0 && (
 										<div className="border rounded-lg">
 											<Table>
