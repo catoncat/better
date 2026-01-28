@@ -122,8 +122,6 @@
 
 **GET** `/api/trace/material-lots/{materialCode}/{lotNo}/units`
 
-> 注意：当前后端路由尚未实现该接口，文档先保留合约定义供后续落地。
-
 ### 响应示例
 ```json
 {

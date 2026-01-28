@@ -28,6 +28,7 @@ task:
 - 2026-01-28: API patterns require ServiceResult, envelope, and audit in routes; external read endpoints can skip audit (no writes).
 - 2026-01-28: Trace service already composes defects/materials/loading/inspections/carrier data; UI can reuse existing UnitTrace shape.
 - 2026-01-28: Trace UI will add material-lot lookup and additional sections for steps/inspections/loading/ingest/carrier.
+- 2026-01-28: Docs updated to reflect material-lot query now available; export still marked reserved.
 
 <!-- AUTO:BEGIN status -->
 

@@ -141,6 +141,7 @@ Aligned with `agent_docs/03_backend/api_patterns.md` (envelope + error format + 
 ### 1.9 Traceability
 
 - `GET /api/trace/units/:sn`
+- `GET /api/trace/material-lots/:materialCode/:lotNo/units`
 
 ---
 
