@@ -1,24 +1,43 @@
 import { useLocation } from "@tanstack/react-router";
-import { MessageCircle, Trash2, X } from "lucide-react";
-import { useCallback, useState } from "react";
+import { Clock, MessageCircle, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ChatHistory } from "./chat-history";
 import { ChatInput } from "./chat-input";
 import { ChatMessages } from "./chat-messages";
 import { ChatSuggestions } from "./chat-suggestions";
 import { getRouteContext } from "./route-context";
 import { useChat } from "./use-chat";
+import { useChatHistory } from "./use-chat-history";
 import { type SuggestionItem, useSuggestions } from "./use-suggestions";
+
+const DEFAULT_SESSION_TITLE = "新会话";
 
 export function ChatAssistant() {
 	const [isOpen, setIsOpen] = useState(false);
+	const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 	const [inputValue, setInputValue] = useState("");
 	const location = useLocation();
 	const currentPath = location.pathname;
 	const routeContext = getRouteContext(currentPath);
 
-	const { messages, isLoading, error, sendMessage, clearMessages, stop } = useChat({
+	const {
+		sessions,
+		activeSessionId,
+		activeSession,
+		isReady: isHistoryReady,
+		createSession,
+		selectSession,
+		renameSession,
+		deleteSession,
+		loadMessages,
+		saveMessages,
+		updateSessionMeta,
+	} = useChatHistory();
+
+	const { messages, isLoading, error, sendMessage, clearMessages, stop, setMessages } = useChat({
 		currentPath,
 	});
 
@@ -35,6 +54,7 @@ export function ChatAssistant() {
 	const handleSend = useCallback(
 		async (content: string) => {
 			setInputValue("");
+			setIsHistoryOpen(false);
 			await sendMessage(content);
 		},
 		[sendMessage],
@@ -48,10 +68,51 @@ export function ChatAssistant() {
 			} else {
 				// Fill input for user to modify
 				setInputValue(suggestion.question);
+				setIsHistoryOpen(false);
 			}
 		},
 		[handleSend],
 	);
+
+	const derivedTitle = useMemo(() => {
+		const firstUserMessage = messages.find(
+			(message) => message.role === "user" && message.content.trim().length > 0,
+		);
+		if (!firstUserMessage) return null;
+		const trimmed = firstUserMessage.content.trim();
+		return trimmed.length > 24 ? `${trimmed.slice(0, 24)}...` : trimmed;
+	}, [messages]);
+
+	useEffect(() => {
+		if (!isHistoryReady || !activeSessionId) return;
+		const storedMessages = loadMessages(activeSessionId);
+		setMessages(storedMessages);
+	}, [activeSessionId, isHistoryReady, loadMessages, setMessages]);
+
+	useEffect(() => {
+		if (!isHistoryReady || !activeSessionId) return;
+		saveMessages(activeSessionId, messages);
+		updateSessionMeta(activeSessionId, {
+			messageCount: messages.length,
+			lastPath: currentPath,
+		});
+
+		if (
+			derivedTitle &&
+			(activeSession?.title === DEFAULT_SESSION_TITLE || !activeSession?.title)
+		) {
+			updateSessionMeta(activeSessionId, { title: derivedTitle });
+		}
+	}, [
+		activeSession?.title,
+		activeSessionId,
+		currentPath,
+		derivedTitle,
+		isHistoryReady,
+		messages,
+		saveMessages,
+		updateSessionMeta,
+	]);
 
 	// Render in a portal to ensure highest z-index (above all Dialogs)
 	const chatContent = (
@@ -84,10 +145,19 @@ export function ChatAssistant() {
 						{/* Header */}
 						<div className="flex items-center justify-between border-b px-4 py-3">
 							<div className="flex-1">
-								<h2 className="font-semibold">AI 助手</h2>
+								<h2 className="font-semibold">MES 助手</h2>
 								<p className="text-muted-foreground text-xs">当前页面：{routeContext.name}</p>
 							</div>
 							<div className="flex items-center gap-1">
+								<Button
+									variant="ghost"
+									size="icon"
+									onClick={() => setIsHistoryOpen((prev) => !prev)}
+									className="size-8"
+									title="历史记录"
+								>
+									<Clock className="size-4" />
+								</Button>
 								{messages.length > 0 && (
 									<Button
 										variant="ghost"
@@ -117,29 +187,53 @@ export function ChatAssistant() {
 							</div>
 						)}
 
-						{/* Suggestions - show only when no messages */}
-						{messages.length === 0 && (
-							<ChatSuggestions
-								suggestions={suggestions}
-								isLoading={suggestionsLoading}
-								onSelect={handleSuggestionSelect}
-								onRefresh={refreshSuggestions}
-								className="border-b"
+						{isHistoryOpen ? (
+							<ChatHistory
+								sessions={sessions}
+								activeSessionId={activeSessionId}
+								onSelect={(sessionId) => {
+									stop();
+									selectSession(sessionId);
+									setIsHistoryOpen(false);
+									setInputValue("");
+								}}
+								onCreate={() => {
+									stop();
+									createSession();
+									setIsHistoryOpen(false);
+									setInputValue("");
+								}}
+								onRename={renameSession}
+								onDelete={deleteSession}
+								className="flex-1"
 							/>
+						) : (
+							<>
+								{/* Suggestions - show only when no messages */}
+								{messages.length === 0 && (
+									<ChatSuggestions
+										suggestions={suggestions}
+										isLoading={suggestionsLoading}
+										onSelect={handleSuggestionSelect}
+										onRefresh={refreshSuggestions}
+										className="border-b"
+									/>
+								)}
+
+								{/* Messages */}
+								<ChatMessages messages={messages} className="flex-1" />
+
+								{/* Input */}
+								<ChatInput
+									onSend={handleSend}
+									onStop={stop}
+									isLoading={isLoading}
+									placeholder={`关于"${routeContext.name}"有什么问题？`}
+									value={inputValue}
+									onChange={setInputValue}
+								/>
+							</>
 						)}
-
-						{/* Messages */}
-						<ChatMessages messages={messages} className="flex-1" />
-
-						{/* Input */}
-						<ChatInput
-							onSend={handleSend}
-							onStop={stop}
-							isLoading={isLoading}
-							placeholder={`关于"${routeContext.name}"有什么问题？`}
-							value={inputValue}
-							onChange={setInputValue}
-						/>
 					</div>
 				</>
 			)}

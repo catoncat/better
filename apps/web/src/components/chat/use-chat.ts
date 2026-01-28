@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
 export type ChatMessage = {
 	id: string;
@@ -9,6 +9,7 @@ export type ChatMessage = {
 
 type UseChatOptions = {
 	currentPath?: string;
+	initialMessages?: ChatMessage[];
 };
 
 type UseChatReturn = {
@@ -18,6 +19,7 @@ type UseChatReturn = {
 	sendMessage: (content: string) => Promise<void>;
 	clearMessages: () => void;
 	stop: () => void;
+	setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
 };
 
 const BASE_URL = import.meta.env.VITE_SERVER_URL
@@ -30,7 +32,7 @@ const generateId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)
  * Custom hook for managing chat state and SSE streaming
  */
 export function useChat(options: UseChatOptions = {}): UseChatReturn {
-	const [messages, setMessages] = useState<ChatMessage[]>([]);
+	const [messages, setMessages] = useState<ChatMessage[]>(() => options.initialMessages ?? []);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -190,5 +192,6 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 		sendMessage,
 		clearMessages,
 		stop,
+		setMessages,
 	};
 }

@@ -38,6 +38,37 @@ function linkifyRoutePaths(text: string): ReactNode[] {
 	return nodes.length > 0 ? nodes : [text];
 }
 
+function hasRoutePath(text: string): boolean {
+	ROUTE_PATH_REGEX.lastIndex = 0;
+	return ROUTE_PATH_REGEX.test(text);
+}
+
+function normalizeRouteLines(source: string): string {
+	let result = "";
+	let inCodeBlock = false;
+	const lines = source.split("\n");
+
+	for (let i = 0; i < lines.length; i++) {
+		let line = lines[i] ?? "";
+		if (line.trim().startsWith("```")) {
+			inCodeBlock = !inCodeBlock;
+			result += line;
+			result += i === lines.length - 1 ? "" : "\n";
+			continue;
+		}
+
+		if (!inCodeBlock && hasRoutePath(line) && /^\s{4,}|\t/.test(line)) {
+  		console.log('匹配路径')
+			line = line.replace(/^\s+/, "");
+		}
+
+		result += line;
+		result += i === lines.length - 1 ? "" : "\n";
+	}
+
+	return result;
+}
+
 function linkifyRouteChildren(children: ReactNode): ReactNode {
 	if (typeof children === "string") {
 		return linkifyRoutePaths(children);
@@ -177,7 +208,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 									),
 								}}
 							>
-								{message.content}
+								{normalizeRouteLines(message.content)}
 							</Markdown>
 						</div>
 					)
