@@ -1,5 +1,5 @@
 import { useLocation } from "@tanstack/react-router";
-import { Clock, MessageCircle, Trash2, X } from "lucide-react";
+import { Clock, MessageCircle, Plus, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
@@ -96,6 +96,13 @@ export function ChatAssistant() {
 		},
 		[handleSend],
 	);
+
+	const handleNewSession = useCallback(() => {
+		stop();
+		createSession();
+		setIsHistoryOpen(false);
+		setInputValue("");
+	}, [stop, createSession]);
 
 	const handleFeedback = useCallback(
 		async (payload: ChatFeedbackPayload) => {
@@ -205,17 +212,15 @@ export function ChatAssistant() {
 								>
 									<Clock className="size-4" />
 								</Button>
-								{messages.length > 0 && (
-									<Button
-										variant="ghost"
-										size="icon"
-										onClick={clearMessages}
-										className="size-8"
-										title="清空对话"
-									>
-										<Trash2 className="size-4" />
-									</Button>
-								)}
+								<Button
+									variant="ghost"
+									size="icon"
+									onClick={handleNewSession}
+									className="size-8"
+									title="新会话"
+								>
+									<Plus className="size-4" />
+								</Button>
 								<Button
 									variant="ghost"
 									size="icon"

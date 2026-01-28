@@ -40,7 +40,6 @@ export function ChatSuggestions({
 
 				{isLoading && suggestions.length === 0 && (
 					<div className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs text-muted-foreground">
-						<Loader2 className="size-3 animate-spin" />
 						<span>正在生成建议...</span>
 					</div>
 				)}
@@ -64,10 +63,27 @@ export function ChatSuggestions({
 					<Button
 						variant="ghost"
 						size="icon"
-						className="size-6 rounded-full text-muted-foreground hover:text-foreground"
+						className="size-6 rounded-full text-muted-foreground hover:text-foreground animate-pulse hover:animate-none data-[state=highlight]:text-primary data-[state=highlight]:animate-[pulse_2s_ease-in-out_infinite,shake_3s_ease-in-out_infinite]"
+						style={{
+							animationName: "pulse-color, shake-gentle",
+							animationDuration: "2s, 3s",
+							animationIterationCount: "infinite",
+							animationTimingFunction: "ease-in-out",
+						}}
 						onClick={onFeedback}
 						title="我要反馈"
 					>
+						<style>{`
+							@keyframes pulse-color {
+								0%, 100% { color: hsl(var(--muted-foreground)); }
+								50% { color: hsl(var(--primary)); }
+							}
+							@keyframes shake-gentle {
+								0%, 100% { transform: translateX(0); }
+								25% { transform: translateX(-2px); }
+								75% { transform: translateX(2px); }
+							}
+						`}</style>
 						<MessageSquareText className="size-3.5" />
 					</Button>
 				)}

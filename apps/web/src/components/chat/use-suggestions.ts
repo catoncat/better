@@ -62,6 +62,7 @@ export function useSuggestions(options: UseSuggestionsOptions): UseSuggestionsRe
 				return;
 			}
 
+			setSuggestions([]);
 			setIsLoading(true);
 			setError(null);
 
