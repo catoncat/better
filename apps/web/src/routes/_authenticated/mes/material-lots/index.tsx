@@ -525,9 +525,7 @@ function MaterialLotsPage() {
 							<Input
 								id="materialCode"
 								value={createForm.materialCode}
-								onChange={(e) =>
-									setCreateForm({ ...createForm, materialCode: e.target.value })
-								}
+								onChange={(e) => setCreateForm({ ...createForm, materialCode: e.target.value })}
 								placeholder="如：RES-0603-10K"
 							/>
 						</div>
@@ -549,10 +547,7 @@ function MaterialLotsPage() {
 						>
 							取消
 						</Button>
-						<Button
-							onClick={handleCreate}
-							disabled={!canSubmitCreate || createMutation.isPending}
-						>
+						<Button onClick={handleCreate} disabled={!canSubmitCreate || createMutation.isPending}>
 							创建
 						</Button>
 					</DialogFooter>
