@@ -187,6 +187,42 @@ export function useRecordFaiItem() {
 }
 
 /**
+ * Update FAI item
+ */
+export function useUpdateFaiItem() {
+	const queryClient = useQueryClient();
+	const showError = useApiError();
+
+	return useMutation({
+		mutationFn: async ({
+			faiId,
+			itemId,
+			data,
+		}: {
+			faiId: string;
+			itemId: string;
+			data: {
+				unitSn?: string;
+				itemSpec?: string;
+				actualValue?: string;
+				result?: "PASS" | "FAIL" | "NA";
+				defectCode?: string;
+				remark?: string;
+			};
+		}) => {
+			const response = await client.api.fai({ faiId }).items({ itemId }).patch(data);
+			return unwrap(response);
+		},
+		onSuccess: (_data, variables) => {
+			toast.success("检验项已更新");
+			queryClient.invalidateQueries({ queryKey: ["mes", "fai", "detail", variables.faiId] });
+			queryClient.invalidateQueries({ queryKey: ["mes", "fai", "list"] });
+		},
+		onError: (error: unknown) => showError("更新检验项失败", error),
+	});
+}
+
+/**
  * Complete FAI
  */
 export function useCompleteFai() {
