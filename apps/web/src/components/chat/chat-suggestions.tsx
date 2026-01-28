@@ -1,4 +1,4 @@
-import { Loader2, MessageSquareText, RefreshCw, Sparkles } from "lucide-react";
+import { MessageSquareText, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SuggestionItem } from "./use-suggestions";

@@ -168,7 +168,10 @@ function TracePage() {
 					<div className="grid gap-4 md:grid-cols-6">
 						<div className="md:col-span-2">
 							<Label>查询类型</Label>
-							<Select value={queryType} onValueChange={(v) => setQueryType(v as "sn" | "materialLot")}>
+							<Select
+								value={queryType}
+								onValueChange={(v) => setQueryType(v as "sn" | "materialLot")}
+							>
 								<SelectTrigger className="mt-2">
 									<SelectValue />
 								</SelectTrigger>
@@ -274,9 +277,7 @@ function TracePage() {
 				<Card>
 					<CardHeader>
 						<CardTitle>批次追溯结果</CardTitle>
-						<CardDescription>
-							共 {materialLotUnits.units.length} 个序列号
-						</CardDescription>
+						<CardDescription>共 {materialLotUnits.units.length} 个序列号</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<Table>
@@ -390,9 +391,7 @@ function TracePage() {
 												<TableCell>{step.stationType}</TableCell>
 												<TableCell>{step.stationGroupId ?? "-"}</TableCell>
 												<TableCell>
-													{step.allowedStationIds.length
-														? step.allowedStationIds.join(", ")
-														: "-"}
+													{step.allowedStationIds.length ? step.allowedStationIds.join(", ") : "-"}
 												</TableCell>
 												<TableCell>{step.requiresFAI ? "是" : "否"}</TableCell>
 												<TableCell>{step.requiresAuthorization ? "是" : "否"}</TableCell>
@@ -593,9 +592,7 @@ function TracePage() {
 									<TableBody>
 										{data.loadingRecords.map((record) => (
 											<TableRow key={record.id}>
-												<TableCell className="font-medium">
-													{record.slotCode}
-												</TableCell>
+												<TableCell className="font-medium">{record.slotCode}</TableCell>
 												<TableCell>{record.position}</TableCell>
 												<TableCell>{record.materialCode}</TableCell>
 												<TableCell>{record.lotNo}</TableCell>
@@ -603,7 +600,9 @@ function TracePage() {
 													<Badge variant="outline">{record.status}</Badge>
 												</TableCell>
 												<TableCell>
-													<Badge variant={record.verifyResult === "PASS" ? "secondary" : "destructive"}>
+													<Badge
+														variant={record.verifyResult === "PASS" ? "secondary" : "destructive"}
+													>
 														{record.verifyResult}
 													</Badge>
 												</TableCell>

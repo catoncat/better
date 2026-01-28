@@ -211,7 +211,11 @@ function MessageBubble({
 	message,
 	isLast,
 	onReload,
-}: { message: ChatMessage; isLast: boolean; onReload?: () => void }) {
+}: {
+	message: ChatMessage;
+	isLast: boolean;
+	onReload?: () => void;
+}) {
 	const isUser = message.role === "user";
 
 	return (

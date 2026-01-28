@@ -9,7 +9,7 @@ import {
 	traceModeQuerySchema,
 	traceUnitResponseSchema,
 } from "./schema";
-import { getUnitTrace, getUnitsByMaterialLot } from "./service";
+import { getUnitsByMaterialLot, getUnitTrace } from "./service";
 
 export const traceModule = new Elysia({
 	prefix: "/trace",
