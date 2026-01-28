@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { Globe, User } from "lucide-react";
+import { ChatMarkdown } from "@/components/chat/chat-messages";
 import { Badge } from "@/components/ui/badge";
 import {
 	Dialog,
@@ -50,6 +51,15 @@ export function ChatFeedbackDialog({ item, open, onOpenChange }: ChatFeedbackDia
 
 				<ScrollArea className="flex-1 -mx-6 px-6">
 					<div className="space-y-6 py-4">
+						{item.feedback && (
+							<div className="space-y-2">
+								<h3 className="text-sm font-medium text-primary">用户反馈</h3>
+								<div className="rounded-lg border p-4 text-sm italic bg-background">
+									{item.feedback}
+								</div>
+							</div>
+						)}
+
 						<div className="space-y-2">
 							<h3 className="text-sm font-medium flex items-center gap-2">
 								<Badge variant="outline">用户提问</Badge>
@@ -63,19 +73,10 @@ export function ChatFeedbackDialog({ item, open, onOpenChange }: ChatFeedbackDia
 							<h3 className="text-sm font-medium flex items-center gap-2">
 								<Badge variant="secondary">AI 回复</Badge>
 							</h3>
-							<div className="rounded-lg bg-secondary/30 p-4 text-sm leading-relaxed whitespace-pre-wrap">
-								{item.assistantMessage}
+							<div className="rounded-lg bg-secondary/30 p-4 text-sm leading-relaxed">
+								<ChatMarkdown content={item.assistantMessage} />
 							</div>
 						</div>
-
-						{item.feedback && (
-							<div className="space-y-2">
-								<h3 className="text-sm font-medium text-primary">用户反馈</h3>
-								<div className="rounded-lg border p-4 text-sm italic bg-background">
-									{item.feedback}
-								</div>
-							</div>
-						)}
 					</div>
 				</ScrollArea>
 			</DialogContent>

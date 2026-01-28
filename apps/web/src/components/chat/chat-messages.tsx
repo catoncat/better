@@ -97,7 +97,7 @@ function linkifyRouteChildren(children: ReactNode): ReactNode {
 	return children;
 }
 
-function ChatMarkdown({ content }: { content: string }) {
+export function ChatMarkdown({ content }: { content: string }) {
 	return (
 		<div className="prose prose-sm dark:prose-invert max-w-none text-sm [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
 			<Markdown
