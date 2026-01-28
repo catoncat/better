@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { useAbility } from "@/hooks/use-ability";
 import {
 	type MaterialLotListItem,
+	useCreateMaterialLot,
 	useMaterialLotList,
 	useUpdateMaterialLot,
 } from "@/hooks/use-material-lots";
@@ -65,8 +66,11 @@ function MaterialLotsPage() {
 	const [editDialogOpen, setEditDialogOpen] = useState(false);
 	const [editingItem, setEditingItem] = useState<MaterialLotListItem | null>(null);
 	const [editForm, setEditForm] = useState({ supplier: "", iqcResult: "", iqcDate: "" });
+	const [createDialogOpen, setCreateDialogOpen] = useState(false);
+	const [createForm, setCreateForm] = useState({ materialCode: "", lotNo: "" });
 
 	const updateMutation = useUpdateMaterialLot();
+	const createMutation = useCreateMaterialLot();
 
 	const filters: MaterialLotFilters = useMemo(
 		() => ({
@@ -329,10 +333,26 @@ function MaterialLotsPage() {
 		setEditingItem(null);
 	};
 
+	const canSubmitCreate =
+		createForm.materialCode.trim().length > 0 && createForm.lotNo.trim().length > 0;
+
+	const handleCreate = async () => {
+		if (!canSubmitCreate) return;
+		await createMutation.mutateAsync({
+			materialCode: createForm.materialCode.trim(),
+			lotNo: createForm.lotNo.trim(),
+		});
+		setCreateDialogOpen(false);
+		setCreateForm({ materialCode: "", lotNo: "" });
+	};
+
 	const header = (
-		<div className="flex flex-col gap-2">
-			<h1 className="text-2xl font-bold tracking-tight">物料批次</h1>
-			<p className="text-muted-foreground">查看和管理物料批次信息（IQC、供应商等）。</p>
+		<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+			<div className="flex flex-col gap-2">
+				<h1 className="text-2xl font-bold tracking-tight">物料批次</h1>
+				<p className="text-muted-foreground">查看和管理物料批次信息（IQC、供应商等）。</p>
+			</div>
+			<Button onClick={() => setCreateDialogOpen(true)}>新增物料批次</Button>
 		</div>
 	);
 
@@ -479,6 +499,61 @@ function MaterialLotsPage() {
 						</Button>
 						<Button onClick={handleSaveEdit} disabled={updateMutation.isPending}>
 							保存
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* 新建对话框 */}
+			<Dialog
+				open={createDialogOpen}
+				onOpenChange={(open) => {
+					setCreateDialogOpen(open);
+					if (!open) {
+						setCreateForm({ materialCode: "", lotNo: "" });
+					}
+				}}
+			>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>新增物料批次</DialogTitle>
+						<DialogDescription>填写批次号与物料编码即可新建。</DialogDescription>
+					</DialogHeader>
+					<div className="grid gap-4 py-4">
+						<div className="grid gap-2">
+							<Label htmlFor="materialCode">物料编码</Label>
+							<Input
+								id="materialCode"
+								value={createForm.materialCode}
+								onChange={(e) =>
+									setCreateForm({ ...createForm, materialCode: e.target.value })
+								}
+								placeholder="如：RES-0603-10K"
+							/>
+						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="lotNo">批次号</Label>
+							<Input
+								id="lotNo"
+								value={createForm.lotNo}
+								onChange={(e) => setCreateForm({ ...createForm, lotNo: e.target.value })}
+								placeholder="如：LOT-2026-0128"
+							/>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setCreateDialogOpen(false)}
+							disabled={createMutation.isPending}
+						>
+							取消
+						</Button>
+						<Button
+							onClick={handleCreate}
+							disabled={!canSubmitCreate || createMutation.isPending}
+						>
+							创建
 						</Button>
 					</DialogFooter>
 				</DialogContent>
