@@ -25,6 +25,11 @@ export const materialLotUpdateBodySchema = t.Object({
 	iqcDate: t.Optional(t.Union([t.String(), t.Null()])),
 });
 
+export const materialLotCreateBodySchema = t.Object({
+	materialCode: t.String({ minLength: 1 }),
+	lotNo: t.String({ minLength: 1 }),
+});
+
 const materialLotSchema = t.Object({
 	id: t.String(),
 	materialCode: t.String(),
