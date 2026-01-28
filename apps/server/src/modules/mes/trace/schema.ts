@@ -4,6 +4,11 @@ export const traceModeQuerySchema = t.Object({
 	mode: t.Optional(t.Union([t.Literal("run"), t.Literal("latest")])),
 });
 
+export const traceMaterialLotParamsSchema = t.Object({
+	materialCode: t.String(),
+	lotNo: t.String(),
+});
+
 export const traceUnitResponseSchema = t.Object({
 	ok: t.Boolean(),
 	data: t.Object({
@@ -221,5 +226,17 @@ export const traceErrorResponseSchema = t.Object({
 	error: t.Object({
 		code: t.String(),
 		message: t.String(),
+	}),
+});
+
+export const traceMaterialLotUnitsResponseSchema = t.Object({
+	ok: t.Boolean(),
+	data: t.Object({
+		units: t.Array(
+			t.Object({
+				sn: t.String(),
+				status: t.String(),
+			}),
+		),
 	}),
 });

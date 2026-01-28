@@ -25,6 +25,8 @@ task:
 
 ## Findings
 - 2026-01-28: Trace API currently only implements GET /api/trace/units/:sn; material-lot reverse lookup is doc-only and needs backend route.
+- 2026-01-28: API patterns require ServiceResult, envelope, and audit in routes; external read endpoints can skip audit (no writes).
+- 2026-01-28: Trace service already composes defects/materials/loading/inspections/carrier data; UI can reuse existing UnitTrace shape.
 
 <!-- AUTO:BEGIN status -->
 
