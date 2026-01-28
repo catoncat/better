@@ -54,6 +54,34 @@ export function getRouteDisplayName(pathname: string): string {
 	return getRouteContext(pathname).name;
 }
 
+export function getRouteCacheKey(pathname: string): string {
+	if (knownRoutes[pathname]) {
+		return pathname;
+	}
+
+	let bestMatch = "";
+	let bestMatchLength = 0;
+
+	for (const route of Object.keys(knownRoutes)) {
+		if (route !== "/" && pathname.startsWith(route)) {
+			if (route.length > bestMatchLength) {
+				bestMatch = route;
+				bestMatchLength = route.length;
+			}
+		}
+	}
+
+	if (bestMatch) {
+		return bestMatch;
+	}
+
+	if (pathname === "/") {
+		return "/";
+	}
+
+	return pathname;
+}
+
 export function getRouteContext(pathname: string): RouteContext {
 	// 1. Exact match first
 	if (knownRoutes[pathname]) {

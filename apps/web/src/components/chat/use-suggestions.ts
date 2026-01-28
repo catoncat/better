@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { getRouteCacheKey } from "./route-context";
 
 export type SuggestionItem = {
 	question: string;
@@ -29,6 +30,7 @@ const suggestionsCache = new Map<string, SuggestionItem[]>();
  */
 export function useSuggestions(options: UseSuggestionsOptions): UseSuggestionsReturn {
 	const { currentPath, enabled = true } = options;
+	const cacheKey = useMemo(() => getRouteCacheKey(currentPath), [currentPath]);
 	const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -38,8 +40,8 @@ export function useSuggestions(options: UseSuggestionsOptions): UseSuggestionsRe
 			if (!enabled) return;
 
 			// Check cache first (unless force refresh)
-			if (!force && suggestionsCache.has(currentPath)) {
-				setSuggestions(suggestionsCache.get(currentPath) || []);
+			if (!force && suggestionsCache.has(cacheKey)) {
+				setSuggestions(suggestionsCache.get(cacheKey) || []);
 				return;
 			}
 
@@ -48,7 +50,7 @@ export function useSuggestions(options: UseSuggestionsOptions): UseSuggestionsRe
 
 			try {
 				const response = await fetch(
-					`${BASE_URL}/chat/suggestions?path=${encodeURIComponent(currentPath)}`,
+					`${BASE_URL}/chat/suggestions?path=${encodeURIComponent(cacheKey)}`,
 					{
 						method: "GET",
 						credentials: "include",
@@ -65,7 +67,7 @@ export function useSuggestions(options: UseSuggestionsOptions): UseSuggestionsRe
 					const fetchedSuggestions = data.suggestions as SuggestionItem[];
 					setSuggestions(fetchedSuggestions);
 					// Cache the result
-					suggestionsCache.set(currentPath, fetchedSuggestions);
+					suggestionsCache.set(cacheKey, fetchedSuggestions);
 				} else {
 					setSuggestions([]);
 				}
@@ -77,7 +79,7 @@ export function useSuggestions(options: UseSuggestionsOptions): UseSuggestionsRe
 				setIsLoading(false);
 			}
 		},
-		[currentPath, enabled],
+		[cacheKey, enabled],
 	);
 
 	// Fetch suggestions when path changes
