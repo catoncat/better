@@ -7,8 +7,35 @@ import fs from "node:fs";
 import path from "node:path";
 import type OpenAI from "openai";
 
-// Project root directory (go up 2 levels from apps/server to project root)
-const PROJECT_ROOT = path.resolve(process.cwd(), "../..");
+// Project root directory
+// Use import.meta.dir (Bun-specific) to get this file's directory, then go up to project root
+// This file is at: apps/server/src/modules/chat/tools.ts
+// Project root is 5 levels up: ../../../../../../ or we can detect via package.json
+function getProjectRoot(): string {
+	// Try to find project root by looking for root package.json with "workspaces"
+	let dir = path.dirname(import.meta.dir || process.cwd());
+	for (let i = 0; i < 10; i++) {
+		const pkgPath = path.join(dir, "package.json");
+		if (fs.existsSync(pkgPath)) {
+			try {
+				const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+				if (pkg.workspaces) {
+					return dir; // Found monorepo root
+				}
+			} catch {
+				// Continue searching
+			}
+		}
+		const parent = path.dirname(dir);
+		if (parent === dir) break; // Reached filesystem root
+		dir = parent;
+	}
+	// Fallback: assume cwd is apps/server
+	return path.resolve(process.cwd(), "../..");
+}
+
+const PROJECT_ROOT = getProjectRoot();
+console.log("[Chat Tools] PROJECT_ROOT:", PROJECT_ROOT);
 
 /**
  * Tool definitions for OpenAI function calling

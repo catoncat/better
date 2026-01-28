@@ -94,9 +94,10 @@ export async function* streamChatCompletion(
 	const client = getClient();
 	const model = getModel();
 	const maxTokens = getMaxTokens();
+	const toolsEnabled = isToolsEnabled();
 
-	// Build messages array with system prompt
-	const systemPrompt = generateSystemPrompt(currentPath);
+	// Build messages array with system prompt (pass toolsEnabled to customize instructions)
+	const systemPrompt = generateSystemPrompt(currentPath, toolsEnabled);
 	const apiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
 		{ role: "system", content: systemPrompt },
 		...messages.map((m) => ({
@@ -106,7 +107,7 @@ export async function* streamChatCompletion(
 	];
 
 	// If tools are disabled, use simple streaming without tool calls
-	if (!isToolsEnabled()) {
+	if (!toolsEnabled) {
 		const stream = await client.chat.completions.create(
 			{
 				model,
