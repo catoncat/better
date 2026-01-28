@@ -10,6 +10,41 @@ const routeContextMap: Record<string, { name: string; description: string; actio
 		description: "系统首页，展示关键指标和快捷入口",
 		actions: ["查看生产概览", "快速导航到各功能模块"],
 	},
+	"/mes/runs/$runNo": {
+		name: "生产批次详情",
+		description: "查看生产批次详情与执行记录",
+		actions: ["查看批次详情", "查看过站记录", "返回批次列表"],
+	},
+	"/mes/routes/$routingCode": {
+		name: "路由详情",
+		description: "查看路由步骤与版本信息",
+		actions: ["查看路由详情", "查看步骤配置", "返回路由列表"],
+	},
+	"/mes/loading/slot-config": {
+		name: "站位表配置",
+		description: "配置上料站位表与映射关系",
+		actions: ["查看站位表", "新增/编辑映射", "保存配置"],
+	},
+	"/mes/oqc/rules": {
+		name: "OQC 规则",
+		description: "管理出货检验规则与判定标准",
+		actions: ["查看规则列表", "新增规则", "编辑规则"],
+	},
+	"/mes/integration/status": {
+		name: "集成状态监控",
+		description: "查看系统集成状态与健康情况",
+		actions: ["查看集成状态", "筛选异常", "查看详情"],
+	},
+	"/mes/integration/device-data": {
+		name: "设备数采",
+		description: "查看设备数据采集与上报情况",
+		actions: ["查看数采列表", "筛选数据", "查看详情"],
+	},
+	"/mes/integration/manual-entry": {
+		name: "耗材状态录入",
+		description: "手动录入与维护耗材状态",
+		actions: ["查看耗材列表", "录入状态", "查看记录"],
+	},
 	"/mes/work-orders": {
 		name: "工单管理",
 		description: "管理生产工单，包括创建、查看、编辑工单信息",
@@ -19,6 +54,66 @@ const routeContextMap: Record<string, { name: string; description: string; actio
 		name: "生产批次管理",
 		description: "管理生产批次 (Run)，追踪生产进度",
 		actions: ["查看批次列表", "创建生产批次", "授权生产", "收尾批次"],
+	},
+	"/mes/bake-records": {
+		name: "烘烤记录",
+		description: "查看烘烤记录与追踪信息",
+		actions: ["查看记录列表", "筛选记录", "查看详情"],
+	},
+	"/mes/solder-paste-usage": {
+		name: "锡膏使用记录",
+		description: "查看锡膏使用与追踪记录",
+		actions: ["查看记录列表", "筛选记录", "查看详情"],
+	},
+	"/mes/cold-storage-temperatures": {
+		name: "冷藏温度记录",
+		description: "查看冷藏温度记录与异常情况",
+		actions: ["查看记录列表", "筛选记录", "查看详情"],
+	},
+	"/mes/stencil-usage": {
+		name: "钢网使用记录",
+		description: "查看钢网使用情况与记录",
+		actions: ["查看记录列表", "筛选记录", "查看详情"],
+	},
+	"/mes/stencil-cleaning": {
+		name: "钢网清洗记录",
+		description: "查看钢网清洗记录与明细",
+		actions: ["查看记录列表", "筛选记录", "查看详情"],
+	},
+	"/mes/squeegee-usage": {
+		name: "刮刀使用记录",
+		description: "查看刮刀使用记录与寿命",
+		actions: ["查看记录列表", "筛选记录", "查看详情"],
+	},
+	"/mes/equipment-inspections": {
+		name: "设备点检记录",
+		description: "查看设备点检记录与异常",
+		actions: ["查看记录列表", "筛选记录", "查看详情"],
+	},
+	"/mes/oven-program-records": {
+		name: "炉温程式记录",
+		description: "查看炉温程式记录与状态",
+		actions: ["查看记录列表", "筛选记录", "查看详情"],
+	},
+	"/mes/maintenance-records": {
+		name: "维修记录",
+		description: "查看设备维修记录与处理情况",
+		actions: ["查看记录列表", "筛选记录", "查看详情"],
+	},
+	"/mes/readiness-exceptions": {
+		name: "准备异常",
+		description: "处理准备异常与状态跟进",
+		actions: ["查看异常列表", "筛选异常", "查看详情"],
+	},
+	"/mes/readiness-config": {
+		name: "准备检查配置",
+		description: "配置准备检查规则与项",
+		actions: ["查看配置", "编辑配置", "保存配置"],
+	},
+	"/mes/time-rules": {
+		name: "时间规则管理",
+		description: "配置时间规则与有效期设置",
+		actions: ["查看规则", "编辑规则", "保存规则"],
 	},
 	"/mes/loading": {
 		name: "上料验证",
@@ -30,6 +125,11 @@ const routeContextMap: Record<string, { name: string; description: string; actio
 		description: "首件检验页面，对生产首件进行质量检验",
 		actions: ["创建 FAI", "启动检验", "记录检验项", "判定 PASS/FAIL", "签字确认"],
 	},
+	"/mes/fqc": {
+		name: "末件检验",
+		description: "末件检验页面，完成批次末件质量检验",
+		actions: ["查看检验列表", "启动检验", "判定 PASS/FAIL"],
+	},
 	"/mes/execution": {
 		name: "工位执行",
 		description: "工位级别的生产执行，包括扫描、数据采集、异常处理",
@@ -39,6 +139,16 @@ const routeContextMap: Record<string, { name: string; description: string; actio
 		name: "生产路由管理",
 		description: "定义和管理产品的生产路由（工艺流程）",
 		actions: ["查看路由列表", "创建新路由", "编辑路由步骤", "发布路由版本"],
+	},
+	"/mes/route-versions": {
+		name: "路由版本",
+		description: "查看路由版本与发布情况",
+		actions: ["查看版本列表", "筛选版本", "查看详情"],
+	},
+	"/mes/data-collection-specs": {
+		name: "采集项管理",
+		description: "管理工位数据采集项与规则",
+		actions: ["查看采集项列表", "新增采集项", "编辑采集项"],
 	},
 	"/mes/lines": {
 		name: "产线管理",
@@ -50,6 +160,21 @@ const routeContextMap: Record<string, { name: string; description: string; actio
 		description: "管理物料主数据和库存信息",
 		actions: ["查看物料列表", "搜索物料", "查看物料详情"],
 	},
+	"/mes/material-lots": {
+		name: "物料批次",
+		description: "查看物料批次与追踪信息",
+		actions: ["查看批次列表", "筛选批次", "查看详情"],
+	},
+	"/mes/boms": {
+		name: "BOM",
+		description: "管理产品 BOM 结构与物料清单",
+		actions: ["查看 BOM 列表", "查看 BOM 详情", "筛选 BOM"],
+	},
+	"/mes/work-centers": {
+		name: "工作中心",
+		description: "管理工作中心与产线资源",
+		actions: ["查看工作中心", "编辑配置", "查看详情"],
+	},
 	"/mes/products": {
 		name: "产品管理",
 		description: "管理产品主数据和 BOM 信息",
@@ -60,30 +185,85 @@ const routeContextMap: Record<string, { name: string; description: string; actio
 		description: "出货质量检验，抽检并判定批次是否放行",
 		actions: ["查看 OQC 列表", "启动检验", "判定 PASS/FAIL"],
 	},
+	"/mes/daily-qc-records": {
+		name: "日常QC记录",
+		description: "查看日常质量检查记录",
+		actions: ["查看记录列表", "筛选记录", "查看详情"],
+	},
+	"/mes/production-exception-records": {
+		name: "生产异常记录",
+		description: "查看生产异常记录与处置情况",
+		actions: ["查看记录列表", "筛选记录", "查看详情"],
+	},
 	"/mes/defects": {
 		name: "缺陷管理",
 		description: "处理生产过程中的缺陷和不良品",
 		actions: ["查看缺陷列表", "处置缺陷 (返修/报废/放行)"],
+	},
+	"/mes/rework-tasks": {
+		name: "返工任务",
+		description: "查看返工任务并跟进处理",
+		actions: ["查看任务列表", "筛选任务", "查看详情"],
 	},
 	"/mes/trace": {
 		name: "追溯查询",
 		description: "查询产品的完整生产追溯信息",
 		actions: ["输入 SN 查询", "查看过站记录", "查看检验记录", "查看上料记录"],
 	},
-	"/system/users": {
+	"/system/user-management": {
 		name: "用户管理",
 		description: "管理系统用户和权限",
 		actions: ["查看用户列表", "创建用户", "编辑用户权限"],
+	},
+	"/system/role-management": {
+		name: "角色管理",
+		description: "管理系统角色与权限",
+		actions: ["查看角色列表", "创建角色", "编辑角色权限"],
 	},
 	"/system/audit-logs": {
 		name: "审计日志",
 		description: "查看系统操作日志，追踪用户操作",
 		actions: ["查看日志列表", "筛选日志", "导出日志"],
 	},
+	"/system/settings": {
+		name: "系统设置",
+		description: "配置系统参数和选项",
+		actions: ["查看配置", "编辑配置", "保存配置"],
+	},
+	"/system/integrations": {
+		name: "集成管理",
+		description: "管理系统集成与配置",
+		actions: ["查看集成列表", "编辑集成配置", "查看详情"],
+	},
+	"/system/test-upload": {
+		name: "测试上传",
+		description: "测试上传与结果校验",
+		actions: ["上传文件", "查看结果", "重新上传"],
+	},
+	"/notifications": {
+		name: "通知中心",
+		description: "查看系统通知与消息",
+		actions: ["查看通知列表", "筛选通知", "标记已读"],
+	},
+	"/login": {
+		name: "登录",
+		description: "登录系统",
+		actions: ["输入账号密码", "登录"],
+	},
 	"/profile": {
 		name: "个人资料",
 		description: "查看和编辑个人账户信息",
 		actions: ["查看个人信息", "修改密码"],
+	},
+	"/mes": {
+		name: "MES 模块",
+		description: "制造执行系统模块入口",
+		actions: ["查看模块入口", "选择功能"],
+	},
+	"/system": {
+		name: "系统管理",
+		description: "系统配置与管理入口",
+		actions: ["查看系统功能", "选择配置项"],
 	},
 };
 
@@ -91,10 +271,21 @@ function getRouteContext(path: string): { name: string; description: string; act
 	if (routeContextMap[path]) {
 		return routeContextMap[path];
 	}
+
+	let bestMatch: { name: string; description: string; actions: string[] } | null = null;
+	let bestMatchLength = 0;
+
 	for (const [route, context] of Object.entries(routeContextMap)) {
-		if (path.startsWith(route) && route !== "/") {
-			return context;
+		if (route !== "/" && path.startsWith(route)) {
+			if (route.length > bestMatchLength) {
+				bestMatch = context;
+				bestMatchLength = route.length;
+			}
 		}
+	}
+
+	if (bestMatch) {
+		return bestMatch;
 	}
 	return {
 		name: "当前页面",
@@ -280,15 +471,40 @@ export function generateSuggestionsPrompt(
 	const context = getRouteContext(currentPath);
 	const normalizedReply = reply?.trim();
 
-	const system = `你是 Better MES 系统的 AI 助手。你的任务是根据用户当前所在的页面，以及助手刚刚的回复内容，生成 3-5 个“下一步可问”的问题建议。
+	if (normalizedReply) {
+		const system = `你是 Better MES 系统的 AI 助手。你的任务是根据助手刚刚的回复内容，生成 3-5 个“下一步可问”的问题建议。
+
+规则：
+1. 问题必须与回复内容的上下文相关
+2. 问题应该简短清晰（不超过 20 个字）
+3. 优先生成下一步操作或细节追问类问题
+4. 不要依赖当前页面路径或页面功能
+5. 返回 JSON 数组格式
+
+返回格式：
+[
+  {"question": "问题1", "action": "fill"},
+  {"question": "问题2", "action": "send"},
+  ...
+]
+
+action 说明：
+- "fill": 填充到输入框，用户可以修改后发送
+- "send": 直接发送，适合简单明确的问题`;
+
+		const user = `助手回复：\n${normalizedReply}\n\n请生成 3-5 个与该回复相关的建议问题。`;
+
+		return { system, user };
+	}
+
+	const system = `你是 Better MES 系统的 AI 助手。你的任务是根据用户当前所在的页面，生成 3-5 个“下一步可问”的问题建议。
 
 规则：
 1. 问题必须与当前页面功能直接相关
 2. 问题应该简短清晰（不超过 20 个字）
 3. 问题应该覆盖页面的主要操作场景
 4. 优先生成操作指导类问题（如"怎么做XXX"）
-5. 若有回复内容，问题要跟随回复给出的信息延展（下一步/细节/入口/操作）
-6. 返回 JSON 数组格式
+5. 返回 JSON 数组格式
 
 返回格式：
 [
@@ -305,7 +521,6 @@ action 说明：
 路径：${currentPath}
 页面说明：${context.description}
 可用操作：${context.actions.join("、")}
-${normalizedReply ? `\n助手回复：\n${normalizedReply}\n` : ""}
 
 请生成 3-5 个与这个页面相关的建议问题。`;
 
