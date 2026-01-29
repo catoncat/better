@@ -72,7 +72,7 @@
 
 ### 5.1 业务逻辑通顺（P0/P1）
 
-- [ ] **P0**：`/mes/loading/slot-config` 的权限门禁与角色职责不匹配：页面强依赖 `loading:view`，且 UI 端产线列表 gate 为 `run:read && run:create`，导致“有 `loading:config` 的配置角色”也可能无法进入/无法选产线，从而无法配置站位/映射，最终阻断上料主线。
+- [x] **P0**：`/mes/loading/slot-config` 的权限门禁与角色职责不匹配：页面强依赖 `loading:view`，且 UI 端产线列表 gate 为 `run:read && run:create`，导致“有 `loading:config` 的配置角色”也可能无法进入/无法选产线，从而无法配置站位/映射，最终阻断上料主线。
   - 证据：`domain_docs/mes/permission_audit.md`（engineer 具备 `loading:config`、/lines requirePermission 为 OR）、`apps/web/src/routes/_authenticated/mes/loading/slot-config.tsx`、`apps/server/src/plugins/permission.ts`、`apps/server/src/modules/mes/line/routes.ts`
 - [ ] **P1**：`SLOT_ALREADY_LOADED` 的语义是“必须换料”，但 UI 仅提示“上料验证失败”，缺少可执行引导（切换换料模式 + reason）。
   - 证据：`apps/server/src/modules/mes/loading/service.ts`（409 `SLOT_ALREADY_LOADED`）、`apps/web/src/hooks/use-loading.ts`（onError 未对该码给动作提示）、`apps/web/src/routes/_authenticated/mes/loading/-components/scan-panel.tsx`
