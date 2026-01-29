@@ -10,7 +10,7 @@
 
 | 轮次 | Scope | Status | Owner | Updated | Commits (review → fix/close) | Notes | Links |
 |------|-------|--------|-------|---------|-----------------------------|-------|-------|
-| 轮次1 | Core Execution | completed | 我 | 2026-01-29 | `6e4d664` → `-` | P0: OQC_REQUIRED 误判 | `domain_docs/mes/ux_review/round1_core_execution.md` |
+| 轮次1 | Core Execution | completed | 我 | 2026-01-29 | `6e4d664` → `b1c64fc` | P0: OQC_REQUIRED ✅ | `domain_docs/mes/ux_review/round1_core_execution.md` |
 | 轮次2 | Work Orders & Runs IA | completed | 我 | 2026-01-29 | `47a784e` → `-` | P0: /mes 入口即无权限 | `domain_docs/mes/ux_review/round2_work_orders_runs_ia.md` |
 | 轮次3 | Readiness UX | completed | 我 | 2026-01-29 | `12b1596` → `-` | - | `domain_docs/mes/ux_review/round3_readiness_ux.md` |
 | 轮次4 | Loading UX | completed | 我 | 2026-01-29 | `58c773d` → `-` | P0: slot-config 权限阻断 | `domain_docs/mes/ux_review/round4_loading_ux.md` |
@@ -26,7 +26,7 @@
 
 | Item | Severity | Status | Updated | Notes | Links |
 |------|----------|--------|---------|-------|-------|
-| OQC_REQUIRED 误判为失败 | P0 | open | 2026-01-29 | 主线卡死/误判 | `round1_core_execution.md` |
+| OQC_REQUIRED 误判为失败 | P0 | closed | 2026-01-29 | `b1c64fc` 修复 | `round1_core_execution.md` |
 | `/mes` 入口即无权限 | P0 | open | 2026-01-29 | 一线角色阻断 | `round2_work_orders_runs_ia.md` |
 | slot-config 权限阻断 | P0 | open | 2026-01-29 | 上料主线无法闭环 | `round4_loading_ux.md` |
 | AUTO/TEST 绕过授权 | P0 | open | 2026-01-29 | PREP 阶段可能污染追溯 | `round6_routing_config.md` |
