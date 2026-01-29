@@ -1637,6 +1637,43 @@ export const createIngestEvent = async (
 				};
 			}
 
+			// P0: RunStatus gate for AUTO/TEST
+			if (step.requiresAuthorization) {
+				if (run.status !== RunStatus.AUTHORIZED && run.status !== RunStatus.IN_PROGRESS) {
+					return {
+						success: false,
+						code: "RUN_NOT_AUTHORIZED",
+						message: "Run is not authorized or in progress",
+						status: 400,
+					};
+				}
+			} else {
+				// Even if not strictly required by step config, PREP runs should generally block execution
+				// to avoid data pollution before readiness is confirmed.
+				if (run.status === RunStatus.PREP) {
+					return {
+						success: false,
+						code: "RUN_IN_PREP",
+						message: "Run is still in PREP status",
+						status: 400,
+					};
+				}
+			}
+
+			// Completed or Scrapped runs should not accept new ingest events
+			if (
+				run.status === RunStatus.COMPLETED ||
+				run.status === RunStatus.CLOSED_REWORK ||
+				run.status === RunStatus.SCRAPPED
+			) {
+				return {
+					success: false,
+					code: "RUN_CLOSED",
+					message: `Run is already ${run.status}`,
+					status: 400,
+				};
+			}
+
 			const dataItems = buildIngestDataItems(normalized, activeSpecs);
 			const result = normalized.result === "FAIL" ? TrackResult.FAIL : TrackResult.PASS;
 			const trackSource =
