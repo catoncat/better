@@ -48,8 +48,10 @@ function SlotConfigPage() {
 	const search = Route.useSearch();
 	const navigate = Route.useNavigate();
 	const { hasPermission } = useAbility();
-	const canViewLoading = hasPermission(Permission.LOADING_VIEW);
-	const canViewLines = hasPermission(Permission.RUN_READ) && hasPermission(Permission.RUN_CREATE);
+	const canViewLoading =
+		hasPermission(Permission.LOADING_VIEW) || hasPermission(Permission.LOADING_CONFIG);
+	const canViewLines =
+		hasPermission(Permission.RUN_READ) || hasPermission(Permission.LOADING_CONFIG);
 	const canReadRoute = hasPermission(Permission.ROUTE_READ);
 	const { data: lines } = useLines({ enabled: canViewLines });
 

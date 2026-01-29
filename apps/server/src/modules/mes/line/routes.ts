@@ -72,6 +72,7 @@ export const lineModule = new Elysia({
 				Permission.RUN_READ,
 				Permission.LINE_CONFIG,
 				Permission.READINESS_CONFIG,
+				Permission.LOADING_CONFIG,
 			],
 			query: lineListQuerySchema,
 			response: lineListResponseSchema,
