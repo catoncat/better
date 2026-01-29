@@ -5,14 +5,13 @@ import {
 	ArrowLeft,
 	CheckCircle2,
 	ClipboardCheck,
-	ExternalLink,
+	ClipboardCopy,
 	Loader2,
 	Package,
 	Pen,
 	Play,
 	Plus,
 	RefreshCw,
-	Settings,
 	Shield,
 	XCircle,
 } from "lucide-react";
@@ -44,10 +43,12 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAbility } from "@/hooks/use-ability";
 import { useCreateFai, useFaiByRun, useFaiGate, useSignFai, useStartFai } from "@/hooks/use-fai";
 import { useMrbDecision, useOqcByRun } from "@/hooks/use-oqc";
 import {
+	READINESS_ITEM_TYPE_LABELS,
 	type ReadinessCheckItem,
 	type ReadinessItemType,
 	usePerformPrecheck,
@@ -268,9 +269,10 @@ function RunDetailPage() {
 
 	type ReadinessAction = {
 		label: string;
-		to: string;
+		to?: string;
 		params?: Record<string, string>;
 		search?: Record<string, unknown>;
+		onClick?: () => void;
 	};
 
 	type ReadinessItemAction = {
@@ -299,6 +301,13 @@ function RunDetailPage() {
 		let primaryAction: ReadinessAction | undefined;
 		let secondaryAction: ReadinessAction | undefined;
 		let disabledReason: string | undefined;
+
+		if (item.status === "FAILED") {
+			secondaryAction = {
+				label: "交接信息",
+				onClick: () => copyHandoverInfo(item),
+			};
+		}
 
 		const setDisabled = (reason?: string) => {
 			if (!disabledReason && reason) disabledReason = reason;
@@ -491,6 +500,21 @@ function RunDetailPage() {
 	const handleRunCheck = async () => {
 		await performPrecheck.mutateAsync(runNo);
 		refetchReadiness();
+	};
+
+	const copyHandoverInfo = (item: ReadinessCheckItem) => {
+		const info = [
+			`批次: ${runNo}`,
+			`产线: ${data?.line?.name || data?.line?.id || "-"}`,
+			`失败项: ${READINESS_ITEM_TYPE_LABELS[item.itemType as ReadinessItemType]}`,
+			`失败原因: ${item.failReason || "未满足准备条件"}`,
+			`时间: ${new Date().toLocaleString()}`,
+		].join("\n");
+
+		navigator.clipboard.writeText(info);
+		toast.success("交接信息已复制", {
+			description: "可直接粘贴发送给相关负责人。",
+		});
 	};
 
 	const navigateToExecution = () => {
@@ -792,9 +816,9 @@ function RunDetailPage() {
 					label: action.label,
 					onClick: () =>
 						navigate({
-							to: action.to,
-							params: action.params,
-							search: action.search,
+							to: action.to as any,
+							params: action.params as any,
+							search: action.search as any,
 						}),
 					disabled: Boolean(firstFailedAction?.disabledReason),
 					disabledReason: firstFailedAction?.disabledReason,
@@ -1168,9 +1192,9 @@ function RunDetailPage() {
 											return (
 												<Button variant="ghost" size="sm" asChild>
 													<Link
-														to={action.primaryAction.to}
-														params={action.primaryAction.params}
-														search={action.primaryAction.search}
+														to={action.primaryAction.to as any}
+														params={action.primaryAction.params as any}
+														search={action.primaryAction.search as any}
 													>
 														去处理
 													</Link>
@@ -1293,18 +1317,28 @@ function RunDetailPage() {
 								</CardTitle>
 								{canViewReadiness && canShowReadinessActions && (
 									<div className="flex gap-2">
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => handleRunCheck()}
-											disabled={performPrecheck.isPending}
-										>
-											{performPrecheck.isPending ? (
-												<Loader2 className="h-4 w-4 animate-spin" />
-											) : (
-												<RefreshCw className="h-4 w-4" />
-											)}
-										</Button>
+										<Can permissions={Permission.READINESS_CHECK}>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<Button
+														variant="outline"
+														size="sm"
+														onClick={() => handleRunCheck()}
+														disabled={performPrecheck.isPending}
+													>
+														{performPrecheck.isPending ? (
+															<Loader2 className="h-4 w-4 animate-spin" />
+														) : (
+															<RefreshCw className="h-4 w-4" />
+														)}
+														执行准备预检
+													</Button>
+												</TooltipTrigger>
+												<TooltipContent>
+													<p>手动刷新各准备项状态。授权生产时会自动触发正式检查门禁。</p>
+												</TooltipContent>
+											</Tooltip>
+										</Can>
 										{readinessData?.status === "PASSED" &&
 											(canViewLoading ? (
 												<Button variant="secondary" size="sm" asChild>
@@ -1386,48 +1420,71 @@ function RunDetailPage() {
 															<TableCell>
 																{item.status === "FAILED" && canShowReadinessActions && (
 																	<div className="flex items-center gap-1">
-																		{canWaiveReadiness && (
-																			<Button
-																				variant="ghost"
-																				size="sm"
-																				onClick={() => handleWaive(item)}
-																			>
-																				<Shield className="mr-1 h-3 w-3" />
-																				豁免
-																			</Button>
-																		)}
 																		{(() => {
 																			const action = getReadinessItemAction(item);
-																			const primaryAction = action.primaryAction;
-																			if (!primaryAction) return null;
-																			const ActionIcon =
-																				primaryAction.to === "/mes/loading/slot-config"
-																					? Settings
-																					: ExternalLink;
-																			if (action.disabledReason) {
-																				return (
-																					<Button
-																						variant="ghost"
-																						size="sm"
-																						disabled
-																						title={action.disabledReason}
-																					>
-																						<ActionIcon className="mr-1 h-3 w-3" />
-																						{primaryAction.label}
-																					</Button>
-																				);
-																			}
+																			const primary = action.primaryAction;
+																			const secondary = action.secondaryAction;
+
 																			return (
-																				<Button variant="ghost" size="sm" asChild>
-																					<Link
-																						to={primaryAction.to}
-																						params={primaryAction.params}
-																						search={primaryAction.search}
-																					>
-																						<ActionIcon className="mr-1 h-3 w-3" />
-																						{primaryAction.label}
-																					</Link>
-																				</Button>
+																				<>
+																					{secondary && (
+																						<Button
+																							variant="ghost"
+																							size="sm"
+																							onClick={secondary.onClick}
+																						>
+																							<ClipboardCopy className="mr-1 h-3 w-3" />
+																							{secondary.label}
+																						</Button>
+																					)}
+																					{canWaiveReadiness && (
+																						<Button
+																							variant="ghost"
+																							size="sm"
+																							onClick={() => handleWaive(item)}
+																						>
+																							<Shield className="mr-1 h-3 w-3" />
+																							豁免
+																						</Button>
+																					)}
+																					{primary &&
+																						(action.disabledReason ? (
+																							<Button
+																								variant="ghost"
+																								size="sm"
+																								disabled
+																								title={action.disabledReason}
+																							>
+																								{primary.label}
+																							</Button>
+																						) : primary.onClick ? (
+																							<Button
+																								variant="ghost"
+																								size="sm"
+																								onClick={primary.onClick}
+																							>
+																								{primary.label}
+																							</Button>
+																						) : (
+																							<Button variant="ghost" size="sm" asChild>
+																								{primary.to ? (
+																									<Link
+																										to={primary.to}
+																										{...(primary.params
+																											? { params: primary.params }
+																											: {})}
+																										{...(primary.search
+																											? { search: primary.search }
+																											: {})}
+																									>
+																										{primary.label}
+																									</Link>
+																								) : (
+																									<span>{primary.label}</span>
+																								)}
+																							</Button>
+																						))}
+																				</>
 																			);
 																		})()}
 																	</div>

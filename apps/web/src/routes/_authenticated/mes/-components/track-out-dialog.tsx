@@ -26,6 +26,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { type DataSpecItem, useTrackOut, useUnitDataSpecs } from "@/hooks/use-station-execution";
+import type { ApiError } from "@/lib/api-error";
 
 interface TrackOutDialogProps {
 	open: boolean;
@@ -52,11 +53,15 @@ export function TrackOutDialog({
 	onSuccess,
 	canTrackOut = true,
 }: TrackOutDialogProps) {
-	const { data: specsData, isLoading: isLoadingSpecs } = useUnitDataSpecs(
-		open ? stationCode : "",
-		open ? sn : "",
-		{ enabled: open && canTrackOut },
-	);
+	const {
+		data: specsData,
+		isLoading: isLoadingSpecs,
+		isError: isSpecsError,
+		error: specsError,
+		refetch: refetchSpecs,
+	} = useUnitDataSpecs(open ? stationCode : "", open ? sn : "", {
+		enabled: open && canTrackOut,
+	});
 	const { mutateAsync: trackOut, isPending: isSubmitting } = useTrackOut();
 	const resolvedInitialResult = initialResult ?? "PASS";
 
@@ -177,7 +182,7 @@ export function TrackOutDialog({
 		return true;
 	};
 
-	const canSubmit = validateRequired() && !isSubmitting;
+	const canSubmit = validateRequired() && !isSubmitting && !isLoadingSpecs && !isSpecsError;
 
 	// Helper to render spec hint
 	const renderHint = (spec: DataSpecItem) => {
@@ -299,6 +304,21 @@ export function TrackOutDialog({
 					<div className="flex items-center justify-center py-8">
 						<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
 						<span className="ml-2 text-muted-foreground">加载采集项...</span>
+					</div>
+				) : isSpecsError ? (
+					<div className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">
+						<p className="font-medium">无法加载采集配置</p>
+						<p className="mt-1 opacity-90">
+							{(specsError as ApiError)?.message || "请检查该 SN 是否已进站或当前步骤是否匹配。"}
+						</p>
+						<Button
+							variant="outline"
+							size="sm"
+							className="mt-3 border-destructive/20 hover:bg-destructive/10"
+							onClick={() => refetchSpecs()}
+						>
+							重试加载
+						</Button>
 					</div>
 				) : (
 					<form

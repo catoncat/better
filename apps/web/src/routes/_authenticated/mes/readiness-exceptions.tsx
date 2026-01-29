@@ -36,7 +36,8 @@ export const Route = createFileRoute("/_authenticated/mes/readiness-exceptions")
 function ReadinessExceptionsPage() {
 	const { hasPermission } = useAbility();
 	const canViewReadiness = hasPermission(Permission.READINESS_VIEW);
-	const canViewLines = hasPermission(Permission.RUN_READ) && hasPermission(Permission.RUN_CREATE);
+	const canViewLines =
+		hasPermission(Permission.RUN_READ) || hasPermission(Permission.RUN_CREATE) || canViewReadiness;
 	const canViewRuns = hasPermission(Permission.RUN_READ);
 	const [query, setQuery] = useState<ExceptionsQuery>({
 		status: "ALL",

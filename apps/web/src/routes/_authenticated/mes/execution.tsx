@@ -3,6 +3,7 @@ import { useForm, useStore } from "@tanstack/react-form";
 import { createFileRoute } from "@tanstack/react-router";
 import { ChevronRight, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import * as z from "zod";
 import { NoAccessCard } from "@/components/ability/no-access-card";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +38,7 @@ import {
 	useTrackIn,
 } from "@/hooks/use-station-execution";
 import { useUserProfile } from "@/hooks/use-users";
+import { ApiError } from "@/lib/api-error";
 import { formatDateTime } from "@/lib/utils";
 import { TrackOutDialog } from "./-components/track-out-dialog";
 
@@ -101,6 +103,12 @@ function ExecutionPage() {
 	);
 	const { mutateAsync: trackIn, isPending: isInPending } = useTrackIn();
 	const { mutateAsync: resolveUnitBySn, isPending: isResolvingSn } = useResolveUnitBySn();
+	const [resolveError, setResolveError] = useState<{
+		sn: string;
+		code: string;
+		message: string;
+	} | null>(null);
+	const [showManualResolve, setShowManualResolve] = useState(false);
 	const resolveTimerRef = useRef<number | null>(null);
 	const lastResolvedSnRef = useRef<string>("");
 
@@ -114,11 +122,32 @@ function ExecutionPage() {
 		},
 		onSubmit: async ({ value: values }) => {
 			if (!selectedStation || !canTrackIn) return;
-			await trackIn({ stationCode: selectedStation, ...values });
-			inForm.reset({ sn: "", woNo: values.woNo, runNo: values.runNo }); // Keep context
-			refetchQueue();
-			if (selectedRunNo) {
-				refetchQueuedUnits();
+			try {
+				await trackIn({ stationCode: selectedStation, ...values });
+				inForm.reset({ sn: "", woNo: values.woNo, runNo: values.runNo }); // Keep context
+				refetchQueue();
+				if (selectedRunNo) {
+					refetchQueuedUnits();
+				}
+			} catch (error: unknown) {
+				const apiError = error as ApiError;
+				if (apiError?.code === "UNIT_OUT_FAILED") {
+					toast.error("进站失败：待处置产品", {
+						description:
+							"该产品上次出站判定为不合格，需先在「质量处置」模块完成处置（返工/放行）后才能继续进站。",
+						action: {
+							label: "前往处置",
+							onClick: () => {
+								window.location.href = "/mes/defects";
+							},
+						},
+						duration: 10000,
+					});
+				} else {
+					toast.error("进站失败", {
+						description: apiError?.message ?? "请检查序列号与工序匹配情况",
+					});
+				}
 			}
 		},
 	});
@@ -411,37 +440,50 @@ function ExecutionPage() {
 		return null;
 	};
 
+	const performResolve = async (trimmed: string, target: "in" | "out") => {
+		setResolveError(null);
+		setShowManualResolve(false);
+		try {
+			const resolved = await resolveUnitBySn({ sn: trimmed });
+			lastResolvedSnRef.current = trimmed;
+
+			if (target === "in") {
+				const currentWoNo = inForm.getFieldValue("woNo");
+				const currentRunNo = inForm.getFieldValue("runNo");
+				if (!currentWoNo && resolved.woNo) {
+					inForm.setFieldValue("woNo", resolved.woNo);
+				}
+				if (!currentRunNo && resolved.runNo) {
+					inForm.setFieldValue("runNo", resolved.runNo);
+				}
+			} else {
+				const currentRunNo = outForm.getFieldValue("runNo");
+				if (!currentRunNo && resolved.runNo) {
+					outForm.setFieldValue("runNo", resolved.runNo);
+				}
+			}
+		} catch (error: unknown) {
+			const apiError = error as ApiError;
+			setResolveError({
+				sn: trimmed,
+				code: apiError?.code ?? "RESOLVE_FAILED",
+				message: apiError?.message ?? "SN 自动补全解析失败，请检查序列号是否正确或手动输入。",
+			});
+			setShowManualResolve(true);
+		}
+	};
+
 	const scheduleResolveFromSn = (sn: string, target: "in" | "out") => {
 		if (!canResolveUnit) return;
 		const trimmed = sn.trim();
-		if (!trimmed) return;
+		if (!trimmed) {
+			setResolveError(null);
+			return;
+		}
 		if (trimmed === lastResolvedSnRef.current) return;
 		if (resolveTimerRef.current) window.clearTimeout(resolveTimerRef.current);
 
-		resolveTimerRef.current = window.setTimeout(async () => {
-			try {
-				const resolved = await resolveUnitBySn({ sn: trimmed });
-				lastResolvedSnRef.current = trimmed;
-
-				if (target === "in") {
-					const currentWoNo = inForm.getFieldValue("woNo");
-					const currentRunNo = inForm.getFieldValue("runNo");
-					if (!currentWoNo && resolved.woNo) {
-						inForm.setFieldValue("woNo", resolved.woNo);
-					}
-					if (!currentRunNo && resolved.runNo) {
-						inForm.setFieldValue("runNo", resolved.runNo);
-					}
-				} else {
-					const currentRunNo = outForm.getFieldValue("runNo");
-					if (!currentRunNo && resolved.runNo) {
-						outForm.setFieldValue("runNo", resolved.runNo);
-					}
-				}
-			} catch {
-				// Ignore resolve errors; users can still select WO/Run manually.
-			}
-		}, 250);
+		resolveTimerRef.current = window.setTimeout(() => performResolve(trimmed, target), 250);
 	};
 
 	if (!canViewExec) {
@@ -786,14 +828,14 @@ function ExecutionPage() {
 
 					<Tabs defaultValue="in" className="w-full">
 						<TabsList className="grid w-full grid-cols-2">
-							<TabsTrigger value="in">进站 (Track In)</TabsTrigger>
-							<TabsTrigger value="out">出站 (Track Out)</TabsTrigger>
+							<TabsTrigger value="in">扫码进站</TabsTrigger>
+							<TabsTrigger value="out">扫码出站</TabsTrigger>
 						</TabsList>
 						<TabsContent value="in">
 							<Card>
 								<CardHeader>
-									<CardTitle>进站录入</CardTitle>
-									<CardDescription>扫描产品序列号以开始加工</CardDescription>
+									<CardTitle>快速进站</CardTitle>
+									<CardDescription>扫描产品 SN 即可自动匹配工单与批次</CardDescription>
 								</CardHeader>
 								<CardContent>
 									<form
@@ -806,33 +848,62 @@ function ExecutionPage() {
 									>
 										<Field form={inForm} name="sn" label="产品序列号 (SN)">
 											{(field) => (
-												<Input
-													placeholder="请扫描 SN..."
-													autoFocus
-													value={field.state.value}
-													onBlur={field.handleBlur}
-													onChange={(e) => {
-														const nextValue = e.target.value;
-														const parsed = parseScanValue(nextValue);
-														field.handleChange(nextValue);
-														if (!parsed) {
-															scheduleResolveFromSn(nextValue, "in");
-															return;
-														}
-														if (parsed.sn) {
-															inForm.setFieldValue("sn", parsed.sn);
-														}
-														if (parsed.woNo) {
-															inForm.setFieldValue("woNo", parsed.woNo);
-														}
-														if (parsed.runNo) {
-															inForm.setFieldValue("runNo", parsed.runNo);
-														}
-														if (parsed.sn && (!parsed.woNo || !parsed.runNo)) {
-															scheduleResolveFromSn(parsed.sn, "in");
-														}
-													}}
-												/>
+												<div className="space-y-2">
+													<Input
+														placeholder="请扫描 SN..."
+														autoFocus
+														className="text-lg font-mono"
+														value={field.state.value}
+														onBlur={field.handleBlur}
+														onChange={(e) => {
+															const nextValue = e.target.value;
+															const parsed = parseScanValue(nextValue);
+															field.handleChange(nextValue);
+															if (!parsed) {
+																scheduleResolveFromSn(nextValue, "in");
+																return;
+															}
+															if (parsed.sn) {
+																inForm.setFieldValue("sn", parsed.sn);
+															}
+															if (parsed.woNo) {
+																inForm.setFieldValue("woNo", parsed.woNo);
+															}
+															if (parsed.runNo) {
+																inForm.setFieldValue("runNo", parsed.runNo);
+															}
+															if (parsed.sn && (!parsed.woNo || !parsed.runNo)) {
+																scheduleResolveFromSn(parsed.sn, "in");
+															}
+														}}
+													/>
+													{isResolvingSn && (
+														<div className="text-xs text-muted-foreground flex items-center gap-2">
+															<RefreshCw className="h-3 w-3 animate-spin" />
+															正在解析 SN 信息...
+														</div>
+													)}
+													{resolveError && resolveError.sn === inSn && (
+														<div className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
+															<p className="font-medium">
+																{resolveError.code === "UNIT_NOT_FOUND"
+																	? "未找到该 Unit"
+																	: "自动补全解析失败"}
+															</p>
+															<p className="mt-1 opacity-90">{resolveError.message}</p>
+															{showManualResolve && (
+																<Button
+																	variant="link"
+																	size="sm"
+																	className="h-auto p-0 text-xs text-destructive underline"
+																	onClick={() => performResolve(inSn, "in")}
+																>
+																	重试解析
+																</Button>
+															)}
+														</div>
+													)}
+												</div>
 											)}
 										</Field>
 										{inSn.trim() && (
@@ -841,49 +912,59 @@ function ExecutionPage() {
 												{inUnitHint ? formatStepDetail(inUnitHint.currentStep) : "未在待进站列表中"}
 											</div>
 										)}
-										<div className="grid grid-cols-2 gap-4">
-											<Field form={inForm} name="woNo" label="工单号">
-												{(field) =>
-													canReadRun ? (
-														<Combobox
-															options={workOrderOptions}
-															value={field.state.value}
-															onValueChange={handleWorkOrderValueChange}
-															placeholder="选择工单..."
-															emptyText={isRunsFetching ? "加载中..." : "未找到工单"}
-														/>
-													) : (
-														<Input
-															placeholder="请输入工单号"
-															value={field.state.value}
-															onBlur={field.handleBlur}
-															onChange={(e) => field.handleChange(e.target.value)}
-														/>
-													)
-												}
-											</Field>
-											<Field form={inForm} name="runNo" label="批次号 (Run)">
-												{(field) =>
-													canReadRun ? (
-														<Combobox
-															options={runOptions}
-															value={field.state.value}
-															onValueChange={handleRunValueChange}
-															placeholder="选择批次..."
-															emptyText={isRunsFetching ? "加载中..." : "未找到批次"}
-														/>
-													) : (
-														<Input
-															placeholder="请输入批次号"
-															value={field.state.value}
-															onBlur={field.handleBlur}
-															onChange={(e) => field.handleChange(e.target.value)}
-														/>
-													)
-												}
-											</Field>
+
+										<div className="pt-2 border-t border-border mt-4">
+											<p className="text-[10px] uppercase font-bold text-muted-foreground mb-3 tracking-wider">
+												手动补充（自动解析失败时填写）
+											</p>
+											<div className="grid grid-cols-2 gap-4">
+												<Field form={inForm} name="woNo" label="工单号">
+													{(field) =>
+														canReadRun ? (
+															<Combobox
+																options={workOrderOptions}
+																value={field.state.value}
+																onValueChange={handleWorkOrderValueChange}
+																placeholder="选择工单..."
+																emptyText={isRunsFetching ? "加载中..." : "未找到工单"}
+															/>
+														) : (
+															<Input
+																placeholder="请输入工单号"
+																value={field.state.value}
+																onBlur={field.handleBlur}
+																onChange={(e) => field.handleChange(e.target.value)}
+															/>
+														)
+													}
+												</Field>
+												<Field form={inForm} name="runNo" label="批次号 (Run)">
+													{(field) =>
+														canReadRun ? (
+															<Combobox
+																options={runOptions}
+																value={field.state.value}
+																onValueChange={handleRunValueChange}
+																placeholder="选择批次..."
+																emptyText={isRunsFetching ? "加载中..." : "未找到批次"}
+															/>
+														) : (
+															<Input
+																placeholder="请输入批次号"
+																value={field.state.value}
+																onBlur={field.handleBlur}
+																onChange={(e) => field.handleChange(e.target.value)}
+															/>
+														)
+													}
+												</Field>
+											</div>
 										</div>
-										<Button type="submit" className="w-full" disabled={isInPending || !canTrackIn}>
+										<Button
+											type="submit"
+											className="w-full h-12 text-base"
+											disabled={isInPending || !canTrackIn}
+										>
 											{!canTrackIn ? "无进站权限" : isInPending ? "处理中..." : "确认进站"}
 										</Button>
 									</form>
@@ -893,8 +974,8 @@ function ExecutionPage() {
 						<TabsContent value="out">
 							<Card>
 								<CardHeader>
-									<CardTitle>出站录入</CardTitle>
-									<CardDescription>从左侧队列点击"出站"按钮，或手动输入</CardDescription>
+									<CardTitle>快速出站</CardTitle>
+									<CardDescription>从左侧队列点击"出站"按钮，或扫描 SN 手动出站</CardDescription>
 								</CardHeader>
 								<CardContent>
 									<form
@@ -907,24 +988,49 @@ function ExecutionPage() {
 									>
 										<Field form={outForm} name="sn" label="产品序列号 (SN)">
 											{(field) => (
-												<Input
-													placeholder="请扫描 SN..."
-													value={field.state.value}
-													onBlur={field.handleBlur}
-													onChange={(e) => {
-														const nextValue = e.target.value;
-														field.handleChange(nextValue);
-														const parsed = parseScanValue(nextValue);
-														if (parsed?.sn) {
-															outForm.setFieldValue("sn", parsed.sn);
-														}
-														if (parsed?.runNo) {
-															outForm.setFieldValue("runNo", parsed.runNo);
-														} else {
-															scheduleResolveFromSn(parsed?.sn ?? nextValue, "out");
-														}
-													}}
-												/>
+												<div className="space-y-2">
+													<Input
+														placeholder="请扫描 SN..."
+														className="text-lg font-mono"
+														value={field.state.value}
+														onBlur={field.handleBlur}
+														onChange={(e) => {
+															const nextValue = e.target.value;
+															field.handleChange(nextValue);
+															const parsed = parseScanValue(nextValue);
+															if (parsed?.sn) {
+																outForm.setFieldValue("sn", parsed.sn);
+															}
+															if (parsed?.runNo) {
+																outForm.setFieldValue("runNo", parsed.runNo);
+															} else {
+																scheduleResolveFromSn(parsed?.sn ?? nextValue, "out");
+															}
+														}}
+													/>
+													{isResolvingSn && (
+														<div className="text-xs text-muted-foreground flex items-center gap-2">
+															<RefreshCw className="h-3 w-3 animate-spin" />
+															正在匹配批次信息...
+														</div>
+													)}
+													{resolveError && resolveError.sn === outSn && (
+														<div className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
+															<p className="font-medium">解析失败</p>
+															<p className="mt-1 opacity-90">{resolveError.message}</p>
+															{showManualResolve && (
+																<Button
+																	variant="link"
+																	size="sm"
+																	className="h-auto p-0 text-xs text-destructive underline"
+																	onClick={() => performResolve(outSn, "out")}
+																>
+																	重试解析
+																</Button>
+															)}
+														</div>
+													)}
+												</div>
 											)}
 										</Field>
 										{outSn.trim() && (
@@ -933,60 +1039,64 @@ function ExecutionPage() {
 												{outUnitHint ? formatStepDetail(outUnitHint.currentStep) : "未在当前队列中"}
 											</div>
 										)}
-										<Field form={outForm} name="runNo" label="批次号 (Run)">
-											{(field) =>
-												canReadRun ? (
-													<Combobox
-														options={runOptions}
-														value={field.state.value}
-														onValueChange={handleRunValueChange}
-														placeholder="选择批次..."
-														emptyText={isRunsFetching ? "加载中..." : "未找到批次"}
-													/>
-												) : (
-													<Input
-														placeholder="请输入批次号"
-														value={field.state.value}
-														onBlur={field.handleBlur}
-														onChange={(e) => field.handleChange(e.target.value)}
-													/>
-												)
-											}
-										</Field>
-										<Field form={outForm} name="result" label="结果">
-											{(field) => (
-												<Select
-													value={field.state.value}
-													onValueChange={(value) => {
-														if (value === "PASS" || value === "FAIL") {
-															field.handleChange(value);
-														}
-													}}
-												>
-													<SelectTrigger>
-														<SelectValue placeholder="选择结果" />
-													</SelectTrigger>
-													<SelectContent>
-														<SelectItem value="PASS">合格 (PASS)</SelectItem>
-														<SelectItem value="FAIL">不合格 (FAIL)</SelectItem>
-													</SelectContent>
-												</Select>
-											)}
-										</Field>
+										<div className="pt-2 border-t border-border mt-4">
+											<p className="text-[10px] uppercase font-bold text-muted-foreground mb-3 tracking-wider">
+												手动补充（自动解析失败时填写）
+											</p>
+											<div className="grid grid-cols-[1fr_120px] gap-4 items-end">
+												<Field form={outForm} name="runNo" label="批次号 (Run)">
+													{(field) =>
+														canReadRun ? (
+															<Combobox
+																options={runOptions}
+																value={field.state.value}
+																onValueChange={handleRunValueChange}
+																placeholder="选择批次..."
+																emptyText={isRunsFetching ? "加载中..." : "未找到批次"}
+															/>
+														) : (
+															<Input
+																placeholder="请输入批次号"
+																value={field.state.value}
+																onBlur={field.handleBlur}
+																onChange={(e) => field.handleChange(e.target.value)}
+															/>
+														)
+													}
+												</Field>
+												<Field form={outForm} name="result" label="结果">
+													{(field) => (
+														<Select
+															value={field.state.value}
+															onValueChange={(value) => {
+																if (value === "PASS" || value === "FAIL") {
+																	field.handleChange(value);
+																}
+															}}
+														>
+															<SelectTrigger>
+																<SelectValue placeholder="结果" />
+															</SelectTrigger>
+															<SelectContent>
+																<SelectItem value="PASS">合格</SelectItem>
+																<SelectItem value="FAIL">不合格</SelectItem>
+															</SelectContent>
+														</Select>
+													)}
+												</Field>
+											</div>
+										</div>
 										<Button
 											type="submit"
-											className="w-full"
+											className="w-full h-12 text-base"
 											disabled={isOutPending || !canTrackOut}
 										>
 											{!canTrackOut ? "无出站权限" : isOutPending ? "处理中..." : "确认出站"}
 										</Button>
-										{isResolvingSn && (
-											<div className="text-xs text-muted-foreground">正在根据 SN 自动匹配批次…</div>
-										)}
 									</form>
 								</CardContent>
 							</Card>
-						</TabsContent>
+						</TabsContent>{" "}
 					</Tabs>
 				</div>
 			)}

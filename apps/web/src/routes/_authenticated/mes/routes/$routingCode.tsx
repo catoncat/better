@@ -129,7 +129,7 @@ function RouteDetailPage() {
 	const { hasPermission } = useAbility();
 	const canViewRoutes = hasPermission(Permission.ROUTE_READ);
 	const canViewDataSpecs =
-		hasPermission(Permission.DATA_SPEC_READ) && hasPermission(Permission.DATA_SPEC_CONFIG);
+		hasPermission(Permission.DATA_SPEC_READ) || hasPermission(Permission.DATA_SPEC_CONFIG);
 
 	const {
 		data: routeDetail,
@@ -240,6 +240,8 @@ function RouteDetailPage() {
 		const latestRouteConfig = pickLatest(routeConfigs);
 
 		const missingConstraintStepNos: number[] = [];
+		const missingIngestMappingStepNos: number[] = [];
+
 		for (const step of steps) {
 			const stepConfigs = executionConfigs.filter(
 				(config) => config.routingStep?.stepNo === step.stepNo,
@@ -265,6 +267,18 @@ function RouteDetailPage() {
 			if (!stationGroupMarker && allowedStationIds.length === 0) {
 				missingConstraintStepNos.push(step.stepNo);
 			}
+
+			const stationType =
+				latestStepConfig?.stationType ?? latestRouteConfig?.stationType ?? step.stationType;
+			const ingestMapping =
+				latestStepConfig?.ingestMapping ?? latestRouteConfig?.ingestMapping ?? null;
+
+			if (
+				(stationType === "AUTO" || stationType === "BATCH" || stationType === "TEST") &&
+				!ingestMapping
+			) {
+				missingIngestMappingStepNos.push(step.stepNo);
+			}
 		}
 
 		const stepLabel =
@@ -272,10 +286,17 @@ function RouteDetailPage() {
 				? missingConstraintStepNos.map((no) => `Step ${no}`).join(", ")
 				: null;
 
+		const mappingLabel =
+			missingIngestMappingStepNos.length > 0
+				? missingIngestMappingStepNos.map((no) => `Step ${no}`).join(", ")
+				: null;
+
 		return {
-			isReady: missingConstraintStepNos.length === 0,
+			isReady: missingConstraintStepNos.length === 0 && missingIngestMappingStepNos.length === 0,
 			missingConstraintStepNos,
+			missingIngestMappingStepNos,
 			stepLabel,
+			mappingLabel,
 		};
 	}, [executionConfigs, steps]);
 
@@ -371,17 +392,25 @@ function RouteDetailPage() {
 							>
 								{executionSemanticsStatus.isReady
 									? "执行语义 READY"
-									: `执行语义缺失 ${executionSemanticsStatus.missingConstraintStepNos.length}`}
+									: `执行语义缺失 (${executionSemanticsStatus.missingConstraintStepNos.length + executionSemanticsStatus.missingIngestMappingStepNos.length})`}
 							</Badge>
 						</TooltipTrigger>
 						<TooltipContent sideOffset={6}>
 							{executionSemanticsStatus.isReady ? (
 								<span>可直接编译生成 READY 版本。</span>
 							) : (
-								<span>
-									{executionSemanticsStatus.stepLabel ?? "部分步骤"} 缺少站点组/允许站点，编译会得到
-									INVALID。
-								</span>
+								<div className="space-y-1">
+									{executionSemanticsStatus.missingConstraintStepNos.length > 0 && (
+										<p>{executionSemanticsStatus.stepLabel} 缺少站点约束。</p>
+									)}
+									{executionSemanticsStatus.missingIngestMappingStepNos.length > 0 && (
+										<p>
+											{executionSemanticsStatus.mappingLabel}{" "}
+											缺少采集映射（自动/批处理/测试工序必填）。
+										</p>
+									)}
+									<p className="text-xs opacity-80">当前状态编译会得到 INVALID。</p>
+								</div>
 							)}
 						</TooltipContent>
 					</Tooltip>
@@ -403,27 +432,38 @@ function RouteDetailPage() {
 				</div>
 			)}
 
-			{executionSemanticsStatus.missingConstraintStepNos.length > 0 && (
+			{!executionSemanticsStatus.isReady && (
 				<div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
 					<div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
 						<div className="space-y-1">
 							<p className="font-medium">此路由尚未配置完整执行语义</p>
-							<p className="text-amber-900/80">
-								{executionSemanticsStatus.stepLabel ?? ""} 缺少站点组/允许站点，否则编译会得到
-								INVALID。
+							{executionSemanticsStatus.missingConstraintStepNos.length > 0 && (
+								<p className="text-amber-900/80">
+									站点约束缺失：{executionSemanticsStatus.stepLabel}。
+								</p>
+							)}
+							{executionSemanticsStatus.missingIngestMappingStepNos.length > 0 && (
+								<p className="text-amber-900/80">
+									采集映射缺失：{executionSemanticsStatus.mappingLabel}。
+								</p>
+							)}
+							<p className="text-amber-900/60 text-xs">
+								未满足编译必要条件，生成版本将为 INVALID。
 							</p>
 						</div>
-						<Can permissions={Permission.ROUTE_CONFIGURE}>
-							<Button
-								size="sm"
-								variant="outline"
-								className="border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
-								onClick={() => setBulkDialogOpen(true)}
-								disabled={stationGroupOptions.length === 0}
-							>
-								快速为缺失步骤配置站点组
-							</Button>
-						</Can>
+						{executionSemanticsStatus.missingConstraintStepNos.length > 0 && (
+							<Can permissions={Permission.ROUTE_CONFIGURE}>
+								<Button
+									size="sm"
+									variant="outline"
+									className="border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
+									onClick={() => setBulkDialogOpen(true)}
+									disabled={stationGroupOptions.length === 0}
+								>
+									快速为缺失步骤配置站点组
+								</Button>
+							</Can>
+						)}
 					</div>
 				</div>
 			)}

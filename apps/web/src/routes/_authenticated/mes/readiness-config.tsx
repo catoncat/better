@@ -36,7 +36,11 @@ function ReadinessConfigPage() {
 	const { hasPermission } = useAbility();
 	const canViewReadiness = hasPermission(Permission.READINESS_VIEW);
 	const canEditReadiness = hasPermission(Permission.READINESS_CONFIG);
-	const canViewLines = hasPermission(Permission.RUN_READ) && hasPermission(Permission.RUN_CREATE);
+	const canViewLines =
+		hasPermission(Permission.RUN_READ) ||
+		hasPermission(Permission.RUN_CREATE) ||
+		canViewReadiness ||
+		canEditReadiness;
 	const { data: linesData, isLoading: linesLoading } = useLines({ enabled: canViewLines });
 	const [selectedLineId, setSelectedLineId] = useState<string>("");
 	const [enabledTypes, setEnabledTypes] = useState<Set<ReadinessItemType>>(new Set());
