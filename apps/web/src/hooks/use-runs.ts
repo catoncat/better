@@ -167,8 +167,15 @@ export function useCloseRun() {
 			queryClient.invalidateQueries({ queryKey: ["mes", "run-detail", runNo] });
 		},
 		onError: (error: unknown, { runNo }) => {
+			// OQC_REQUIRED 不是失败，而是状态转移：已触发 OQC，等待质量完成
 			if (error instanceof ApiError && error.code === "OQC_REQUIRED") {
+				toast.info("已触发出货检验 (OQC)，等待质量完成后可收尾", {
+					duration: 5000,
+					description: "请在下方 OQC 区域查看检验状态",
+				});
 				queryClient.invalidateQueries({ queryKey: ["mes", "oqc", "run", runNo] });
+				queryClient.invalidateQueries({ queryKey: ["mes", "run-detail", runNo] });
+				return; // 不走 showError
 			}
 			showError("收尾失败", error);
 		},
