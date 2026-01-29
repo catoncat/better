@@ -13,6 +13,7 @@ import {
 	routeCompileResponseSchema,
 	routeDetailResponseSchema,
 	routeErrorResponseSchema,
+	routeFaiTemplateUpdateSchema,
 	routeListQuerySchema,
 	routeListResponseSchema,
 	routeProcessTypeResponseSchema,
@@ -30,6 +31,7 @@ import {
 	listRoutes,
 	listRouteVersions,
 	updateExecutionConfig,
+	updateRouteFaiTemplate,
 	updateRouteProcessType,
 } from "./service";
 
@@ -114,6 +116,60 @@ export const routingModule = new Elysia({
 			requirePermission: Permission.ROUTE_CONFIGURE,
 			params: routingCodeParamsSchema,
 			body: routeProcessTypeUpdateSchema,
+			response: {
+				200: routeProcessTypeResponseSchema,
+				400: routeErrorResponseSchema,
+				404: routeErrorResponseSchema,
+			},
+			detail: { tags: ["MES - Routing"] },
+		},
+	)
+	.patch(
+		"/:routingCode/fai-template",
+		async ({ db, params, body, set, user, request }) => {
+			const actor = buildAuditActor(user);
+			const requestMeta = buildAuditRequestMeta(request);
+			const before = await db.routing.findUnique({ where: { code: params.routingCode } });
+
+			const result = await updateRouteFaiTemplate(db, params.routingCode, body.faiTemplateId);
+			if (!result.success) {
+				await recordAuditEvent(db, {
+					entityType: AuditEntityType.SYSTEM_CONFIG,
+					entityId: params.routingCode,
+					entityDisplay: params.routingCode,
+					action: "ROUTE_FAI_TEMPLATE_UPDATE",
+					actor,
+					status: "FAIL",
+					errorCode: result.code,
+					errorMessage: result.message,
+					before,
+					request: requestMeta,
+					payload: body,
+				});
+				set.status = result.status ?? 400;
+				return { ok: false, error: { code: result.code, message: result.message } };
+			}
+
+			await recordAuditEvent(db, {
+				entityType: AuditEntityType.SYSTEM_CONFIG,
+				entityId: result.data.id,
+				entityDisplay: result.data.code,
+				action: "ROUTE_FAI_TEMPLATE_UPDATE",
+				actor,
+				status: "SUCCESS",
+				before,
+				after: result.data,
+				request: requestMeta,
+				payload: body,
+			});
+
+			return { ok: true, data: result.data };
+		},
+		{
+			isAuth: true,
+			requirePermission: Permission.ROUTE_CONFIGURE,
+			params: routingCodeParamsSchema,
+			body: routeFaiTemplateUpdateSchema,
 			response: {
 				200: routeProcessTypeResponseSchema,
 				400: routeErrorResponseSchema,

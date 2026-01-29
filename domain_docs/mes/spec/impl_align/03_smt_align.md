@@ -45,7 +45,7 @@
 | 换料记录查询 | `GET /api/runs/:runNo/loading` | `apps/server/src/modules/mes/loading/service.ts` | `apps/web/src/routes/_authenticated/mes/loading/-components/loading-history.tsx` |
 | 创建 FAI (FAI=PENDING) | `POST /api/fai/run/:runNo` | `apps/server/src/modules/mes/fai/service.ts` | `apps/web/src/routes/_authenticated/mes/fai.tsx` |
 | 首件生产(试产) | `POST /api/fai/:faiId/start`, `POST /api/stations/:stationCode/track-in`, `POST /api/stations/:stationCode/track-out` | `apps/server/src/modules/mes/fai/service.ts`, `apps/server/src/modules/mes/execution/service.ts` | `apps/web/src/routes/_authenticated/mes/fai.tsx` |
-| 记录首件检验项 | `POST /api/fai/:faiId/items` | `apps/server/src/modules/mes/fai/service.ts` | `apps/web/src/routes/_authenticated/mes/fai.tsx` |
+| 记录首件检验项 | `POST /api/fai/:faiId/items`, `PATCH /api/fai/:faiId/items/:itemId` | `apps/server/src/modules/mes/fai/service.ts` | `apps/web/src/routes/_authenticated/mes/fai.tsx` |
 | 首件判定 | `POST /api/fai/:faiId/complete` | `apps/server/src/modules/mes/fai/service.ts` | `apps/web/src/routes/_authenticated/mes/fai.tsx` |
 | FAI 签字确认 | `POST /api/fai/:faiId/sign` | `apps/server/src/modules/mes/fai/service.ts` | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` |
 | Run 授权 (Run=AUTHORIZED) | `POST /api/runs/:runNo/authorize` | `apps/server/src/modules/mes/run/service.ts` | `apps/web/src/routes/_authenticated/mes/runs/$runNo.tsx` |

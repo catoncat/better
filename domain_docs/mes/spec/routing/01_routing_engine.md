@@ -1,6 +1,6 @@
 # Routing Engine Design & Configuration
 
-> **更新时间**: 2025-01-02
+> **更新时间**: 2026-01-28
 
 This document defines the MES Routing Engine behavior and configuration model, aligned with:
 - `domain_docs/mes/spec/process/01_end_to_end_flows.md` (E2E flowchart)
@@ -8,7 +8,7 @@ This document defines the MES Routing Engine behavior and configuration model, a
 
 The Routing Engine must support two sources of routing:
 - **ERP Imported Routing** (source-of-truth): step sequence is read-only in MES (1A)
-- **MES Native Routing**: editable in MES
+- **MES Native Routing**: editable in MES (preferred for SMT complex routes)
 
 MES configures **execution semantics** for all routes via `RouteExecutionConfig` (2B).
 
@@ -39,6 +39,10 @@ ERP typically does NOT provide (or is not suitable as):
 - runtime guard policies
 
 MES provides these via **Route Execution Config** for all routes (see `03_route_execution_config.md`).
+
+### 0.3 MES 自建路由（SMT）
+当 ERP 无法维护复杂 SMT 路由时，MES 允许创建 `sourceSystem=MES` 的路由，步骤序列由 MES 管理并可编辑。
+ERP 路由仍保留只读用于对照与同步，但 SMT 生产以 MES 路由为准。
 
 ---
 
@@ -110,14 +114,25 @@ Algorithm:
 
 ## 4. Routing Selection (WorkOrder / Run)
 
-### Current implementation (MVP)
-- WorkOrder must explicitly specify `routingId` before release.
-- Run creation uses the WorkOrder `routingId` directly (no auto-matching).
-- Select the latest READY `ExecutableRouteVersion` for that routing.
-- If no READY version exists, reject Run creation with `ROUTE_NOT_READY`.
+### Current implementation (Phase 4)
+At Run creation (or first execution), determine the routing and version.
 
-### Future (planned, not yet implemented)
-- Auto-match by `productCode`, effective range, active flag, and priority.
+Priority:
+1) If `WorkOrder.meta.routingOverride` is present, use it.
+2) Else if WorkOrder explicitly specifies `routingId`, use it.
+3) Else match by `productCode` with MES route first, then ERP route:
+   - `sourceSystem="MES"` + `productCode` (required)
+   - `effectiveFrom <= now < effectiveTo` (null bounds treated as open)
+   - `isActive = true`
+4) If no MES match, then try ERP with the same filters.
+5) If multiple match, resolve deterministically:
+   - latest `effectiveFrom`
+   - latest `updatedAt`
+   - if still ambiguous, require explicit selection (manual bind).
+
+Then select the latest READY `ExecutableRouteVersion` for that routing.
+If no READY executable version exists, reject Run creation:
+- `ROUTE_VERSION_NOT_READY` or `ROUTE_COMPILE_FAILED`
 
 ---
 
@@ -131,6 +146,11 @@ When creating a Run:
 
 In-flight Runs MUST NOT auto-switch to a new route version after ERP updates.
 Only new Runs use new versions.
+
+### 5.1 工单手动覆盖与 ERP 同步
+ERP 同步写入 WorkOrder 时：
+- 若存在 `WorkOrder.meta.routingOverride`，则保留该路由绑定，不被 ERP 同步覆盖。
+- 覆盖仅允许在未创建 Run 且工单未完成时执行（避免影响已冻结 Run 的 routeVersion）。
 
 ---
 

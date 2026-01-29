@@ -50,6 +50,7 @@ import { Route as AuthenticatedMesMaintenanceRecordsIndexRouteImport } from './r
 import { Route as AuthenticatedMesLoadingIndexRouteImport } from './routes/_authenticated/mes/loading/index'
 import { Route as AuthenticatedMesLinesIndexRouteImport } from './routes/_authenticated/mes/lines/index'
 import { Route as AuthenticatedMesFqcIndexRouteImport } from './routes/_authenticated/mes/fqc/index'
+import { Route as AuthenticatedMesFaiTemplatesIndexRouteImport } from './routes/_authenticated/mes/fai-templates/index'
 import { Route as AuthenticatedMesEquipmentInspectionsIndexRouteImport } from './routes/_authenticated/mes/equipment-inspections/index'
 import { Route as AuthenticatedMesDataCollectionSpecsIndexRouteImport } from './routes/_authenticated/mes/data-collection-specs/index'
 import { Route as AuthenticatedMesDailyQcRecordsIndexRouteImport } from './routes/_authenticated/mes/daily-qc-records/index'
@@ -300,6 +301,12 @@ const AuthenticatedMesFqcIndexRoute =
     path: '/mes/fqc/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedMesFaiTemplatesIndexRoute =
+  AuthenticatedMesFaiTemplatesIndexRouteImport.update({
+    id: '/mes/fai-templates/',
+    path: '/mes/fai-templates/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMesEquipmentInspectionsIndexRoute =
   AuthenticatedMesEquipmentInspectionsIndexRouteImport.update({
     id: '/mes/equipment-inspections/',
@@ -380,10 +387,10 @@ const AuthenticatedMesIntegrationDeviceDataRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
-  '/': typeof AuthenticatedIndexRoute
   '/mes/defects': typeof AuthenticatedMesDefectsRoute
   '/mes/execution': typeof AuthenticatedMesExecutionRoute
   '/mes/fai': typeof AuthenticatedMesFaiRoute
@@ -400,8 +407,8 @@ export interface FileRoutesByFullPath {
   '/system/settings': typeof AuthenticatedSystemSettingsRoute
   '/system/test-upload': typeof AuthenticatedSystemTestUploadRoute
   '/system/user-management': typeof AuthenticatedSystemUserManagementRoute
-  '/mes': typeof AuthenticatedMesIndexRoute
-  '/system': typeof AuthenticatedSystemIndexRoute
+  '/mes/': typeof AuthenticatedMesIndexRoute
+  '/system/': typeof AuthenticatedSystemIndexRoute
   '/mes/integration/device-data': typeof AuthenticatedMesIntegrationDeviceDataRoute
   '/mes/integration/manual-entry': typeof AuthenticatedMesIntegrationManualEntryRoute
   '/mes/integration/status': typeof AuthenticatedMesIntegrationStatusRoute
@@ -409,21 +416,22 @@ export interface FileRoutesByFullPath {
   '/mes/oqc/rules': typeof AuthenticatedMesOqcRulesRoute
   '/mes/routes/$routingCode': typeof AuthenticatedMesRoutesRoutingCodeRoute
   '/mes/runs/$runNo': typeof AuthenticatedMesRunsRunNoRoute
-  '/mes/bake-records': typeof AuthenticatedMesBakeRecordsIndexRoute
-  '/mes/boms': typeof AuthenticatedMesBomsIndexRoute
-  '/mes/cold-storage-temperatures': typeof AuthenticatedMesColdStorageTemperaturesIndexRoute
-  '/mes/daily-qc-records': typeof AuthenticatedMesDailyQcRecordsIndexRoute
-  '/mes/data-collection-specs': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
-  '/mes/equipment-inspections': typeof AuthenticatedMesEquipmentInspectionsIndexRoute
-  '/mes/fqc': typeof AuthenticatedMesFqcIndexRoute
-  '/mes/lines': typeof AuthenticatedMesLinesIndexRoute
-  '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
-  '/mes/maintenance-records': typeof AuthenticatedMesMaintenanceRecordsIndexRoute
-  '/mes/material-lots': typeof AuthenticatedMesMaterialLotsIndexRoute
-  '/mes/materials': typeof AuthenticatedMesMaterialsIndexRoute
-  '/mes/oqc': typeof AuthenticatedMesOqcIndexRoute
-  '/mes/oven-program-records': typeof AuthenticatedMesOvenProgramRecordsIndexRoute
-  '/mes/production-exception-records': typeof AuthenticatedMesProductionExceptionRecordsIndexRoute
+  '/mes/bake-records/': typeof AuthenticatedMesBakeRecordsIndexRoute
+  '/mes/boms/': typeof AuthenticatedMesBomsIndexRoute
+  '/mes/cold-storage-temperatures/': typeof AuthenticatedMesColdStorageTemperaturesIndexRoute
+  '/mes/daily-qc-records/': typeof AuthenticatedMesDailyQcRecordsIndexRoute
+  '/mes/data-collection-specs/': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
+  '/mes/equipment-inspections/': typeof AuthenticatedMesEquipmentInspectionsIndexRoute
+  '/mes/fai-templates/': typeof AuthenticatedMesFaiTemplatesIndexRoute
+  '/mes/fqc/': typeof AuthenticatedMesFqcIndexRoute
+  '/mes/lines/': typeof AuthenticatedMesLinesIndexRoute
+  '/mes/loading/': typeof AuthenticatedMesLoadingIndexRoute
+  '/mes/maintenance-records/': typeof AuthenticatedMesMaintenanceRecordsIndexRoute
+  '/mes/material-lots/': typeof AuthenticatedMesMaterialLotsIndexRoute
+  '/mes/materials/': typeof AuthenticatedMesMaterialsIndexRoute
+  '/mes/oqc/': typeof AuthenticatedMesOqcIndexRoute
+  '/mes/oven-program-records/': typeof AuthenticatedMesOvenProgramRecordsIndexRoute
+  '/mes/production-exception-records/': typeof AuthenticatedMesProductionExceptionRecordsIndexRoute
   '/mes/routes/': typeof AuthenticatedMesRoutesIndexRoute
   '/mes/runs': typeof AuthenticatedMesRunsIndexRoute
   '/mes/solder-paste-usage': typeof AuthenticatedMesSolderPasteUsageIndexRoute
@@ -469,6 +477,7 @@ export interface FileRoutesByTo {
   '/mes/daily-qc-records': typeof AuthenticatedMesDailyQcRecordsIndexRoute
   '/mes/data-collection-specs': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
   '/mes/equipment-inspections': typeof AuthenticatedMesEquipmentInspectionsIndexRoute
+  '/mes/fai-templates': typeof AuthenticatedMesFaiTemplatesIndexRoute
   '/mes/fqc': typeof AuthenticatedMesFqcIndexRoute
   '/mes/lines': typeof AuthenticatedMesLinesIndexRoute
   '/mes/loading': typeof AuthenticatedMesLoadingIndexRoute
@@ -526,6 +535,7 @@ export interface FileRoutesById {
   '/_authenticated/mes/daily-qc-records/': typeof AuthenticatedMesDailyQcRecordsIndexRoute
   '/_authenticated/mes/data-collection-specs/': typeof AuthenticatedMesDataCollectionSpecsIndexRoute
   '/_authenticated/mes/equipment-inspections/': typeof AuthenticatedMesEquipmentInspectionsIndexRoute
+  '/_authenticated/mes/fai-templates/': typeof AuthenticatedMesFaiTemplatesIndexRoute
   '/_authenticated/mes/fqc/': typeof AuthenticatedMesFqcIndexRoute
   '/_authenticated/mes/lines/': typeof AuthenticatedMesLinesIndexRoute
   '/_authenticated/mes/loading/': typeof AuthenticatedMesLoadingIndexRoute
@@ -548,10 +558,10 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/login'
     | '/notifications'
     | '/profile'
-    | '/'
     | '/mes/defects'
     | '/mes/execution'
     | '/mes/fai'
@@ -568,8 +578,8 @@ export interface FileRouteTypes {
     | '/system/settings'
     | '/system/test-upload'
     | '/system/user-management'
-    | '/mes'
-    | '/system'
+    | '/mes/'
+    | '/system/'
     | '/mes/integration/device-data'
     | '/mes/integration/manual-entry'
     | '/mes/integration/status'
@@ -577,21 +587,22 @@ export interface FileRouteTypes {
     | '/mes/oqc/rules'
     | '/mes/routes/$routingCode'
     | '/mes/runs/$runNo'
-    | '/mes/bake-records'
-    | '/mes/boms'
-    | '/mes/cold-storage-temperatures'
-    | '/mes/daily-qc-records'
-    | '/mes/data-collection-specs'
-    | '/mes/equipment-inspections'
-    | '/mes/fqc'
-    | '/mes/lines'
-    | '/mes/loading'
-    | '/mes/maintenance-records'
-    | '/mes/material-lots'
-    | '/mes/materials'
-    | '/mes/oqc'
-    | '/mes/oven-program-records'
-    | '/mes/production-exception-records'
+    | '/mes/bake-records/'
+    | '/mes/boms/'
+    | '/mes/cold-storage-temperatures/'
+    | '/mes/daily-qc-records/'
+    | '/mes/data-collection-specs/'
+    | '/mes/equipment-inspections/'
+    | '/mes/fai-templates/'
+    | '/mes/fqc/'
+    | '/mes/lines/'
+    | '/mes/loading/'
+    | '/mes/maintenance-records/'
+    | '/mes/material-lots/'
+    | '/mes/materials/'
+    | '/mes/oqc/'
+    | '/mes/oven-program-records/'
+    | '/mes/production-exception-records/'
     | '/mes/routes/'
     | '/mes/runs'
     | '/mes/solder-paste-usage'
@@ -637,6 +648,7 @@ export interface FileRouteTypes {
     | '/mes/daily-qc-records'
     | '/mes/data-collection-specs'
     | '/mes/equipment-inspections'
+    | '/mes/fai-templates'
     | '/mes/fqc'
     | '/mes/lines'
     | '/mes/loading'
@@ -693,6 +705,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mes/daily-qc-records/'
     | '/_authenticated/mes/data-collection-specs/'
     | '/_authenticated/mes/equipment-inspections/'
+    | '/_authenticated/mes/fai-templates/'
     | '/_authenticated/mes/fqc/'
     | '/_authenticated/mes/lines/'
     | '/_authenticated/mes/loading/'
@@ -730,7 +743,7 @@ declare module '@tanstack/react-router' {
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -758,14 +771,14 @@ declare module '@tanstack/react-router' {
     '/_authenticated/system/': {
       id: '/_authenticated/system/'
       path: '/system'
-      fullPath: '/system'
+      fullPath: '/system/'
       preLoaderRoute: typeof AuthenticatedSystemIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/': {
       id: '/_authenticated/mes/'
       path: '/mes'
-      fullPath: '/mes'
+      fullPath: '/mes/'
       preLoaderRoute: typeof AuthenticatedMesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
@@ -891,49 +904,49 @@ declare module '@tanstack/react-router' {
     '/_authenticated/mes/work-centers/': {
       id: '/_authenticated/mes/work-centers/'
       path: '/mes/work-centers'
-      fullPath: '/mes/work-centers'
+      fullPath: '/mes/work-centers/'
       preLoaderRoute: typeof AuthenticatedMesWorkCentersIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/time-rules/': {
       id: '/_authenticated/mes/time-rules/'
       path: '/mes/time-rules'
-      fullPath: '/mes/time-rules'
+      fullPath: '/mes/time-rules/'
       preLoaderRoute: typeof AuthenticatedMesTimeRulesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/stencil-usage/': {
       id: '/_authenticated/mes/stencil-usage/'
       path: '/mes/stencil-usage'
-      fullPath: '/mes/stencil-usage'
+      fullPath: '/mes/stencil-usage/'
       preLoaderRoute: typeof AuthenticatedMesStencilUsageIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/stencil-cleaning/': {
       id: '/_authenticated/mes/stencil-cleaning/'
       path: '/mes/stencil-cleaning'
-      fullPath: '/mes/stencil-cleaning'
+      fullPath: '/mes/stencil-cleaning/'
       preLoaderRoute: typeof AuthenticatedMesStencilCleaningIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/squeegee-usage/': {
       id: '/_authenticated/mes/squeegee-usage/'
       path: '/mes/squeegee-usage'
-      fullPath: '/mes/squeegee-usage'
+      fullPath: '/mes/squeegee-usage/'
       preLoaderRoute: typeof AuthenticatedMesSqueegeeUsageIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/solder-paste-usage/': {
       id: '/_authenticated/mes/solder-paste-usage/'
       path: '/mes/solder-paste-usage'
-      fullPath: '/mes/solder-paste-usage'
+      fullPath: '/mes/solder-paste-usage/'
       preLoaderRoute: typeof AuthenticatedMesSolderPasteUsageIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/runs/': {
       id: '/_authenticated/mes/runs/'
       path: '/mes/runs'
-      fullPath: '/mes/runs'
+      fullPath: '/mes/runs/'
       preLoaderRoute: typeof AuthenticatedMesRunsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
@@ -947,105 +960,112 @@ declare module '@tanstack/react-router' {
     '/_authenticated/mes/production-exception-records/': {
       id: '/_authenticated/mes/production-exception-records/'
       path: '/mes/production-exception-records'
-      fullPath: '/mes/production-exception-records'
+      fullPath: '/mes/production-exception-records/'
       preLoaderRoute: typeof AuthenticatedMesProductionExceptionRecordsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/oven-program-records/': {
       id: '/_authenticated/mes/oven-program-records/'
       path: '/mes/oven-program-records'
-      fullPath: '/mes/oven-program-records'
+      fullPath: '/mes/oven-program-records/'
       preLoaderRoute: typeof AuthenticatedMesOvenProgramRecordsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/oqc/': {
       id: '/_authenticated/mes/oqc/'
       path: '/mes/oqc'
-      fullPath: '/mes/oqc'
+      fullPath: '/mes/oqc/'
       preLoaderRoute: typeof AuthenticatedMesOqcIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/materials/': {
       id: '/_authenticated/mes/materials/'
       path: '/mes/materials'
-      fullPath: '/mes/materials'
+      fullPath: '/mes/materials/'
       preLoaderRoute: typeof AuthenticatedMesMaterialsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/material-lots/': {
       id: '/_authenticated/mes/material-lots/'
       path: '/mes/material-lots'
-      fullPath: '/mes/material-lots'
+      fullPath: '/mes/material-lots/'
       preLoaderRoute: typeof AuthenticatedMesMaterialLotsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/maintenance-records/': {
       id: '/_authenticated/mes/maintenance-records/'
       path: '/mes/maintenance-records'
-      fullPath: '/mes/maintenance-records'
+      fullPath: '/mes/maintenance-records/'
       preLoaderRoute: typeof AuthenticatedMesMaintenanceRecordsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/loading/': {
       id: '/_authenticated/mes/loading/'
       path: '/mes/loading'
-      fullPath: '/mes/loading'
+      fullPath: '/mes/loading/'
       preLoaderRoute: typeof AuthenticatedMesLoadingIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/lines/': {
       id: '/_authenticated/mes/lines/'
       path: '/mes/lines'
-      fullPath: '/mes/lines'
+      fullPath: '/mes/lines/'
       preLoaderRoute: typeof AuthenticatedMesLinesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/fqc/': {
       id: '/_authenticated/mes/fqc/'
       path: '/mes/fqc'
-      fullPath: '/mes/fqc'
+      fullPath: '/mes/fqc/'
       preLoaderRoute: typeof AuthenticatedMesFqcIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/mes/fai-templates/': {
+      id: '/_authenticated/mes/fai-templates/'
+      path: '/mes/fai-templates'
+      fullPath: '/mes/fai-templates/'
+      preLoaderRoute: typeof AuthenticatedMesFaiTemplatesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/equipment-inspections/': {
       id: '/_authenticated/mes/equipment-inspections/'
       path: '/mes/equipment-inspections'
-      fullPath: '/mes/equipment-inspections'
+      fullPath: '/mes/equipment-inspections/'
       preLoaderRoute: typeof AuthenticatedMesEquipmentInspectionsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/data-collection-specs/': {
       id: '/_authenticated/mes/data-collection-specs/'
       path: '/mes/data-collection-specs'
-      fullPath: '/mes/data-collection-specs'
+      fullPath: '/mes/data-collection-specs/'
       preLoaderRoute: typeof AuthenticatedMesDataCollectionSpecsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/daily-qc-records/': {
       id: '/_authenticated/mes/daily-qc-records/'
       path: '/mes/daily-qc-records'
-      fullPath: '/mes/daily-qc-records'
+      fullPath: '/mes/daily-qc-records/'
       preLoaderRoute: typeof AuthenticatedMesDailyQcRecordsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/cold-storage-temperatures/': {
       id: '/_authenticated/mes/cold-storage-temperatures/'
       path: '/mes/cold-storage-temperatures'
-      fullPath: '/mes/cold-storage-temperatures'
+      fullPath: '/mes/cold-storage-temperatures/'
       preLoaderRoute: typeof AuthenticatedMesColdStorageTemperaturesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/boms/': {
       id: '/_authenticated/mes/boms/'
       path: '/mes/boms'
-      fullPath: '/mes/boms'
+      fullPath: '/mes/boms/'
       preLoaderRoute: typeof AuthenticatedMesBomsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/mes/bake-records/': {
       id: '/_authenticated/mes/bake-records/'
       path: '/mes/bake-records'
-      fullPath: '/mes/bake-records'
+      fullPath: '/mes/bake-records/'
       preLoaderRoute: typeof AuthenticatedMesBakeRecordsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
@@ -1152,6 +1172,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMesDailyQcRecordsIndexRoute: typeof AuthenticatedMesDailyQcRecordsIndexRoute
   AuthenticatedMesDataCollectionSpecsIndexRoute: typeof AuthenticatedMesDataCollectionSpecsIndexRoute
   AuthenticatedMesEquipmentInspectionsIndexRoute: typeof AuthenticatedMesEquipmentInspectionsIndexRoute
+  AuthenticatedMesFaiTemplatesIndexRoute: typeof AuthenticatedMesFaiTemplatesIndexRoute
   AuthenticatedMesFqcIndexRoute: typeof AuthenticatedMesFqcIndexRoute
   AuthenticatedMesLinesIndexRoute: typeof AuthenticatedMesLinesIndexRoute
   AuthenticatedMesLoadingIndexRoute: typeof AuthenticatedMesLoadingIndexRoute
@@ -1216,6 +1237,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedMesDataCollectionSpecsIndexRoute,
   AuthenticatedMesEquipmentInspectionsIndexRoute:
     AuthenticatedMesEquipmentInspectionsIndexRoute,
+  AuthenticatedMesFaiTemplatesIndexRoute:
+    AuthenticatedMesFaiTemplatesIndexRoute,
   AuthenticatedMesFqcIndexRoute: AuthenticatedMesFqcIndexRoute,
   AuthenticatedMesLinesIndexRoute: AuthenticatedMesLinesIndexRoute,
   AuthenticatedMesLoadingIndexRoute: AuthenticatedMesLoadingIndexRoute,

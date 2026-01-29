@@ -5,6 +5,7 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	ClipboardCheck,
+	Edit2,
 	Loader2,
 	Play,
 	Plus,
@@ -50,12 +51,14 @@ import {
 	useDataCollectionSpecList,
 } from "@/hooks/use-data-collection-specs";
 import {
+	type FaiDetail,
 	type FaiQuery,
 	useCompleteFai,
 	useFaiDetail,
 	useFaiList,
 	useRecordFaiItem,
 	useStartFai,
+	useUpdateFaiItem,
 } from "@/hooks/use-fai";
 import { useGenerateUnits, useRunDetail, useRunList } from "@/hooks/use-runs";
 import { ApiError } from "@/lib/api-error";
@@ -94,6 +97,8 @@ interface FaiSearchParams {
 	pageSize?: number;
 }
 
+type FaiItemDetail = NonNullable<FaiDetail>["items"][number];
+
 export const Route = createFileRoute("/_authenticated/mes/fai")({
 	validateSearch: (search: Record<string, unknown>): FaiSearchParams => ({
 		runNo: (search.runNo as string) || undefined,
@@ -123,6 +128,8 @@ function FaiPage() {
 
 	const [selectedFaiId, setSelectedFaiId] = useState<string | null>(null);
 	const [recordDialogOpen, setRecordDialogOpen] = useState(false);
+	const [editDialogOpen, setEditDialogOpen] = useState(false);
+	const [editingItem, setEditingItem] = useState<FaiItemDetail | null>(null);
 	const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
 	const [runSearch, setRunSearch] = useState("");
 	const [runInput, setRunInput] = useState(query.runNo ?? "");
@@ -145,6 +152,7 @@ function FaiPage() {
 	const startFai = useStartFai();
 	const generateUnits = useGenerateUnits();
 	const recordItem = useRecordFaiItem();
+	const updateItem = useUpdateFaiItem();
 	const completeFai = useCompleteFai();
 
 	useEffect(() => {
@@ -195,6 +203,15 @@ function FaiPage() {
 		itemSpec: "",
 		actualValue: "",
 		result: "PASS" as "PASS" | "FAIL" | "NA",
+		remark: "",
+	});
+
+	const [editForm, setEditForm] = useState({
+		unitSn: "",
+		itemSpec: "",
+		actualValue: "",
+		result: "PASS" as "PASS" | "FAIL" | "NA",
+		defectCode: "",
 		remark: "",
 	});
 
@@ -296,6 +313,7 @@ function FaiPage() {
 			),
 		[trialUnits],
 	);
+	const canEditItems = Boolean(faiDetail && faiDetail.status === "INSPECTING" && canViewFai);
 
 	useEffect(() => {
 		if (!selectedSpec) return;
@@ -312,6 +330,32 @@ function FaiPage() {
 			setSpecSearch("");
 		}
 	}, [recordDialogOpen]);
+
+	useEffect(() => {
+		if (!editDialogOpen) {
+			setEditingItem(null);
+			setEditForm({
+				unitSn: "",
+				itemSpec: "",
+				actualValue: "",
+				result: "PASS",
+				defectCode: "",
+				remark: "",
+			});
+			return;
+		}
+
+		if (editingItem) {
+			setEditForm({
+				unitSn: editingItem.unitSn ?? "",
+				itemSpec: editingItem.itemSpec ?? "",
+				actualValue: editingItem.actualValue ?? "",
+				result: editingItem.result as "PASS" | "FAIL" | "NA",
+				defectCode: editingItem.defectCode ?? "",
+				remark: editingItem.remark ?? "",
+			});
+		}
+	}, [editDialogOpen, editingItem]);
 
 	const getStatusBadge = (status: string) => {
 		const label = FAI_STATUS_MAP[status] || status;
@@ -393,6 +437,35 @@ function FaiPage() {
 						result: "PASS",
 						remark: "",
 					});
+					refetch();
+				},
+			},
+		);
+	};
+
+	const handleEditItem = (item: FaiItemDetail) => {
+		setEditingItem(item);
+		setEditDialogOpen(true);
+	};
+
+	const handleUpdateItem = () => {
+		if (!selectedFaiId || !editingItem) return;
+		updateItem.mutate(
+			{
+				faiId: selectedFaiId,
+				itemId: editingItem.id,
+				data: {
+					unitSn: editForm.unitSn || undefined,
+					itemSpec: editForm.itemSpec || undefined,
+					actualValue: editForm.actualValue || undefined,
+					result: editForm.result,
+					defectCode: editForm.defectCode || undefined,
+					remark: editForm.remark || undefined,
+				},
+			},
+			{
+				onSuccess: () => {
+					setEditDialogOpen(false);
 					refetch();
 				},
 			},
@@ -589,6 +662,13 @@ function FaiPage() {
 																记录
 															</Button>
 														</Can>
+														<Button
+															size="sm"
+															variant="ghost"
+															onClick={() => setSelectedFaiId(fai.id)}
+														>
+															详情
+														</Button>
 														<Can permissions={Permission.QUALITY_FAI}>
 															<Button
 																size="sm"
@@ -698,6 +778,7 @@ function FaiPage() {
 													<TableHead>结果</TableHead>
 													<TableHead>SN</TableHead>
 													<TableHead>时间</TableHead>
+													{canEditItems && <TableHead className="text-right">操作</TableHead>}
 												</TableRow>
 											</TableHeader>
 											<TableBody>
@@ -717,6 +798,18 @@ function FaiPage() {
 														</TableCell>
 														<TableCell>{item.unitSn ?? "-"}</TableCell>
 														<TableCell>{formatDateTime(item.inspectedAt)}</TableCell>
+														{canEditItems && (
+															<TableCell className="text-right">
+																<Button
+																	size="sm"
+																	variant="outline"
+																	onClick={() => handleEditItem(item)}
+																>
+																	<Edit2 className="mr-1 h-3 w-3" />
+																	{item.result === "NA" ? "录入" : "编辑"}
+																</Button>
+															</TableCell>
+														)}
 													</TableRow>
 												))}
 											</TableBody>
@@ -959,6 +1052,90 @@ function FaiPage() {
 							disabled={!itemForm.itemName || recordItem.isPending}
 						>
 							{recordItem.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+							保存
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* Update Item Dialog */}
+			<Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>{editingItem?.result === "NA" ? "录入检验项" : "编辑检验项"}</DialogTitle>
+						<DialogDescription>填写检验结果与备注</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4">
+						<div className="space-y-2">
+							<Label>检验项</Label>
+							<Input value={editingItem?.itemName ?? ""} disabled className="w-full" />
+						</div>
+						<div className="space-y-2">
+							<Label>规格/标准</Label>
+							<Input
+								value={editForm.itemSpec}
+								onChange={(e) => setEditForm({ ...editForm, itemSpec: e.target.value })}
+								className="w-full"
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label>实测值</Label>
+							<Input
+								value={editForm.actualValue}
+								onChange={(e) => setEditForm({ ...editForm, actualValue: e.target.value })}
+								className="w-full"
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label>结果</Label>
+							<Select
+								value={editForm.result}
+								onValueChange={(value) =>
+									setEditForm({ ...editForm, result: value as "PASS" | "FAIL" | "NA" })
+								}
+							>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="PASS">通过</SelectItem>
+									<SelectItem value="FAIL">不通过</SelectItem>
+									<SelectItem value="NA">N/A</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
+						<div className="space-y-2">
+							<Label>单位 SN（可选）</Label>
+							<Input
+								value={editForm.unitSn}
+								onChange={(e) => setEditForm({ ...editForm, unitSn: e.target.value })}
+								className="w-full"
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label>缺陷代码（可选）</Label>
+							<Input
+								value={editForm.defectCode}
+								onChange={(e) => setEditForm({ ...editForm, defectCode: e.target.value })}
+								className="w-full"
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label>备注</Label>
+							<Textarea
+								value={editForm.remark}
+								onChange={(e) => setEditForm({ ...editForm, remark: e.target.value })}
+								className="w-full"
+								placeholder="备注信息"
+							/>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+							取消
+						</Button>
+						<Button onClick={handleUpdateItem} disabled={!editingItem || updateItem.isPending}>
+							{updateItem.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
 							保存
 						</Button>
 					</DialogFooter>

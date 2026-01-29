@@ -1249,6 +1249,7 @@ model Routing {
   sourceSystem String  @default("MES")
   sourceKey   String?
   productCode String?
+  faiTemplateId String?
   processType ProcessType @default(SMT)
   effectiveFrom DateTime?
   effectiveTo DateTime?
@@ -1258,6 +1259,7 @@ model Routing {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  faiTemplate      FaiTemplate?       @relation(fields: [faiTemplateId], references: [id])
   steps            RoutingStep[]
   workOrders       WorkOrder[]
   executionConfigs RouteExecutionConfig[]
@@ -1266,6 +1268,7 @@ model Routing {
   slotMappings     SlotMaterialMapping[]
 
   @@index([sourceSystem, sourceKey])
+  @@index([faiTemplateId])
 }
 
 model RoutingStep {
@@ -1344,6 +1347,42 @@ model ExecutableRouteVersion {
 
   @@unique([routingId, versionNo])
   @@index([routingId])
+}
+
+model FaiTemplate {
+  id          String      @id @default(cuid())
+  code        String      @unique
+  name        String
+  productCode String
+  processType ProcessType @default(SMT)
+  version     String?
+  isActive    Boolean     @default(true)
+  meta        Json?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  items    FaiTemplateItem[]
+  routings Routing[]
+
+  @@index([productCode])
+  @@index([processType, isActive])
+}
+
+model FaiTemplateItem {
+  id         String   @id @default(cuid())
+  templateId String
+  seq        Int
+  itemName   String
+  itemSpec   String?
+  required   Boolean  @default(true)
+  meta       Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  template FaiTemplate @relation(fields: [templateId], references: [id])
+
+  @@unique([templateId, seq])
+  @@index([templateId])
 }
 
 model ErpRouteHeaderRaw {

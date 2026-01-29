@@ -46,7 +46,7 @@ const assertSafeToReset = (allowUnsafeReset?: boolean) => {
 	const filePath = resolveDbFilePath(databaseUrl);
 	if (!filePath) return;
 
-	const repoRoot = path.resolve(import.meta.dirname, "../../..");
+	const repoRoot = path.resolve(import.meta.dirname, "../../../../");
 	const safeDir = path.resolve(repoRoot, "data") + path.sep;
 	const normalized = path.resolve(filePath);
 	if (

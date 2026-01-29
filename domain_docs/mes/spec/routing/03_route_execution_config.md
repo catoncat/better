@@ -1,6 +1,6 @@
 # Route Execution Config (MES-owned Execution Semantics)
 
-> **更新时间**: 2026-01-24
+> **更新时间**: 2026-01-28
 
 This document defines how MES configures runtime execution semantics without changing the canonical step sequence from ERP (2B).
 Execution semantics are configured here for all routes, regardless of source system.
@@ -15,6 +15,7 @@ Execution semantics answer:
 - Whether FAI or authorization is required
 - What data must be collected and validated
 - How ingest events map into step execution
+- Which FAI template is bound to the route (route-level, single template)
 
 RoutingStep only defines the sequence; `RouteExecutionConfig` defines execution behavior.
 
@@ -35,6 +36,7 @@ Merge rule:
 - Higher precedence non-null fields override lower precedence.
 
 Only `RouteExecutionConfig` is used to derive stationType, station constraints, gates, and data collection bindings.
+FAI template binding is configured at the route level and compiled into the executable snapshot.
 
 Example flow:
 1) ERP (or MES-native) defines step sequence in `RoutingStep`.
@@ -167,6 +169,34 @@ Current behavior (as-built):
 - FAI is a Run-level gate: if any compiled step has `requiresFAI=true`, Run authorization is blocked until the latest FAI is `PASS` (`FAI_NOT_PASSED`).
 - MANUAL TrackIn/TrackOut requires Run status `AUTHORIZED`/`IN_PROGRESS` (`RUN_NOT_AUTHORIZED`), so authorization currently behaves as a Run-level mandatory gate for execution.
 - Step-level `requiresAuthorization` is stored in the snapshot but not yet enforced (reserved for ingest/AUTO/BATCH/TEST).
+
+### 4.1 FAI Template Binding
+Route-level FAI template binding rules:
+- Each route may bind one FAI template (per product).
+- Template is stored on `Routing.faiTemplateId` and compiled into the route snapshot.
+- The snapshot carries a template snapshot for traceability and stable execution.
+- If any step requires FAI but the route has no template, compilation may still succeed (warn only).
+
+Snapshot shape (partial):
+```json
+{
+  "route": {
+    "code": "ROUTE-SMT-PRDA",
+    "sourceSystem": "MES",
+    "sourceKey": null,
+    "faiTemplate": {
+      "id": "fai_tpl_001",
+      "code": "FAI-PRDA-V1",
+      "name": "产品A首件模板",
+      "productCode": "PRD-A",
+      "version": "V1",
+      "items": [
+        { "id": "item_1", "seq": 1, "itemName": "物料一致性", "itemSpec": "BOM核对", "required": true }
+      ]
+    }
+  }
+}
+```
 
 ---
 
