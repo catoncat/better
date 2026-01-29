@@ -14,6 +14,7 @@
 | 轮次2 | Work Orders & Runs IA | completed | 我 | 2026-01-29 | - | - | `domain_docs/mes/ux_review/round2_work_orders_runs_ia.md` |
 | 轮次3 | Readiness UX | completed | 我 | 2026-01-29 | - | - | `domain_docs/mes/ux_review/round3_readiness_ux.md` |
 | 轮次4 | Loading UX | completed | 我 | 2026-01-29 | - | - | `domain_docs/mes/ux_review/round4_loading_ux.md` |
+| 轮次6 | Routing & Config | completed | 我 | 2026-01-29 | `d6626e6` → `-` | - | `domain_docs/mes/ux_review/round6_routing_config.md` |
 
 状态说明：pending / in_progress / completed
 
