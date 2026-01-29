@@ -48,6 +48,13 @@ stateDiagram-v2
 | `CLOSED_REWORK` | 原 Run 关闭并进入返修闭环 | MRB 决策返修（同时创建返修 Run） |
 | `SCRAPPED` | 原 Run 整批报废 | MRB 决策报废 |
 
+### OQC (出货检) 交互说明
+当 `Run` 尝试收尾时，若满足 OQC 触发条件：
+1. 系统返回 `OQC_REQUIRED` 信号（非错误，非状态变更）。
+2. `Run` 保持 `IN_PROGRESS` 状态。
+3. 用户需完成 OQC 抽检任务。
+4. OQC 合格后再次尝试收尾，流转至 `COMPLETED`；不合格则流转至 `ON_HOLD`。
+
 ## 单件状态机（UnitStatus）
 
 ```mermaid

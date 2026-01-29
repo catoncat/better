@@ -37,9 +37,11 @@ flowchart TB
     direction TB
     S0[选择/确认下一工序] --> ST{站点类型?}
     ST -- MANUAL --> M1[人工进站] --> DC
-    ST -- AUTO --> A1[设备事件进出站] --> DC
+    ST -- AUTO --> CHK_RUN{Run=IN_PROGRESS?}
+    ST -- TEST --> CHK_RUN
+    CHK_RUN -- 否 --> IGNORE[拒绝接入/报错]
+    CHK_RUN -- 是 --> A1[设备/测试接入] --> DC
     ST -- BATCH --> B1[载具/批次进出站] --> DC
-    ST -- TEST --> T1[测试结果接入] --> DC
 
     DC[数据采集/校验] --> OUT[出站判定]
     OUT --> RES{PASS/FAIL?}

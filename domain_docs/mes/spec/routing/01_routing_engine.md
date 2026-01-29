@@ -228,7 +228,20 @@ Result:
 
 ---
 
-## 10. References
+## 11. UI Entry & Navigation Policy
+
+To optimize user workflow, the `/mes` route implements permission-aware redirection:
+
+1.  **Redirect Logic**:
+    - If user has **Operator** permissions (e.g., `mes:execute`): Redirect to **Execution Dashboard** (`/mes/execution`).
+    - If user has **Engineer/Admin** permissions (e.g., `mes:manage`): Redirect to **Readiness/Config Dashboard** (`/mes/readiness`).
+    - Fallback: Stay at `/mes` landing page (if available) or 403.
+
+2.  **Rationale**:
+    - Operators primarily use the execution interface; avoiding an extra click improves efficiency.
+    - Engineers primarily manage configuration and readiness.
+
+## 12. References
 - `02_erp_route_ingestion.md`
 - `03_route_execution_config.md`
 - `04_route_versioning_and_change_management.md`

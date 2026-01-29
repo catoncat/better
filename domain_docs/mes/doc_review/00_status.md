@@ -22,6 +22,7 @@
 | 轮次7 | Quality (Defects / Rework Tasks) | completed | 我 | 2026-01-29 | `9e960e7` → `5a9f8a1` | - | domain_docs/mes/doc_review/round7_quality_defects_rework.md |
 | 轮次8 | Integration | completed | 我 | 2026-01-29 | `9a7289b` → `f28eb07` | 文档偏差已修复 | domain_docs/mes/doc_review/round8_integration.md |
 | 轮次9 | Traceability | completed | 我 | 2026-01-29 | `b252909` → `8f7f881` | 偏差已记录 | domain_docs/mes/doc_review/round9_traceability.md |
+| 轮次10 | Execution Delta (Ingest/OQC) | completed | 我 | 2026-01-29 | `772d3c5` → `ea34b76` | Targeted fix for RunStatus & Redirects | domain_docs/mes/doc_review/round10_execution_delta.md |
 
 状态说明：pending / in_progress / completed
 
